@@ -1,0 +1,113 @@
+//
+// Modifield version of the old menubar test that uses the menubar's
+// visible field.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    Color background = Color.white;
+
+    JMenuBar menubar = {
+	Color background = Color.yellow;
+	Menu items = {
+	    "File", new Menu {
+		"Open", new Dictionary {
+		    String command = "Open File";
+		    String accelerator = "control O";
+		    String group = "xxxxx";
+		    int    state = TRUE;
+		},
+		"Close", new Dictionary {
+		    String command = "Close File";
+		    String accelerator = "ctrl W";
+		    String group = "xxxxx";
+		    int    state = FALSE;
+		    int    enabled = TRUE;
+		},
+
+		"Cursors", new Menu {
+		    "Default", "xxx",
+		    "Wait", "yyy",
+		    "Move", "zzz",
+		},
+		"-", NULL,
+		"Exit", "Exit",
+	    },
+	    "Edit", new Menu {
+		"Save", "Save", 1,
+		"Save As", "Save As",
+		"Options", new Menu {
+		    "Options Off", "noopt", "opts", 1,
+		    "Option A", "optA", "opts", 0,
+		    "Option B", "optB", "opts", 0,
+		    "Option C", "optC", "opts", 0,
+		},
+		"Item 1", "Item_1", "grp0", 0,
+		"Item 2", "Item_2", "grp0", 1,
+		"Item 3",  NULL,    "grp0", 0,
+		"Item 4", "Item_4", "grp0", 0,
+		"Case 1", "Case_1", "grp1", 1,
+		"Case 2", "Case_2", "grp1", 1,
+		"Case 3", "Case_3", "grp1", 1,
+		"Case 4", "Case_4", "grp1", 1, // only this will be selected
+	    },
+	};
+    };
+
+    Array layout = {
+	new JButton {
+	    String text = "Toggle MenuBar";
+	    String font = "Helvetica-plain-18";
+	    Color  background = Color.red;
+
+	    actionPerformed(e) {
+		root.menubar.visible = !root.menubar.visible;
+	    }
+	}, CENTER,
+
+	new JButton {
+	    String text = "Show MenuBar";
+	    Color  background = Color.green;
+
+	    actionPerformed(e) {
+		root.menubar.visible = TRUE;
+	    }
+	}, EAST,
+
+	new JButton {
+	    String text = "Hide MenuBar";
+
+	    Color background = {
+		double blue = 1.0;
+	    };
+
+	    actionPerformed(e) {
+		root.menubar.visible = FALSE;
+	    }
+	}, SOUTH,
+    };
+
+    //
+    // Event handlers
+    //
+
+    actionPerformed(e) {
+	stderr.nextline = e.command;
+	if (strcmp(e.command, "Exit") == 0)
+	    exit(0);
+	else if (e.command[0] == 'x')
+	    cursor = Cursor.DEFAULT_CURSOR;
+	else if (e.command[0] == 'y')
+	    cursor = Cursor.WAIT_CURSOR;
+	else if (e.command[0] == 'z')
+	    cursor = Cursor.MOVE_CURSOR;
+    }
+
+    itemStateChanged(e) {
+	stderr.nextline = toString(e);
+    }
+};
+
+f.visible = TRUE;
+

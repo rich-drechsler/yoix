@@ -1,0 +1,35 @@
+import yoix.*.*;
+
+JFrame f = {
+    String text = "hello, world";
+    Color  background = Color.black;
+
+    Dimension size = {
+	double width = 72*10;
+	double height = 72*5;
+    };
+
+    Graphics graphics = {
+	String font = "Lucida-bold-64";
+	Color  foreground = Color.yellow;
+	int    antialiasing = TRUE;
+	int    textantialiasing = TRUE;
+    };
+
+    paint(rect) {
+	graphics {
+	    gsave();
+	    rectclip(rect);
+	    translate(18, 144);
+	    rotate(5);
+	    moveto(0, 0);
+	    ashow(0, 0, text);
+	    charpath(text);
+	    stroke();
+	    grestore();
+	}
+    }
+};
+
+f.visible = TRUE;
+

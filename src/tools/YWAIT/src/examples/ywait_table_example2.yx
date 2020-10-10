@@ -1,0 +1,238 @@
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Dimension size = NULL;
+	Object    parent = Global.MainScreen;
+	Font      font = Global.GetPreferredLabelFont();
+	int       opaque = TRUE;
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = TRUE;        // TRUE means remember size and location
+	int    retainstate = FALSE; // remember size and location across sessions
+	int    reloadargs = TRUE;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	String row_count;
+
+	//
+	// If users run the system a long time and "print" plenty of
+	// large tables, there might be loads of tmp files, so to be
+	// nice, clean them up when this screen is dismissed. In
+	// reality, unless each tmp file is over 1 Mb doing this is
+	// probably overkill since the files are cleaned up when the
+	// application is closed.
+	//
+
+	Array local_file_cache[0,...];
+	int   cachecount;
+
+        ////////////////////////////
+        //
+        // Screen Layout
+        //
+        ////////////////////////////
+
+        GridBagLayout layoutmanager;
+        Array layout = {
+            new JPanel {
+                GridBagLayout layoutmanager;
+                Array layout = {
+                    new JLabel {
+                        String  tag = "$_caption";
+                        String  text = "Sample Table Based Loosely on a Java Example from Sun";
+                        Font    font = Global.GetPreferredHeadingFont();
+                        int     alignment = CENTER;
+                    },
+                    new GridBagConstraints {
+                        int     gridwidth = REMAINDER;
+                        int     weightx = 1;
+                        int     fill = HORIZONTAL;
+                        int     anchor = CENTER;
+                    },
+
+		    Global.NewJTableWithSearch("$_table", "|", AS_NEEDED, NULL, new Dictionary {
+                        int    rows = 5;
+
+			String tabletitletag = "$_caption";
+
+                        Array columns = {
+                            new JTableColumn {
+                                String header = "First Name";
+                                int type = STRING_TYPE;
+                                int width = Global.PickTableColumnWidth(header);
+                            },
+                            new JTableColumn {
+                                String header = "Last Name";
+                                int type = STRING_TYPE;
+                                int width = Global.PickTableColumnWidth(header);
+                            },
+                            new JTableColumn {
+                                String header = "Motto";
+                                int type = TEXT_TYPE;
+                                int width = Global.PickTableColumnWidth(header, 15);
+				Dictionary attributes = {
+				    String format = "html";
+				};
+			    },
+                            new JTableColumn {
+                                String header = "Sport";
+                                int type = STRING_TYPE;
+                                int width = Global.PickTableColumnWidth(header, 21);
+                            },
+                            new JTableColumn {
+                                String header = "Icon";
+                                int type = ICON_TYPE;
+                                int width = Global.PickTableColumnWidth(header);
+                                String font = "Helvetica-plain-24";
+                            },
+                            new JTableColumn {
+                                String header = "%";
+                                int type = PERCENT_TYPE;
+                                int width = Global.PickTableColumnWidth(header, 5);
+                            },
+                            new JTableColumn {
+                                String header = "Date";
+                                int type = DATE_TYPE;
+                                int width = Global.PickTableColumnWidth(header, 29);
+                            },
+                            new JTableColumn {
+                                String header = "Salary";
+                                int type = MONEY_TYPE;
+                                int width = Global.PickTableColumnWidth(header, 10);
+                            },
+                            new JTableColumn {
+                                String header = "Years";
+                                int type = INTEGER_TYPE;
+                                int width = Global.PickTableColumnWidth(header);
+                            },
+                            new JTableColumn {
+                                String header = "Vegetarian";
+                                int type = BOOLEAN_TYPE;
+                                int width = Global.PickTableColumnWidth(header);
+                            },
+                            new JTableColumn {
+                                String header = "Timer";
+                                int type = TIMER_TYPE;
+                                int width = Global.PickTableColumnWidth(header, 12);
+                            },
+                        };
+                    }),
+                    new GridBagConstraints {
+                        int fill = BOTH;
+                        int weightx = 1;
+                        int weighty = 1;
+                        int gridwidth = REMAINDER;
+                    },
+
+                    new JPanel {
+                        GridLayout layoutmanager = {
+                            int hgap = 36;
+                        };
+
+                        Array layout = {
+                            new JButton {
+                                String  text = "Dismiss";
+                                Font    font = Global.GetPreferredButtonFont();
+
+                                actionPerformed(e) {
+                                    root.HideScreen();
+                                }
+                            },
+                        };
+                    },
+                    new GridBagConstraints {
+                        int     gridwidth = REMAINDER;
+                        int     anchor = CENTER;
+                        Insets  insets = Global.GetQualifiedInsets(72.0/8, "T");
+                    },
+
+                    new JLabel {
+                        String  text = Global.ProprietaryLabel;
+                        Font    font = Global.GetPreferredProprietaryFont();
+                        int     alignment = CENTER;
+                    },
+                    new GridBagConstraints {
+                        int     gridwidth = REMAINDER;
+                        int     anchor = CENTER;
+                        Insets  insets = Global.GetQualifiedInsets(72.0/32, "T");
+                    },
+                };
+            },
+            new GridBagConstraints {
+                int     gridwidth = REMAINDER;
+                int     weightx = 1;
+                int     weighty = 1;
+                int     fill = BOTH;
+                Insets  insets = Global.GetQualifiedInsets(72.0/4, "TLR");
+            },
+        };
+
+        ////////////////////////////
+        //
+        // Screen Functions
+        //
+        ////////////////////////////
+
+        HideScreen() {
+            Global.HideScreen(this);
+        }
+
+	LoadScreen() {
+	    Global.QueueCommand(this, &LoadData);
+	}
+
+        ReloadScreen() {
+	    LoadScreen();
+	}
+
+	ShowScreen() {
+	    cachecount = 0;
+	    visible = Global.ScreenVisibility;
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	LoadData() {
+	    String values = "Mary|Walrath|Cogito ergo sum|Snowboarding|http://reentry.arc.nasa.gov/s/s-flagFrance.gif|0.23|Fri Jun  6 11:46:58 EDT 2003|143.1234|5|false|1d2m\nAlison|Huml|Excelsior|Rowing|http://reentry.arc.nasa.gov/s/s-flagUS.gif|0.17|Sat Jun  7 12:43:38 EDT 2003|1923.321|3|true|23h12m\nKathy|Walrath|Regurgitate ergo sum|Chasing toddlers|http://reentry.arc.nasa.gov/s/s-flagUS.gif|0.03|Fri Jun 13 15:56:25 EDT 2003|12.5|2|false|23h11m59s\nSharon|Zakhour|Put it in writing|Speed reading|http://reentry.arc.nasa.gov/s/s-flagUS.gif|0.32|Tue Jun  3  8:22:32 EDT 2003|-142|20|true|2d\nAngela|Lih|Put the gun down and back away <em>slowly</em>|Teaching high school|http://reentry.arc.nasa.gov/s/s-flagUS.gif|0.48|Thu Jun 12 11:46:58 EDT 2003|123.123|4|false|5m\n";
+
+	    Global.SearchTableReset(components.$_table, this, components.$_table.basetag);
+
+	    components.$_table.TableLoader(values);
+
+	    // just as a demonstration of capabilities
+	    components.$_table.action(SET_FIELD, 3, 4,
+		Global.GetMailIcon(72.0/2));
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);

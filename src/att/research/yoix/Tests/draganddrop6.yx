@@ -1,0 +1,98 @@
+//
+// Variation of the last example that uses custom drag handling in
+// the JColorChooser. As usual transferhandler must be set to NULL
+// in the JColorChooser before the dran and drop event handlers will
+// start working. Unfortunately is also look like you have to start
+// dragging in the preview section, but not over any of the colored
+// parts.
+//
+
+import yoix.*.*;
+
+JFrame colorframe = {
+    Dimension size = NULL;
+    double    border = 72/8;
+    int       initialized = FALSE;
+
+    Array layout = {
+	new JColorChooser {
+	    Object transferhandler = NULL;	// required!!
+	    Color  color = Color.red;
+	    int    dragenabled = FALSE;
+
+	    dragGestureRecognized(DragGestureEvent e) {
+		e.visual = this.color;
+		return(e.visual);
+	    }
+
+	    dragDropEnd(DragSourceEvent e) {
+		printf("drop returned %d\n", e.succeeded);
+	    }
+	},
+    };
+};
+
+JFrame textframe = {
+    double border = 72/4;
+
+    Dimension size = {
+	double width = 5*72;
+	double height = 3*72;
+    };
+
+    Point location = {
+	double x = VM.screen.width - size.width - 72/2;
+	double y = (VM.screen.height - size.height)/2;
+    };
+
+    Array layout = {
+	new JTextArea {
+	    String text = "Now is the time\n\tfor all good men...";
+	    Object transferhandler = NULL;
+	    int    edit = TRUE;
+	    int    scroll = NONE;
+
+	    dragGestureRecognized(DragGestureEvent e) {
+		Array ends = selectedends;
+		int   index = viewToModel(e.location);
+
+		//
+		// We only start the drag (by returning a non
+		// NULL value) if the event happen inside the
+		// the current selection.
+		//
+		if ((ends = selectedends) != NULL) {
+		    if (index >= ends[0] && index < ends[1])
+			e.visual = selected;
+		}
+		return(e.visual);
+	    }
+
+	    dragEnter(DropTargetEvent e) {
+		//
+		// Return value means we won't accept anything
+		// if we started the drag.
+		//
+
+		if (e.transferable instanceof Color)
+		    caretmodel = 1;
+		else caretmodel = 0;
+		return(!e.dragowner);
+	    }
+
+	    drop(DropTargetEvent e) {
+		int succeeded = TRUE;
+
+		if (e.transferable instanceof String)
+		    insertText(this, e.transferable, viewToModel(e.location));
+		else if (e.transferable instanceof Color)
+		    foreground = e.transferable;
+		else succeeded = FALSE;
+		return(succeeded);
+	    }
+	},
+    };
+};
+
+textframe.visible = TRUE;
+colorframe.visible = TRUE;

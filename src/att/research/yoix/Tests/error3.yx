@@ -1,0 +1,15 @@
+//
+// Intentional error to check error message line numbers.
+//
+
+import yoix.*.*;
+
+String str = "now is the time";
+int    x = 12;
+
+if (x != 12) {
+     x++;
+} else if (str = x) {
+    str = x;
+    x = 0;
+}

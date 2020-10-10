@@ -1,0 +1,24 @@
+//
+// A simple security manager example that only lets you read and write
+// files that look like they're in the official temp directory. Turns
+// out you probably need to do more to prevent easy cheating.
+//
+
+import yoix.*.*;
+
+SecurityManager sm = {
+    checkRead(name) {
+	printf("checkRead: name=%s\n", name);
+	return(startsWith(name, VM.tmpdir));
+    }
+
+    checkWrite(name) {
+	printf("checkWrite: name=%s\n", name);
+	return(startsWith(name, VM.tmpdir));
+    }
+};
+
+setSecurityManager(sm);
+
+fopen("/tmp/../usr/xxx", "r");       // try to cheat
+fopen("xxx", "r");

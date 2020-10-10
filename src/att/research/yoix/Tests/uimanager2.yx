@@ -1,0 +1,34 @@
+import yoix.*.*;
+
+UIManager uim = {
+    Dictionary properties[] = {
+	"ColorChooser.hsbNameText", "POIUY",
+	"ColorChooser.rgbNameText", "QWERT",
+    };
+};
+
+JFrame f = {
+    Dimension size = NULL;
+    Color foreground = Color.blue;
+
+    Array layout = {
+	new JColorChooser {
+	    String tag = "$_chooser";
+	    Color  color = Color.lightGray;
+	}, CENTER,
+
+	new JButton {
+	    String text = "Select";
+
+	    actionPerformed(e) {
+		Color color = root.components.$_chooser.color;
+
+		printf("Selected color=%O\n", color);
+		root.background = color;
+	    }
+	}, SOUTH,
+    };
+};
+
+f.visible = TRUE;
+

@@ -1,0 +1,107 @@
+import yoix.*.*;
+
+Array tests = {
+    "",
+    "A",
+    "AA",
+    "BA",
+    "CA",
+    "AAAC",
+    "AAAA",
+    "AAAAA",
+    "Two roads diverged in a yellow wood,",
+    "And sorry I could not travel both",
+    "And be one traveler, long I stood",
+    "And looked down one as far as I could",
+    "To where it bent in the undergrowth.",
+    "Then took the other, as just as fair,",
+    "And having perhaps the better claim,",
+    "Because it was grassy and wanted wear;",
+    "Though as for that the passing there",
+    "Had worn them really about the same.",
+    "And both that morning equally lay",
+    "In leaves no step had trodden black.",
+    "Oh, I kept the first for another day!",
+    "Yet knowing how way leads on to way,",
+    "I doubted if I should ever come back.",
+    "I shall be telling this with a sigh",
+    "Somewhere ages and ages hence:",
+    "Two roads diverged in a wood, and I--",
+    "I took the one less traveled by,",
+    "And that has made all the difference.",
+    "This here is a 12345678901234567890 is a digit string, in part",
+    "What about this{ 1,2}?",
+};
+
+Array re = {
+    /*  1 */ regexp(@<<^A$>>@),
+    /*  2 */ regexp(@<<^A?$>>@),
+    /*  3 */ regexp(@<<^A{0,1}$>>@),
+    /*  4 */ regexp(@<<^[AB]{2,3}C{1}$>>@),
+    /*  5 */ regexp(@<<l{1,2}.*e{1,}>>@),
+    /*  6 */ regexp(@<<l{1,2}.*o{0,1}.*e{1,}>>@),
+    /*  7 */ regexp(@<<l{1,2}.*o{1,1}.*e{1,}>>@),
+    /*  8 */ regexp(@<<l{1,2}.*o{2,3}.*e{1,}>>@),
+    /*  9 */ regexp(@<<l+.*o{2,3}.*e{1,}>>@),
+    /* 10 */ regexp(@<<l{1,}.*o{2,3}.*e{1,}>>@),
+    /* 11 */ regexp(@<< [0-9]{10,20} >>@),
+    /* 12 */ regexp(@<< [0-9]{10,30} >>@),
+    /* 13 */ regexp(@<< [0-9]{10,19} >>@),
+    /* 14 */ regexp(@<< [0-9]{15,} >>@),
+    /* 15 */ regexp(@<<s{1,2}>>@),
+    /* 16 */ regexp(@<<s{ 1,2}>>@),
+    /* 17 */ regexp(@<<s{.*>>@),
+};
+
+Array answers = {
+    /*  1 */ new Array[] { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+    /*  2 */ new Array[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+    /*  3 */ new Array[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+    /*  4 */ new Array[] { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+    /*  5 */ new Array[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, },
+    /*  6 */ new Array[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, },
+    /*  7 */ new Array[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, },
+    /*  8 */ new Array[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+    /*  9 */ new Array[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+    /* 10 */ new Array[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+    /* 11 */ new Array[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, },
+    /* 12 */ new Array[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, },
+    /* 13 */ new Array[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+    /* 14 */ new Array[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, },
+    /* 15 */ new Array[] { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, },
+    /* 16 */ new Array[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, },
+    /* 17 */ new Array[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, },
+};
+
+Array results = new Array[tests@sizeof];
+
+int debug = FALSE; // set to TRUE when validating new test cases
+
+int passed;
+
+if (re@sizeof != answers@sizeof || answers[0]@sizeof != tests@sizeof) {
+    fprintf(stderr, "ERROR: %s: array sizes are inconsistent.\n", argv[0]);
+    if (!debug)
+	exit(1);
+}
+
+for (rptr in re) {
+    if (debug)
+	fprintf(stderr, "RE %2d: %s\n\tnew Array[] { ", (1+rptr@offset), rptr[0].pattern);
+    passed = TRUE;
+    for (tptr in tests) {
+	results[tptr@offset] = (*tptr =~ *rptr);
+	try {
+	    if (results[tptr@offset] != answers[rptr@offset][tptr@offset])
+		passed = FALSE;
+	}
+	catch(e) {
+	    return(debug);
+	}
+	if (debug)
+	    fprintf(stderr, "%d, ", (*tptr =~ *rptr));
+    }
+    if (debug)
+	fprintf(stderr, "},\n===========================================\n");
+    fprintf(stderr, "RE %2d: /%s/ ... %s\n", (1+rptr@offset), rptr[0].pattern, (passed ? "passed" : "failed"));
+}

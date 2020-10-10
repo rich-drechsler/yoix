@@ -1,0 +1,17 @@
+import yoix.*.*;
+
+Dictionary d1[2, ...] = {
+    int value1 = 25;
+    String value2 = "dog";
+};
+Dictionary d2 = {
+    int value1 = 10;
+    String value2 = "cat";
+};
+
+if (d1@growable)
+    d1.value3 = 3.142;
+if (d2@growable)
+    d2.value3 = 2.718;
+
+printf("d1=%O\nd2=%O\n", d1, d2);

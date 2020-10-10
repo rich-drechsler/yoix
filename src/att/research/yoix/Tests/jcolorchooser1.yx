@@ -1,0 +1,146 @@
+import yoix.*.*;
+
+addColor();
+
+JDialog chooser = {
+    GridBagLayout  layoutmanager;
+    Dimension      size = NULL;
+    String         title = "Color Chooser Example";
+    int            initialized = FALSE;
+    int            modal = TRUE;
+
+    Array layout = {
+        new JColorChooser {
+            String tag = "$_chooser";
+            Color  color = Color.blue;
+            int    canceled = FALSE;
+
+	    stateChanged(e) {
+		root.SetColorText(color);
+	    }
+        },
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int fill = BOTH;
+	    int weightx = 100;
+	    int weighty = 100;
+	},
+
+        new JPanel {
+            GridBagLayout layoutmanager;
+
+            Array layout = {
+		new JPanel {
+		    GridBagLayout layoutmanager;
+		    String border = "Color Name";
+
+		    Array layout = {
+			new JTextField {
+			    String tag = "$_text";
+			    int columns = 0;
+			    int autotrim = TRUE;
+			},
+			new GridBagConstraints {
+			    int gridwidth = REMAINDER;
+			    int fill = HORIZONTAL;
+			    int weightx = 100;
+			},
+		    };
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int fill = HORIZONTAL;
+		    int weightx = 100;
+		},
+		new JPanel {
+		    FlowLayout layoutmanager = {
+			double vgap = 72.0/16;
+		    };
+		    
+		    Array layout = {
+			new JButton {
+			    String text = "Add Color";
+			    
+			    actionPerformed(e) {
+				root.AddColor();
+			    }
+			},
+			new JButton {
+			    String text = "Reset Chooser";
+			    
+			    actionPerformed(e) {
+				root.components.$_chooser.reset = root.components.$_chooser.color;
+			    }
+			},
+			new JButton {
+			    String text = "Dismiss";
+			    
+			    actionPerformed(e) {
+				exit(0);
+			    }
+			},
+		    };
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		},
+            };
+        },
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int fill = HORIZONTAL;
+	    int weightx = 100;
+	},
+    };
+
+    AddColor() {
+        Color   color = NULL;
+	String  name;
+	String  suggested_name;
+
+	color = components.$_chooser.color;
+	name = getColorName(color);
+	suggested_name = components.$_text.text;
+
+	if (name == NULL) {
+	    if (suggested_name@length == 0 || startsWith(suggested_name, "<")) {
+		showMessageDialog(this, "Please provide a color name and try again.");
+		components.$_text.text = "";
+		components.$_text.requestfocus = TRUE;
+	    } else {
+		if (!addColor(suggested_name, color)) {
+		    showMessageDialog(this, strfmt("A color by the name '%s' is already in the Color dictionary.\nPlease choose another name.", suggested_name));
+		    components.$_text.selectedends = new Array[] { 0 };
+		    components.$_text.requestfocus = TRUE;
+		} else components.$_chooser.reset = color;
+	    }
+	}
+    }
+
+    SetColorText(Color color) {
+
+	String name = getColorName(color);
+
+	if (name == NULL) {
+	    name = "<this color is not in the Color dictionary>";
+	    components.$_text.text = name;
+	    components.$_text.selectedends = new Array[] { 0 };
+	    components.$_text.requestfocus = TRUE;
+	} else components.$_text.text = name;
+    }
+
+    SetVisible(int state) {
+        Point location;
+
+        if (!initialized) {
+            initialized = TRUE;
+            location.x = (VM.screen.width - this.size.width)/2;
+            location.y = (VM.screen.height - this.size.height)/2 - 72.0;
+            this.location = location;
+        }
+	SetColorText(components.$_chooser.color);
+        this.visible = state;
+    }
+};
+
+chooser.SetVisible(TRUE);

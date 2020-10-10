@@ -1,0 +1,54 @@
+//
+// Simple example that illustrates xormode drawing.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    int doublebuffered = FALSE;
+    Array layout = {
+	new JCanvas {
+	    int initialized = FALSE;
+/****
+	    Graphics graphics = {
+		Matrix CTM = {
+		    double sx = .5;
+		    double sy = .5;
+		};
+	    };
+****/
+
+	    paint(clip) {
+		if (!initialized) {
+		    initialized = TRUE;
+		    graphics.translate(144, 144);
+		    graphics.rotate(15);
+		    graphics.scale(.5, .5);
+		}
+		graphics {
+		    gsave();
+		    drawRect(this, 72, 72, 72*2, 72*3);
+		    sleep(2);
+		    fillRect(this, 72, 72, 72*2, 72*3);
+		    xormode = TRUE;
+		    sleep(2);
+		    fillRect(this, 72, 72, 72*2, 72*3);
+		    grestore();
+		 }
+	    }
+
+	    mousePressed(e) {
+		//
+		// In this example we have to use e.coordinates rather than
+		// e.location to get the correct answer.
+		// 
+
+		fprintf(stderr, "e.coordinates=%O\n", e.coordinates);
+		fprintf(stderr, "result=%d\n", pointInRect(e.coordinates, 72, 72, 72*2, 72*3));
+	    }
+	},
+    };
+};
+
+f.visible = TRUE;
+

@@ -1,0 +1,168 @@
+//
+// Pretty much the same as the last example but it moves one of the
+// views.
+//
+
+import yoix.j3d.*;
+import yoix.*.*;
+
+Alpha alph = {
+    int mode = J3D_COMPLETE;
+    Array waveform = { 2, 0.5, 0, 2, 0.5, 0 };
+    double triggertime = 5;
+};
+
+VirtualUniverse universe = {
+    Color background = Color.gray;
+
+    Array layout = {
+	new BranchGroup {
+	    String tag = "$_branch1";
+
+	    //EulerAngle orientation = {
+		//double alpha = 45;
+		//double beta = 45;
+		//double beta = 22.5;
+	    //};
+
+	    int orientation = 25;
+
+	    Array layout = {
+		new ColorCube {
+		    String tag = "$_colorcube";
+		    double scale = 0.2;
+		    Point3D position = { double x = -3; };
+		    Interpolator interpolator = {
+			Alpha alpha = alph;
+			Array configuration = {
+			    new Configolator {
+				int type = J3D_POSITIONINTERPOLATOR;
+				Array values = { 0, 8 };
+			    },
+			    new Configolator {
+				int type = J3D_ROTATIONINTERPOLATOR;
+				Array values = { 0, 360 };
+			    },
+			    //new Configolator {
+				//Alpha alpha = {
+				    //int mode = J3D_COMPLETE;
+				    //Array waveform = { 0.5, 0.5, 0, 0.5, 0.5, 0 };
+				    //double triggertime = alph.triggertime;
+				//};
+				//int type = J3D_SCALEINTERPOLATOR;
+				//Array values = { 0.5, 2.0 };
+			    //},
+			};
+		    };
+		},
+		new ColorCube {
+		    String tag = "$_colorcube2";
+		    double scale = 0.2;
+		    Point3D position = { double y = 1; };
+		    Interpolator interpolator = {
+			Alpha alpha = alph;
+			Configolator configuration = {
+			    int type = J3D_ROTATIONINTERPOLATOR;
+			    Array values = { 0, 360 };
+			};
+			initialize() {
+			    yoix.stdio.fprintf(stderr, "The scale is: %f\n", scale);
+			}
+		    };
+		},
+		new ColorCube {
+		    String tag = "$_colorcube3";
+		    double scale = 0.1;
+		    Point3D position = { double x = 1; double y = 1; };
+		    double previous_value = 0;
+		    Interpolator interpolator = {
+			Alpha alpha = alph;
+			Configolator configuration = {
+			    int type = J3D_CUSTOMTRANSFORMINTERPOLATOR;
+			    processStimulus() {
+				double value = interpolator.alpha.value();
+				if (value < 0.001) {
+				    position = new Point3D {
+					double x = 1;
+					double y = 1;
+					double z = 0;
+				    };
+				} else if (value < 0.333333)
+				    position = new Point3D {
+					double x = position.x;
+					double y = position.y;
+					double z = position.z +  (value - previous_value) * 10;
+				    };
+				else if (value < 0.5)
+				    position = new Point3D {
+					double x = position.x;
+					double y = position.y -  (value - previous_value) * 10;
+					double z = position.z;
+				    };
+				else position = new Point3D {
+					double x = position.x;
+					double y = position.y;
+					double z = position.z -  (value - previous_value) * 10;
+				};
+				previous_value = value;
+			    }
+			};
+		    };
+		},
+	    };
+	},
+
+	new ViewPlatform {
+	    String tag = "$_sideview";
+
+	    Transform3D transform = {
+		initializer() {
+		    setToTranslation(0, 0, 10);
+		}
+	    };
+	},
+
+	new ViewPlatform {
+	    String tag = "$_topview";
+
+	    Transform3D transform = {
+		initializer() {
+		    setToViewAt(0, 20, 0, 0, 0, 0, 0, 0, 1);
+		}
+	    };
+	},
+    };
+};
+
+JFrame f = {
+    GridLayout layoutmanager = {
+	int rows = 0;
+	int columns = 1;
+	double vgap = 72.0/4;
+    };
+
+    Array layout = {
+	new Canvas3D {
+            String  tag = "$_topcanvas";
+            ViewPlatform view = universe.tagged.$_topview;
+
+            mousePressed(MouseEvent e) {
+		alph.run = !alph.run;
+            }
+	},
+
+        new Canvas3D {
+            String  tag = "$_sidecanvas";
+            ViewPlatform view = universe.tagged.$_sideview;
+
+            mousePressed(MouseEvent e) {
+		alph.run = !alph.run;
+            }
+        },
+    };
+};
+
+
+
+
+f.visible = TRUE;

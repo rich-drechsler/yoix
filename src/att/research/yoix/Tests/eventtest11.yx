@@ -1,0 +1,23 @@
+import yoix.*.*;
+
+VM.exitmodel = 0;      // so main thread does not exit
+
+JFrame frame = {
+    mouseWheelMoved(Event e) {
+        printf("mouseWheelMoved: %.2O\n", e);
+        if (e.modifiers & SHIFT_MASK)
+            exit(0);
+    }
+};
+
+frame.visible = TRUE;
+
+MouseWheelEvent event = {
+    String id = "mouseWheelMoved";
+    int    modifiers = BUTTON1_MASK;
+    int    scrollamount = 3;
+    int    wheelrotation = -5;
+};
+
+printf("Posting %s\n", event.id);
+postEvent(event, frame);

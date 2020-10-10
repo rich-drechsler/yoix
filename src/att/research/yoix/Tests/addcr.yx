@@ -1,0 +1,68 @@
+//
+// Several different ways to add carriage return to lines in a
+// file - the one that uses stdout.nextline pretty much assumes
+// your on unix. Should be called using one of
+//
+//	cat file | yoix addcr.yx -slowest
+//	cat file | yoix addcr.yx -slow
+//	cat file | yoix addcr.yx -fast
+//	cat file | yoix addcr.yx -faster
+//
+// where file is the file that you want to add carriage return to.
+//
+
+import yoix.*.*;
+
+slowest() {
+    while ((ch = getchar()) != EOF) {
+	if (ch == '\n')
+	    putchar('\r');
+	putchar(ch);
+    }
+}
+
+slow() {
+    while ((ch = stdin.nextchar) != EOF) {
+	if (ch == '\n')
+	    stdout.nextchar = '\r';
+	stdout.nextchar = ch;
+    }
+}
+
+fast() {
+    while ((line = stdin.nextline))
+	write(stdout, line + "\r\n");
+}
+
+faster() {
+    while ((line = stdin.nextline))
+	stdout.nextline = line + "\r";		// essentially assumes unix
+}
+
+Option option;
+Array words = {"slowest", "slow", "fast", "faster"};
+
+while ((ch = option.getopt(argv, words)) != -1) {
+    switch (option.optword) {
+	case "slowest":
+	    slowest();
+	    break;
+
+	case "slow":
+	    slow();
+	    break;
+
+	case "fast":
+	    fast();
+	    break;
+
+	case "faster":
+	    faster();
+	    break;
+
+	default:
+	    fprintf(stderr, "option %s\n", option.opterror);
+	    break;
+    }
+}
+

@@ -1,0 +1,20 @@
+import yoix.*.*;
+
+String loop = "How many times to you want to loop?";
+String press = "Press any button and see what happens";
+String answer;
+int    result;
+int    counter = 1;
+
+if ((answer = showInputDialog(NULL, loop)) != NULL)
+    counter = atoi(answer);
+
+while (counter-- > 0) {
+    if ((result = showConfirmDialog(NULL, press)) >= 0)
+	press = "Last time through you pressed button " + toString(result);
+    else press = "Last time through you closed the window";
+    press += "\n     counter=" + toString(counter);
+}
+
+showMessageDialog(NULL, "The counter reached 0 - we're all done");
+

@@ -1,0 +1,83 @@
+import yoix.*.*;
+
+JFrame f = {
+    Insets border = {
+	double top = 72.0/8;
+	double left = 72.0/4;
+	double bottom = 72.0/8;
+	double right = 72.0/4;
+    };
+
+    Dimension size = {
+	double width = 10*72;
+	double height = 5*72;
+    };
+
+    Point location = {
+	double x = (VM.screen.width - size.width)/2;
+	double y = (VM.screen.height - size.height)/4;
+    };
+
+    GridBagLayout layoutmanager;
+    Array layout = {
+	new JLabel {
+	    String text = "A Big Red Label";
+	    String font = "Dialog-bold-16";
+	    Color  foreground = Color.red;
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	},
+
+	new JTextArea {
+	    String tag = "$_textarea";
+	    String font = "Monospaced-plain-12";
+	    int    scroll = AS_NEEDED;
+	    int    edit = TRUE;
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int weightx = 1;
+	    int weighty = 1;
+	    int fill = BOTH;
+	},
+
+	new JPanel {
+	    GridLayout layoutmanager;
+	    Array layout = {
+		new JButton {
+		    String text = "Update";
+
+		    actionPerformed(e) {
+			String text = date() + "\n";
+
+			appendText(root.components.$_textarea, text);
+		    }
+		},
+		new JButton {
+		    String text = "Clear";
+
+		    actionPerformed(e) {
+			root.components.$_textarea.text = "";
+		    }
+		},
+		new JButton {
+		    String text = "Dismiss";
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+
+	    Insets insets = {
+		double top = 72.0/8;
+	    };
+	},
+    };
+};
+
+f.visible = TRUE;

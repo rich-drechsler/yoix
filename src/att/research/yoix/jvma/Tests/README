@@ -1,0 +1,49 @@
+Many of these tests are old and may not work with the current
+version. The group that I've recently used are
+
+	test5.yx
+	test10.yx
+	test13.yx
+	test15.yx
+	test17.yx
+	test18.yx
+	test19.yx
+	test20.yx	4/19 addition for call test
+
+so there's a good chance they still work. Several of the test
+files also dump a class file in /tmp/xxx. You can test them
+using
+
+	cp /tmp/xxx ZZZ.class
+	java ZZZ
+
+and in most cases something should print on stdout.
+
+To dump an existing Java class file start the Yoix interpreter
+in the parent of this directory by typing something like
+
+    make JAVAFLAGS='-mx512m' RUNARGS='-D21' run
+
+and the type
+
+    import yoix.*.*;
+    import yoix.module.att.research.yoix.jvma.JVMTestModule.*;
+
+    loadClassFile("../YoixBodyThread.class");
+    printf("%s", dumpClassFile());
+
+and a dump of the class file that you pointed at should print
+on stdout. JVMTestModule.java isn't mentioned in the Makefile,
+so you probably may have to compile it by hand before you use
+it in a Yoix script.
+
+NOTE - by default JVMTestModule.class isn't built by the jvma
+Makefile, so you have to build it on your own before running
+any of the test files. For example, if you're currently in the
+same directory as this file then
+
+    cd ..
+    make JVMTestModule.class
+
+should compile JVMTestModule.java.
+

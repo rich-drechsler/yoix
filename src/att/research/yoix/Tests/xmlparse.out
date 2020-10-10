@@ -1,0 +1,736 @@
+Running test #0
+<FOLDER <#2>>
+ <XML <#2>>
+  <PROLOG <#5>>
+   <XML_DECL <#1>>
+    <VERSION 1.5>
+   <PROC_INST <#2>>
+    <NAME popstate>
+    <VALUE < ? >>
+   <PROC_INST <#2>>
+    <NAME popstate>
+    <VALUE ???? >>>>>
+   <PROC_INST <#2>>
+    <NAME popstate>
+    <VALUE ????>
+   <PROC_INST <#2>>
+    <NAME popstate>
+    <VALUE dog>?cat>
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME end>
+ <XML <#2>>
+  <PROLOG <#4>>
+   <XML_DECL <#3>>
+    <VERSION 1.1>
+    <ENCODING USA>
+    <STANDALONE no>
+   <COMMENT  commenting >
+   <PROC_INST <#2>>
+    <NAME popstate>
+    <VALUE another>
+   <COMMENT  more commenting >
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME end>
+Running test #1
+<FOLDER <#1>>
+ <DTD <#4>>
+  <COMMENT  declarations for <head> & <body> >
+  <COMMENT  B+, B, or B- >
+  <COMMENT -B+, B, or B- >
+  <COMMENT         >
+Running test #2
+<FOLDER <#1>>
+ <XML <#1>>
+  <BODY <#1>>
+   <BLOCK <#2>>
+    <NAME testing>
+    <CONTENT <#3>>
+     <CHARDATA 
+Try this:
+>
+     <CDSECT <greeting>Hello, world!</greeting>>
+     <CHARDATA 
+OK?
+>
+Running test #3
+<FOLDER <#2>>
+ <XML <#2>>
+  <PROLOG <#1>>
+   <XML_DECL <#1>>
+    <VERSION 1.0>
+  <BODY <#1>>
+   <BLOCK <#2>>
+    <NAME greeting>
+    <CONTENT <#1>>
+     <CHARDATA Hello, world!>
+ <XML <#1>>
+  <BODY <#1>>
+   <BLOCK <#2>>
+    <NAME greeting>
+    <CONTENT <#1>>
+     <CHARDATA Hello, world!>
+Running test #4
+<FOLDER <#1>>
+ <XML <#2>>
+  <PROLOG <#2>>
+   <XML_DECL <#1>>
+    <VERSION 1.0>
+   <DTD <#2>>
+    <NAME greeting>
+    <EXTERNAL_ID <#1>>
+     <SYSTEM hello.dtd>
+  <BODY <#1>>
+   <BLOCK <#2>>
+    <NAME greeting>
+    <CONTENT <#1>>
+     <CHARDATA Hello, world!>
+Running test #5
+<FOLDER <#1>>
+ <XML <#2>>
+  <PROLOG <#3>>
+   <XML_DECL <#2>>
+    <VERSION 1.0>
+    <ENCODING UTF-8>
+   <DTD <#2>>
+    <NAME greeting>
+    <ELEMENT_DECL <#2>>
+     <NAME greeting>
+     <CONTENT_SPEC <#1>>
+      <PCDATA 1>
+   <COMMENT 
+<greeting>Hello, world!</greeting>
+>
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME end>
+Running test #6
+<FOLDER <#1>>
+ <XML <#2>>
+  <PROLOG <#1>>
+   <XML_DECL <#2>>
+    <VERSION 1.0>
+    <STANDALONE yes>
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME end>
+Running test #7
+<FOLDER <#1>>
+ <DTD <#3>>
+  <ATTLIST_DECL <#2>>
+   <NAME poem>
+   <ATT_DEF <#3>>
+    <NAME xml:space>
+    <ATT_TYPE <#1>>
+     <ENUMERATION <#2>>
+      <NMTOKEN default>
+      <NMTOKEN preserve>
+    <DEFAULT_DECL <#1>>
+     <VALUE preserve>
+  <COMMENT  >
+  <ATTLIST_DECL <#2>>
+   <NAME pre>
+   <ATT_DEF <#3>>
+    <NAME xml:space>
+    <ATT_TYPE <#1>>
+     <ENUMERATION <#1>>
+      <NMTOKEN preserve>
+    <DEFAULT_DECL <#2>>
+     <FIXED>
+     <VALUE preserve>
+Running test #8
+<FOLDER <#4>>
+ <XML <#1>>
+  <BODY <#1>>
+   <BLOCK <#3>>
+    <NAME p>
+    <ATTRIBUTE <#2>>
+     <NAME xml:lang>
+     <VALUE en>
+    <CONTENT <#1>>
+     <CHARDATA The quick brown fox jumps over the lazy dog.>
+ <XML <#1>>
+  <BODY <#1>>
+   <BLOCK <#3>>
+    <NAME p>
+    <ATTRIBUTE <#2>>
+     <NAME xml:lang>
+     <VALUE en-GB>
+    <CONTENT <#1>>
+     <CHARDATA What colour is it?>
+ <XML <#1>>
+  <BODY <#1>>
+   <BLOCK <#3>>
+    <NAME p>
+    <ATTRIBUTE <#2>>
+     <NAME xml:lang>
+     <VALUE en-US>
+    <CONTENT <#1>>
+     <CHARDATA What color is it?>
+ <XML <#1>>
+  <BODY <#1>>
+   <BLOCK <#5>>
+    <NAME sp>
+    <ATTRIBUTE <#2>>
+     <NAME who>
+     <VALUE Faust>
+    <ATTRIBUTE <#2>>
+     <NAME desc>
+     <VALUE leise>
+    <ATTRIBUTE <#2>>
+     <NAME xml:lang>
+     <VALUE de>
+    <CONTENT <#9>>
+     <CHARDATA 
+    >
+     <BLOCK <#2>>
+      <NAME l>
+      <CONTENT <#1>>
+       <CHARDATA Habe nun, ach! Philosophie,>
+     <CHARDATA 
+    >
+     <BLOCK <#2>>
+      <NAME l>
+      <CONTENT <#1>>
+       <CHARDATA Juristerei, und Medizin>
+     <CHARDATA 
+    >
+     <BLOCK <#2>>
+      <NAME l>
+      <CONTENT <#1>>
+       <CHARDATA und leider auch Theologie>
+     <CHARDATA 
+    >
+     <BLOCK <#2>>
+      <NAME l>
+      <CONTENT <#1>>
+       <CHARDATA durchaus studiert mit heißem Bemüh'n.>
+     <CHARDATA 
+>
+Running test #9
+<FOLDER <#1>>
+ <XML <#2>>
+  <PROLOG <#2>>
+   <XML_DECL <#1>>
+    <VERSION 1.0>
+   <DTD <#4>>
+    <NAME test>
+    <ATTLIST_DECL <#2>>
+     <NAME poem>
+     <ATT_DEF <#3>>
+      <NAME xml:lang>
+      <ATT_TYPE <#1>>
+       <TOKENIZED NMTOKEN>
+      <DEFAULT_DECL <#1>>
+       <VALUE fr>
+    <ATTLIST_DECL <#2>>
+     <NAME gloss>
+     <ATT_DEF <#3>>
+      <NAME xml:lang>
+      <ATT_TYPE <#1>>
+       <TOKENIZED NMTOKEN>
+      <DEFAULT_DECL <#1>>
+       <VALUE en>
+    <ATTLIST_DECL <#2>>
+     <NAME note>
+     <ATT_DEF <#3>>
+      <NAME xml:lang>
+      <ATT_TYPE <#1>>
+       <TOKENIZED NMTOKEN>
+      <DEFAULT_DECL <#1>>
+       <VALUE en>
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME end>
+Running test #10
+<FOLDER <#4>>
+ <XML <#1>>
+  <BODY <#1>>
+   <BLOCK <#4>>
+    <NAME termdef>
+    <ATTRIBUTE <#2>>
+     <NAME id>
+     <VALUE dt-dog>
+    <ATTRIBUTE <#2>>
+     <NAME term>
+     <VALUE dog>
+    <CONTENT <#1>>
+     <CHARDATA 
+>
+ <XML <#1>>
+  <BODY <#1>>
+   <NOBLOCK <#3>>
+    <NAME IMG>
+    <ATTRIBUTE <#2>>
+     <NAME align>
+     <VALUE left>
+    <ATTRIBUTE <#2>>
+     <NAME src>
+     <VALUE http://www.w3.org/Icons/WWW/w3c_home>
+ <XML <#1>>
+  <BODY <#1>>
+   <BLOCK <#1>>
+    <NAME br>
+ <XML <#1>>
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME br>
+Running test #11
+<FOLDER <#1>>
+ <XML <#2>>
+  <PROLOG <#2>>
+   <XML_DECL <#1>>
+    <VERSION 1.0>
+   <DTD <#14>>
+    <NAME test>
+    <DECL_SEP name.para>
+    <DECL_SEP content.para>
+    <ELEMENT_DECL <#2>>
+     <NAME br>
+     <CONTENT_SPEC EMPTY>
+    <ELEMENT_DECL <#2>>
+     <NAME p>
+     <CONTENT_SPEC <#1>>
+      <PCDATA <#2>>
+       <REPITITION 0+>
+       <NAME emph>
+    <ELEMENT_DECL <#2>>
+     <NAME name.para>
+     <CONTENT_SPEC empty>
+    <ELEMENT_DECL <#2>>
+     <NAME container>
+     <CONTENT_SPEC ANY>
+    <ELEMENT_DECL <#2>>
+     <NAME container>
+     <CONTENT_SPEC <#1>>
+      <VALUES <#2>>
+       <REPITITION 1>
+       <SEQUENCE <#1>>
+        <VALUE jar>
+    <ELEMENT_DECL <#2>>
+     <NAME spec>
+     <CONTENT_SPEC <#1>>
+      <VALUES <#2>>
+       <REPITITION 0-1>
+       <SEQUENCE <#3>>
+        <VALUE front>
+        <VALUE body>
+        <VALUE back>
+    <ELEMENT_DECL <#2>>
+     <NAME div1>
+     <CONTENT_SPEC <#1>>
+      <VALUES <#2>>
+       <REPITITION 1>
+       <SEQUENCE <#3>>
+        <VALUE head>
+        <CHOICE <#4>>
+         <REPITITION 0+>
+         <VALUE p>
+         <VALUE list>
+         <VALUE note>
+        <REPEATED_VALUE <#2>>
+         <REPITITION 0+>
+         <VALUE div2>
+    <ELEMENT_DECL <#2>>
+     <NAME dictionary-body>
+     <CONTENT_SPEC <#1>>
+      <VALUES <#2>>
+       <REPITITION 0+>
+       <CHOICE <#2>>
+        <VALUE div.mix>
+        <VALUE dict.mix>
+    <ELEMENT_DECL <#2>>
+     <NAME p>
+     <CONTENT_SPEC <#1>>
+      <PCDATA <#6>>
+       <REPITITION 0+>
+       <NAME a>
+       <NAME ul>
+       <NAME b>
+       <NAME i>
+       <NAME em>
+    <ELEMENT_DECL <#2>>
+     <NAME p>
+     <CONTENT_SPEC <#1>>
+      <PCDATA <#5>>
+       <REPITITION 0+>
+       <NAME font>
+       <NAME phrase>
+       <NAME special>
+       <NAME form>
+    <ELEMENT_DECL <#2>>
+     <NAME b>
+     <CONTENT_SPEC <#1>>
+      <PCDATA 1>
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME end>
+Running test #12
+<FOLDER <#1>>
+ <XML <#2>>
+  <PROLOG <#2>>
+   <XML_DECL <#1>>
+    <VERSION 1.0>
+   <DTD <#4>>
+    <NAME test>
+    <ATTLIST_DECL <#3>>
+     <NAME termdef>
+     <ATT_DEF <#3>>
+      <NAME id>
+      <ATT_TYPE <#1>>
+       <TOKENIZED ID>
+      <DEFAULT_DECL <#1>>
+       <REQUIRED>
+     <ATT_DEF <#3>>
+      <NAME name>
+      <ATT_TYPE <#1>>
+       <STRING CDATA>
+      <DEFAULT_DECL <#1>>
+       <IMPLIED>
+    <ATTLIST_DECL <#2>>
+     <NAME list>
+     <ATT_DEF <#3>>
+      <NAME type>
+      <ATT_TYPE <#1>>
+       <ENUMERATION <#3>>
+        <NMTOKEN bullets>
+        <NMTOKEN ordered>
+        <NMTOKEN glossary>
+      <DEFAULT_DECL <#1>>
+       <VALUE ordered>
+    <ATTLIST_DECL <#2>>
+     <NAME form>
+     <ATT_DEF <#3>>
+      <NAME method>
+      <ATT_TYPE <#1>>
+       <STRING CDATA>
+      <DEFAULT_DECL <#2>>
+       <FIXED>
+       <VALUE POST>
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME end>
+Running test #13
+<FOLDER <#1>>
+ <XML <#2>>
+  <PROLOG <#2>>
+   <XML_DECL <#1>>
+    <VERSION 1.0>
+   <DTD <#7>>
+    <NAME test>
+    <ELEMENT_DECL <#2>>
+     <NAME book>
+     <CONTENT_SPEC <#1>>
+      <VALUES <#2>>
+       <REPITITION 1>
+       <SEQUENCE <#4>>
+        <REPEATED_VALUE <#2>>
+         <REPITITION 0+>
+         <VALUE comments>
+        <VALUE title>
+        <VALUE body>
+        <REPEATED_VALUE <#2>>
+         <REPITITION 0-1>
+         <VALUE supplements>
+    <ENTITY_DECL <#1>>
+     <GE_DECL <#2>>
+      <NAME d>
+      <ENTITY_VALUE &#xD;>
+    <ENTITY_DECL <#1>>
+     <GE_DECL <#2>>
+      <NAME a>
+      <ENTITY_VALUE &#xA;>
+    <ENTITY_DECL <#1>>
+     <GE_DECL <#2>>
+      <NAME da>
+      <ENTITY_VALUE &#xD;&#xA;>
+    <ENTITY_DECL <#1>>
+     <PE_DECL <#2>>
+      <NAME draft>
+      <ENTITY_VALUE INCLUDE>
+    <ENTITY_DECL <#1>>
+     <PE_DECL <#2>>
+      <NAME final>
+      <ENTITY_VALUE IGNORE>
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME end>
+Running test #14
+<FOLDER <#1>>
+ <XML <#1>>
+  <BODY <#1>>
+   <BLOCK <#2>>
+    <NAME document>
+    <CONTENT <#9>>
+     <CHARDATA 
+Type >
+     <BLOCK <#2>>
+      <NAME key>
+      <CONTENT <#1>>
+       <CHARDATA less-than>
+     <CHARDATA  (>
+     <REFERENCE #x3C>
+     <CHARDATA ) to save options.
+This document was prepared on >
+     <REFERENCE docdate>
+     <CHARDATA  and
+is classified >
+     <REFERENCE security-level>
+     <CHARDATA .
+>
+Running test #15
+<FOLDER <#1>>
+ <XML <#2>>
+  <PROLOG <#2>>
+   <XML_DECL <#1>>
+    <VERSION 1.0>
+   <DTD <#5>>
+    <NAME test>
+    <COMMENT  declare the parameter entity "ISOLat2"... >
+    <ENTITY_DECL <#1>>
+     <PE_DECL <#2>>
+      <NAME ISOLat2>
+      <EXTERNAL_ID <#1>>
+       <SYSTEM http://www.xml.com/iso/isolat2-xml.entities>
+    <COMMENT  ... now reference it. >
+    <DECL_SEP ISOLat2>
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME end>
+Running test #16
+<FOLDER <#1>>
+ <XML <#2>>
+  <PROLOG <#2>>
+   <XML_DECL <#1>>
+    <VERSION 1.0>
+   <DTD <#5>>
+    <NAME test>
+    <ENTITY_DECL <#1>>
+     <GE_DECL <#2>>
+      <NAME Pub-Status>
+      <ENTITY_VALUE This is a pre-release of the
+specification.>
+    <ENTITY_DECL <#1>>
+     <GE_DECL <#2>>
+      <NAME open-hatch>
+      <EXTERNAL_ID <#1>>
+       <SYSTEM http://www.textuality.com/boilerplate/OpenHatch.xml>
+    <ENTITY_DECL <#1>>
+     <GE_DECL <#2>>
+      <NAME open-hatch>
+      <EXTERNAL_ID <#2>>
+       <PUBLIC -//Textuality//TEXT Standard open-hatch boilerplate//EN>
+       <SYSTEM http://www.textuality.com/boilerplate/OpenHatch.xml>
+    <ENTITY_DECL <#1>>
+     <GE_DECL <#3>>
+      <NAME hatch-pic>
+      <EXTERNAL_ID <#1>>
+       <SYSTEM ../grafix/OpenHatch.gif>
+      <NDATA_DECL gif>
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME end>
+Running test #17
+<FOLDER <#2>>
+ <XML <#2>>
+  <PROLOG <#1>>
+   <XML_DECL <#2>>
+    <VERSION 1.0>
+    <ENCODING UTF-8>
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME end>
+ <XML <#2>>
+  <PROLOG <#1>>
+   <XML_DECL <#2>>
+    <VERSION 1.0>
+    <ENCODING EUC-JP>
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME end>
+Running test #18
+<FOLDER <#1>>
+ <XML <#2>>
+  <PROLOG <#2>>
+   <XML_DECL <#1>>
+    <VERSION 1.0>
+   <DTD <#12>>
+    <NAME test>
+    <COMMENT   >
+    <ENTITY_DECL <#1>>
+     <PE_DECL <#2>>
+      <NAME YN>
+      <ENTITY_VALUE "Yes">
+    <ENTITY_DECL <#1>>
+     <GE_DECL <#2>>
+      <NAME WhatHeSaid>
+      <ENTITY_VALUE He said %YN;>
+    <ENTITY_DECL <#1>>
+     <PE_DECL <#2>>
+      <NAME pub>
+      <ENTITY_VALUE &#xc9;ditions Gallimard>
+    <ENTITY_DECL <#1>>
+     <GE_DECL <#2>>
+      <NAME rights>
+      <ENTITY_VALUE All rights reserved>
+    <ENTITY_DECL <#1>>
+     <GE_DECL <#2>>
+      <NAME book>
+      <ENTITY_VALUE La Peste: Albert Camus,
+&#xA9; 1947 %pub;. &rights;>
+    <ENTITY_DECL <#1>>
+     <GE_DECL <#2>>
+      <NAME lt>
+      <ENTITY_VALUE &#38;#60;>
+    <ENTITY_DECL <#1>>
+     <GE_DECL <#2>>
+      <NAME gt>
+      <ENTITY_VALUE &#62;>
+    <ENTITY_DECL <#1>>
+     <GE_DECL <#2>>
+      <NAME amp>
+      <ENTITY_VALUE &#38;#38;>
+    <ENTITY_DECL <#1>>
+     <GE_DECL <#2>>
+      <NAME apos>
+      <ENTITY_VALUE &#39;>
+    <ENTITY_DECL <#1>>
+     <GE_DECL <#2>>
+      <NAME quot>
+      <ENTITY_VALUE &#34;>
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME end>
+Running test #19
+<FOLDER <#1>>
+ <XML <#2>>
+  <PROLOG <#2>>
+   <XML_DECL <#1>>
+    <VERSION 1.0>
+   <DTD <#2>>
+    <NAME test>
+    <ENTITY_DECL <#1>>
+     <GE_DECL <#2>>
+      <NAME example>
+      <ENTITY_VALUE <p>An ampersand (&#38;#38;) may be escaped
+numerically (&#38;#38;#38;) or with a general entity
+(&amp;amp;).</p>>
+  <BODY <#1>>
+   <BLOCK <#2>>
+    <NAME p>
+    <CONTENT <#7>>
+     <CHARDATA An ampersand (>
+     <REFERENCE #38>
+     <CHARDATA ) may be escaped
+numerically (>
+     <REFERENCE #38>
+     <CHARDATA #38;) or with a general entity
+(>
+     <REFERENCE amp>
+     <CHARDATA amp;).>
+Running test #20
+<FOLDER <#1>>
+ <XML <#2>>
+  <PROLOG <#2>>
+   <XML_DECL <#1>>
+    <VERSION 1.0>
+   <DTD <#5>>
+    <NAME test>
+    <ELEMENT_DECL <#2>>
+     <NAME test>
+     <CONTENT_SPEC <#1>>
+      <PCDATA 1>
+    <ENTITY_DECL <#1>>
+     <PE_DECL <#2>>
+      <NAME xx>
+      <ENTITY_VALUE &#37;zz;>
+    <ENTITY_DECL <#1>>
+     <PE_DECL <#2>>
+      <NAME zz>
+      <ENTITY_VALUE &#60;!ENTITY tricky "error-prone" >>
+    <DECL_SEP xx>
+  <BODY <#1>>
+   <BLOCK <#2>>
+    <NAME test>
+    <CONTENT <#3>>
+     <CHARDATA This sample shows a >
+     <REFERENCE tricky>
+     <CHARDATA  method.>
+Running test #21
+<FOLDER <#1>>
+ <XML <#2>>
+  <PROLOG <#2>>
+   <XML_DECL <#1>>
+    <VERSION 1.0>
+   <DTD <#4>>
+    <NAME test>
+    <NOTATION_DECL <#2>>
+     <EXTERNAL_ID <#1>>
+      <SYSTEM sys>
+     <NAME note>
+    <NOTATION_DECL <#2>>
+     <EXTERNAL_ID <#2>>
+      <PUBLIC pub>
+      <SYSTEM sys>
+     <NAME note>
+    <NOTATION_DECL <#2>>
+     <PUBLIC_ID pub>
+     <NAME note>
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME end>
+Running test #22
+<FOLDER <#1>>
+ <XML <#2>>
+  <PROLOG <#2>>
+   <XML_DECL <#1>>
+    <VERSION 1.0>
+   <DTD <#2>>
+    <NAME test>
+    <PROC_INST <#2>>
+     <NAME w>
+     <VALUE so>
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME end>
+Running test #23
+<FOLDER <#1>>
+ <XML <#1>>
+  <BODY <#1>>
+   <NOBLOCK <#1>>
+    <NAME end>
+Running error test #0
+ERROR: Tests/xmlparse.yx: Error: XML syntaxerror; Encountered: "<EOF>"; Line: 1; Column: 39; Source: -string-
+
+    Parser was looking for one of the following tokens:
+	"<!doctype" ...
+	"<!--" ...
+	<PI_BGN> ...
+	<S> ...
+	<TAG_BGN> ...
+
+Running error test #1
+ERROR: Tests/xmlparse.yx: Error: XML syntaxerror; Encountered: "Text"; Line: 1; Column: 1; Source: -string-
+
+    Parser was looking for one of the following tokens:
+	<EOF>
+	"<?xml" ...
+	"<!doctype" ...
+	"<!--" ...
+	<S> ...
+	<TAG_BGN> ...
+	<PI_BGN> ...
+
+Running error test #2
+ERROR: Tests/xmlparse.yx: Error: XML syntaxerror: block name mismatch (dog!=cat); Line: 3; Column: 6; Source: -string-
+Running error test #3
+ERROR: Tests/xmlparse.yx: Error: XML syntaxerror; Encountered: "<EOF>"; Line: 1; Column: 3; Source: -string-
+
+    Parser was looking for one of the following tokens:
+	"<!doctype" ...
+	"<!--" ...
+	<PI_BGN> ...
+	<S> ...
+	<TAG_BGN> ...
+

@@ -1,0 +1,22 @@
+import yoix.*.*;
+import yoix.module.att.research.yoix.jvma.JVMTestModule.*;
+
+assembleClass(@<<
+    public class HelloWorld extends java.lang.Object {
+        public static void main(java.lang.String[] args) {
+	    getstatic #2
+	    ldc "Hello, world"
+	    invokevirtual #4
+	    return
+        }
+
+        public void <init>() {
+	    aload_0
+	    invokespecial #1
+	    return
+        }
+    }
+>>@);
+
+printf("%s", dumpClassFile());
+

@@ -1,0 +1,56 @@
+//
+// Image example that uses version 1.1.0 features.
+//
+
+import yoix.*.*;
+
+Array blur_kernel = {
+    .1, .1, .1,
+    .1, .1, .1,
+    .1, .1, .1,
+};
+
+Array edge_kernel = {
+    0, -1, 0,
+    -1, 4, -1,
+    0, -1, 0,
+};
+
+Image img = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+    Array  metrics = {0, 0, 1.0, 1.0};
+};
+
+Image img_blurred = {
+    Image source = img;
+    Array metrics = {0, 0, 1.0, 1.0};
+
+    paint() {
+	convolve(blur_kernel);
+    }
+};
+
+Image img_edge = {
+    Image source = img;
+    Array metrics = {0, 0, 1.0, 1.0};
+
+    paint() {
+	convolve(edge_kernel, EDGE_NO_OP);
+    }
+};
+
+JFrame f = {
+    paint(Rectangle r) {
+	graphics {
+	    rectclip(r);
+	    moveto(72, 72);
+	    showimage(img);
+	    showimage(img_blurred);
+	    showimage(img_edge);
+	    initclip();
+	}
+    }
+};
+
+f.visible = TRUE;
+

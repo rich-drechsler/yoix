@@ -1,0 +1,49 @@
+//
+// A rather complicated eval() example. Entries in the commands
+// array are themselves arrays that are supposed to contain one
+// or more strings that, when concatenated, constitute Yoix code
+// that EvalArgs() can run in a local block using eval(). Using
+// eval() instead of execute() means the Yoix code can access
+// global variables, like the tf TextField.
+//
+
+import yoix.*.*;
+
+JTextField tf = {
+    String text = "user data from textfield";
+};
+
+Array commands = {
+    new Array {
+	"String str1 = \"String 1\";",
+	"String str2 = \"String 2\";",
+	"int  num = 12;",
+	"return(str1 + \" +++ \" + str2 + \"\\n\");",
+    },
+
+    //
+    // Next array uses # as string delimiters, which means we can omit
+    // some escapes (e.g., we don't have to escape ").
+    // 
+    new Array {
+	#String str1 = "Another test";#,
+	#return(strfmt("str1=%s\\ntextfield=%s\\n", str1, tf.text));#,
+    }
+};
+
+EvalArgs(String arg, ...) {
+    Array   args = &arg;
+    String  command;
+    int     n;
+
+    command = "{";			// start local block
+    for (n = 0; n < args@sizeof; n++)	// concatenate string arguments
+	command += "\n" + args[n];
+    command += "\n" + "}";		// end local block
+
+    return(eval(command));
+}
+
+for (; commands@sizeof > 0; commands++)
+    printf(EvalArgs(unroll(commands[0])));
+

@@ -1,0 +1,92 @@
+//
+// Simple example mostly to see how focus is handled when the selected tab
+// changes.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    Array layout = {
+	new JTabbedPane {
+	    String tag = "$_pane";
+	    int    trackfocus = TRUE;		// new variable (current FALSE by default)
+
+	    Array layout = {
+		new JPanel {
+		    String tag = "$_tab1";
+		    String title = "First Panel";
+
+		    GridBagLayout layoutmanager = {
+			int columns = 2;
+			double hgap = 72.0/16;
+			double vgap = 72.0/16;
+		    };
+		    Array layout = {
+			"Name: ",
+			RIGHT,
+			new JTextField {
+			    int columns = 30;
+			},
+			LEFT,
+
+			"City: ",
+			new JTextField {
+			    int requestfocus = TRUE;
+			    int columns = 15;
+			},
+			LEFT,
+
+			"State: ",
+			new JTextField {
+			    int columns = 15;
+			},
+			LEFT,
+
+			new JButton {
+			    String text = "Toggle";
+
+			    actionPerformed(e) {
+				root.components.$_pane.trackfocus = !root.components.$_pane.trackfocus;
+			    }
+			},
+			REMAINDER,
+		    };
+		},
+
+		new JPanel {
+		    String tag = "$_tab2";
+		    String title = "Second Panel";
+		    String text = "Close";
+
+		    GridBagLayout layoutmanager = {
+			int columns = 2;
+			double hgap = 72.0/16;
+			double vgap = 72.0/16;
+		    };
+		    Array layout = {
+			"Age: ",
+			RIGHT,
+			new JTextField {
+			    int columns = 5;
+			},
+			LEFT,
+
+			"Gender: ",
+			new JTextField {
+			    int columns = 3;
+			},
+			LEFT,
+
+			"Birthday: ",
+			new JTextField {
+			    int columns = 20;
+			},
+			LEFT,
+		    };
+		},
+	    };
+	},
+    };
+};
+
+f.visible = TRUE;

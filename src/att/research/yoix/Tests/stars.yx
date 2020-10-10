@@ -1,0 +1,103 @@
+//
+// Another very old test...
+//
+
+import yoix.*.*;
+
+Star(double xcenter, double ycenter) {
+    return(
+	new Array {
+	    xcenter + 0, ycenter + -50,
+	    xcenter + 29, ycenter + 40,
+	    xcenter + -47, ycenter + -15,
+	    xcenter + 47, ycenter + -15,
+	    xcenter + -29, ycenter + 40,
+	}
+    );
+}
+
+JCanvas c = {
+    String tag = "$_canvas";
+    Color  background = Color.black;
+
+    Graphics graphics = {
+	Color foreground = Color.yellow;
+	Color background = Color.black;
+    };
+
+    paint(clip) {
+	int n;
+
+	for (n = 0; n < starcount; n++) {
+	    if (allstars[n] != NULL)
+		fillPolygon(this, unroll(allstars[n]));
+	}
+    }
+
+    Array allstars[0, ...];
+    Array star = NULL;
+    int   starcount = 0;
+    int   starindex = -1;
+
+    mousePressed(e) {
+	star = null;
+	graphics.xormode = TRUE;
+	for (n = 0; n < starcount; n++) {
+	    if (pointInPolygon(e.location, unroll(allstars[n]))) {
+		star = allstars[n];
+		allstars[n] = NULL;
+		starindex = n;
+		break;
+	    }
+	}
+
+	if (star == null) {
+	    star = Star(e.location.x, e.location.y);
+	    starindex = starcount++;
+	    fillPolygon(this, unroll(star));
+	}
+    }
+
+    mouseDragged(e) {
+	fillPolygon(this, unroll(star));
+	star = Star(e.location.x, e.location.y);
+	fillPolygon(this, unroll(star));
+    }
+
+    mouseReleased(e) {
+	graphics.xormode = FALSE;
+	fillPolygon(this, unroll(star));
+	allstars[starindex] = star;
+	star = NULL;
+	paint(NULL);
+    }
+
+    Clear() {
+	Color color = graphics.foreground;
+
+	//
+	// Yoix needs an easy way to force a repaint!!!
+	//
+
+	graphics.foreground = background;
+	paint(size);
+	starcount = 0;
+	graphics.foreground = color;
+    }
+};
+
+JFrame f = {
+    Array layout = {
+	c, CENTER,
+	new JButton {
+	    String text = "Clear";
+
+	    actionPerformed(e) {
+		root.components.$_canvas.Clear();
+	    }
+	}, SOUTH,
+    };
+};
+
+f.visible = TRUE;
+

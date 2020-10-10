@@ -1,0 +1,23 @@
+//
+// Handling of "this" has changed slightly and we think it's an
+// improvement - thanks again to Xinyu.
+//
+
+Dictionary dir = {
+  int a= 3;
+
+  Dictionary dd[0,...];
+
+  {
+    int a = 4;
+   f(){
+     stdout.nextline = toString(this);
+     stdout.nextline = toString(++this.a);
+     this.a++;
+   }
+   f();
+   f();
+  }
+  ////dd.f();
+};
+

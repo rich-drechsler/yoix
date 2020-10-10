@@ -1,0 +1,79 @@
+//
+// This example uses the default view platform (it's implicitly created
+// once when a VirtualUniverse is assigned to Canvas3D.view) to make it
+// look like the cube is spinning and translating.
+//
+
+import yoix.j3d.*;
+import yoix.*.*;
+
+int direction = 1;
+
+Frame f = {
+    Array layout = {
+	new Canvas3D {
+	    String tag = "$_canvas";
+
+	    VirtualUniverse view = {
+		Color background = Color.cyan;
+
+		Array layout = {
+		    new BranchGroup {
+			EulerAngle orientation = {
+			    double alpha = 45;
+			    double beta = 45;
+			};
+
+			Array layout = {
+			    new ColorCube {
+				String tag = "$_colorcube";
+				double scale = 0.2;
+			    },
+			};
+		    },
+		};
+	    };
+
+	    mousePressed(MouseEvent e) {
+		if (e.modifiers & BUTTON1_MASK)
+		    direction = 1;
+		else direction = -1;
+	    }
+
+	}, CENTER,
+    };
+};
+
+f.visible = TRUE;
+
+//
+// Notice that tagged contains a defintion for "viewplatform". That's the
+// name of the viewplatform that you get when a VirtualUniverse is assigned
+// to the view field of a Canvas3D.
+//
+
+fprintf(stderr, "view.tagged=%O\n", f.components.$_canvas.universe.tagged);
+
+Transform3D t = f.components.$_canvas.universe.tagged.viewplatform.transform;
+Point3D     p = f.components.$_canvas.universe.tagged.viewplatform.position;
+EulerAngle     a = f.components.$_canvas.universe.tagged.viewplatform.orientation;
+
+//
+// Two different loops that are supposed to accomplish the same thing.
+//
+
+while (1) {
+    f.components.$_canvas.universe.tagged.viewplatform.transform = t.translate(0, 0, direction).rotateZ(10);
+    sleep(.1);
+}
+
+/****
+while (1) {
+    p.z += direction;
+    f.components.$_canvas.universe.tagged.viewplatform.position = p;
+    a.gamma += 10;
+    f.components.$_canvas.universe.tagged.viewplatform.orientation = a;
+    sleep(.1);
+}
+****/
+

@@ -1,0 +1,22 @@
+import yoix.*.*;
+
+Pointer rows, cols;
+Array results = getProviderInfo("*", "KeyStore", false);
+
+truncator(Array cols) {
+    Pointer ptr = cols;;
+    while(ptr@sizeof > 0) {
+	if (strlen(*ptr) > 19)
+	    *ptr = substring(*ptr, 0, 16) + "...";
+	ptr++;
+    }
+    return(cols);
+}
+
+printf("%-19s %-19s %-19s %-19s\n", "Provider", "Operation", "Name", "Value");
+printf("%-19s %-19s %-19s %-19s\n", "========", "=========", "====", "=====");
+for (rows = results; rows@sizeof > 0; rows++) {
+    cols = *rows;
+    printf("%-19.19s %-19.19s %-19.19s %-19.19s\n", unroll(truncator(*rows)));
+}
+

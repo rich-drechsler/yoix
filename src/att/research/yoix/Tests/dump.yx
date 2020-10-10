@@ -1,0 +1,31 @@
+//
+// Dump the yoix.* dictionaries that emphasizes builtins.
+//
+
+import yoix.*.*;
+
+Dictionary  dict;
+Array       value;
+String      name;
+int	    count;
+int         m;
+int         n;
+
+for (n = 0; n < yoix@length; n++) {
+    dict = yoix[n];
+    value = new Array[0, ...];
+    count = 0;
+    for (m = 0; m < dict@length; m++) {
+	if (dict[m] instanceof Builtin)
+	    value[count++] = dict[m]@nameof + strchr(toString(dict[m]), '(');
+	else value[count++] = dict[m]@nameof;
+    }
+
+    qsort(value);
+    for (m = 0; m < value@length; m++) {
+	name = strtok(strdup(value[m]), "(");
+	value[m] = strfmt("%-12s %s", dict[name]@typename, value[m]);
+    }
+    printf("yoix.%s\n", yoix[n]@nameof);
+    printf("%O\n", value);
+}

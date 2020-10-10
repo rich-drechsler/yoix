@@ -1,0 +1,32 @@
+import yoix.secure.*;
+import yoix.stdio.*;
+import yoix.string.*;
+
+Key key = {
+    Dictionary specification = {
+	int type = SYMMETRIC_KEY;
+	String transformation = "DES";
+    };
+};
+
+Cipher cipher = {
+    String specification = "DES";
+    int opmode = ENCRYPT_MODE;
+    String initializer = key.keystring();
+};
+
+cipher.text = "Try encrypting ";
+cipher.text = "this text.";
+
+Array encrypted = cipher.text;
+String hexed = btoh(encrypted);
+
+fprintf(stdout, "Encrypted text:\n%s\n\n", hexed);
+
+cipher.opmode = DECRYPT_MODE;
+
+cipher.text = encrypted;
+fprintf(stdout, "Decrypted text (from array):\n%s\n\n", cipher.text);
+
+cipher.text = hexed;
+fprintf(stdout, "Decrypted text (from hex string):\n%s\n\n", cipher.text);

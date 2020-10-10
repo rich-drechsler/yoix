@@ -1,0 +1,449 @@
+//
+// Another template screen that illustrates groupings of components.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Dimension size = NULL;
+	Insets    border = Global.GetUnLabeledScreenInsets();
+	String    title = Global.ACRONYM + " Template 6";
+	Font      font = Global.GetPreferredLabelFont();
+	int       resizable = FALSE;
+	int       opaque = TRUE;
+
+	Dimension preferredsize = {
+	    double width = 7*72.0;
+	};
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	//
+	// Every screen should define and initialize the following set
+	// of variables. Expect problems is you omit any of them.
+	//
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = TRUE;   // save screen-specific info within session
+	int    retainstate = TRUE; // save screen-class info across sessions
+	int    reloadargs = FALSE;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    new JPanel {
+		EtchedBorder border = {
+		    String title = "Week Days";
+		};
+
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JPanel {
+			String tag = "$_weekdays_panel";
+
+			Array layout = {
+			    new JCheckBox {
+				String text = "Sun";
+				int    state = FALSE;
+
+				itemStateChanged(Event e) {
+				    root.SetWeekDay(0, state);
+				}
+			    },
+			    new JCheckBox {
+				String text = "Mon";
+				int    state = TRUE;
+
+				itemStateChanged(Event e) {
+				    root.SetWeekDay(1, state);
+				}
+			    },
+			    new JCheckBox {
+				String text = "Tue";
+				int    state = TRUE;
+
+				itemStateChanged(Event e) {
+				    root.SetWeekDay(2, state);
+				}
+			    },
+			    new JCheckBox {
+				String text = "Wed";
+				int    state = TRUE;
+
+				itemStateChanged(Event e) {
+				    root.SetWeekDay(3, state);
+				}
+			    },
+			    new JCheckBox {
+				String text = "Thu";
+				int    state = TRUE;
+
+				itemStateChanged(Event e) {
+				    root.SetWeekDay(4, state);
+				}
+			    },
+			    new JCheckBox {
+				String text = "Fri";
+				int    state = TRUE;
+
+				itemStateChanged(Event e) {
+				    root.SetWeekDay(5, state);
+				}
+			    },
+			    new JCheckBox {
+				String text = "Sat";
+				int    state = FALSE;
+
+				itemStateChanged(Event e) {
+				    root.SetWeekDay(6, state);
+				}
+			    },
+			};
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int anchor = LEFT;
+			int weightx = 100;
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int fill = HORIZONTAL;
+		int weightx = 100;
+	    },
+
+	    new JPanel {
+		EtchedBorder border = {
+		    String title = "Start Hour";
+		};
+
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JSlider {
+			String tag = "$_starthour_slider";
+			int    orientation = HORIZONTAL;
+			int    snaptoticks = TRUE;
+			int    majortickspacing = 12;
+			int    minortickspacing = 1;
+			int    minimum = 0;
+			int    maximum = 23;
+			int    value = 8;
+
+			Function mouseWheelMoved = Global.MouseWheelMoved;
+
+			stateChanged(Event e) {
+			    SyncComponents();
+			    root.SetStartHour(value);
+			}
+
+			SyncComponents() {
+			    root.components.$_starthour_label.SyncText(value);
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int fill = HORIZONTAL;
+			int weightx = 100;
+		    },
+
+		    new JLabel {
+			String tag = "$_starthour_label";
+
+			SyncText(int value) {
+			    text = toString(value);
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int anchor = LEFT;
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = RELATIVE;
+		int fill = HORIZONTAL;
+		int weightx = 50;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    new JPanel {
+		EtchedBorder border = {
+		    String title = "End Hour";
+		};
+
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JSlider {
+			String tag = "$_endhour_slider";
+			int    orientation = HORIZONTAL;
+			int    snaptoticks = TRUE;
+			int    majortickspacing = 12;
+			int    minortickspacing = 1;
+			int    minimum = 0;
+			int    maximum = 23;
+			int    value = 17;
+
+			Function mouseWheelMoved = Global.MouseWheelMoved;
+
+			stateChanged(Event e) {
+			    root.SetEndHour(value);
+			    root.components.$_endhour_label.text = toString(value);
+			}
+
+			SyncComponents() {
+			    root.components.$_endhour_label.SyncText(value);
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int fill = HORIZONTAL;
+			int weightx = 100;
+		    },
+
+		    new JLabel {
+			String tag = "$_endhour_label";
+
+			SyncText(int value) {
+			    text = toString(value);
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int anchor = LEFT;
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int fill = HORIZONTAL;
+		int weightx = 50;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    new JPanel {
+		String tag = "$_timezone_panel";
+
+		EtchedBorder border = {
+		    String title = "Time Zone";
+		};
+
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JSlider {
+			String tag = "$_timezone_slider";
+			int    orientation = HORIZONTAL;
+			int    snaptoticks = TRUE;
+			int    majortickspacing = 12;
+			int    minortickspacing = 1;
+			int    minimum = -12;
+			int    maximum = 12;
+			int    value = 0;
+
+			Function mouseWheelMoved = Global.MouseWheelMoved;
+
+			stateChanged(Event e) {
+			    SyncComponents();
+			    root.SetTimeZone(value);
+			}
+
+			SyncComponents() {
+			    root.components.$_timezone_choice.SyncSelected(value);
+			    root.components.$_timezone_label.SyncText(value);
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int fill = HORIZONTAL;
+			int weightx = 100;
+		    },
+
+		    new JLabel {
+			String tag = "$_timezone_label";
+			String text;
+
+			SyncText(int value) {
+			    text = toString(value);
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = RELATIVE;
+			int anchor = LEFT;
+		    },
+
+		    new JChoice {
+			String tag = "$_timezone_choice";
+			String selected = "UTC";
+
+			Array items = {
+			    "PST", "-8",
+			    "MST", "-7",
+			    "CST", "-6",
+			    "EST", "-5",
+			    "UTC", "0",
+			};
+
+			Function mouseWheelMoved = Global.MouseWheelMoved;
+
+			itemStateChanged(Event e) {
+			    if (selected@sizeof > 0)
+				root.components.$_timezone_slider.value = atoi(selected);
+			}
+
+			SyncSelected(int value) {
+			    selected = toString(value);
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int anchor = RIGHT;
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int fill = HORIZONTAL;
+		int weightx = 100;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    new JPanel {
+		//
+		// Use GridLayout for equal size buttons and FlowLayout if
+		// each button should size itself based on its label.
+		//
+		GridLayout layoutmanager;
+		Array layout = {
+		    new JButton {
+			String text = "Send";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    Global.QueueCommandOnce(root, &root.HandleSend);
+			}
+		    },
+		    new JButton {
+			String text = "Dismiss";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    Global.AltQueueCommand(root, &root.HideScreen);
+			}
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    Global.NewJProprietaryLabel(),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	windowOpened(e) {
+	    components.$_starthour_slider.SyncComponents();
+	    components.$_endhour_slider.SyncComponents();
+	    components.$_timezone_slider.SyncComponents();
+	}
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	HandleSend() {
+	    String message;
+	    String indent = "        ";
+	    Array  layout = components.$_weekdays_panel.layout;
+	    int    n;
+
+	    message = "You made the following selections:\n\n";
+
+	    for (n = 0; n < layout@sizeof; n++) {
+		if (layout[n] instanceof JCheckBox)
+		    message += indent + layout[n].text + ": " + (layout[n].state ? "true" : "false") + "\n";
+	    }
+	    message += indent + "Start Hour: " + toString(components.$_starthour_slider.value) + "\n";
+	    message += indent + "End Hour: " + toString(components.$_endhour_slider.value) + "\n";
+	    message += indent + "Timezone: " + toString(components.$_timezone_slider.value) + "\n";
+
+	    Global.ShowMessage(this, message, TRUE);
+	}
+
+	SetEndHour(int hour) {
+	    Object screen;
+
+	    if ((screen = Global.GetAndShowScreen("clipboard", "clipboard")) != NULL)
+		screen.SetText(strfmt("SetEndHour: hour=%d\n", hour));
+	}
+
+	SetStartHour(int hour) {
+	    Object screen;
+
+	    if ((screen = Global.GetAndShowScreen("clipboard", "clipboard")) != NULL)
+		screen.SetText(strfmt("SetStartHour: hour=%d\n", hour));
+	}
+
+	SetTimeZone(int timezone) {
+	    Object screen;
+
+	    if ((screen = Global.GetAndShowScreen("clipboard", "clipboard")) != NULL)
+		screen.SetText(strfmt("SetStartHour: timezone=%d\n", timezone));
+	}
+
+	SetWeekDay(int day, int state) {
+	    Object screen;
+
+	    if ((screen = Global.GetAndShowScreen("clipboard", "clipboard")) != NULL)
+		screen.SetText(strfmt("SetWeekDay: day=%d, state=%d\n", day, state));
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);
+

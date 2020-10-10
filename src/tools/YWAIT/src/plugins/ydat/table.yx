@@ -1,0 +1,1681 @@
+//
+// This is the low level Yoix code that supports configuration files from
+// version 1.0 through 4.0.
+//
+// NOTE - make sure you keep the column size definitions up to date - they
+// must correctly describe the tables in any configuration file that we load.
+//
+// NOTE - we made several changes to the GRAPHS table (on 5/21/07) and as a
+// result versions older than 4.1 are no longer supported. In addition we
+// dropped the border and insets columns from version 4.3 GRAPHS table.
+//
+
+final int COLUMNS_AXES = atof(CONFIGVERSION) < 4.0 ? 10 : 11;
+final int COLUMNS_CALLBACKS = 5;
+final int COLUMNS_COMPONENTS = 6;
+final int COLUMNS_DATAFIELDS = 7;
+final int COLUMNS_DATATABLES = 9;
+final int COLUMNS_GRAPHS = atof(CONFIGVERSION) < 4.3 ? 12 : 10;
+final int COLUMNS_GRIDBAGPANEL = 13;
+final int COLUMNS_GRIDPANEL = 7;
+final int COLUMNS_HISTOGRAMS = atof(CONFIGVERSION) < 3.0 ? 8 : 9;
+final int COLUMNS_LABELS = 10;
+final int COLUMNS_PANELS = atof(CONFIGVERSION) < 4.2 ? 8 : 9;
+final int COLUMNS_PLOTS = atof(CONFIGVERSION) < 4.0 ? 12 : 13;
+final int COLUMNS_SPLITPANE = 5;
+final int COLUMNS_STACKS = atof(CONFIGVERSION) < 4.0 ? 12 : 13;
+final int COLUMNS_STARTSCREENS = 5;
+final int COLUMNS_SWEEPGRAPHS = 12;
+final int COLUMNS_SWEEPHISTOGRAMS = atof(CONFIGVERSION) < 2.0 ? 5 : 6;
+final int COLUMNS_SWEEPTABLES = 6;
+final int COLUMNS_TABLECOLUMN = 7;
+final int COLUMNS_TAGS = atof(CONFIGVERSION) < 4.0 ? 10 : 11;
+
+//
+// Empty formatter function - just in case.
+//
+
+EmptyFormatter(...) {return("");};
+String EmptyText;
+
+//
+// The name of a special DATA_COUNTER field that's only built if there
+// are entries in SWEEPTABLES - it can be used by every sweeptable.
+//
+
+final String SWEEPCOUNTER_FIELD = "<RESERVEDNAME_1>";
+
+//
+// A sample text string that can be used to pick an "average" character
+// width for a font. Currently only used when we try to guess the width
+// of the columns in a table.
+//
+
+final String SAMPLETEXT = "Abcdef";
+
+//
+// An array that lists the allowed types for JTableColumn. Seems like
+// we just get a complaint about a bad type when we actually try to use
+// the column in a JTable.
+//
+
+final Array TABLECOLUMNTYPES = {
+    BOOLEAN_TYPE,
+    DATE_TYPE,
+    DOUBLE_TYPE,
+    ICON_TYPE,
+    INTEGER_TYPE,
+    MONEY_TYPE,
+    PERCENT_TYPE,
+    STRING_TYPE,
+    TIMER_TYPE
+};
+
+//
+// Input data fields are described by the DATAFIELDS array, which we try
+// to load using a builtin named buildDataFields() that was added to the
+// data module to help performance. If the builtin doesn't exist or if it
+// returns NULL we do the loading using the LoadDataFields() function. The
+// buildDataFields() assumes 7 columns per row, so if the organization of
+// DATAFIELDS changes the builtin won't run and startup performance could
+// be affected.
+//
+
+BuildDataFields(Dictionary context) {
+    Array table = NULL;
+
+    if (DEBUGGING == FALSE) {
+	if (defined("buildDataFields", yoix.ydat))		// a builtin that should be fast
+	    table = buildDataFields(DATAFIELDS, COLUMNS_DATAFIELDS, context.TRANSLATORS, context.fields);
+    }
+    if (table == NULL) {
+	table = new Array[0, ...];
+	LoadDataFields(context, table + table@sizeof);
+    }
+    LoadReservedCounters(context, table + table@sizeof);
+    LoadCallbacks(context);
+    LoadLabels(context);
+    LoadComponents(context);
+    return(table);
+}
+
+LoadCallbacks(Dictionary context) {
+    String name;
+    String state;
+    Object desc;
+    Object handlers;
+    Array  ptr;
+
+    for (ptr = CALLBACKS; ptr@sizeof >= COLUMNS_CALLBACKS; ptr += COLUMNS_CALLBACKS) {
+	if (ptr[0] != NULL && ptr[1] != NULL) {
+	    name = ptr[0];
+	    state = toUpperCase(ptr[1]);
+	    if (!defined(name, context.allcallbacks))
+		context.allcallbacks[name] = new Dictionary[1, ...];
+	    desc = new Dictionary {
+		String state = state;
+		Object Formatter = (ptr[2] != NULL) ? ptr[2] : EmptyFormatter;
+		Object target = ptr[3];
+		Object Callback = ptr[4];
+	    };
+	    if (defined(state, context.allcallbacks[name])) {
+		handlers = context.allcallbacks[name][state];
+		if (handlers instanceof Dictionary) {
+		    context.allcallbacks[name][state] = new Array[1, ...];
+		    context.allcallbacks[name][state][0] = handlers;
+		    handlers = context.allcallbacks[name][state];
+		}
+		handlers[handlers@sizeof] = desc;
+	    } else context.allcallbacks[name][state] = desc;
+	}
+    }
+}
+
+LoadComponents(Dictionary context) {
+    Dictionary  initializer;
+    Object      component;
+    Array       ptr;
+
+    for (ptr = COMPONENTS; ptr@sizeof >= COLUMNS_COMPONENTS; ptr += COLUMNS_COMPONENTS) {
+	if (DEBUGGING) {
+	    if (ptr[0] == NULL)
+		Die("no name supplied for component at index %d", ptr@offset);
+	    if (defined(ptr[0], context.allcomponents))
+		Die("component named %s has already been used as the name of a component", ptr[0]);
+	    if (ptr[4] == NULL)
+		Die("component named %s has no constructor", ptr[0]);
+	    if (!(ptr[4] instanceof Callable))
+		Die("component named %s has a constructor that is not callable", ptr[0]);
+	    if (ptr[4]@length != 1)
+		Die("component named %s has a contructor that takes the wrong number of arguments", ptr[0]);
+	    if (ptr[5] != NULL) {
+		if (!(ptr[5] instanceof Dictionary))
+		    Die("component named %s has a bad initializer", ptr[0]);
+	    }
+	}
+
+	if (ptr[5] != NULL)
+	    initializer = new Dictionary[0, ...] ptr[5];
+	else initializer = new Dictionary[0, ...];
+	initializer.tag = ptr[0];
+	initializer.visible = ptr[2];
+	component = ptr[4](initializer);
+	AddManagedComponent(ptr[0], component, ptr[3], context);
+	AdjustVisibility(component, ptr[2], ptr[3], context.allcomponents);
+	context.allcomponents[ptr[0]] = component;
+    }
+}
+
+LoadDataFields(Dictionary context, Array table) {
+    Dictionary desc;
+    Array      ptr;
+
+    for (ptr = DATAFIELDS; ptr@sizeof >= COLUMNS_DATAFIELDS; ptr += COLUMNS_DATAFIELDS) {
+	if (DEBUGGING) {
+	    if (ptr[0] == NULL)
+		Die("no name supplied for datafield at index %d", ptr@offset);
+	    else if (defined(ptr[0], context.fields))
+		Die("datafield named %s has already been defined", ptr[0]);
+	    if (ptr[5] instanceof String && !defined(ptr[5], context.TRANSLATORS))
+		Die("translator %s for datafield %s is not recognized", ptr[5], ptr[0]);
+	}
+	desc = new Dictionary {
+	    String tag = ptr[0];
+	    int    type = ptr[1];
+	    int    index = ptr[2];
+	    int    accumulate = ptr[3];
+	    Object unixtime = ptr[4];
+	    Object translator = (ptr[5] instanceof String) ? context.TRANSLATORS[ptr[5]] : ptr[5];
+	    Object generator = ptr[6];
+	};
+	if (desc.type == DATA_TABLE)
+	    LoadTableTranslators(context, desc);
+	context.fields[ptr[0]] = desc;
+	*table++ = desc;
+    }
+}
+
+LoadLabels(Dictionary context) {
+    Dictionary initializer;
+    Object     label;
+    Array      ptr;
+
+    initializer = INITIALIZERS.LABELS;
+
+    for (ptr = LABELS; ptr@sizeof >= COLUMNS_LABELS; ptr += COLUMNS_LABELS) {
+	if (DEBUGGING) {
+	    if (ptr[0] == NULL)
+		Die("no name supplied for label at index %d", ptr@offset);
+	    if (defined(ptr[0], context.allcomponents))
+		Die("label named %s has already been used as the name of a component", ptr[0]);
+	}
+	label = NewLabel(ptr[0], ptr[1], ptr[4], ptr[5], ptr[6], ptr[7], ptr[8], ptr[9], initializer);
+	label.SetVisible(ptr[2]);
+	AddManagedComponent(ptr[0], label, ptr[3], context);
+	context.allcomponents[ptr[0]] = label;
+    }
+}
+
+LoadReservedCounters(Dictionary context, Array table) {
+    Dictionary desc;
+    String     name;
+    int        counter = SWEEPTABLES@sizeof + SWEEPGRAPHS@sizeof;
+    int        n;
+
+    for (n = 0; n < counter; n++) {
+	name = "<RESERVEDNAME_" + toString(n+1) + ">";
+	context.reservednames[context.reservednames@sizeof] = name;
+	desc = new Dictionary {
+	    String tag = name;
+	    int    type = DATA_COUNTER;
+	    int    index = -1;
+	    int    accumulate = FALSE;
+	    Object unixtime = NULL;
+	    Object translator = NULL;
+	    Object generator = NULL;
+	};
+	context.fields[desc.tag] = desc;
+	*table++ = desc;
+    }
+}
+
+LoadTableTranslators(Dictionary context, Dictionary desc) {
+    Array generator;
+    Array ptr;
+    Array table;
+    int   n;
+
+    if ((generator = desc.generator) != NULL) {
+	table = new Array[generator@sizeof];
+	for (ptr = generator; ptr@sizeof >= 5; ptr += 5) {
+	    if (DEBUGGING) {
+		if (!defined(ptr[0], context.fields))
+		    Die("datafield %s is not recognized in table generator for field %s", ptr[0], desc.tag);
+		if (ptr[4] instanceof String && !defined(ptr[4], context.TRANSLATORS))
+		    Die("unrecognized translator name %s in table generator for %s", ptr[4], desc.tag);
+	    }
+	    table[n++] = ptr[0];
+	    table[n++] = ptr[1];
+	    table[n++] = ptr[2];
+	    table[n++] = ptr[3];
+	    table[n++] = (ptr[4] instanceof String) ? context.TRANSLATORS[ptr[4]] : ptr[4];
+	}
+	desc.generator = table;
+    }
+}
+
+//
+// Data filters are visualization components, like histograms, that depend
+// on a single field in the input data, but provide a mechanism to extend
+// that dependence to two or three additional fields.
+// 
+
+BuildDataFilters(Dictionary context) {
+    Array table[0, ...];
+
+    if (defined("HISTOGRAMS") && HISTOGRAMS != NULL)
+        LoadHistograms(context, table + table@sizeof);
+    return(table);
+}
+
+LoadHistograms(Dictionary context, Array table) {
+    Dictionary desc;
+    Dictionary initializer;
+    Dictionary callbacks;
+    Object     sort;
+    Object     span;
+    Object     extra;
+    Array      ptr;
+    int        autoready;
+    int        extracolumn = -1;
+    int        n;
+
+    //
+    // We no longer support version 3.0, which was only used in EDGY
+    // and had an incompatible organization of the last three columns.
+    // Supporting backward compatibility, particularly for version 3.0
+    // which was only used in one application, makes this code a little
+    // harder than you might expect.
+    //
+
+    initializer = INITIALIZERS.HISTOGRAMS;
+    extracolumn = (atof(CONFIGVERSION) >= 3.0) ? COLUMNS_HISTOGRAMS-1 : -1;
+
+    for (ptr = HISTOGRAMS; ptr@sizeof >= COLUMNS_HISTOGRAMS; ptr += COLUMNS_HISTOGRAMS) {
+	if (ptr[0] != NULL) {
+	    if (DEBUGGING) {
+		if (ptr[0] == NULL)
+		    Die("no name supplied for histogram at index %d", ptr@offset);
+		if (defined(ptr[0], context.filters))
+		    Die("histogram named %s has already been defined as a filter", ptr[0]);
+		if (defined(ptr[0], context.allcomponents))
+		    Die("histogram named %s has already been used as the name of a component", ptr[0]);
+		if (ptr[2] != NULL) {
+		    if (ptr[2] instanceof Array) {
+			for (n = 0; n < ptr[2]@sizeof; n++) {
+			    if (ptr[2][n] != NULL && !defined(ptr[2][n], context.fields))
+				Die("primary field %s for histogram %s is not recognized", ptr[2][n], ptr[0]);
+			}
+		    } else if (!defined(ptr[2], context.fields))
+			Die("primary field %s for histogram %s is not recognized", ptr[2], ptr[0]);
+		} else Die("histogram %s has no primary field", ptr[0]);
+		if (ptr[3] != NULL) {
+		    if (ptr[3] instanceof Array) {
+			for (n = 0; n < ptr[3]@sizeof; n++) {
+			    if (ptr[3][n] != NULL && !defined(ptr[3][n], context.fields))
+				Die("secondary field %s for histogram %s is not recognized", ptr[3][n], ptr[0]);
+			}
+		    } else if (!defined(ptr[3], context.fields))
+			Die("secondary field %s for histogram %s is not recognized", ptr[3], ptr[0]);
+		}
+		if (ptr[4] != NULL && !defined(ptr[4], context.fields))
+		    Die("diversity field %s for histogram %s is not recognized", ptr[4], ptr[0]);
+		if (!(ptr[5] instanceof Number))
+		    Die("autoready field supplied for histogram %s is invalid", ptr[0]);
+		if (ptr[7] instanceof String && !defined(ptr[7], context.TRANSLATORS))
+		    Die("translator %s for histogram %s is not recognized", ptr[7], ptr[0]);
+	    }
+	    callbacks = ResolveCallbacks(ptr[0], context);
+	    autoready = ptr[5];
+	    span = ptr[6];
+	    sort = (ptr[7] instanceof String) ? context.TRANSLATORS[ptr[7]] : ptr[7];
+	    extra = (extracolumn > 0) ? ptr[extracolumn] : NULL;
+	    if (!autoready) {
+		//
+		// This is a kludge needed by some older config files that
+		// assumes a FALSE autoready field was an omission if the
+		// histogram has an UPDATE entry in callbacks. It's not an
+		// unreasonable assumption, but setting autoready to TRUE
+		// means more work at startup so we have to be careful.
+		//
+		if (defined("UPDATE", callbacks))
+		    autoready = TRUE;
+	    }
+	    desc = new Dictionary {
+		String tag = ptr[0];
+		String menulabel = GetMenuLabel(ptr[1], ptr[0]);
+		Object field = ptr[2];
+		Object value = ptr[3];
+		String diversity = ptr[4];
+		Object filter = NewHistogram(ptr[0], autoready, span, sort, extra, callbacks, initializer);
+	    };
+	    context.allcomponents[ptr[0]] = desc.filter;
+	    context.filters[ptr[0]] = desc;
+	    *table++ = desc;
+	}
+    }
+}
+
+//
+// Data viewers are visualization components that can display data using
+// an arbitrary number of input fields (e.g., nodes and edges in a graph
+// could be linked to separated fields). Data viewers are more general
+// than data filters, but that generality could affect performance, so
+// we're not currently planning on eliminating data filters.
+//
+
+BuildDataViewers(Dictionary context) {
+    Array table[0, ...];
+
+    if (defined("GRAPHS") && GRAPHS != NULL)
+        LoadGraphs(context, table + table@sizeof);
+    return(table);
+}
+
+LoadGraphs(Dictionary context, Array table) {
+    Dictionary desc;
+    Dictionary initializer;
+    Dictionary callbacks;
+    Object     border;
+    Object     insets;
+    Object     pad;
+    Object     palette;
+    Object     extra;
+    Array      ptr;
+    int        extracolumn;
+    int        n;
+
+    //
+    // NOTE - support for versions older than 4.1 has been dropped so any
+    // old config files that used a different column ordering for GRAPHS
+    // will have to be updated. As far as we know there is only one very
+    // old application that might be affected, but we doubt it's even used
+    // anymore. The change was made on 5/21/07.
+    //
+
+    initializer = INITIALIZERS.GRAPHS;
+    extracolumn = COLUMNS_GRAPHS-1;
+
+    for (ptr = GRAPHS; ptr@sizeof >= COLUMNS_GRAPHS; ptr += COLUMNS_GRAPHS) {
+	if (ptr[0] != NULL) {
+	    if (DEBUGGING) {
+		if (ptr[0] == NULL)
+		    Die("no name supplied for graph at index %d", ptr@offset);
+		if (defined(ptr[0], context.filters))
+		    Die("graph named %s has already been defined as a filter", ptr[0]);
+		if (defined(ptr[0], context.allcomponents))
+		    Die("graph named %s has already been used as the name of a component", ptr[0]);
+		if (ptr[2] != NULL) {
+		    if (ptr[2] instanceof Array) {
+			for (n = 0; n < ptr[2]@sizeof; n++) {
+			    if (ptr[2][n] != NULL && !defined(ptr[2][n], context.fields))
+				Die("primary field %s for graph %s is not recognized", ptr[2][n], ptr[0]);
+			}
+		    } else if (!defined(ptr[2], context.fields))
+			Die("primary field %s for graph %s is not recognized", ptr[2], ptr[0]);
+		} else Die("graph %s has no primary field", ptr[0]);
+		if (ptr[3] != NULL) {
+		    if (ptr[3] instanceof Array) {
+			for (n = 0; n < ptr[3]@sizeof; n++) {
+			    if (ptr[3][n] != NULL && !defined(ptr[3][n], context.fields))
+				Die("secondary field %s for graph %s is not recognized", ptr[3][n], ptr[0]);
+			}
+		    } else if (!defined(ptr[3], context.fields))
+			Die("secondary field %s for graph %s is not recognized", ptr[3], ptr[0]);
+		}
+	    }
+	    callbacks = ResolveCallbacks(ptr[0], context);
+	    extra = (extracolumn > 0) ? ptr[extracolumn] : NULL;
+	    desc = new Dictionary {
+		String tag = ptr[0];
+		String menulabel = GetMenuLabel(ptr[1], ptr[0]);
+		Object fieldindices = ptr[2];
+		Object value = ptr[3];
+		String coloredby = ptr[4];
+		Object filter = NULL;
+	    };
+
+	    if (COLUMNS_GRAPHS >= 12)		// probably should test CONFIGVERSION
+		desc.filter = NewGraph(ptr[0], ptr[5], ptr[6], ptr[9], ptr[10], extra, callbacks, initializer);
+	    else desc.filter = NewGraph(ptr[0], ptr[5], ptr[6], ptr[7], ptr[8], extra, callbacks, initializer);
+	    context.allcomponents[ptr[0]] = desc.filter;
+	    context.filters[ptr[0]] = desc;
+	    *table++ = desc;
+	}
+    }
+}
+
+//
+// DataTables are visualization components that can load and display data
+// using a JTable that's linked to other data visualization components.
+// 
+
+BuildDataTables(Dictionary context) {
+    Array table[0, ...];
+
+    if (defined("DATATABLES") && DATATABLES != NULL)
+        LoadDataTables(context, table + table@sizeof);
+    return(table);
+}
+
+LoadDataTables(Dictionary context, Array table) {
+    Dictionary desc;
+    Dictionary initializer;
+    Dictionary callbacks;
+    Object     sort;
+    Object     span;
+    Object     extra;
+    Array      ptr;
+    int        extracolumn;
+    int        n;
+
+    //
+    // Incomplete and/or incorrect and will need work. Original version
+    // was a copy of the corresponding histogram function.
+    //
+
+    initializer = INITIALIZERS.DATATABLES;
+    extracolumn = COLUMNS_DATATABLES-1;
+
+    for (ptr = DATATABLES; ptr@sizeof >= COLUMNS_DATATABLES; ptr += COLUMNS_DATATABLES) {
+	if (ptr[0] != NULL) {
+	    if (DEBUGGING) {
+		if (ptr[0] == NULL)
+		    Die("no name supplied for datatable at index %d", ptr@offset);
+		if (defined(ptr[0], context.filters))
+		    Die("datatable named %s has already been defined as a filter", ptr[0]);
+		if (defined(ptr[0], context.allcomponents))
+		    Die("datatable named %s has already been used as the name of a component", ptr[0]);
+		if (ptr[2] != NULL) {
+		    if (ptr[2] instanceof Array) {
+			for (n = 0; n < ptr[2]@sizeof; n++) {
+			    if (ptr[2][n] != NULL && !defined(ptr[2][n], context.fields))
+				Die("primary field %s for datatable %s is not recognized", ptr[2][n], ptr[0]);
+			}
+		    } else if (!defined(ptr[2], context.fields))
+			Die("primary field %s for datatable %s is not recognized", ptr[2], ptr[0]);
+		} else Die("datatable %s has no primary field", ptr[0]);
+		if (ptr[3] != NULL) {
+		    if (ptr[3] instanceof Array) {
+			for (n = 0; n < ptr[3]@sizeof; n++) {
+			    if (ptr[3][n] != NULL && !defined(ptr[3][n], context.fields))
+				Die("secondary field %s for datatable %s is not recognized", ptr[3][n], ptr[0]);
+			}
+		    } else if (!defined(ptr[3], context.fields))
+			Die("secondary field %s for datatable %s is not recognized", ptr[3], ptr[0]);
+		}
+		if (ptr[7] instanceof String && !defined(ptr[7], context.TRANSLATORS))
+		    Die("translator %s for datatable %s is not recognized", ptr[7], ptr[0]);
+	    }
+	    callbacks = ResolveCallbacks(ptr[0], context);
+	    span = ptr[6];
+	    sort = (ptr[7] instanceof String) ? context.TRANSLATORS[ptr[7]] : ptr[7];
+	    extra = (extracolumn > 0) ? ptr[extracolumn] : NULL;
+	    desc = new Dictionary {
+		String tag = ptr[0];
+		String menulabel = GetMenuLabel(ptr[1], ptr[0]);
+		Object field = ptr[2];
+		Object value = ptr[3];
+		//Object filter = NewDataTable(ptr[0], ptr[5], span, extra, callbacks, initializer);
+	    };
+	    context.allcomponents[ptr[0]] = desc.filter;
+	    context.filters[ptr[0]] = desc;
+	    *table++ = desc;
+	}
+    }
+}
+
+//
+// Plots are data visualization components, like eventplots, that display
+// data using x and y values that often come directly from the input data.
+// Plots and tags have different characteristics and are built from their
+// own tables, but both are just EventPlots. Axes, which are descibed by
+// the AXES table, are also loaded here because they currently must be
+// owned by a plot. The orientation of the axis automatically determines
+// the field (see AddAmanagedComponent()) in the plot that is controlled
+// by that axis.
+//
+
+BuildDataPlots(Dictionary context) {
+    Array table[0, ...];
+
+    if (defined("AXES") && AXES != NULL)		// this must be first
+	LoadAxes(context);
+    if (defined("PLOTS") && PLOTS != NULL)
+	LoadPlots(context, table + table@sizeof);	// must preceed tags
+    if (defined("STACKS") && STACKS != NULL)
+	LoadStacks(context, table + table@sizeof);
+    if (defined("TAGS") && TAGS != NULL)
+	LoadTags(context, table + table@sizeof);
+    return(table);
+}
+
+LoadAxes(Dictionary context) {
+    Dictionary initializer;
+    Dictionary callbacks;
+    Object     axis;
+    Object     extra;
+    Array      ptr;
+    int        extracolumn;
+
+    initializer = INITIALIZERS.AXES;
+    extracolumn = (atof(CONFIGVERSION) >= 4.0) ? COLUMNS_AXES-1 : -1;
+
+    for (ptr = AXES; ptr@sizeof >= COLUMNS_AXES; ptr += COLUMNS_AXES) {
+	if (DEBUGGING) {
+	    if (ptr[0] == NULL)
+		Die("no name supplied for axis at index %d", ptr@offset);
+	    else if (defined(ptr[0], context.plotaxes))
+		Die("axis named %s has already been defined", ptr[0]);
+	    if (defined(ptr[0], context.allcomponents))
+		Die("axis named %s has already been used as the name of a component", ptr[0]);
+	}
+	callbacks = ResolveCallbacks(ptr[0], context);
+	extra = (extracolumn > 0) ? ptr[extracolumn] : NULL;
+	axis = NewAxis(ptr[0], ptr[1], ptr[4], ptr[5], ptr[6], ptr[7], ptr[8], ptr[9], extra, callbacks, initializer);
+	axis.SetVisible(ptr[2]);
+	AddManagedComponent(ptr[0], axis, ptr[3], context);
+	context.allcomponents[ptr[0]] = axis;
+	context.plotaxes[ptr[0]] = axis;
+    }
+}
+
+LoadPlots(Dictionary context, Array table) {
+    Dictionary desc;
+    Dictionary initializer;
+    Dictionary callbacks;
+    Dictionary managed;
+    Object     extra;
+    Object     plot;
+    Object     filter;
+    Array      ptr;
+    int        extracolumn;
+    int        count;
+    int        n;
+
+    initializer = INITIALIZERS.PLOTS;
+    extracolumn = (atof(CONFIGVERSION) >= 4.0) ? COLUMNS_PLOTS-1 : -1;
+
+    for (ptr = PLOTS; ptr@sizeof >= COLUMNS_PLOTS; ptr += COLUMNS_PLOTS) {
+	if (DEBUGGING) {
+	    if (ptr[0] == NULL)
+		Die("no name supplied for plot at index %d", ptr@offset);
+	    else if (defined(ptr[0], context.eventplots))
+		Die("plot named %s has already been defined", ptr[0]);
+	    if (defined(ptr[0], context.allcomponents))
+		Die("plot named %s has already been used as the name of a component", ptr[0]);
+	    if (!defined(ptr[4], context.fields))
+		Die("xvalue field %s for plot %s is not recognized", ptr[4], ptr[0]);
+	    if (!defined(ptr[5], context.fields))
+		Die("yvalue field %s for plot %s is not recognized", ptr[5], ptr[0]);
+	    if (ptr[6] != NULL) {
+		if (ptr[6] instanceof Array) {
+		    for (n = 0; n < ptr[6]@sizeof; n++) {
+			if (ptr[6][n] != NULL && !defined(ptr[6][n], context.sweepfilters))
+			    Die("filter named %s for plot %s is not recognized", ptr[6][n], ptr[0]);
+		    }
+		} else if (!defined(ptr[6], context.sweepfilters))
+		    Die("filter named %s for plot %s is not recognized", ptr[6], ptr[0]);
+	    }
+	}
+
+	if (ptr[6] instanceof Array) {
+	    if ((count = ptr[6]@sizeof) > 0) {
+		filter = new Array[count];
+		for (n = 0; n < count; n++) {
+		    if (defined(ptr[6][n], context.sweepfilters))
+			filter[n] = context.sweepfilters[ptr[6][n]].filter;
+		    else filter[n] = NULL;
+		}
+	    } else filter = NULL;
+	} else if (ptr[6] instanceof String)
+	    filter = defined(ptr[6], context.sweepfilters) ? context.sweepfilters[ptr[6]].filter : NULL;
+	else filter = NULL;
+
+	desc = new Dictionary {
+	    String tag = ptr[0];
+	    String xaxis = ptr[4];
+	    String yaxis = ptr[5];
+	    Object filter = filter;
+	    Object plot;
+	};
+	callbacks = ResolveCallbacks(ptr[0], context);
+	managed = GetManagedComponents(ptr[0], context.allowners);
+	extra = (extracolumn > 0) ? ptr[extracolumn] : NULL;
+	plot = NewEventPlot(ptr[0], ptr[1], ptr[7], ptr[8], ptr[9], ptr[10], ptr[11], managed.axes, managed.children, extra, callbacks, initializer);
+	AddManagedComponent(ptr[0], plot, ptr[3], context);
+	plot.unixtime = context.fields[ptr[4]].unixtime;
+	plot.SetVisible(ptr[2]);
+	desc.plot = plot;
+	context.allcomponents[ptr[0]] = plot;
+	context.eventplots[ptr[0]] = desc;
+	*table++ = desc;
+    }
+}
+
+LoadStacks(Dictionary context, Array table) {
+    Dictionary desc;
+    Dictionary initializer;
+    Dictionary callbacks;
+    Dictionary managed;
+    Object     extra;
+    Object     plot;
+    Object     filter;
+    Array      ptr;
+    int        extracolumn;
+    int        count;
+    int        n;
+
+    //
+    // Currently closely matches LoadPlots, but there are a few subtle
+    // differences. Pretty good chance we could combine them, but it's
+    // not urgent and we really may want separate functions.
+    //
+
+    initializer = INITIALIZERS.STACKS;		// OK for now
+    extracolumn = (atof(CONFIGVERSION) >= 4.0) ? COLUMNS_STACKS-1 : -1;
+
+    for (ptr = STACKS; ptr@sizeof >= COLUMNS_STACKS; ptr += COLUMNS_STACKS) {
+	if (DEBUGGING) {
+	    if (ptr[0] == NULL)
+		Die("no name supplied for stack at index %d", ptr@offset);
+	    else if (defined(ptr[0], context.eventplots))
+		Die("stack named %s has already been defined", ptr[0]);
+	    if (defined(ptr[0], context.allcomponents))
+		Die("stack named %s has already been used as the name of a component", ptr[0]);
+	    if (!defined(ptr[4], context.fields))
+		Die("xvalue field %s for stack %s is not recognized", ptr[4], ptr[0]);
+	    if (!defined(ptr[5], context.fields))
+		Die("yvalue field %s for stack %s is not recognized", ptr[5], ptr[0]);
+	    if (ptr[6] != NULL) {
+		if (ptr[6] instanceof Array) {
+		    for (n = 0; n < ptr[6]@sizeof; n++) {
+			if (ptr[6][n] != NULL && !defined(ptr[6][n], context.sweepfilters))
+			    Die("filter named %s for plot %s is not recognized", ptr[6][n], ptr[0]);
+		    }
+		} else if (!defined(ptr[6], context.sweepfilters))
+		    Die("filter named %s for plot %s is not recognized", ptr[6], ptr[0]);
+	    }
+	}
+
+	if (ptr[6] instanceof Array) {
+	    if ((count = ptr[6]@sizeof) > 0) {
+		filter = new Array[count];
+		for (n = 0; n < count; n++) {
+		    if (defined(ptr[6][n], context.sweepfilters))
+			filter[n] = context.sweepfilters[ptr[6][n]].filter;
+		    else filter[n] = NULL;
+		}
+	    } else filter = NULL;
+	} else if (ptr[6] instanceof String)
+	    filter = defined(ptr[6], context.sweepfilters) ? context.sweepfilters[ptr[6]].filter : NULL;
+	else filter = NULL;
+
+	desc = new Dictionary {
+	    String tag = ptr[0];
+	    String xaxis = ptr[4];
+	    String yaxis = ptr[5];
+	    Object filter = filter;
+	    Object plot;
+	};
+	callbacks = ResolveCallbacks(ptr[0], context);
+	managed = GetManagedComponents(ptr[0], context.allowners);
+	extra = (extracolumn > 0) ? ptr[extracolumn] : NULL;
+	plot = NewEventPlot(ptr[0], ptr[1], ptr[7], ptr[8], ptr[9], ptr[10], ptr[11], managed.axes, managed.children, extra, callbacks, initializer);
+	AddManagedComponent(ptr[0], plot, ptr[3], context);
+	plot.unixtime = context.fields[ptr[4]].unixtime;
+	plot.SetVisible(ptr[2]);
+	desc.plot = plot;
+	context.allcomponents[ptr[0]] = plot;
+	context.eventplots[ptr[0]] = desc;
+	*table++ = desc;
+    }
+}
+
+LoadTags(Dictionary context, Array table) {
+    Dictionary desc;
+    Dictionary initializer;
+    Dictionary callbacks;
+    Dictionary managed;
+    Object     extra;
+    Object     plot;
+    Object     filter;
+    Array      generator;
+    Array      ptr;
+    int        extracolumn;
+    int        count;
+    int        n;
+
+    initializer = INITIALIZERS.TAGS;
+    extracolumn = (atof(CONFIGVERSION) >= 4.0) ? COLUMNS_TAGS-1 : -1;
+
+    for (ptr = TAGS; ptr@sizeof >= COLUMNS_TAGS; ptr += COLUMNS_TAGS) {
+	if (DEBUGGING) {
+	    if (ptr[0] == NULL)
+		Die("no name supplied for tag at index %d", ptr@offset);
+	    if (defined(ptr[0], context.allcomponents))
+		Die("tag named %s has already been used as the name of a component", ptr[0]);
+	    if (ptr[3] == NULL)
+		Die("tag named %s has no owner", ptr[0]);
+	    else if (!defined(ptr[3], context.eventplots))
+		Die("owner %s for tag %s is not recognized", ptr[3], ptr[0]);
+	    if (ptr[4] != NULL && !defined(ptr[4], context.fields))
+		Die("xvalue field %s for tag %s is not recognized", ptr[4], ptr[0]);
+	    if (!defined(ptr[5], context.fields))
+		Die("yvalue field %s for tag %s is not recognized", ptr[5], ptr[0]);
+	    if (ptr[6] != NULL) {
+		if (ptr[6] instanceof Array) {
+		    if (ptr[6]@sizeof > 1) {
+			if (ptr[6][0] instanceof int) {
+			    for (n = 1; n < ptr[6]@sizeof; n++) {
+				if (ptr[6][n] != NULL && !defined(ptr[6][n], context.fields))
+				    Die("generator[%d] for tag %s is not recognized", n, ptr[0]);
+			    }
+			} else Die("generator[0] for tag %s must be an int", ptr[0]);
+		    } else Die("generator array for tag %s is too small", ptr[0]);
+		} else if (ptr[6] instanceof String) {
+		    if (!defined(ptr[6], context.fields))
+			Die("overlapend field %s for tag %s is not recognized", ptr[6], ptr[0]);
+		} else Die("generator field for tag %s is not valid", ptr[0]);
+	    }
+	    if (ptr[7] != NULL) {
+		if (ptr[7] instanceof Array) {
+		    for (n = 0; n < ptr[7]@sizeof; n++) {
+			if (ptr[7][n] != NULL && !defined(ptr[7][n], context.sweepfilters))
+			    Die("filter named %s for plot %s is not recognized", ptr[7][n], ptr[0]);
+		    }
+		} else if (!defined(ptr[7], context.sweepfilters))
+		    Die("filter named %s for plot %s is not recognized", ptr[7], ptr[0]);
+	    }
+	}
+	if (ptr[6] instanceof String)
+	    generator = new Array {1, ptr[6]};
+	else if (ptr[6] instanceof Array)
+	    generator = ptr[6];
+	else generator = NULL;
+
+	if (ptr[7] instanceof Array) {
+	    if ((count = ptr[7]@sizeof) > 0) {
+		filter = new Array[count];
+		for (n = 0; n < count; n++) {
+		    if (defined(ptr[7][n], context.sweepfilters))
+			filter[n] = context.sweepfilters[ptr[7][n]].filter;
+		    else filter[n] = NULL;
+		}
+	    } else filter = NULL;
+	} else if (ptr[7] instanceof String)
+	    filter = defined(ptr[7], context.sweepfilters) ? context.sweepfilters[ptr[7]].filter : NULL;
+	else filter = NULL;
+
+	desc = new Dictionary {
+	    String tag = ptr[0];
+	    String xaxis = (ptr[4] != NULL) ? ptr[4] : context.eventplots[ptr[3]].xaxis;
+	    String yaxis = ptr[5];
+	    Object generator = generator;		// overlap magic
+	    Object filter = filter;
+	    Object plot;
+	};
+	callbacks = defined(ptr[0], context.allcallbacks) ? context.allcallbacks[ptr[0]] : NULL;
+	managed = GetManagedComponents(ptr[0], context.allowners);
+	extra = (extracolumn > 0) ? ptr[extracolumn] : NULL;
+	plot = NewTagPlot(ptr[0], ptr[1], context.eventplots[ptr[3]].plot, ptr[8], ptr[9], generator, managed.children, extra, callbacks, initializer);
+	AddManagedComponent(ptr[0], plot, ptr[3], context);
+	plot.SetVisible(ptr[2]);
+	desc.plot = plot;
+	context.allcomponents[ptr[0]] = plot;
+	*table++ = desc;
+    }
+}
+
+//
+// Sweep filters are active visualization components (e.g., Histograms)
+// that are loaded when data records are selected from other components
+// (e.g., EventPlots), which usually happens when the user sweeps out a
+// "selection" rectangle in that component. Plots are currently the only
+// components that support this kind of selection, but we undoubtedly
+// will expand the list soon.
+//
+
+BuildSweepFilters(Dictionary context) {
+    Array table[0, ...];
+
+    if (defined("PLOTFILTERS") && PLOTFILTERS != NULL)		// obsolete
+	LoadSweepHistograms(PLOTFILTERS, context, table + table@sizeof);
+    if (defined("SWEEPHISTOGRAMS") && SWEEPHISTOGRAMS != NULL)
+	LoadSweepHistograms(SWEEPHISTOGRAMS, context, table + table@sizeof);
+    if (defined("SWEEPTABLES") && SWEEPTABLES != NULL)
+	LoadSweepTables(context, table + table@sizeof);		// incomplete!!
+    if (defined("SWEEPGRAPHS") && SWEEPGRAPHS != NULL)
+	LoadSweepGraphs(context, table + table@sizeof);
+    return(table);
+}
+
+LoadSweepGraphs(Dictionary context, Array table) {
+    Dictionary desc;
+    Dictionary initializer;
+    Dictionary callbacks;
+    Pointer    ptr;
+    String     sort1;
+    String     sort2;
+    Array      fields;
+    int        n;
+
+    //
+    // A work in progress...
+    //
+
+    initializer = INITIALIZERS.SWEEPGRAPHS;
+
+    for (ptr in SWEEPGRAPHS by COLUMNS_SWEEPGRAPHS) {
+	if (DEBUGGING) {
+	    if (ptr[0] == NULL)
+		Die("no name supplied for sweepgraph at index %d", ptr@offset);
+	    else if (defined(ptr[0], context.sweepfilters))
+		Die("sweepgraph named %s has already been defined", ptr[0]);
+	    if (defined(ptr[0], context.allcomponents))
+		Die("sweepgraph named %s has already been used as the name of a component", ptr[0]);
+	    if (ptr[2] && !defined(ptr[2], context.fields))
+		Die("datafield %s for sweepgraph %s is not recognized", ptr[2], ptr[0]);
+	    if (ptr[3] && !defined(ptr[3], context.fields))
+		Die("datafield %s for sweepgraph %s is not recognized", ptr[3], ptr[0]);
+	    if (ptr[4] && !defined(ptr[4], context.fields))
+		Die("datafield %s for sweepgraph %s is not recognized", ptr[4], ptr[0]);
+	    if (ptr[5] instanceof Array) {
+		for (n = 0; n < ptr[5]@sizeof; n++) {
+		    if (ptr[5][n] && !defined(ptr[5][n], context.fields))
+			Die("datafield %s for sweepgraph %s is not recognized", ptr[5][n], ptr[0]);
+		}
+	    } else if (ptr[5] && !defined(ptr[5], context.fields))
+		Die("datafield %s for sweepgraph %s is not recognized", ptr[5], ptr[0]);
+	    if (!(ptr[8] == NULL || ptr[8] instanceof int || ptr[8] instanceof String))
+		Die("model for sweepgraph %s must be an int, String, or NULL", ptr[0]);
+	}
+	callbacks = ResolveCallbacks(ptr[0], context);
+	sort1 = (ptr[10] instanceof Array && ptr[10]@sizeof > 2) ? ptr[10][2] : ptr[2];
+	sort2 = (ptr[10] instanceof Array && ptr[10]@sizeof > 3) ? ptr[10][3] : ptr[3];
+	fields = new Array[] {PickReservedName(context), NULL, ptr[2], ptr[3], ptr[4], sort1, sort2, (ptr[5] instanceof Array ? unroll(ptr[5]) : ptr[5])};
+	desc = new Dictionary {
+	    String tag = ptr[0];
+	    String menulabel = GetMenuLabel(ptr[1], ptr[0]);
+	    String label = menulabel;
+	    String value = fields[0];
+	    Array  field = fields;
+	    Object filter = NewGraph(ptr[0], FALSE, ptr[6], ptr[7], NULL, ptr[11], callbacks, initializer);
+	};
+	desc.filter.graphlayoutmodel = ptr[8];
+	desc.filter.graphlayoutarg = ptr[9];
+	desc.filter.graphlayoutsort = ptr[10];
+	context.allcomponents[ptr[0]] = desc.filter;
+	context.sweepfilters[ptr[0]] = desc;
+	*table++ = desc;
+    }
+}
+
+
+LoadSweepHistograms(Array source, Dictionary context, Array table) {
+    Dictionary desc;
+    Dictionary initializer;
+    Dictionary callbacks;
+    Array      ptr;
+    int        labeled;
+
+    initializer = INITIALIZERS.SWEEPHISTOGRAMS;
+    labeled = (atof(CONFIGVERSION) < 2.0) ? 0 : 1;
+
+    for (ptr = source; ptr@sizeof >= COLUMNS_SWEEPHISTOGRAMS; ptr += COLUMNS_SWEEPHISTOGRAMS) {
+	if (DEBUGGING) {
+	    if (ptr[0] == NULL)
+		Die("no name supplied for sweephistogram at index %d", ptr@offset);
+	    else if (defined(ptr[0], context.sweepfilters))
+		Die("sweephistogram named %s has already been defined", ptr[0]);
+	    if (defined(ptr[0], context.allcomponents))
+		Die("sweephistogram named %s has already been used as the name of a component", ptr[0]);
+	    if (ptr[2] == NULL)
+		Die("sweephistogram %s has no datafield", ptr[0]);
+	    else if (!defined(ptr[2], context.fields))
+		Die("datafield %s for sweephistogram %s is not recognized", ptr[2], ptr[0]);
+	}
+	callbacks = ResolveCallbacks(ptr[0], context);
+	desc = new Dictionary {
+	    String tag = ptr[0];
+	    String menulabel = GetMenuLabel(ptr[1], ptr[0]);
+	    String field = ptr[2];
+	    Object filter = NewHistogram(ptr[0], FALSE, ptr[3], ptr[4], NULL, callbacks, initializer);
+	    Object label = NULL;
+	};
+	if (labeled) {
+	    //
+	    // Recent change to a special one-row histogram improves
+	    // positioning and horizontal scrolling. Old version used
+	    //
+	    //    NewLabel(NULL, NULL, 1, ptr[3], LEFT, desc.filter.font, desc.filter.foreground, ptr[5], INITIALIZERS.LABELS);
+	    //
+	    // to create the label. Required Java and Yoix changes, so
+	    // this isn't backwards compatible!!!
+	    //
+	    desc.label = NewHistogramLabel(((ptr[5] instanceof Array && ptr[5]@sizeof > 0) ? ptr[5][0] : ptr[5]), initializer);
+	}
+	context.allcomponents[ptr[0]] = desc.filter;
+	context.sweepfilters[ptr[0]] = desc;
+	*table++ = desc;
+    }
+}
+
+LoadSweepTables(Dictionary context, Array table) {
+    Dictionary desc;
+    Dictionary initializer;
+    Dictionary callbacks;
+    Pointer    ptr;
+    Array      columns;
+    Array      fields;
+    Font       font;
+    int        index;
+
+    initializer = INITIALIZERS.SWEEPTABLES;
+    if (defined("font", initializer) && initializer.font != NULL)
+	font = initializer.font;
+    else font = FONTS.medium_text;
+
+    for (ptr in SWEEPTABLES by COLUMNS_SWEEPTABLES) {
+	if (DEBUGGING) {
+	    if (ptr[0] == NULL)
+		Die("no name supplied for sweeptable at index %d", ptr@offset);
+	    else if (defined(ptr[0], context.sweepfilters))
+		Die("sweeptable named %s has already been defined", ptr[0]);
+	    if (defined(ptr[0], context.allcomponents))
+		Die("sweeptable named %s has already been used as the name of a component", ptr[0]);
+	}
+	callbacks = ResolveCallbacks(ptr[0], context);
+	columns = CreateTableColumns(context, ptr[5], PickExtraFont(ptr[4], font), ptr[0]);
+	fields = new Array[ptr[5]@sizeof/COLUMNS_TABLECOLUMN + 2] {PickReservedName(context), NULL};
+	index = 2;
+	for (tptr in ptr[5] by COLUMNS_TABLECOLUMN)
+	    fields[index++] = tptr[0];
+	desc = new Dictionary {
+	    String tag = ptr[0];
+	    String menulabel = GetMenuLabel(ptr[1], ptr[0]);
+	    String label = menulabel;
+	    String value = fields[0];
+	    Array  field = fields;
+	    Object filter = NewDataTable(ptr[0], FALSE, ptr[2], ptr[3], columns, ptr[4], callbacks, initializer);
+	};
+	context.allcomponents[ptr[0]] = desc.filter;
+	context.sweepfilters[ptr[0]] = desc;
+	*table++ = desc;
+    }
+}
+
+CreateTableColumns(Dictionary context, Array spec, Font tablefont, String name) {
+    String label;
+    Object attributes;
+    Object extra;
+    Object columnwidth;
+    Array  columns;
+    Font   font;
+    int    type;
+    int    n;
+
+    columns = new Array[spec@sizeof/COLUMNS_TABLECOLUMN + 1] {
+	new JTableColumn {
+	    String header = "Ref";
+	    Object altbackground = COLORS.altbackground;
+	    Object altforeground = COLORS.altforeground;
+	    int    type = HISTOGRAM_TYPE;
+	    int    width = 72.0/2;
+	    int    altalignment = CENTER;
+	}
+    };
+
+    n = 1;
+    for (ptr in spec by COLUMNS_TABLECOLUMN) {
+	if (DEBUGGING) {
+	    if (ptr[0] instanceof String) {
+		if (!defined(ptr[0], context.fields))
+		    Die("datafield %s is not recognized in sweeptable %s", ptr[0], name);
+	    } else Die("datafield supplied for sweeptable %s is invalid", name);
+	    if (!(ptr[1] instanceof String || ptr[1] == NULL))
+		Die("label supplied for column %s in sweeptable %s is invalid", ptr[0], name);
+	    if (ptr[2] != NULL) {
+		if (!(ptr[2] instanceof Number || ptr[2] instanceof String))
+		    Die("width supplied for column %s in sweeptable %s is invalid", ptr[0], name);
+	    }
+	    if (indexOfObject(TABLECOLUMNTYPES, ptr[4]) < 0)
+		Die("type supplied for column %s in sweeptable %s is invalid", ptr[0], name);
+	    if (!(ptr[5] == NULL || ptr[5] instanceof String || ptr[5] instanceof Dictionary))
+		Die("attributes supplied for column %s in sweeptable %s is invalid", ptr[0], name);
+	}
+
+	//
+	// Our JTable code doesn't like NULL and also seems to object if
+	// the label string is empty (i.e., "").
+	//
+
+	label = ptr[1]@sizeof > 0 ? ptr[1] : " ";
+	columnwidth = ptr[2];
+	type = ptr[4];
+	attributes = ptr[5];
+	extra = ptr[6];
+	font = PickExtraFont(extra, tablefont);
+
+	if (columnwidth != NULL) {
+	    if (columnwidth instanceof Number) {
+		if (columnwidth <= 0)
+		    columnwidth = stringWidth(font, label);
+		else columnwidth = columnwidth*(stringWidth(font, SAMPLETEXT)/SAMPLETEXT@sizeof);
+	    } else columnwidth = stringWidth(font, columnwidth);
+	    if (columnwidth > 0)
+		columnwidth += 3.0*VM.screen.pixelwidth;	// pixelwidth addition for cell pad and slop
+	} else columnwidth = 0;
+
+	//
+	// Eventually may want to do more here.
+	//
+
+	if (attributes instanceof String) {
+	    attributes = new Dictionary[0, ...] {
+		String format = attributes;
+	    };
+	    if (type == DATE_TYPE || type == TIMER_TYPE) {
+		if (extra instanceof TimeZone)
+		    attributes.timeZone = extra.id;
+	    }
+	}
+
+	columns[n++] = new JTableColumn {
+	    Dictionary attributes = attributes;
+	    String     header = label;
+	    Object     altbackground = COLORS.altbackground;
+	    Object     altforeground = COLORS.altforeground;
+	    Font       font = font;
+	    int        type = type;
+	    int        width = max(columnwidth, stringWidth(font, label)) + 1;
+	    int        alignment = ptr[3];
+	    int        altalignment = (extra instanceof int) ? extra : CENTER;
+	};
+    }
+    return(columns);
+}
+
+//
+// The panels described in the PANELS table are used to build the screens
+// that display the visualization components, but the low level components
+// referenced by name in PANELS must already exist when BuildPanels() is
+// called.
+//
+
+BuildPanels(Dictionary context) {
+    if (defined("PANELS") && PANELS != NULL)
+	LoadPanels(context);
+}
+
+LoadPanels(Dictionary context) {
+    Object container;
+    Object layout;
+    Object background;
+    Object width;
+    Object height;
+    Object primary;
+    int    primarycolumn;
+    int    lastcolumn;
+    Array  ptr;
+
+    lastcolumn = COLUMNS_PANELS - 1;
+    primarycolumn = (atof(CONFIGVERSION) >= 4.2) ? lastcolumn-4 : -1;
+
+    for (ptr = PANELS; ptr@sizeof >= COLUMNS_PANELS; ptr += COLUMNS_PANELS) {
+	primary = (primarycolumn > 0) ? ptr[primarycolumn] : NULL;
+	width = ptr[lastcolumn-3];
+	height = ptr[lastcolumn-2];
+	background = ptr[lastcolumn-1];
+	layout = ptr[lastcolumn];
+	if (DEBUGGING) {
+	    if (ptr[0] == NULL)
+		Die("no name supplied for panel at index %d", ptr@offset);
+	    else if (defined(ptr[0], context.allpanels))
+		Die("panel named %s has already been defined", ptr[0]);
+	    if (defined(ptr[0], context.allcomponents))
+		Die("panel named %s has already been used as the name of a component", ptr[0]);
+	    if (primary != NULL) {
+		if (!defined(primary, context.eventplots) && !defined(primary, context.filters))
+		    Die("primary field %s for panel %s is not recognized", primary, ptr[0]);
+	    }
+	    if (!(width instanceof Number))
+		Die("width specification for panel %s is invalid", ptr[0]);
+	    if (!(height instanceof Number))
+		Die("height specification for panel %s is invalid", ptr[0]);
+	    if (background != NULL && !(background instanceof Color))
+		Die("background color for panel %s is invalid", ptr[0]);
+	    if (layout != NULL) {
+		if (layout instanceof Array) {
+		    if (layout@sizeof != COLUMNS_GRIDPANEL  && layout@sizeof != COLUMNS_SPLITPANE && layout@sizeof%COLUMNS_GRIDBAGPANEL != 0)
+			Die("layout array for panel %s has an invalid length", ptr[0]);
+		} else Die("layout for panel %s is not an array", ptr[0]);
+	    }
+	}
+	if (layout@sizeof != 0) {
+	    if (layout@sizeof == COLUMNS_GRIDPANEL)
+		container = CreateGridPanel(context, layout, ptr[0], ptr[1], width, height, background);
+	    else if (layout@sizeof == COLUMNS_SPLITPANE)
+		container = CreateSplitPane(context, layout, ptr[0], ptr[1], width, height, background);
+	    else container = CreateGridBagPanel(context, layout, ptr[0], ptr[1], width, height, background);
+	} else container = NewPanel(ptr[0], ptr[1], width, height, background, NULL, NULL, INITIALIZERS.PANELS);
+	if (primary != NULL) {
+	    if (defined(primary, context.allcomponents))
+		container.primary = context.allcomponents[primary];
+	}
+
+	AddManagedComponent(ptr[0], container, ptr[3], context);
+	AdjustVisibility(container, ptr[2], ptr[3], context.allcomponents);
+	context.allcomponents[ptr[0]] = container;
+	context.allpanels[ptr[0]] = container;
+    }
+}
+
+CreateGridPanel(Dictionary context, Array ptr, String tag, String menulabel, double width, double height, Color background) {
+    Object component;
+    Object layoutmanager;
+    Array  layout[0, ...];
+    Array  components;
+    int    n;
+
+    components = ptr[6];
+
+    for (n = 0; n < components@sizeof; n++) {
+	if (DEBUGGING) {
+	    if (components[n] != NULL) {
+		if (!defined(components[n], context.allcomponents))
+		    Die("component named %s in panel %s is not recognized", components[n], tag);
+		if (defined(components[n], context.usedcomponents))
+		    Die("component named %s in panel %s has already been used", components[n], tag);
+	    }
+	}
+	if (components[n] != NULL) {
+	    component = context.allcomponents[components[n]];
+	    context.usedcomponents[components[n]] = NULL;
+	} else component = new JPanel;
+	layout[n] = component;
+    }
+
+    layoutmanager = new GridLayout {
+	int rows = ptr[0];
+	int columns = ptr[1];
+	int hgap = ptr[2];
+	int vgap = ptr[3];
+	int orientation = ptr[4];
+	int useall = ptr[5];
+    };
+    return(NewPanel(tag, menulabel, width, height, background, layoutmanager, layout, INITIALIZERS.PANELS));
+}
+
+CreateGridBagPanel(Dictionary context, Array ptr, String tag, String menulabel, double width, double height, Color background) {
+    Object component;
+    Object constraint;
+    Object layoutmanager;
+    Array  layout[0, ...];
+    int    n;
+
+    for (; ptr@sizeof >= COLUMNS_GRIDBAGPANEL; ptr += COLUMNS_GRIDBAGPANEL) {
+	if (DEBUGGING) {
+	    if (ptr[0] != NULL) {
+	        if (!defined(ptr[0], context.allcomponents))
+		    Die("component named %s in panel %s is not recognized", ptr[0], tag);
+		if (defined(ptr[0], context.usedcomponents))
+		    Die("component named %s in panel %s has already been used", ptr[0], tag);
+	    }
+	}
+	if (ptr[0] != NULL) {
+	    component = context.allcomponents[ptr[0]];
+	    context.usedcomponents[ptr[0]] = NULL;
+	} else component = new JPanel;
+
+	constraint = new GridBagConstraints {
+	    int    gridx = ptr[1];
+	    int    gridy = ptr[2];
+	    int    gridwidth = ptr[3];
+	    int    gridheight = ptr[4];
+	    double weightx = ptr[5];
+	    double weighty = ptr[6];
+	    double ipadx = ptr[7];
+	    double ipady = ptr[8];
+	    int    fill = ptr[9];
+	    int    anchor = ptr[10];
+	    Insets insets = MakeInsets(ptr[11], component, context.allcomponents);
+	};
+	if (ptr[12] != NULL)		// sometimes helps debug layouts
+	    component.background = ptr[12];
+	layout[n++] = component;
+	layout[n++] = constraint;
+    }
+    return(NewPanel(tag, menulabel, width, height, background, new GridBagLayout, layout, INITIALIZERS.PANELS));
+}
+
+CreateSplitPane(Dictionary context, Array ptr, String tag, String menulabel, double width, double height, Color background) {
+    Object component;
+    Array  layout[2];
+    Array  components;
+    int    n;
+
+    layout = new Array[2];
+    components = ptr[4];
+    for (n = 0; n < layout@sizeof; n++) {
+	if (DEBUGGING) {
+	    if (components[n] != NULL) {
+		if (!defined(components[n], context.allcomponents))
+		    Die("component named %s in splitpane %s is not recognized", components[n], tag);
+		if (defined(components[n], context.usedcomponents))
+		    Die("component named %s in splitpane %s has already been used", components[n], tag);
+	    }
+	}
+	if (components[n] != NULL) {
+	    layout[n] = context.allcomponents[components[n]];
+	    context.usedcomponents[components[n]] = NULL;
+	} else layout[n] = new JPanel;
+    }
+    return(NewSplitPane(tag, menulabel, ptr[0], ptr[1], ptr[2], ptr[3], layout, INITIALIZERS.SPLITPANES));
+}
+
+//
+// Menu builders
+//
+
+BuildAxisMenu(Object labels, String prefix, Dictionary components, int contains) {
+    Menu menu;
+    int  counter;
+
+    LoadMenu(menu, AXES, prefix, 2, COLUMNS_AXES, &counter, components, contains);
+    return(LabelMenu(menu, labels, &counter));
+}
+
+BuildColorMenu(Object labels, String prefix, Object coloredby, Dictionary components, int contains) {
+    Array table;
+    Array ptr;
+    Menu  menu;
+    int   counter;
+
+    //
+    // We omit histograms that look like "GuyOGrams", but we make changes
+    // in a copy of HISTOGRAMS so we don't affect anything else.
+    //
+
+    LoadMenu(menu, GRAPHS, prefix, coloredby, COLUMNS_GRAPHS, &counter, components, contains);
+
+    table = new Array[] HISTOGRAMS;
+    for (ptr = table; ptr@sizeof > 0; ptr += COLUMNS_HISTOGRAMS) {
+	if (ptr[2] instanceof Array && ptr[2]@sizeof > 1)
+	    ptr[0] = NULL;
+    }
+    LoadMenu(menu, table, prefix, coloredby, COLUMNS_HISTOGRAMS, &counter, components, contains);
+    return(LabelMenu(menu, labels, &counter));
+}
+
+BuildFilterMenu(Object labels, String prefix, Dictionary components, int contains) {
+    Menu menu;
+    int  counter;
+
+    LoadMenu(menu, GRAPHS, prefix, NULL, COLUMNS_GRAPHS, &counter, components, contains);
+    LoadMenu(menu, HISTOGRAMS, prefix, NULL, COLUMNS_HISTOGRAMS, &counter, components, contains);
+    return(LabelMenu(menu, labels, &counter));
+}
+
+BuildLabelMenu(Object labels, String prefix, Dictionary components, int contains) {
+    Menu menu;
+    int  counter;
+
+    LoadMenu(menu, LABELS, prefix, 2, COLUMNS_LABELS, &counter, components, contains);
+    return(LabelMenu(menu, labels, &counter));
+}
+
+BuildPanelMenu(Object labels, String prefix, Dictionary components, int contains) {
+    Menu menu;
+    int  counter;
+
+    LoadMenu(menu, PANELS, prefix, 2, COLUMNS_PANELS, &counter, components, contains);
+    return(LabelMenu(menu, labels, &counter));
+}
+
+BuildPlotMenu(Object labels, String prefix, Dictionary components, int contains) {
+    Menu menu;
+    int  counter;
+
+    LoadMenu(menu, PLOTS, prefix, 2, COLUMNS_PLOTS, &counter, components, contains);
+    LoadMenu(menu, STACKS, prefix, 2, COLUMNS_STACKS, &counter, components, contains);
+    return(LabelMenu(menu, labels, &counter));
+}
+
+BuildSweepFilterMenu(Object labels, String prefix, Dictionary components, int contains) {
+    Menu menu;
+    int  counter;
+
+    LoadMenu(menu, PLOTFILTERS, prefix, NULL, COLUMNS_SWEEPHISTOGRAMS, &counter, components, contains);
+    LoadMenu(menu, SWEEPHISTOGRAMS, prefix, NULL, COLUMNS_SWEEPHISTOGRAMS, &counter, components, contains);
+    LoadMenu(menu, SWEEPTABLES, prefix, NULL, COLUMNS_SWEEPTABLES, &counter, components, contains);
+    LoadMenu(menu, SWEEPGRAPHS, prefix, NULL, COLUMNS_SWEEPGRAPHS, &counter, components, contains);
+    return(LabelMenu(menu, labels, &counter));
+}
+
+BuildTableMenu(Object labels, String prefix, Dictionary components, int contains) {
+    Menu menu;
+    int  counter;
+
+    LoadMenu(menu, DATATABLES, prefix, NULL, COLUMNS_DATATABLES, &counter, components, contains);
+    return(LabelMenu(menu, labels, &counter));
+}
+
+BuildTagMenu(Object labels, String prefix, Dictionary components, int contains) {
+    Menu menu;
+    int  counter;
+
+    LoadMenu(menu, TAGS, prefix, 2, COLUMNS_TAGS, &counter, components, contains);
+    return(LabelMenu(menu, labels, &counter));
+}
+
+LabelMenu(Menu menu, Object labels, Pointer counter) {
+    String label;
+
+    if (*counter > 0) {
+	if (labels instanceof Array) {
+	    if (labels@sizeof > 0)
+		label = labels[min(*counter, labels@sizeof) - 1];
+	} else if (labels instanceof String)
+	    label = labels;
+	else label = NULL;
+    } else label = NULL;
+    return(label != NULL ? new Menu{label, menu} : menu);
+}
+
+LoadMenu(Menu menu, Array ptr, String prefix, Object selected, int columns, Pointer counter, Dictionary components, int contains, ...) {
+    String label;
+    String name;
+    String groupname;
+    String submenu_label;
+    Object submenu_menu;
+    int    submenu_counter;
+    int    unseparated;
+    int    index;
+    int    n;
+
+    if (menu == NULL)
+	menu = new Menu;
+
+    for (n = menu@sizeof; ptr@sizeof >= columns; ptr += columns) {
+	name = ptr[0];
+	label = GetMenuLabel(ptr[1], name);
+	if (label != NULL) {
+	    if (name != NULL) {
+		if (!(defined(name, components) ^^ contains)) {
+		    *counter += 1;
+		    if (MENULIMIT < 1 || (*counter%(MENULIMIT+1)) || ptr@sizeof <= columns) {
+			if (MENUGROUPSEPARATOR@sizeof > 0) {
+			    if ((index = indexOf(label, MENUGROUPSEPARATOR)) >= 0) {
+				groupname = substring(label, 0, index);
+				label += index + MENUGROUPSEPARATOR@sizeof;
+			    }
+			}
+			menu[n++] = label;
+			menu[n++] = prefix + name;
+			if (selected != NULL) {		// checkbox menu item
+			    if (selected instanceof String) {
+				menu[n++] = (groupname != NULL) ? groupname : "";
+				menu[n] = (name === selected);
+			    } else {
+				if (groupname != NULL)
+				    menu[n++] = groupname;
+				menu[n] = ptr[selected];
+			    }
+			    if (components != NULL)
+				menu[n] = components[name].visible;
+			    n++;
+			}
+			unseparated++;
+		    } else {
+			menu[n++] = "-";
+			menu[n++] = NULL;
+			menu[n++] = "More";
+			menu[n++] = LoadMenu(NULL, ptr, prefix, selected, columns, counter, components, contains);
+			break;
+		    }
+		}
+	    } else if (label === "-") {
+		if (unseparated > 0) {
+		    menu[n++] = label;
+		    menu[n++] = NULL;
+		    unseparated = 0;
+		}
+	    } else if (endsWith(label, "{")) {
+		submenu_counter = 0;
+		submenu_label = trim(label, NULL, " {");
+		submenu_menu = LoadMenu(NULL, ptr + columns, prefix, selected, columns, &submenu_counter, components, contains, &ptr);
+		if (submenu_counter > 0) {
+		    menu[n++] = submenu_label;
+		    menu[n++] = submenu_menu;
+		    unseparated++;
+		}
+	    } else if (label === "}") {
+		if (argc > 8)
+		    *argv[argc-1] = ptr;
+		break;
+	    }
+	}
+    }
+    return(menu);
+}
+
+GetMenuLabel(Object arg, String name) {
+    String label;
+
+    if (arg != NULL) {
+	if (!(arg instanceof String)) {
+	    if (arg instanceof Dictionary) {
+		if (defined(name, arg))
+		    label = arg[name];
+		else label = name;
+	    } else if (arg instanceof Callable)
+		label = arg(name);
+	    else label = NULL;
+	} else label = arg;
+    } else label = NULL;
+    return(label);
+}
+
+//
+// Low level support...
+//
+
+AdjustVisibility(Object component, Object value, String owner, Dictionary allcomponents) {
+    if (defined("visible", component)) {
+	if (value instanceof int)
+	    component.visible = value;
+	if (defined(owner, allcomponents)) {
+	    if (defined("visible", allcomponents[owner]))
+		component.visible = allcomponents[owner].visible;
+	}
+    }
+}
+
+AddManagedComponent(String name, Object value, String owner, Dictionary context) {
+    Dictionary dict;
+
+    if (name != NULL && owner != NULL) {
+	if ((dict = GetManagedComponents(owner, context.allowners)) != NULL) {
+	    if (value instanceof Axis) {
+		if (value.orientation == HORIZONTAL)
+		    dict.axes.xaxis = value;
+		else dict.axes.yaxis = value;
+	    }
+	    dict.children[name] = value;
+	    if (defined("owner", value) && value.owner == NULL) {
+		if (defined(owner, context.allcomponents))
+		    value.owner = context.allcomponents[owner];
+	    }
+	}
+    }
+}
+
+GetManagedComponents(String owner, Dictionary allowners) {
+    Dictionary dict;
+
+    if (owner != NULL && allowners != NULL) {
+	if (!defined(owner, allowners)) {
+	    allowners[owner] = new Dictionary {
+		Dictionary children[0, ...];
+		Dictionary axes = {
+		    Object xaxis = NULL;
+		    Object yaxis = NULL;
+		};
+	    };
+	} 
+	dict = allowners[owner];
+    }
+    return(dict);
+}
+
+MakeInsets(Object insets, Object component, Dictionary allcomponents) {
+    Dictionary components;
+    Dimension  size;
+    Object     target;
+    double     left;
+    double     right;
+    int        n;
+
+    if (insets instanceof String) {
+	if (defined(insets, allcomponents)) {
+	    target = allcomponents[insets];
+	    if (target instanceof EventPlot) {
+		if (component instanceof Axis) {
+		    if (component.orientation == VERTICAL) {
+			component.insets = new Insets {
+			    double top = target.insets.top + target.ipad.top;
+			    double bottom = target.insets.bottom + target.ipad.bottom;
+			};
+			//
+			// Late addition - I'm not convinced!!!
+			//
+			component.axiswidth = 0;	// convenient, but hard to justify
+		    } else {
+			component.insets = new Insets {
+			    double left = target.insets.left + target.ipad.left;
+			    double right = target.insets.right + target.ipad.right;
+			};
+		    }
+		    insets = NULL;
+		} else {
+		    if (component instanceof Panel || component instanceof JPanel) {
+			if (component.layoutmanager instanceof GridLayout) {
+			    components = component.components;
+			    for (n = 0; n < components@sizeof; n++) {
+				if (components[n] instanceof EventPlot) {
+				    left = max(left, components[n].insets.left + components[n].ipad.left);
+				    right = max(right, components[n].insets.right + components[n].ipad.right);
+				}
+			    }
+			}
+		    } else if (component instanceof EventPlot) {
+			left = component.insets.left + component.ipad.left;
+			right = component.insets.right + component.ipad.right;
+		    }
+		    insets = new Insets {
+			double left = target.insets.left + target.ipad.left - left;
+			double right = target.insets.right + target.ipad.right - right;
+		    };
+		}
+	    } else if (target instanceof Axis) {
+		size = target.preferredsize;
+		insets = new Insets;
+		if (target.orientation == VERTICAL)
+		    insets.left = size.width;
+		else insets.bottom = size.height;
+	    } else insets = NULL;
+	} else insets = NULL;
+    } else if (insets instanceof Number) {
+	insets = new Insets {
+            double top = insets;
+            double bottom = insets;
+            double left = insets;
+            double right = insets;
+	};
+    } else if (insets instanceof Function)
+	insets = insets(allcomponents, component);
+    return(insets);
+}
+
+PickExtraFont(Object extra, Font font) {
+    //
+    // Look through extra if it's a dictionary to duplicate what will
+    // eventually happen when constructors.yx builds the component.
+    // Only used when dealing with tables because we need to know the
+    // font when calculating column widths. May be able to avoid this
+    // if we built tables and columns first and then set widths.
+    //
+
+    if (extra != NULL) {
+	if (extra instanceof Dictionary) {
+	    if (defined("font", extra)) {
+		if (extra.font instanceof Font)
+		    font = extra.font;
+		else if (extra.font instanceof String)
+		    font = new Font {String name = extra.font;};
+	    }
+	} else if (extra instanceof Font) {
+	    font = extra;
+	} else if (extra instanceof String)
+	    font = new Font {String name = extra;};
+    }
+    return(font);
+}
+
+PickReservedName(Dictionary context) {
+    String name;
+    int    n;
+
+    for (n = 0; n < context.reservednames@sizeof; n++) {
+	if (context.reservednames[n] != NULL) {
+	    name = context.reservednames[n];
+	    context.reservednames[n] = NULL;
+	    break;
+	}
+    }
+    return(name);
+}
+
+ResolveCallbacks(String name, Dictionary context) {
+    Dictionary callbacks;
+    Array      entries;
+    int        m;
+    int        n;
+
+    callbacks = defined(name, context.allcallbacks) ? context.allcallbacks[name] : NULL;
+
+    for (n = 0; n < callbacks@sizeof; n++) {
+	if (callbacks[n] instanceof Array) {
+	    entries = callbacks[n];
+	    for (m = 0; m < entries@sizeof; m++)
+		ResolveCallback(entries[m], context);
+	} else ResolveCallback(callbacks[n], context);
+    }
+
+    return(callbacks);
+}
+
+ResolveCallback(Dictionary entry, Dictionary context) {
+    Object component;
+
+    if (entry instanceof Dictionary) {
+	if (defined(entry.target, context.allcomponents)) {
+	    component = context.allcomponents[entry.target];
+	    if (defined("text", component))
+		entry.target = &component.text;
+	    else entry.target = &EmptyText;
+	} else entry.target = &EmptyText;
+    }
+}
+

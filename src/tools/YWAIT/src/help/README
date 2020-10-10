@@ -1,0 +1,7 @@
+Files that are displayed by the YWAIT help system. Simple HTML is convenient
+and it's what we use for the default help files, but the screen that's used
+to display them won't object if they're plain text files.
+
+Don't get too fancy if you add HTML files, because they're displayed by Java
+component (a JTextPane) that doesn't handle everything.
+

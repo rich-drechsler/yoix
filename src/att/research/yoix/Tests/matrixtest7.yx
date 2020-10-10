@@ -1,0 +1,6 @@
+import yoix.*.*;
+
+Point pt = VM.screen.defaultmatrix.transform(72, 72);
+
+printf("horizontal resolution: %.1f\n", pt.x);
+printf("  vertical resolution: %.1f\n", pt.y);

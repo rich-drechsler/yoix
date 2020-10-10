@@ -1,0 +1,24 @@
+//
+// Set the parserencoding to UTF-8 on the command line and you should
+// get three Yen characters in the output. In other words, call yoix
+// using something like,
+//
+//	yoix --parserencoding=UTF-8 yen.yx
+//
+// to read all the characters in the string properly. You can also set
+// the output stream encoding using the --streamencoding command line
+// option. For example,
+//
+//	yoix --parserencoding=UTF-8 --streamencoding=UTF-8 yen.yx
+//
+// will read the string and write the unicode representastion of the
+// three Yen characters on standard output.
+//
+
+////VM.encoding.parser = "UTF-8";	// allowed, but too late for this file
+////VM.encoding.stream = "UTF-8";	// allowed, but too late for stdout
+
+String yen = "¥\t&#165;\t&yen;\n";
+
+stdout.nextline = yoix.string.htmlDecode(yen);
+

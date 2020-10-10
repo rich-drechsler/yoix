@@ -1,0 +1,48 @@
+//
+// An AWT test - just to make sure.
+//
+
+import yoix.*.*;
+
+Frame f = {
+	Color background = Color.white;
+	String backgroundimage = "http://www.yoix.org/imgs/ATTlogo.gif";
+
+	Dimension size = {
+	    double width = 10*72;
+	    double height = 6*72;
+	};
+
+	Graphics graphics = {
+	    int fractionalmetrics = 0;
+	    int antialiasing = 0;
+
+	    Font font = {
+		String name = "Lucida-plain-128";
+	    };
+	};
+
+	paint(Rectangle r) {
+	    String text = "Yoix";
+	    double alpha = 1.0;
+	    int    limit = 6;
+	    int    n;
+
+	    graphics {
+		gsave();
+		rectclip(r);
+
+		translate(size.width/2, 3*size.height/4);
+		for (n = 0; n < limit; n++) {
+		    moveto(0, 0);
+		    show(text, alpha);
+		    alpha *= .5;
+		    rotate(-30);
+		}
+		grestore();
+	    }
+	}
+};
+
+f.visible = TRUE;
+

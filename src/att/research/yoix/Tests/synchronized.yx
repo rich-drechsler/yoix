@@ -1,0 +1,41 @@
+//
+// Test of the yoix synchronized statement.
+//
+
+import yoix.*.*;
+
+Object lock = "lock";
+
+Thread thread1 = {
+    run() {
+	int n = 0;
+	printf("thread1: started\n");
+	while (n++ < 10) {
+	    printf("thread1: request lock\n");
+	    synchronized(lock) {
+		printf("thread1: got lock\n");
+		sleep(5);
+	    }
+	    printf("thread1: released lock\n");
+	}
+    }
+};
+
+Thread thread2 = {
+    run() {
+	int n = 0;
+	printf("thread2: started\n");
+	while (n++ < 10) {
+	    printf("thread2: request lock\n");
+	    synchronized(lock) {
+		printf("thread2: got lock\n");
+		sleep(7);
+	    }
+	    printf("thread2: released lock\n");
+	}
+    }
+};
+
+thread1.run();
+thread2.run();
+

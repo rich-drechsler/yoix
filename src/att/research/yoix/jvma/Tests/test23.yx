@@ -1,0 +1,32 @@
+import yoix.*.*;
+import yoix.module.att.research.yoix.jvma.JVMTestModule.*;
+
+assembleClass(@<<
+    public abstract class ZZZ {
+	extern static java.io.PrintStream java.lang.System.out
+        extern void java.lang.System.out.println(java.lang.String)
+        extern void java.lang.System.out.println(int)
+
+	int qwert = 12;
+
+	public static void main(java.lang.String[] args) {
+	    jsr subr
+	    push java.lang.System.out
+	    push "Returned from subroutine"
+	    invoke java.lang.System.out.println(java.lang.String)
+	    return
+
+	subr:
+	    returnaddress addr
+	    store addr
+	    push java.lang.System.out
+	    push "In subroutine"
+	    invoke java.lang.System.out.println(java.lang.String)
+	    ret addr
+	}
+    }
+>>@);
+
+fprintf(stderr, "%s", dumpClassFile());
+writeClassFile("/tmp/xxx");
+

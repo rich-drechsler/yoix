@@ -1,0 +1,131 @@
+import yoix.*.*;
+
+JFrame jf = {
+    Dimension size = NULL;
+
+    Array layout = {
+	new JScrollPane {
+	    String tag = "$_scrollpane";
+
+	    Array layout = {
+		new JPanel {
+		    String tag = "$_panel";
+		    int counter = 0;
+
+		    GridLayout layoutmanager = {
+			int columns = 1;
+		    };
+
+		    Array layout = {
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+			new JCheckBox {
+			    String text = "Tagged Box " + toString(++counter);
+			},
+		    };
+		},
+	    };
+	},
+    };
+};
+
+Dimension sz = jf.components.$_panel.layout[0].size;
+
+jf.components.$_scrollpane.preferredsize = new Dimension {
+    double height = 5.0 * sz.height;
+};
+
+jf.components.$_scrollpane.setIncrement(VERTICAL, UNITINCREMENT, sz.height);
+
+jf.visible = TRUE;

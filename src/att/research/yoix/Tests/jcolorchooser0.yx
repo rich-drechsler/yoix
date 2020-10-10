@@ -1,0 +1,79 @@
+import yoix.*.*;
+
+addColor();
+
+JDialog chooser = {
+    Dimension size = NULL;
+    String    title = "Color Chooser Example";
+    int       initialized = FALSE;
+    int       modal = TRUE;
+
+    Array layout = {
+        new JColorChooser {
+            String tag = "$_chooser";
+            Color  color = Color.blue;
+            int    canceled = FALSE;
+
+	    stateChanged(e) {
+		String name;
+		fprintf(stderr, "Color is now: %s\n", ((name=getColorName(color)) == null ? "<unnamed>" : name));
+	    }
+        }, CENTER,
+
+        new JPanel {
+            FlowLayout layoutmanager = {
+                double vgap = 72.0/16;
+            };
+
+            Array layout = {
+                new JButton {
+                    String text = "Select";
+
+                    actionPerformed(e) {
+                        root.SetVisible(FALSE);
+                    }
+                },
+                new JButton {
+                    String text = "Reset";
+
+                    actionPerformed(e) {
+                        root.components.$_chooser.reset = root.components.$_chooser.color;
+                    }
+                },
+                new JButton {
+                    String text = "Cancel";
+
+                    actionPerformed(e) {
+                        root.components.$_chooser.canceled = TRUE;
+                        root.SetVisible(FALSE);
+                    }
+                },
+            };
+        }, SOUTH,
+    };
+
+    SelectedColor() {
+        Color color = NULL;
+
+        if (!components.$_chooser.canceled)
+            color = components.$_chooser.color;
+        return(color);
+    }
+
+    SetVisible(int state) {
+        Point location;
+
+        if (!initialized) {
+            initialized = TRUE;
+            location.x = (VM.screen.width - this.size.width)/2;
+            location.y = (VM.screen.height - this.size.height)/2 - 72.0;
+            this.location = location;
+        }
+        if (state)
+            this.components.$_chooser.canceled = FALSE;
+        this.visible = state;
+    }
+};
+
+chooser.SetVisible(TRUE);
+printf("The color you selected is: %O\n", chooser.SelectedColor());

@@ -1,0 +1,40 @@
+import yoix.*.*;
+import yoix.module.att.research.yoix.jvma.JVMTestModule.*;
+
+//
+// An intentional error
+//
+
+assembleClass(@<<
+    public abstract class ZZZ {
+	extern static java.io.PrintStream java.lang.System.out
+	extern void java.lang.System.out.println(java.lang.String)
+	extern void java.lang.System.out.println(int)
+
+	//
+	// This is bogus and was just for testing the assembler
+	// The extern definition doesn't hurt anything, but the
+	// call itself must be commented out if you want to run
+	// this class file.
+	//
+	extern void java.lang.System.out.println(int, java.lang.String, double)
+
+	public static void main(java.lang.String[] args) {
+	    push java.lang.System.out
+	    /////push "Hello, world"
+	    push 0x"68656C6C6F2C20776F726C642E";
+	    invoke java.lang.System.out.println(java.lang.String)
+	    push java.lang.System.out
+	    push 1000
+	    push 12345
+	    sub
+	    invoke java.lang.System.out.println(int)
+	    /////call java.lang.System.out.println(int, java.lang.String, double) 12.3 "now is the time" 45.76
+	    call java.lang.System.out.println(java.lang.String) "Now is the time for all good men"
+	}
+    }
+>>@);
+
+fprintf(stderr, "%s", dumpClassFile());
+writeClassFile("/tmp/xxx");
+

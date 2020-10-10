@@ -1,0 +1,84 @@
+//
+// Some data for the 2020 election. The first element in each array is the
+// number of electoral college votes each state has. The second element is
+// the party governor of each state. Including other info, like the party
+// affiliation of the state's Secretary of State might also be useful, as
+// well as some measure of how partisan each governor is.
+//
+
+import yoix.*.*;
+
+Dictionary states = {
+    Array Alabama = {9, "R"};
+    Array Alaska = {3, "R"};
+    Array Arizona = {11, "R"};
+    Array Arkansas = {6, "R"};
+    Array California = {55, "D"};
+    Array Colorado = {9, "D"};
+    Array Connecticut = {7, "D"};
+    Array Delaware = {3, "D"};
+    Array District_of_Columbia = {3, "D"};
+    Array Florida = {29, "R"};
+    Array Georgia = {16, "R"};
+    Array Hawaii = {4, "D"};
+    Array Idaho = {4, "R"};
+    Array Illinois = {20, "D"};
+    Array Indiana = {11, "R"};
+    Array Iowa = {6, "R"};
+    Array Kansas = {6, "D"};
+    Array Kentucky = {8, "D"};
+    Array Louisiana = {8, "D"};
+    Array Maine = {4, "D"};
+    Array Maryland = {10, "R"};
+    Array Massachusetts = {11, "R"};
+    Array Michigan = {16, "D"};
+    Array Minnesota = {10, "D"};
+    Array Mississippi = {6, "R"};
+    Array Missouri = {10, "D"};
+    Array Montana = {3, "R"};
+    Array Nebraska = {5, "R"};
+    Array Nevada = {6, "D"};
+    Array New_Hampshire = {4, "R"};
+    Array New_Jersey = {14, "D"};
+    Array New_Mexico = {5, "D"};
+    Array New_York = {29, "D"};
+    Array North_Carolina = {15, "D"};
+    Array North_Dakota = {3, "R"};
+    Array Ohio = {18, "R"};
+    Array Oklahoma = {7, "R"};
+    Array Oregon = {7, "D"};
+    Array Pennsylvania = {20, "D"};
+    Array Rhode_Island = {4, "D"};
+    Array South_Carolina = {9, "R"};
+    Array South_Dakota = {3, "R"};
+    Array Tennessee = {11, "R"};
+    Array Texas = {38, "R"};
+    Array Utah = {6, "R"};
+    Array Vermont = {3, "R"};
+    Array Virginia = {13, "D"};
+    Array Washington = {12, "D"};
+    Array West_Virginia = {5, "R"};
+    Array Wisconsin = {10, "D"};
+    Array Wyoming = {3, "R"};
+};
+
+democratic_votes = 0;
+republican_votes = 0;
+independent_votes = 0;
+
+total_votes = 0;
+
+for (ptr in states) {
+    total_votes += ptr[0][0];
+    if (ptr[0][1] === "R")
+        republican_votes += ptr[0][0];
+    else if (ptr[0][1] === "D")
+        democratic_votes += ptr[0][0];
+    else independent_votes += ptr[0][0];
+}
+
+printf("Total electoral college votes: %d\n", total_votes);
+printf("Democratic controlled votes: %d\n", democratic_votes);
+printf("Republican controlled votes: %d\n", republican_votes);
+printf("Independent controlled votes: %d\n", independent_votes);
+

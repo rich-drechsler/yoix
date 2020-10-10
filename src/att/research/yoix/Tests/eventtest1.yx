@@ -1,0 +1,25 @@
+import yoix.*.*;
+
+JButton b = {
+    actionPerformed(Event e) {
+	printf("actionPerformed: e=%O\n", e);
+    }
+
+    invocationRun(Event e) {
+	if (e.counter < 3)
+	    printf("invocationRun: e=%O\n", e);
+	else exit(0);
+    }
+};
+
+InvocationEvent ie = {
+    String id = "invocationRun";
+    int    counter = 0;           // custom field
+};
+
+while (TRUE) {
+    postEvent(ie, b);
+    sleep(1.0);
+    ie.counter++;
+}
+

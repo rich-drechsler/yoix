@@ -1,0 +1,144 @@
+sub peer_sendmessage {
+    my $exitstatus = 0;
+    my $unsent = "";
+    my $subject = "";
+    my $sendmail_error = "";
+    my $user = "admin";
+    my $msg = "";
+    my $path;
+    my $delivered;
+    my $i;
+    my $ac = 0;
+    my %sentto;
+    my @recips;
+    my $recip;
+
+    $WARNINGMESSAGE = "";	# just in case it's not defined yet
+
+    while ($#_ >= $ac) {
+	if ($_[$ac] eq "-s") {
+	    $ac++;
+	    $subject = $_[$ac];
+	} elsif ($_[$ac] =~ /^-s/) {
+	    $subject = substr($_[$ac],2);
+	} elsif ($_[$ac] eq "-u") {
+	    $ac++;
+	    $user = $_[$ac];
+	} elsif ($_[$ac] =~ /^-u/) {
+	    $user = substr($_[$ac],2);
+	} elsif ($_[$ac] =~ /^-/) {
+	    $WARNINGMESSAGE = "Your message could not be sent due to a software error. Please report this problem to the administrator.";
+	    WriteLog("-d2", "[sendmessage] ERROR: bad argument: $_[$ac]");
+	    $exitstatus = 1;
+	    last;
+	} else {
+	    last;
+	}
+	$ac++;
+    }
+
+    if ($WARNINGMESSAGE eq "") {
+	if ($user ne "") {
+	    if (ValidateUser("-v", $user) && ValidateHome($user)) {
+		if ($#_ >= $ac) {
+		    if ($#_ > $ac) {
+			if (ValidateMessage($_[$#_])) {
+			    $msg = "From: $user\n";
+			    if (length($subject) > 0) {
+				$msg .= "Subject: $subject\n";
+			    }
+			    $msg .= "Date: " . GetFormattedUserTime("%a %b %e %T %Z %Y", time()) . "\n\n";
+			    $msg .= $_[$#_] . "\n\n";
+
+			    for ($i = $ac; $i < $#_; $i++) {
+				if ($_[$i] eq "") {
+				    $_[$i] = $ADMINISTRATORS;
+				    if ($USE_SENDMAIL ne "" && $ADMIN_EMAIL ne "" && $SMTP_SERVER ne "") {
+					my $obj = new SendMail($SMTP_SERVER, $SMTP_PORT);
+					$obj->From("<_ACRONYM_UPLOW_DQ_> User $user <no_email\@$SMTP_SERVER>");
+					$obj->Subject("<_ACRONYM_UPLOW_DQ_> <_SERVER_TYPE_DQ_> User Comment");
+					$obj->To(@COMMENT_EMAIL);
+					$obj->ErrorsTo("$ADMIN_EMAIL");
+					$obj->setMailBody($msg);
+					if ($obj->sendMail() != 0) {
+					    $sendmail_error = $obj->{'error'};
+					}
+				    }
+				}
+				@recips = split(/\s+/, $_[$i]);
+				foreach $recip (@recips) {
+				    if ($recip eq "") {
+					next;
+				    }
+				    if (exists $sentto{$recip}) {
+					next;
+				    }
+				    $delivered = 0;
+				    $sentto{$recip} = 1;
+				    if (ValidateMessageFile($recip, $msg)) {
+					$path = "$HOMEDIR/$recip/$MESSAGEFILE_NAME";
+					if (LockNamedFile(UntaintedPath($path), 5)) {
+					    if (open(SMSG, ">>" . UntaintedPath($path))) {
+						print SMSG "$msg";
+						close(SMSG);
+						$delivered = 1;
+					    }
+					    UnlockNamedFile(UntaintedPath($path));
+					}
+				    }
+				    if (!$delivered) {
+					if ($unsent eq "") {
+					    $unsent = $recip;
+					} else {
+					    $unsent .= ", " . $recip;
+					}
+				    }
+				}
+			    }
+			} else {
+			    $WARNINGMESSAGE = "Your message could not be sent - it was not accepted by the system.";
+			    WriteLog("-d2","[sendmessage] ERROR: message length " . length($_[$#_]) . " is invalid");
+			    $exitstatus = 1;
+			}
+		    } else {
+			$WARNINGMESSAGE = "Your message could not be sent - no message body supplied.";
+			WriteLog("-d3","[sendmessage] WARNING: no message body");
+			$exitstatus = 1;
+		    }
+		} else {
+		    $WARNINGMESSAGE = "Your message could not be sent - no recipients supplied.";
+		    WriteLog("-d3","[sendmessage] WARNING: no recipients");
+		    $exitstatus = 1;
+		}
+	    } else {
+		$WARNINGMESSAGE = "Your message could not be sent. Please report this problem to the administrator.";
+		WriteLog("-d2","[sendmessage] ERROR: invalid sender: $user");
+		$exitstatus = 1;
+	    }
+	} else {
+	    $WARNINGMESSAGE = "Your message could not be sent. Please report this problem to the administrator.";
+	    WriteLog("-d2","[sendmessage] ERROR: blank user");
+	    $exitstatus = 1;
+	}
+    }
+
+    if ($unsent ne "") {
+	$WARNINGMESSAGE = "Your message could not be sent to: $unsent";
+	WriteLog("-d2","[sendmessage] WARNING: no message sent to: $unsent");
+	$exitstatus = 1;
+    }
+
+    if ($sendmail_error ne "") {
+	if ($WARNINGMESSAGE eq "") {
+	    $WARNINGMESSAGE = "Your message could not be sent. Please report this problem to the administrator.";
+	}
+	WriteLog("-d2","[sendmessage] WARNING: sendmail error: $sendmail_error");
+	$exitstatus = 1;
+    }
+
+    WriteHeader();
+
+    return($exitstatus);
+}
+
+return 1;

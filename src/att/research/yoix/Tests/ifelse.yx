@@ -1,0 +1,75 @@
+//
+// The Yoix interpreter reads and executes one statement at a time,
+// which means it occasionally reads a token that doesn't belong to
+// the statement that it's currently working on. YoixParser.backup()
+// is supposed to clean things up and this test file tries to make
+// sure YoixParser.backup() is doing its job properly.
+//
+
+int n;
+
+ifelse1() {
+    if (1 == 2) {
+	n = 0;
+    } else if (2 == 2) {
+	n = 1;
+    } else if (2 == 3) {
+	n = 2;
+    }
+}
+
+n = 3;
+
+ifelse1();
+
+n = 4;
+
+if (1 == 2) {
+    n = 5;
+} else if (2 == 2) {
+    n = 6;
+} else if (2 == 3) {
+    n = 7;
+}
+
+n = 8;
+
+ifelse2() {
+    if (1 == 2) {
+	n = 9;
+    } else if (2 == 2) {
+	n = 10;
+    } else if (2 == 3) {
+	n = 11;
+    } else n = 12;
+}
+
+n = 13;
+
+ifelse2();
+
+n = 14;
+
+if (1 == 2) {
+    n = 15;
+} else if (2 == 2) {
+    n = 16;
+} else if (2 == 3) {
+    n = 17;
+} else n = 18;
+
+n = 19;
+
+if (1 == 2) {
+    n = 20;
+} else if (2 == 2) {
+    n = 21;
+} else {
+   if (2 == 3) {
+       n = 22;
+   } else if (2 == 4) {
+       n = 23;
+   }
+}
+
+n = 24;

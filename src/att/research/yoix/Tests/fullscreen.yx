@@ -1,0 +1,102 @@
+//
+// Simple test of the new fullscreen field that was added to Swing and AWT
+// windows, frames, and dialogs. Frame decorations seem to be a small issue
+// on Linux, but maybe not on other platforms, so that's something we should
+// investigate. The example uses JFrames, the decorationstyle field, which
+// should be 0, 1, or 2, and the VM.screen.fullscreensupported field to pick
+// a frame decorationstyle.
+//
+// NOTE - Java documentation suggests calling
+//
+//     Component.enableInputMethods(false);
+//
+// when full screen windows are created, probably to make it harder to steal
+// keystrokes, but right now we don't do it. Might be something to consider
+// before the next release, but it might also be really inconvenient - they
+// obviously decided not to do it. See
+//
+//     http://java.sun.com/docs/books/tutorial/extra/fullscreen/
+//
+// for more info.
+//
+
+import yoix.*.*;
+
+JFrame w1 = {
+    int decorationstyle = VM.screen.fullscreensupported ? 0 : 1;	// 0 removes decorations
+    int fullscreen = TRUE;
+
+    Color background = Color.green;
+
+    Point location = {
+	double x = 144;
+	double y = 144;
+    };
+
+    Array layout = {
+	new JLabel {
+	    String text = "This is the first window";
+	}, NORTH,
+	new JPanel {
+	    Array layout = {
+		new JButton {
+		    String text = "Resize";
+
+		    actionPerformed(e) {
+			root.fullscreen = !root.fullscreen;
+		    }
+		},
+		new JButton {
+		    String text = "Exit";
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+	    };
+	}, SOUTH,
+    };
+};
+
+JFrame w2 = {
+    int decorationstyle = VM.screen.fullscreensupported ? 0 : 1;	// 0 removes decorations
+    int fullscreen = TRUE;
+    int visible = TRUE;
+
+    Color background = Color.yellow;
+
+    Point location = {
+	double x = 600;
+	double y = 400;
+    };
+
+    Array layout = {
+	new JLabel {
+	    String text = "This is the second window";
+	}, NORTH,
+	new JPanel {
+	    Array layout = {
+		new JButton {
+		    String text = "Resize";
+
+		    actionPerformed(e) {
+			root.fullscreen = !root.fullscreen;
+		    }
+		},
+		new JButton {
+		    String text = "Exit";
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+	    };
+	}, SOUTH,
+    };
+};
+
+sleep(2);
+w1.fullscreen = TRUE;
+sleep(2);
+w2.fullscreen = TRUE;
+

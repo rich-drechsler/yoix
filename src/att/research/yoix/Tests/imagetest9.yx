@@ -1,0 +1,34 @@
+//
+// Image example that uses version 1.1.0 features.
+//
+
+import yoix.*.*;
+
+Image img_att = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+    Array metrics = {0, 0, 1.1, 1};
+
+    paint() {
+	int n;
+
+	for (n = 0; setpixel(n++, 10, Color.black) != null; ) ;
+	for (n = 0; setpixel(n++, rows - 11, Color.black) != null; ) ;
+    }
+};
+
+JFrame f = {
+    Color background = Color.lightGray;
+
+    paint(Rectangle r) {
+	graphics {
+	    rectclip(r);
+	    moveto(72, 72);
+	    showimage(img_att);
+	    showimage(img_att);
+	    initclip();
+	}
+    }
+};
+
+f.visible = TRUE;
+

@@ -1,0 +1,35 @@
+<BODY BGCOLOR=#FFFFFF>
+<TABLE VSPACE=24 HSPACE=24><TR><TD BGCOLOR=#BBF1DE>
+&nbsp;
+<CENTER>
+<H1>Help about <I>Preferences</></H1>
+</CENTER>
+&nbsp;
+</TD></TR><TR><TD>&nbsp;
+<P>
+Various application parameters are available for modification to
+customize the application to your tastes. Select the
+<BLOCKQUOTE>
+<B>File =&gt; Preferences</B>
+</BLOCKQUOTE>
+menu item. A tree of parameters and parameter folders will appear.
+Click on tree node to either expand it, if it is a folder, or edit
+the current value, if it is a parameter.
+<P>
+You can either apply your changes immediately to the current session,
+which also saves your choices on the application server or you can
+request just a server save so that the changes will be available
+the next time you log into <B><_ACRONYM_HTML_></B>.
+<P>
+Options under the <B>Edit</B> menu in the
+preferences window allow you to expend or collapse the entire tree.
+There are also several reset options that
+allow you to reset a selected preference or all preferences back to the application defaults
+or the previously saved values.
+Incidentally, note that your personal preference settings are not
+accessed until after successfully logging into the system.  Thus,
+do not be surprised if the login screen does not reflect your
+preference choices.
+<P></TD></TR><TR><TD BGCOLOR=#BBF1DE ALIGN=RIGHT>
+<A HREF="!main_help"><I>Back to Main Page</I></A>
+</TD></TR></TABLE></BODY>

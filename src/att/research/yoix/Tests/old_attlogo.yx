@@ -1,0 +1,266 @@
+import yoix.*.*;
+
+Image logo = {
+    Dimension size = {
+	int width = 396;
+	int height = 258;
+    };
+
+    Graphics graphics = {
+	int antialiasing = TRUE;
+    };
+
+    paint(Rectangle r) {
+
+	graphics {
+	    gsave();
+	    rectclip(r);
+	    clippath();
+	    setgray(1);
+	    fill();
+	    translate(36,54);
+
+	    setrgbcolor(0., 217./256., 240./256.); // AT&T blue
+
+	    arc(76,76,76,0,360); // globe background
+	    fill();
+
+	    setgray(0);
+
+	    moveto(181, 47);  // "A"
+	    lineto(161, 107);
+	    lineto(175, 107);
+	    lineto(178, 95);
+	    lineto(200, 95);
+	    lineto(203, 107);
+	    lineto(217, 107);
+	    lineto(197, 47);
+	    fill();
+
+	    moveto(205, 47); // T
+	    rlineto(0, 13);
+	    rlineto(16, 0);
+	    rlineto(0, 47);
+	    rlineto(16, 0);
+	    rlineto(0, -47);
+	    rlineto(16, 0);
+	    rlineto(0, -13);
+	    fill();
+
+	    moveto(289, 78); // &
+	    lineto(289, 93);
+	    lineto(287, 96);
+	    lineto(292, 96);
+	    lineto(292, 107);
+	    lineto(287, 107);
+	    lineto(284, 106);
+	    lineto(282, 105);
+	    lineto(281, 104);
+	    lineto(275, 107);
+	    lineto(269, 108);
+	    lineto(262, 108);
+	    lineto(256, 107);
+	    lineto(251, 105);
+	    lineto(247, 101);
+	    lineto(245, 96);
+	    lineto(245, 88);
+	    lineto(247, 82);
+	    lineto(250, 80);
+	    lineto(247, 75);
+	    lineto(247, 69);
+	    lineto(249, 65);
+	    lineto(254, 61);
+	    lineto(260, 59);
+	    lineto(269, 59);
+	    lineto(274, 61);
+	    lineto(277, 65);
+	    lineto(278, 69);
+	    lineto(278, 78);
+	    lineto(267, 78);
+	    lineto(267, 70);
+	    lineto(265, 68);
+	    lineto(261, 68);
+	    lineto(259, 71);
+	    lineto(259, 73);
+	    lineto(278, 91);
+	    lineto(278, 78);
+	    fill();
+
+	    moveto(279, 47); // T
+	    rlineto(0, 13);
+	    rlineto(16, 0);
+	    rlineto(0, 47);
+	    rlineto(16, 0);
+	    rlineto(0, -47);
+	    rlineto(16, 0);
+	    rlineto(0, -13);
+	    fill();
+
+	    setgray(1);
+
+	    moveto(31, 16); // White Line 1
+	    lineto(31,12);
+	    lineto(42,12);
+	    lineto(53,10);
+	    lineto(63,10);
+	    lineto(74,12);
+	    lineto(117,12);
+	    lineto(117,15);
+	    lineto(90,15);
+	    lineto(68,18);
+	    lineto(33,18);
+	    lineto(31,17);
+	    fill();
+
+	    moveto(16, 23); // White Line 2
+	    lineto(25, 23);
+	    lineto(41, 21);
+	    lineto(62, 21);
+	    lineto(106, 25);
+	    lineto(133, 25);
+	    lineto(133, 28);
+	    lineto(100, 28);
+	    lineto(72, 31);
+	    lineto(25, 31);
+	    lineto(16, 29);
+	    lineto(16, 23);
+	    fill();
+
+	    moveto(8, 35); // White Line 3
+	    lineto(22, 34);
+	    lineto(75, 34);
+	    lineto(105, 37);
+	    lineto(141, 37);
+	    lineto(141, 40);
+	    lineto(111, 40);
+	    lineto(74, 44);
+	    lineto(26, 44);
+	    lineto(17, 43);
+	    lineto(7, 43);
+	    lineto(8, 35);
+	    fill();
+
+	    moveto(3, 48); // White Line 4
+	    lineto(20, 47);
+	    lineto(82, 47);
+	    lineto(114, 50);
+	    lineto(148, 50);
+	    lineto(148, 53);
+	    lineto(110, 53);
+	    lineto(82, 56);
+	    lineto(11, 56);
+	    lineto(3, 55);
+	    lineto(3, 48);
+	    fill();
+
+	    moveto(1, 61); // White Line 5
+	    lineto(18, 59);
+	    lineto(83, 59);
+	    lineto(108, 62);
+	    lineto(152, 62);
+	    lineto(152, 65);
+	    lineto(117, 65);
+	    lineto(76, 69);
+	    lineto(22, 69);
+	    lineto(1, 67);
+	    fill();
+
+	    moveto(1, 74); // White Line 6
+	    lineto(14, 72);
+	    lineto(86, 72);
+	    lineto(110, 75);
+	    lineto(151, 75);
+	    lineto(151, 78);
+	    lineto(110, 78);
+	    lineto(68, 82);
+	    lineto(29, 82);
+	    lineto(11, 80);
+	    lineto(1, 80);
+	    lineto(1, 74);
+	    fill();
+
+	    moveto(1, 87); // White Line 7
+	    lineto(8, 87);
+	    lineto(21, 85);
+	    lineto(76, 85);
+	    lineto(105, 88);
+	    lineto(150, 88);
+	    lineto(150, 91);
+	    lineto(105, 91);
+	    lineto(60, 95);
+	    lineto(39, 95);
+	    lineto(11, 92);
+	    lineto(1, 92);
+	    lineto(1, 81);
+
+	    moveto(3, 101); // White Line 8
+	    lineto(36, 98);
+	    lineto(66, 98);
+	    lineto(97, 101);
+	    lineto(147, 101);
+	    lineto(147, 104);
+	    lineto(90, 104);
+	    lineto(57, 106);
+	    lineto(39, 106);
+	    lineto(3, 104);
+	    lineto(3, 101);
+	    fill();
+
+	    moveto(9, 113); // White Line 9
+	    lineto(28, 113);
+	    lineto(33, 112);
+	    lineto(66, 112);
+	    lineto(72, 113);
+	    lineto(142, 113);
+	    lineto(142, 116);
+	    lineto(9, 116);
+	    lineto(9, 113);
+	    fill();
+
+	    moveto(18, 126); // White Line 10
+	    lineto(133, 126);
+	    lineto(133, 129);
+	    lineto(18, 129);
+	    lineto(18, 126);
+	    fill();
+
+	    moveto(32, 139); // White Line 11
+	    lineto(119, 139);
+	    lineto(119, 142);
+	    lineto(32, 142);
+	    lineto(32, 139);
+	    fill();
+
+	    moveto(189, 65); // Inside "A"
+	    lineto(183, 83);
+	    lineto(195, 83);
+	    lineto(189, 65);
+	    fill();
+
+	    moveto(258, 87); // Inside "&"
+	    lineto(258, 94);
+	    lineto(259, 96);
+	    lineto(263, 98);
+	    lineto(269, 98);
+	    lineto(258, 87);
+	    fill();
+
+	    grestore();
+	}
+
+    }
+};
+
+JFrame jf = {
+    Dimension size = NULL;
+    int visible = 1;
+
+    Array layout = {
+	new JButton {
+	    Image icon = logo;
+	    actionPerformed(e) {
+		exit(0);
+	    }
+	}
+    };
+};

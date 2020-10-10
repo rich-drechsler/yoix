@@ -1,0 +1,112 @@
+import yoix.*.*;
+
+Array layouts = {
+    new Array[] {
+	new JLabel {
+	    String tag = "L5";
+	    String text = tag;
+	},
+	new JButton {
+	    String tag = "B2";
+	    String text = tag;
+				    
+	    actionPerformed(e) {
+		fprintf(stderr, "Pressed %s\n", text);
+	    }
+	},
+	new JLabel {
+	    String tag = "L6";
+	    String text = tag;
+	},
+    },
+    new Array[] {
+	new JButton {
+	    String tag = "B3";
+	    String text = tag;
+
+	    actionPerformed(e) {
+		root.Testing("OK: " + tag);
+	    }
+	},
+    },
+};
+
+int currentlayout = 1;
+
+JFrame jf = {
+    //String tag = "$_jf";
+    int visible = TRUE;
+    Dimension size = NULL;
+
+    FlowLayout layoutmanager;
+
+    Array layout = {
+	new JButton {
+	    String tag = "B1";
+	    String text = tag;
+
+	    actionPerformed(e) {
+		root.components.P4.layout = layouts[currentlayout = !currentlayout];
+	    }
+	},
+	new JPanel {
+	    String tag = "P1";
+	    Array layout = {
+		new JLabel {
+		    String tag = "L1";
+		    String text = tag;
+		},
+		new JPanel {
+		    String tag = "P2";
+		    Array layout = {
+			new JLabel {
+			    String tag = "L2";
+			    String text = tag;
+			},
+			new JPanel {
+			    String tag = "P3";
+			    Array layout = {
+				new JLabel {
+				    String tag = "L3";
+				    String text = tag;
+				},
+				new JLabel {
+				    String tag = "L4";
+				    String text = tag;
+				},
+			    };
+			},
+			new JPanel {
+			    String tag = "P4";
+			    Array layout = layouts[currentlayout = !currentlayout];
+			},
+			new JLabel {
+			    String tag = "L7";
+			    String text = tag;
+			},
+		    };
+		},
+		new JLabel {
+		    String tag = "L8";
+		    String text = tag;
+		},
+	    };
+	},
+	new JButton {
+	    String tag = "B4";
+	    String text = tag;
+
+	    actionPerformed(e) {
+		fprintf(stderr, "root=%s[%s]\n", (root.root)@typename, root.root.tag);
+		fprintf(stderr, "components[%d]:\n", root.components@sizeof);
+		for (ptr in getDictionaryNames(root.components))
+		    fprintf(stderr, "    %s with root %s\n", *ptr, root.components[*ptr].root.tag);
+	    }
+	},
+    };
+
+    Testing(String str) {
+	fprintf(stderr, "%s\n", str);
+	exit(0);
+    }
+};

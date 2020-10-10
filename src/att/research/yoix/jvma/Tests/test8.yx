@@ -1,0 +1,31 @@
+import yoix.*.*;
+import yoix.module.att.research.yoix.jvma.JVMTestModule.*;
+
+//
+// An intentional error
+//
+
+assembleClass(@<<
+    public class XXX extends YYY {
+	static int QWERT = 12;
+
+	public XXX() {
+
+	    push 12.5
+	    ifeq XXX
+		push 10
+		push 2
+		add
+XXX:
+	    return
+	}
+
+	private int test(int arg1, double arg2) {
+	    push     31
+	    bipush 2
+	}
+    }
+>>@);
+
+fprintf(stderr, "%s", dumpClassFile());
+

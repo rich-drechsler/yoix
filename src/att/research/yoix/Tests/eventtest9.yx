@@ -1,0 +1,20 @@
+import yoix.*.*;
+
+VM.exitmodel = 0;      // so main thread does not exit
+
+JTextField textfield = {
+    String text = "XXX";
+
+    textValueChanged(Event e) {
+        printf("Received: %O\n", e);
+        exit(0);
+    }
+};
+
+TextEvent event = {
+    String  id = "textValueChanged";
+};
+
+printf("Posting: %O\n", event);
+postEvent(event, textfield);
+

@@ -1,0 +1,58 @@
+//
+// Simple spline doodler...
+//
+
+import yoix.*.*;
+
+Array control[10];
+int   points;
+
+JDialog f = {
+    Color background = Color.white;
+
+    Dimension size = {
+	double width = 10*72;
+	double height = 8*72;
+    };
+
+    Graphics graphics = {
+	double linewidth = 1;
+    };
+
+    int connected = TRUE;
+
+    mousePressed(Event e) {
+	if (e.modifiers & BUTTON2_MASK)
+	    connected = !connected;
+	if (e.modifiers & BUTTON3_MASK)
+	    graphics.erasedrawable();
+	control[0] = e.location.x;
+	control[1] = e.location.y;
+	points = 1;
+    }
+
+    mouseDragged(Event e) {
+	double x = e.location.x;
+	double y = e.location.y;
+
+	if (connected) {
+	    if (points == 3) {
+		control[6] = (x + control[4])/2;
+		control[7] = (y + control[5])/2;
+		graphics {
+		    moveto(control[0], control[1]);
+		    curveto(control[2], control[3], control[4], control[5], control[6], control[7]);
+		    stroke();
+		}
+		control[0] = control[6];
+		control[1] = control[7];
+		points = 1;
+	    }
+	    control[2*points] = x;
+	    control[2*points+1] = y;
+	    points++;
+	} else graphics.rectfill(x, y, 2*VM.screen.pixelwidth, 2*VM.screen.pixelheight);
+    }
+};
+
+f.visible = TRUE;

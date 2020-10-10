@@ -1,0 +1,49 @@
+//
+// A modified version of the last example that shows how you can use the
+// the transferhandler field defined in Yoix Swing components to transfer
+// other "properties" into and out of Swing components.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    String title = "LabelDnD";
+    double border = 6;
+    Dimension size = NULL;
+
+    GridLayout layoutmanager = {
+	int rows = 2;
+    };
+
+    Array layout = {
+	new JPanel {
+	    String border = "JTextField: drag and drop is enabled";
+
+	    Array layout = {
+		new JTextField {
+		    String text = "This is a test";
+		    Color  background = Color.yellow;
+		    Color  foreground = Color.red;
+		    int columns = 40;
+		    int dragenabled = TRUE;
+
+		    String transferhandler = "background";
+		},
+	    };
+	},
+	new JLabel {
+	    String text = "I'm a Label!";
+	    String border = "JLabel: drag from or drop to this label";
+	    Color  foreground = Color.blue;
+	    int    alignment = LEADING;
+
+	    String transferhandler = "foreground";
+
+	    mousePressed(e) {
+		transferhandler.exportAsDrag(this, e, COPY_OR_MOVE);
+	    }
+	},
+    };
+};
+
+f.visible = TRUE;

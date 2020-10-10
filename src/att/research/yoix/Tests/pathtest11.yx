@@ -1,0 +1,29 @@
+import yoix.*.*;
+
+JFrame f = {
+    paint(Rectangle rect) {
+	Rectangle bbox;
+	graphics {
+	    gsave();
+	    sethsbcolor(0.666667, 0.5, 1.0);
+	    linewidth = 18;
+	    linejoin = JOIN_MITER;
+	    linecap = CAP_ROUND;
+	    translate(144, 144);
+	    rotate(15);          // change the angle
+	    moveto(0, 0);
+	    rlineto(72, -50);
+	    rlineto(-20, 72);
+	    strokepath();
+	    bbox = pathbbox();
+	    fill();
+	    foreground = Color.red;
+	    linewidth = 0;
+	    rectstroke(bbox);
+	    grestore();
+	}
+    }
+};
+
+f.visible = TRUE;
+

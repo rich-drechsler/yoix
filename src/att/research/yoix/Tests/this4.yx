@@ -1,0 +1,14 @@
+//
+// Another simple "this block" example, which in this automatically dumps
+// the contents of the VM dictionary because it also sets VM.debug to 1.
+//
+
+import yoix.*.*;
+
+String vbl = "debug";
+
+this VM {
+    this[vbl] = 1;
+    this;
+}
+

@@ -1,0 +1,28 @@
+These are very important files that are included by the makefiles in this
+source package that do the real work. In most cases variables.mk will be
+the only file in this directory you need to change.
+
+    common.mk
+	A file that's included by almost every low level Makefile
+	in the YWAIT source package. It's really only two lines that
+	include variables.mk and rules.mk.
+
+    gsubsti.mk
+	A simple makefile that defines the sed script that's used to
+	stream edit ../scripts/gsubsti._YX.
+
+    rules.mk
+	This is where you'll find definitions for targets (e.g., all
+	install, clean and clobber) that the low level Makefiles use.
+	Inference rules defined near the end of this file control the
+	preprocessing of source files marked by the special suffixes
+	that are also defined in this file.
+
+    variables.mk
+	If you're lucky this will be the only YWAIT source file that
+	you have to change. It's where important makefile variables
+	are initialized with values that were selected when you (or
+	someone on your behalf) ran the YWAIT configuration program.
+	It's a file that's supposed to be included, either directly
+	or indirectly, by every Makefile in this package.
+

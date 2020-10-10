@@ -1,0 +1,103 @@
+//
+// A very old cursor and menubar test that you shouldn't take too
+// seriously. Run with the -d1 command line option and the events
+// will dumped on standard output.
+//
+// Setting the cursor in a Frame (or any other container) should
+// apply to all the Components contained in the Frame that don't
+// explicitly set their own cursor (i.e., they have it set to
+// something other than yoix.awt.Cursor.STANDARD_CURSOR).
+//
+
+import yoix.*.*;
+
+JMenuBar menubar = {
+    Menu items = {
+	"File", new Menu {
+	    "Open", new Dictionary {
+		String command = "Open File";
+		String accelerator = "control O";
+		String group = "xxxxx";
+		int    state = TRUE;
+	    },
+	    "Close", new Dictionary {
+		String command = "Close File";
+		String accelerator = "ctrl W";
+		String group = "xxxxx";
+		int    state = FALSE;
+		int    enabled = TRUE;
+	    },
+
+	    "Cursors", new Menu {
+		"Default", "xxx",
+		"Wait", "yyy",
+		"Move", "zzz",
+	    },
+	    "-", NULL,
+	    "Exit", "Exit",
+	},
+
+	"Edit", new Menu {
+	    "Save", "Save", 1,
+	    "Save As", "Save As",
+	},
+    };
+};
+
+JFrame frame = {
+    JMenuBar menubar = menubar;
+    int      cursor = Cursor.MOVE_CURSOR;
+
+    //
+    // Default layout manager is BorderLayout, so you could delete
+    // the next line.
+    //
+
+    BorderLayout layoutmanager;
+
+    Array layout = {
+	new JButton {
+	    String text = "Show MenuBar";
+	    Color  background = Color.green;
+
+	    actionPerformed(e) {
+		frame.menubar = menubar;
+	    }
+	}, EAST,
+
+	new JButton {
+	    String text = "Hide MenuBar";
+
+	    Color background = {
+		double blue = 1.0;
+	    };
+
+	    actionPerformed(e) {
+		frame.menubar = NULL;
+	    }
+	}, SOUTH,
+    };
+
+    //
+    // Event handlers
+    //
+
+    actionPerformed(e) {
+	fprintf(stderr, "actionPerformed: e=%O\n", e);
+	if (strcmp(e.command, "Exit") == 0)
+	    exit(0);
+	else if (e.command[0] == 'x')
+	    cursor = Cursor.DEFAULT_CURSOR;
+	else if (e.command[0] == 'y')
+	    cursor = Cursor.WAIT_CURSOR;
+	else if (e.command[0] == 'z')
+	    cursor = Cursor.MOVE_CURSOR;
+    }
+
+    itemStateChanged(e) {
+	fprintf(stderr, "itemStateChanged: e=%O\n", e);
+    }
+};
+
+frame.visible = TRUE;
+

@@ -1,0 +1,158 @@
+//
+// Variation of the last example that show how a GridBagLayout can be
+// used to center some buttons in a screen and put other components in
+// the same row but anchor them to the left or right side of the screen.
+//
+
+import yoix.*.*;
+
+JDialog screen = {
+    Dimension size = NULL;
+    String    font = "Dialog-bold-12";
+    double    border = 72.0/8;
+    int       modal = TRUE;
+
+    GridBagLayout layoutmanager;
+    Array layout = {
+	new JLabel {
+	    String text = "Example Login Screen";
+	    String font = "Dialog-bold-16";
+	    Color  foreground = Color.red;
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	},
+
+	new JPanel {
+	    GridBagLayout layoutmanager = {
+		int    columns = 2;
+		double vgap = 72.0/32;
+	    };
+
+	    Array layout = {
+		"Username",
+		RIGHT,
+		new JTextField {
+		    String tag = "$_username";
+		    int    columns = 10;
+		    int    requestfocus = TRUE;
+
+		    textValueChanged(e) {
+			root.components.$_failed.text = "";
+		    }
+		},
+		LEFT,
+
+		"Password",
+		new JTextField {
+		    String tag = "$_password";
+		    int    columns = 10;
+		    int    echo = '*';
+
+		    textValueChanged(e) {
+			root.components.$_failed.text = "";
+		    }
+		},
+
+		"Group",
+		new JTextField {
+		    String tag = "$_group";
+		    int    columns = 10;
+
+		    textValueChanged(e) {
+			root.components.$_failed.text = "";
+		    }
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int ipadx = 3.0*72;
+
+	    Insets insets = {
+		double top = 72.0/4;
+	    };
+	},
+
+	new JLabel {
+	    String tag = "$_failed";
+	    Color  foreground = Color.red;
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int weighty = 1;
+
+	    Insets insets = {
+		double top = 72.0/4;
+		double bottom = 72.0/4;
+	    };
+	},
+
+	new JPanel {
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		new JPanel {
+		    GridLayout layoutmanager;
+		    Array layout = {
+			new JButton {
+			    String text = "OK";
+
+			    actionPerformed(e) {
+				root.components.$_failed.text = "";
+				sleep(1.0);
+				root.components.$_failed.text = "Login failed - try again";
+			    }
+			},
+
+			new JButton {
+			    String text = "Quit";
+			    Color  foreground = Color.red;
+
+			    actionPerformed(e) {
+				exit(0);
+			    }
+			},
+		    };
+		},
+		new Dictionary {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int weightx = 1;
+		},
+
+		new JChoice {
+		    String selected = "two";
+
+		    Array items = {
+			"First", "one",
+			"Second", "two",
+			"Three", "three",
+		    };
+		},
+		RIGHT,
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int weightx = 1;
+	    int fill = HORIZONTAL;
+
+	    Insets insets = {
+		double top = 72.0/8;
+	    };
+	},
+    };
+
+    ShowScreen() {
+	Point point;
+
+	if (!visible) {
+	    point.x = (VM.screen.width - size.width)/2;
+	    point.y = (VM.screen.height - size.height)/2 - 72.0;
+	    location = point;
+	    visible = TRUE;
+	}
+    }
+};
+
+screen.ShowScreen();

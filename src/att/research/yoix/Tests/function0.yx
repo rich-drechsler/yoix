@@ -1,0 +1,33 @@
+//
+// Example from Xinyu Feng - illustrates confusing, but explainable
+// Yoix behavior that happens when a function argument is a Function
+// (as in f3). We'll explain it in a later release - until then you
+// probably should just skip this example!!
+//
+
+import yoix.*.*;
+int a = 2;
+
+f0(){
+  int a = 1;
+
+  f(){
+    int a = 3;
+
+    f1(){
+      printf("a = %d\n", a);
+    }
+
+    return f1;
+  }
+
+  f3(int a, Function f){
+    int a = 5;
+    f();
+  }
+
+  f3(12, f());
+}
+
+f0();
+

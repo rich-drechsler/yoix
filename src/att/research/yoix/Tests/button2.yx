@@ -1,0 +1,30 @@
+import yoix.*.*;
+
+Image att = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+};
+
+JFrame f = {
+    FlowLayout layoutmanager = {
+	int vgap = 72;
+    };
+
+    Array layout = {
+	new JButton {
+	    Image icon = att;
+
+	    Dimension size = {
+		double width = att.size.width;
+		double height = att.size.height;
+	    };
+
+	    actionPerformed(ActionEvent e) {
+		printf("URL=%s\n", att.source);
+	    }
+	},
+    };
+};
+
+f.visible = TRUE;
+sleep(5);
+exit(0);

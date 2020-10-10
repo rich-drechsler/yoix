@@ -1,0 +1,143 @@
+#!<_PERL_PATH_> -T -w
+#
+# This is a simple script that's designed to handle initialization requests
+# that come from YWAIT programs installed on client systems. The client will
+# usually be a Java program (i.e., Java classes installed in an executable
+# jar file) and the servers that it's supposed to contact for initialization
+# data is hardcoded in that jar file. The client sends lines that look like
+#
+#     key = value
+#
+# but right now we're really only using the TOKEN line to select the data we
+# send back to the client. Feel free to customize this script any way you see
+# fit.
+#
+# NOTE - if you're trying to track a problem down try adding the -Xdump and
+# -Xdebug options to the command line you use when you start the client. For
+# example, if the client's jar file is called YwaitDemoClient.jar then the
+# command line might look something like:
+#
+#     java -jar YwaitDemoClient.jar -Xdump -Xdebug ywaitdemo
+#
+# The last argument (i.e., ywaitdemo) is the "token" that this script gets,
+# and if you omit it you'll be prompted for a "token".
+#
+
+use strict;
+
+my $token;
+my $username = "unknown";
+my $version = "1.0";
+my $remote_addr = $ENV{REMOTE_ADDR};
+my $element;
+my $command;
+my $message;
+my $response;
+
+#
+# These are the strings must be used when we communicate with a client, so
+# don't change them unless you make the corresponding changes to the client
+# side Java code (and then install that code on all your clients). All lines
+# must start with one of these commands, be followed by and equal sign (that
+# can be surrounded by optional white space) and the value. In addition the
+# $OPTION command insists that the value start with a - or a + character.
+#
+
+my $CACHEJAR = "CACHEJAR";
+my $DEBUG = "DEBUG";
+my $ERROR = "ERROR";
+my $GOODBYE = "GOODBYE";
+my $HELLO = "HELLO";
+my $JAR = "JAR";
+my $JAROPTION = "JAROPTION";
+my $MAINCLASS = "MAINCLASS";
+my $MAINMETHOD = "MAINMETHOD";
+my $MESSAGE = "MESSAGE";
+my $OSNAME = "OSNAME";
+my $QUIT = "QUIT";
+my $SCRIPT = "SCRIPT";
+my $SCRIPTOPTION = "SCRIPTOPTION";
+my $TOKEN = "TOKEN";
+my $USERNAME = "USERNAME";
+my $VERSION = "VERSION";
+my $WARNING = "WARNING";
+
+#
+# We use the %responsemap hash to map client requests to an array of responses
+# appropriate for the request that are sent back to the client. By default our
+# implementation only uses $token to select the array, but you should feel free
+# to modify the algorithm and the structure of %responsemap to suit your needs.
+#
+
+my %responsemap = (
+    "<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>" => [
+	"$JAR = <_SERVER_BASEURL_DQ_>/<_SERVER_ALIAS_PREFIX_DQ_>/jars/<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>.jar_<_JARFILE_RELEASE_DQ_>",
+	"$SCRIPT = <_SERVER_BASEURL_DQ_>/<_SERVER_ALIAS_PREFIX_DQ_>/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>.yx",
+	"$SCRIPTOPTION = -R<_JARFILE_RELEASE_DQ_>",
+	#
+	# If there's a timestamp (or any other text) that you want to
+	# associate with this "token" just add something like
+	#
+	#     "$SCRIPTOPTION = -T5/27/09",
+	#
+	# to the entries in this array. Whatever follows the -T will be
+	# placed next to the release by YWAIT screens that display info
+	# about the release.
+	#
+    ],
+);
+
+#
+# Entries in %redirectmap could be used to map the token sent by the client
+# to a different token based on identifying information (e.g., the username
+# and/or IP address). We haven't filled anything in or added code that uses
+# %redirectmap, so you're free to implement the redirection any way you want.
+# 
+# Unfortunately right now there's no really reliable way to identify a user
+# since the user's name that we receive is the one that was used to logon to
+# their PC, but even so redirection will sometimes be useful.
+#
+
+my %redirectmap = (
+);
+
+while (<STDIN>) {
+    chomp;
+    if ($_ =~ /^$TOKEN\s*=/) {
+	$_ =~ s/^$TOKEN\s*=\s*//;
+	$token = $_;
+    } elsif ($_ =~ /^$USERNAME\s*=/) {
+	$_ =~ s/^$USERNAME\s*=\s*//;
+	$username = $_;
+    } elsif ($_ =~ /^$VERSION\s*=/) {
+	$_ =~ s/^$VERSION\s*=\s*//;
+	$version = $_;
+    }
+}
+
+#
+# If you're redirecting users and/or IP addresses this is where you should
+# add the code to do the lookup and $token change.
+# 
+
+if ($token) {
+    if (exists($responsemap{$token})) {
+	for $element (@{$responsemap{$token}}) {
+	    if ($element =~ /^\s*($ERROR|$MESSAGE|$WARNING)\s*=/) {
+		$command = $element;
+		$command =~ s/^\s*($ERROR|$MESSAGE|$WARNING)\s*=\s*.*$/$1/s;
+		$message = $element;
+		$message =~ s/^\s*($ERROR|$MESSAGE|$WARNING)\s*=\s*//;
+		$element = $command . "=" . unpack("H*", $message);
+	    }
+	    $response .= "$element\n";
+	}
+    }
+}
+
+$response .= "$GOODBYE\n";
+
+print "Content-Type: text/plain\n";
+print "Content-Length: " . length($response) . "\n\n";
+print $response;
+

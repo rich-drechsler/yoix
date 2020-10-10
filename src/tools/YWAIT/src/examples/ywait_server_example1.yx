@@ -1,0 +1,294 @@
+//
+// A very simple example screen that's hooked up to the server's main
+// Perl script (look for SERVERDEMO1 in that script). It shows how you
+// can take data out of a component, like a JTextField, send it to the
+// server, and automatically have the server's response displayed in a
+// another component, like a JTextArea.
+//
+
+import yoix.*.*;
+
+//
+// You will see the next line in every screen file, so it's important
+// that you understand what's happening here. All screen files behave
+// just like this one and define a function (named Builder()) that's
+// returned at the very end of the script. It's undoubtedly confusing
+// until you realize that every screen file is small Yoix script that's
+// designed run by the Yoix execute() builtin and it's execute() that
+// hands us arguments and lets us return the Builder() function. The
+// execute() call that handles screens comes from LoadScreen(), which
+// is defined in ywait_screens.yx, and if you look at the call you'll
+// see argv[1] is the global context of your application, which means
+// screen files have access to everything that was defined when your
+// application started. By convention we assign argv[1] to a variable
+// named Global.
+//
+
+Dictionary Global = argv[1];
+
+String FirstMessage = strfmt("\
+This screen is hooked up to %s_exec.pl, which is Perl script that runs on your server and handles most requests that come from clients. Communications on the client side are handled by %s_server.yx, which is a Yoix script that's downloaded from the server when %s starts.\
+\n\n\
+Enter an argument in the textfield, hit the Send button and %s_exec.pl will will return a string containing the argument that will automatically be displayed right here.",
+Global.acronym, Global.acronym, Global.ACRONYM, Global.acronym);
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Dimension size = NULL;
+	Insets    border = Global.GetLabeledScreenInsets();
+	String    title = Global.ACRONYM + " Server Example";
+	Object    parent = Global.MainScreen;
+	Font      font = Global.GetPreferredLabelFont();
+	int       opaque = TRUE;
+
+	//
+	// Nothing in this window has a very wide preferred width, so
+	// supply one to avoid an odd-looking narrow initial window size.
+	//
+
+	Dimension preferredsize = {
+	    double width = 5.0*72;
+	};
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	//
+	// Every screen should define and initialize the following set
+	// of variables. Expect problems is you omit any of them.
+	//
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = FALSE;	// TRUE means remember size and location
+	int    retainstate = TRUE; // remember size and location across sessions
+	int    reloadargs = FALSE;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	//
+	// Screens also often need their own custom variables (not the
+	// ones that are provided by a JFrame of JDialog) and it's not
+	// unusual to handle their initialization outside this file by
+	// letting GetScreen() call LoadArgs().
+	// 
+
+	String command = "SERVERDEMO1";
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	//
+	// We usually use GridBagLayout for the overall layout of a screen.
+	// It's the most complicated layout mananger (it will take a while
+	// before you will be comfortable with it) but it's powerful and
+	// won't leave you in a bind when you're working on a complicated
+	// screen.
+	//
+
+	GridBagLayout layoutmanager;
+	Array layout = {
+	    new JLabel {
+		String text = "Single Argument - Single Return";
+		Font   font = Global.GetPreferredHeadingFont();
+		int    alignment = CENTER;
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int fill = HORIZONTAL;
+		int anchor = CENTER;
+	    },
+
+	    new JTextArea {
+		String tag = "$_textarea";
+		Color  background = Global.GetPreferredTextBackground();
+		Color  foreground = Global.GetPreferredTextForeground();
+		Insets insets = Global.GetTextAreaInsets();
+		Object transferhandler = NULL;		// required for custom drag and drop
+		String text = FirstMessage;
+		int    opaque = TRUE;
+		int    rows = 0;
+		int    columns = 0;
+		int    textwrap = 1; // word wrap
+		int    edit = FALSE;
+		int    scroll = AS_NEEDED;
+
+		Function keyPressed = Global.KeyPressed;
+		Function dragGestureRecognized = Global.DragGestureRecognized;
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = BOTH;
+	    },
+
+	    new JLabel {
+		String text = "Argument: ";
+		Font   font = Global.GetPreferredLabelFont();
+		int    alignment = CENTER;
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = RELATIVE;
+		int    anchor = CENTER;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    new JTextField {
+		String tag = "$_argument";
+		Color  background = Global.GetPreferredTextBackground();
+		Color  foreground = Global.GetPreferredTextForeground();
+		Object transferhandler = NULL;		// required for custom drag and drop
+
+		int    opaque = TRUE;
+		int    autotrim = TRUE;
+		int    requestfocus = TRUE;
+
+		Function keyTyped = Global.KeyTyped;
+		Function keyPressed = Global.KeyPressed;
+		Function dragGestureRecognized = Global.DragGestureRecognized;
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    weightx = 1;
+		int    fill = HORIZONTAL;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    new JPanel {
+		//
+		// Use GridLayout for equal size buttons and FlowLayout if
+		// each button should size itself based on its label.
+		//
+		GridLayout layoutmanager;
+		Array layout = {
+		    new JButton {
+			String text = "Send";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    //
+			    // It's customary to do something like,
+			    //
+			    //    Global.QueueCommand(root, &root.UpdateScreen);
+			    //
+			    // if the work that's being done will take a
+			    // while, but this is supposed to be the easy
+			    // example, so we call UpdateScreen(). In fact,
+			    // UpdateScreen() uses QueueCommand(), so this
+			    // function won't hang around too long. If it
+			    // did it could tie up the event thread.
+			    // 
+
+			    root.UpdateScreen();
+			}
+		    },
+		    new JButton {
+			String text = "Clear";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    root.ClearScreen();
+			}
+		    },
+		    new JButton {
+			String text = "Dismiss";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    Global.QueueCommand(root, &root.HideScreen);
+			}
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    anchor = CENTER;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    new JLabel {
+		String text = Global.ProprietaryLabel;
+		Font   font = Global.GetPreferredProprietaryFont();
+		int    alignment = CENTER;
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    anchor = CENTER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    components.$_textarea.text = "";
+	    components.$_argument.text = "";
+	}
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	UpdateScreen() {
+	    //
+	    // The QueueCommand() and RunCommand() functions are the way
+	    // screens communicate with the server. The first argument,
+	    // if it's not NULL, is used to display a wait cursor over
+	    // the screen while we communicate with the server. The next
+	    // argument is a command name that means something to the cgi
+	    // script that handles the work on the server side. Arguments
+	    // that we want to hand to the server follow the command and
+	    // they end at NULL or the last arugment in the QueueCommand()
+	    // Anything that follows the NULL describe where data that's
+	    // returned from the server is supposed to go. In both cases
+	    // (i.e., QueueCommand() and RunCommand()) it's PostCommand()
+	    // that gets called to handle the low level communications
+	    // with the server.
+	    //
+
+	    components.$_textarea.text = "";
+	    Global.QueueCommand(
+		this,
+		command,			// server command name
+		components.$_argument.text,
+		NULL,				// mark the end of the arguments
+		&components.$_textarea.text	// where server's answer goes
+	    );
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);
+

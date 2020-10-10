@@ -1,0 +1,57 @@
+//
+// Pretty much the same as the last example, but now we draw in a Canvas.
+//
+
+import yoix.*.*;
+
+Image img = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+};
+
+JFrame f = {
+	Color background = Color.white;
+
+	Dimension size = {
+	    double width = 10*72;
+	    double height = 6*72;
+	};
+
+	Array layout = {
+	    new JCanvas {
+		Image backgroundimage = img;
+
+		Graphics graphics = {
+		    int fractionalmetrics = 0;
+		    int antialiasing = 0;
+
+		    Font font = {
+			String name = "Lucida-plain-128";
+		    };
+		};
+
+		paint(Rectangle r) {
+		    String text = "Yoix";
+		    double alpha = 1.0;
+		    int    limit = 6;
+		    int    n;
+
+		    graphics {
+			gsave();
+			rectclip(r);
+
+			translate(size.width/2, 3*size.height/4);
+			for (n = 0; n < limit; n++) {
+			    moveto(0, 0);
+			    show(text, alpha);
+			    alpha *= .5;
+			    rotate(-30);
+			}
+			grestore();
+		    }
+		}
+	    },
+	};
+};
+
+f.visible = TRUE;
+

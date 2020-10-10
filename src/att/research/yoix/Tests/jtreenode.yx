@@ -1,0 +1,84 @@
+import yoix.*.*;
+
+JTree original = {
+    JTreeNode top = {
+	String text = "The C Programming Language";
+	String tooltiptext =
+	"by Brian W. Kernighan and Dennis M. Ritchie";
+	Array children = {
+	    new JTreeNode {
+		String text = "Introduction";
+		String tooltiptext = "Chapter 0";
+		String font = "TimesRoman-bold-14";
+	    },
+	    new JTreeNode {
+		String text = "A Tutorial Introduction";
+		String tooltiptext = "Chapter 1";
+		Array children = {
+		    new JTreeNode {
+			String text = "Getting Started";
+			String tooltiptext = "Section 1.1";
+		    },
+		    new JTreeNode {
+			String text = "Variables and Arithmetic";
+			String tooltiptext = "Section 1.2";
+		    },
+		};
+	    },
+	    new JTreeNode {
+		String text = "Types, Operators and Expressions";
+		String tooltiptext = "Chapter 2";
+		Image openicon = null;
+		Array children = {
+		    new JTreeNode {
+			String text = "Variable Names";
+			String tooltiptext = "Section 2.1";
+		    },
+		    new JTreeNode {
+			String text = "Data Types and Sizes";
+			String tooltiptext = "Section 2.2";
+			Array children = {
+			    new JTreeNode {
+				String text = "Variable Names";
+				String tooltiptext = "Section 2.1";
+			    },
+			    new JTreeNode {
+				String text = "Data Types and Sizes";
+				String tooltiptext = "Section 2.2";
+			    },
+			};
+		    },
+		};
+	    },
+	};
+    };
+};
+
+JTreeNode copy = original.action(UNTAGGED_COPY, original.top);
+
+JFrame jf = {
+    Color background = yoix.xcolor.antiquewhite1;
+    int   visible = 1;
+    Array layout = {
+	new JScrollPane {
+	    Array layout = {
+		new JTree {
+		    String tag = "$_jt";
+		    int tooltips = 1;
+		    String font = "TimesRoman-14";
+		    JTreeNode top = copy;
+
+		    mouseClicked(MouseEvent e) {
+			JTreeNode node = item(e.location.x, e.location.y);
+
+			if (node != null) {
+			    copy = original.action(UNTAGGED_COPY, original.top);
+			    node.root.action(NEW_FOR_OLD, copy, node);
+			}
+		    }
+		},
+	    };
+	}, CENTER,
+    };
+};
+

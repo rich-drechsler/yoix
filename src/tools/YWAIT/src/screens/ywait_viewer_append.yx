@@ -1,0 +1,205 @@
+//
+// Another screen that's used to display simple ASCII test, but this one
+// appends new text to whatever is currently being displayed. Only current
+// use is for reading messages that are sent to users.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+int USEMONOSPACE = FALSE;
+int SHOWMONOSPACE = FALSE;
+
+ItemStateChanged(e) {
+    root.SyncFonts();
+}
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Insets border = Global.GetUnLabeledScreenInsets();
+	Font   font = Global.GetPreferredLabelFont();
+	int    opaque = TRUE;
+
+	Dimension size = {
+	    double width = 7.0*72;
+	    double height = 3.0*72;
+	};
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = FALSE;
+	int    savestate = TRUE;   // save screen-specific info within session
+	int    retainstate = TRUE; // save screen-class info across sessions
+	int    reloadargs = FALSE;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	String command = NULL;
+	String command_arg = NULL;
+	int    showmonospace = SHOWMONOSPACE;
+	int    usemonospace = USEMONOSPACE;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    Global.NewJTextArea("$_textarea", NULL, 0, 0, AS_NEEDED, "edit", FALSE),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = BOTH;
+	    },
+
+	    new JPanel {
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JPanel {
+			GridLayout layoutmanager;
+			Array layout = {
+			    new JButton {
+				String text = "Update";
+				Font   font = Global.GetPreferredButtonFont();
+
+				actionPerformed(e) {
+				    root.LoadScreen();
+				}
+			    },
+			    new JButton {
+				String text = "Clear";
+				Font   font = Global.GetPreferredButtonFont();
+
+				actionPerformed(e) {
+				    root.ClearScreen();
+				}
+			    },
+			    new JButton {
+				String text = "Dismiss";
+				Font   font = Global.GetPreferredButtonFont();
+				int    requestfocus = TRUE;
+
+				actionPerformed(e) {
+				    Global.AltQueueCommand(root, &root.HideScreen);
+				}
+			    },
+			};
+		    },
+		    new Dictionary {
+			int gridx = 1;
+			int gridy = 1;
+			int weightx = 1;
+		    },
+
+		    Global.NewJCheckBox(
+			"$_monospace", "Monospace", NULL, USEMONOSPACE,
+			"state", USEMONOSPACE,
+			"visible", SHOWMONOSPACE,
+			"requestfocusenabled", FALSE,
+			"itemStateChanged", ItemStateChanged
+		    ),
+		    LEFT,
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    fill = HORIZONTAL;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    Global.NewJProprietaryLabel(),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    components.$_textarea.text = "";
+	}
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+
+	InitializeScreen() {
+	    if (defined("$_monospace", components)) {
+		components.$_monospace.state = usemonospace;
+		components.$_monospace.visible = showmonospace;
+		SyncFonts();
+	    }
+	}
+
+	LoadScreen() {
+	    ReloadScreen();
+	}
+
+	ReloadScreen() {
+	    Global.QueueCommandOnce(this, &UpdateText);
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	SetText(String text) {
+	    components.$_textarea.text = text;
+	}
+
+	SyncFonts() {
+	    if (defined("$_monospace", components)) {
+		if (components.$_monospace.state)
+		    components.$_textarea.font = Global.GetPreferredMonospaceFont();
+		else components.$_textarea.font = Global.GetPreferredTextFont();
+	    }
+	}
+
+	UpdateText() {
+	    Object textarea;
+	    Array  data;
+
+	    textarea = components.$_textarea;
+	    textarea.caret = textarea.text@length;
+
+	    if (initialized) {
+		data = Global.RunCommand(this, command, command_arg);
+		if (data[0] != NULL)
+		    appendText(textarea, data[0]);
+	    } else Global.RunCommand(this, command, command_arg, NULL, &textarea);
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);

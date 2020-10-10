@@ -1,0 +1,78 @@
+import yoix.*.*;
+
+JFrame f = {
+    Array layout = {
+	new JLabel {
+	    String text = "A JLayeredPane Test";
+	    String font = "Lucida-bold-14";
+	}, NORTH,
+
+	new JLayeredPane {
+	    Color background = Color.green;
+
+	    Array layout = {
+		new JButton {
+		    String tag = "$_button";
+		    String text = "Move";
+		    /////Color  background = Color.blue;
+		    int    layer = 0;
+
+		    Dimension size = {
+			double height = 72;
+			double width = 72;
+		    };
+
+		    Point location = {
+			double x = 72;
+			double y = 72;
+		    };
+
+		    actionPerformed(e) {
+			Point p = this.location;
+			Dimension sz = this.size;
+
+			p.x += 18;
+			this.location = p;
+			sz.height += 9;
+			this.size = sz;
+			this.layer += 1;
+		    }
+		},
+
+		new JLabel {
+		    String text = "A Label At Layer 3";
+		    Color  background = Color.red;
+		    int    layer = 3;
+
+		    Point location = {
+			double x = 90;
+			double y = 90;
+		    };
+		},
+	    };
+	}, CENTER,
+
+	new JButton {
+	    String text = "Reset";
+
+	    actionPerformed(e) {
+		Object button = root.components.$_button;
+
+		button.layer = 0;
+
+		button.size = new Dimension {
+		    double height = 72;
+		    double width = 72;
+		};
+
+		button.location = new Point {
+		    double x = 72;
+		    double y = 72;
+		};
+
+	    }
+	}, SOUTH,
+    };
+};
+
+f.visible = TRUE;

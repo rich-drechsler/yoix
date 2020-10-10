@@ -1,0 +1,149 @@
+//
+// Pretty much the same as the last example but it moves one of the
+// views.
+//
+
+import yoix.j3d.*;
+import yoix.*.*;
+
+VirtualUniverse universe = {
+    Color background = Color.gray;
+
+    Array layout = {
+	new ColorCube {
+	    String tag = "$_topcube";
+
+	    Point3D position = {
+		double x = 0.0;
+		double y = 6.0;
+		double z = 0;
+	    };
+
+	    EulerAngle orientation = {
+		////double beta = 45.0;
+	    };
+	},
+
+	new ColorCube {
+	    Point3D position = {
+		double x = -1.0;
+		double y = 4.0;
+		double z = 0;
+	    };
+	},
+
+	new ColorCube {
+	    Point3D position = {
+		double x = 1.0;
+		double y = 4.0;
+		double z = 0;
+	    };
+	},
+
+	new ColorCube {
+	    Point3D position = {
+		double x = -2.0;
+		double y = 2.0;
+		double z = 0;
+	    };
+
+	    EulerAngle orientation = {
+		double beta = 45.0;
+	    };
+	},
+
+	new ColorCube {
+	    Point3D position = {
+		double x = 2.0;
+		double y = 2.0;
+		double z = 0;
+	    };
+
+	    AxisAngle orientation = {
+		int y = 1;
+		double angle = -45;
+	    };
+
+/****
+	    EulerAngle orientation = {
+		double beta = -45.0;
+	    };
+****/
+	},
+
+	new ColorCube {
+	    Point3D position = {
+		double x = -3.0;
+		double y = 0.0;
+		double z = 0;
+	    };
+	},
+
+	new ColorCube {
+	    Point3D position = {
+		double x = 3.0;
+		double y = 0.0;
+		double z = 0;
+	    };
+	},
+
+	new ColorCube {
+	    Point3D position = {
+		double x = -4.0;
+		double y = -2.0;
+		double z = 0;
+	    };
+	},
+
+	new ColorCube {
+	    Point3D position = {
+		double x = 4.0;
+		double y = -2.0;
+		double z = 0;
+	    };
+	},
+
+	new ViewPlatform {
+	    String tag = "$_view";
+	    double backclipdistance = 20;
+
+	    Transform3D transform = {
+		initializer() {
+		    setToViewAt(10, 20, 30, 0, 0, 0, 0, 1, 0);		// (eye, origin, orientation)
+		}
+	    };
+	},
+    };
+};
+
+Frame f = {
+    Array layout = {
+	new Canvas3D {
+            ViewPlatform view = universe.tagged.$_view;
+	}, CENTER,
+    };
+};
+
+f.visible = TRUE;
+sleep(3);
+
+Point3D p;
+EulerAngle e;
+
+for (n = 0; n < 20; n++) {
+    p = universe.tagged.$_topcube.position;
+    p.x += .5;
+    universe.tagged.$_topcube.position = p;
+    e = universe.tagged.$_topcube.orientation;
+    e.beta += 5;
+    universe.tagged.$_topcube.orientation = e;
+    sleep(.5);
+}
+
+while (1) {
+    e = universe.tagged.$_topcube.orientation;
+    e.alpha += 5;
+    universe.tagged.$_topcube.orientation = e;
+    sleep(.1);
+}
+

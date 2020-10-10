@@ -1,0 +1,27 @@
+//
+// Dumps the event handlers using the listEventHandlers() builtin.
+//
+
+import yoix.*.*;
+
+int len = typedict@length;
+
+int m, n;
+
+Object obj;
+Array handlers;
+
+JButton jb;
+
+for (n = 0; n < len; n++) {
+    if (argc == 2 && argv[1] !== typedict[n]@nameof)
+	continue;
+    eval("obj = new "+ typedict[n]@nameof + ";");
+    if (obj@minor == jb@minor) {
+	handlers = listEventHandlers(obj);
+	fprintf(stdout, "Handlers for %s:\n", obj@typename);
+	for (m = 0; m < handlers@length; m++) {
+	    fprintf(stdout, "\t%s\n", handlers[m]);
+	}
+    }
+}

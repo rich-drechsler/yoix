@@ -1,0 +1,38 @@
+import yoix.*.*;
+
+JFrame  jf = {
+    Dimension  size = NULL; // auto-size window
+    FlowLayout  layoutmanager = {
+	int hgap = 18; // 0.25 inch gap
+    };
+    String  title = "Yoix Example Window";
+    String  border = "Simple Button Example";
+    Array  layout = {
+	new JButton {
+	    String  text = "Press for Message";
+	    String  tag = "$_button1";
+	},
+	new JButton {
+	    String  text = "Press to Exit";
+	    String  tag = "$_button2";
+	    actionPerformed(ev)  {
+		showMessageDialog(root, "Asked to exit.");
+	    }
+	},
+    };
+};
+jf.location = new Point { // center in screen
+  int x =(VM.screen.width-jf.size.width)/2;
+  int y =(VM.screen.height-jf.size.height)/2;
+};
+func1(ev) {
+    showMessageDialog(root, "Hello, world.","Message Example");
+    text = "Press for Nothing";
+    removeEventHandler(root.components.$_button1, "actionPerformed");
+}
+func2(ev)  {
+    exit(0);
+}
+addEventHandler(jf.components.$_button1, "actionPerformed", func1);
+addEventHandler(jf.components.$_button2, "actionPerformed", func2);
+jf.visible = 1;

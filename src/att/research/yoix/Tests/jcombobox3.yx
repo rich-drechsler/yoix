@@ -1,0 +1,54 @@
+import yoix.*.*;
+	
+JTextField inputText = {
+    String text = "";
+};
+	
+JComboBox testBox = {
+    Array labels = {"1", "2", "3"};
+    int edit = 1;
+
+    textValueChanged(e) {
+	showText.text = strfmt("selected='%s'; text='%s'", selected, text);
+    }
+};
+	
+JLabel showText = {
+    String text = "";
+};
+	
+JButton view = {
+    String text = "view";
+	    
+    actionPerformed(e){
+	showText.text = testBox.text;
+    }
+};
+	
+JButton update = {
+    String text = "UPDATE";
+    
+    actionPerformed(e){
+	testBox.text = inputText.text;
+    }
+};
+	
+JFrame fr = {
+    int visible = 1;
+	
+    Dimension size = {
+	double width = 72.0*8;
+	double height = 72.0*1.6;
+    };
+	    
+    BorderLayout layoutmanager;
+	    
+    Array layout = {
+	inputText, NORTH,
+	testBox, CENTER,
+	showText, SOUTH,
+	update, WEST,
+	view, EAST,
+    };
+};
+

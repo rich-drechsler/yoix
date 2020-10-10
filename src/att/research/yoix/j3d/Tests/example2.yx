@@ -1,0 +1,64 @@
+import yoix.j3d.*;
+import yoix.*.*;
+
+Image image = {
+    String source = "http://www.yoix.org/images/ATTlogo.gif";
+    int yup = TRUE;
+};
+
+Frame f = {
+    Array layout = {
+	new Canvas3D {
+	    String tag = "$_canvas";
+
+	    VirtualUniverse view = {
+		Color background = Color.yellow;
+		Image backgroundimage = image;
+
+		Array layout = {
+		    new BranchGroup {
+			String tag = "$_branch";
+
+			Point3D position = {
+			    double z = -2;
+			};
+
+			EulerAngle orientation = {
+			    double alpha = 45;
+			    double beta = 45;
+			};
+
+			Array layout = {
+			    new ColorCube {
+				double scale = 0.4;
+			    },
+			};
+		    },
+		};
+	    };
+	}, CENTER,
+    };
+};
+
+f.visible = TRUE;
+
+sleep(2);
+f.components.$_canvas.universe.backgroundimage = NULL;
+sleep(2);
+f.components.$_canvas.universe.background = NULL;
+
+Point3D p;
+EulerAngle a;
+
+while (1) {
+    p = f.components.$_canvas.universe.tagged.$_branch.position;
+    a = f.components.$_canvas.universe.tagged.$_branch.orientation;
+    p.x += .2;
+    p.y += .1;
+    p.z -= .5;
+    a.gamma += 5;
+    f.components.$_canvas.universe.tagged.$_branch.position = p;
+    f.components.$_canvas.universe.tagged.$_branch.orientation = a;
+    sleep(.1);
+}
+

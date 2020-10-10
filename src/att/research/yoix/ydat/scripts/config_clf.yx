@@ -1,0 +1,986 @@
+//
+// YDAT config file for displaying the "Common Log File" or "Combined
+// Log File" format of httpd logs. This definitely isn't designed to
+// handle big log files, say a million lines or more, but it probably
+// will behave reasonably well up to about 100,000 lines, however the
+// performance that you get really will depend on your system and the
+// memory limits that are handed to Java (i.e., -ms and -mx command
+// line options). Another way to improve the performance would be to
+// preprocess your log files in a way that eliminates work that's done
+// the DATAFILTERS table. Fields with generators build new fields from
+// values in your data, but that work can be eliminated if your data
+// contains those fields. We didn't do any precorcessing here because
+// we wanted to provide a config file that would handle existing log
+// files, but there's no reason why you can't.
+//
+// The following two definitions
+//
+//  	DEBUGGING = TRUE;	// to debug tables
+//  	VM.addtags = TRUE;	// for better Yoix error messages
+//
+// are expensive and shouldn't be used in production, but they're the
+// only way to get help if you change this file and something breaks.
+// Working with this stuff can be tricky, but remember this file is
+// part of a larger Yoix program that's responsible for configuring
+// and running the data visualization software.
+//
+// Switching to GMT can be the best way to handle timezones, but even
+// so there are potential problems. One big advantage, at least right
+// now, is that you can use a special Java class that does a good job
+// drawing an axis (i.e., labels, ticks, etc.) that claims to be using
+// unixtime. The way you get the special unixtime axis is by setting
+// the "axismodel" field in a JAxis to 2, which also happens when the
+// EXTRA field in the AXES table is set to 2. Use any other axismodel
+// and you'll have much harder time synchronizing a time axis to your
+// event plot.
+//
+// If you switch to GMT you often still have to generate the unixtime
+// values that position records in an event plot. In this case the job
+// is done (see the DATAFIELDS table) using the timestamp field that's
+// associated with each record, but we explicitly ignore the timezone
+// portion of each timestamp. It's not always the right approach, but
+// in this case it works nicely - the eventplot and the time axis are
+// synced up and the date() builtin used below to generate the labels
+// thinks the times that it's working with are all in GMT.
+//
+
+setTimeZone(yoix.util.getTimeZone("GMT"));	// all date conversions in single time zone GMT
+
+//
+// The first few definitions are values that you probably will want to
+// update. The NETWORKCOMMANDS is the list of commands that can be run
+// from the NetworkHelper screen, which pops up when you press the left
+// mouse button over a histogram bar while holding the control key. The
+// commands that we included worked with the PATH that we use on one of
+// our Linux systems, but they might not be available on your system or
+// you may need to include full pathnames.
+//
+// ROBOTADDRESSES can be used to automatically identify robots by their
+// IP address. It's a dictionary that maps addresses to the strings that
+// will used as bar labels in the "Robot Address" histogram. Matching is
+// done by the DATATABLE generator that uses BUILTIN_MATCH builtin, which
+// by default matches using shell pattern regular expressions. We haven't
+// supplied any robot addresses, but you shouldn't have trouble supplying
+// some on your own.
+//
+// There are two ways to maintain these values, You can do edit them in
+// this file or you can move them to a separate file and that you point
+// to using ydat's -Z command line option.
+//
+
+Array NETWORKCOMMANDS = {
+    "nslookup",
+    "whois -n",
+    "traceroute",
+};
+
+Dictionary ROBOTADDRESSES[] = {
+    //
+    // The dictionary can be built by adding lines that look like:
+    //
+    //    "192.168.100.10", "Dummy Robot 1",
+    //    "192.168.20?.*, "Someone's Mail Robot",
+    //    "", "I'm Not A Robot",
+    //
+    // The value associated with an IP address should be a string
+    // that identifies the robot (it's will be one of the labels
+    // displayed by the robots histogram). By default names can be
+    // shell pattern regular expressions, so it's easy to associate
+    // a block of IP addresses with a particular robot. The value
+    // assigned to "" is special and will be the value associated
+    // with IP addresses that don't match any robot address.
+    // 
+};
+
+//
+// Custom variable declarations - standard variables that are defined
+// in other files (e.g., setup.yx and main.yx) are initialized and/or
+// used later.
+//
+
+final String DATEFORMAT_TIME = "dd MMM yyyy EE HH:mm:ss";     // used in label for swept-out area
+final String DATEFORMAT_DATE = "dd MMM yyyy";
+final Color  COLOREDBYCOLOR = COLORS.connectcolor;
+final Color  INFOCOLOR = COLORS.sweepcolor;
+final Font   TAGFONT = FONTS.small_text;
+final int    SECSPERDAY = 86400;
+
+//
+// Padding for plots, stacks or graphs.
+//
+
+final Insets HIT_PADDING = {
+    double left = 5;
+    double right = 5;
+    double top = 3;
+    double bottom = 3;
+};
+
+final Insets REQUEST_PADDING = {
+    double left = 5;
+    double right = 5;
+    double top = 5;
+    double bottom = 5;
+};
+
+//
+// Callback functions that format the strings that are supposed to be
+// temporarily displayed in the info label. Triggered by mouse action
+// in the plot or axes.
+//
+
+HitFormatter(int hits) = toString(hits);
+DayFormatter(double time) = date(DATEFORMAT_TIME, time);
+DayFormatter2(double time1, double time2) = date(abs(time1 - time2) < 1*SECSPERDAY ? DATEFORMAT_TIME : DATEFORMAT_DATE, time1);
+
+DayHitFormatter(double time, int hits) {
+    return(new Array {date(DATEFORMAT_TIME, time), toString(hits)});
+}
+
+//
+// A callback function that currently does nothing, even though it's
+// called, but decided to keep it around anyway. Some config files do
+// data dependent initialization here (e.g., don't display tags that
+// are empty).
+//
+
+DataLoader(Object arg) {
+}
+
+//
+// A callback function used to initialize and update the clientlabel
+// label.
+//
+
+ClientFormatter(Array items) {
+    String text = "";
+
+    if (items != null) {
+	if (items@sizeof == 1)
+	    text = items[0];
+	else text = toString(items@sizeof) + " Clients";
+    }
+    return(text);
+}
+
+ColoredByUpdater(Object arg) {
+    return(arg.GetColoredByLabel());
+}
+
+//
+// Callback functions (and other support) that we use to initialize and
+// update the counter label.
+//
+
+Dictionary counterstate = {
+    String fullcount = "";
+};
+
+CounterFormatter(DataManager manager) {
+
+    return(toString((int)manager.counters.hit) + " / " + toString((int)manager.totals.hit));
+    /////return(toString(manager.selectedcount) + " / " + toString(manager.loadedcount));
+}
+
+//
+// A truely ugly callback function that tries to adjust the labeling on
+// the Y axis based on the current endpoints. Doesn't work with negative
+// numbers or when the span is bigger than the maximum that's hardocoded
+// into the function. We eventually will try to eliminate this nonsense
+// by building models into the Java code that's responsible for vertical
+// axes, which is what's already been done for horzontal axes.
+//
+
+YAxisLoader(Object arg) {
+    double delta = arg.axisends[1] - arg.axisends[0];
+
+    arg.labels = NULL;
+    if (delta > 200000000) {
+	arg.ticks = new Array {100000000, 10, 5};
+	arg.labels = new Array {
+	    "0", "100 M", "200 M", "300 M", "400 M", "500 M", "600 M", "700 M", "800 M", "900 M",
+	    "1 B", "1.1 B", "1.2 B", "1.3 B", "1.4 B", "1.5 B", "1.6 B", "1.7 B", "1.8 B", "1.9 B", "2 B"
+	};
+    } else if (delta > 20000000) {
+	arg.ticks = new Array {10000000, 10, 5};
+	arg.labels = new Array {
+	    "0", "10 M", "20 M", "30 M", "40 M", "50 M", "60 M", "70 M", "80 M", "90 M", "100 M",
+	    "110 M", "120 M", "130 M", "140 M", "150 M", "160 M", "170 M", "180 M", "190 M", "200 M"
+	};
+    } else if (delta > 2000000) {
+	arg.ticks = new Array {1000000, 10, 5};
+	arg.labels = new Array {
+	    "0", "1 M", "2 M", "3 M", "4 M", "5 M", "6 M", "7 M", "8 M", "9 M", "10 M",
+	    "11 M", "12 M", "13 M", "14 M", "15 M", "16 M", "17 M", "18 M", "19 M", "20 M"
+	};
+    } else if (delta > 200000)
+	arg.ticks = new Array {100000, 10, 5};
+    else if (delta > 20000)
+	arg.ticks = new Array {10000, 10, 5};
+    else if (delta > 2000)
+	arg.ticks = new Array {1000, 10, 5};
+    else if (delta > 200)
+	arg.ticks = new Array {100, 10, 5};
+    else if (delta > 20)
+	arg.ticks = new Array {10, 10, 5};
+    else arg.ticks = new Array {1, 1, 1};
+}
+
+//
+// A callback function and helper screen that support IP address lookups
+// when the control key is held while a bar in a Histogram or line in a
+// DataTable is pressed.
+//
+// NOTE - added rather quickly, so there's plenty of room for improvement,
+// particularly in the NetworkHelper screen.
+//
+
+PressedBar(Object owner, String key, Event event) {
+    Array addresses;
+
+    if ((addresses = owner.datamanager.getValues(key, owner.fieldindex, 0)) != NULL)
+	NetworkHelper.ShowScreen(addresses);
+}
+
+JFrame NetworkHelper = {
+    Dimension size = NULL;
+    String    title = "YDAT Network Helper";
+    Font      font = FONTS.large_text;
+    int       initialized = FALSE;
+
+    Insets border = {
+	double top = 72.0/16;
+	double left = 72.0/4;
+	double bottom = 72.0/8;
+	double right = 72.0/4;
+    };
+
+    Dimension preferredsize = {
+	double width = 10*72.0;
+	double height = 5*72.0;
+    };
+
+    GridBagLayout layoutmanager = {
+	double vgap = 72.0/16;
+    };
+
+    Array layout = {
+	new JLabel {
+	    String text = "Network Helper";
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	},
+
+	new JPanel {
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		new JComboBox {
+		    String tag = "$_commands";
+		    String tooltiptext = "Command";
+		    Array  labels = NETWORKCOMMANDS;
+		    int    edit = TRUE;
+		    int    selected = 0;
+
+		    //
+		    // Unfortunately drag and drop in an editable JComboBox
+		    // doesn't currently work.
+		    //
+
+		    Function mouseWheelMoved = EVENT_HANDLERS.MouseWheelMoved;
+		},
+		LEFT,
+		72.0/32,
+		new JComboBox {
+		    String tag = "$_arguments";
+		    String tooltiptext = "Argument";
+		    int    edit = TRUE;
+		    int    selected = 0;
+
+		    //
+		    // Unfortunately drag and drop in an editable JComboBox
+		    // doesn't currently work.
+		    //
+
+		    Function mouseWheelMoved = EVENT_HANDLERS.MouseWheelMoved;
+
+		    SetAddresses(Array addresses) {
+			labels = addresses;
+			selected = 0;
+		    }
+		},
+		72.0,
+		0.0,
+		new JButton {
+		    String tag = "$_stop";
+		    String text = "Stop";
+		    Color  foreground = Color.red;
+		    int    enabled = FALSE;
+
+		    actionPerformed(e) {
+			root.Stop();
+		    }
+		},
+		RIGHT,
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int fill = HORIZONTAL;
+	},
+
+	new JTextArea {
+	    String tag = "$_textarea";
+	    double border = 72.0/32;
+	    Object transferhandler = NULL;	// required for custom drag and drop
+	    Font   font = FONTS.large_monospace;
+	    int    columns = 0;
+	    int    rows = 0;
+	    int    scroll = AS_NEEDED;
+
+	    Function dragGestureRecognized = EVENT_HANDLERS.DragGestureRecognized;
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int weightx = 1;
+	    int weighty = 1;
+	    int fill = BOTH;
+	},
+
+	new JPanel {
+	    GridLayout layoutmanager;
+	    Array layout = {
+		new JButton {
+		    String text = "Execute";
+
+		    actionPerformed(e) {
+			root.Execute(
+			    root.components.$_commands.selected,
+			    root.components.$_arguments.selected
+			);
+		    }
+		},
+		new JButton {
+		    String text = "Clear";
+
+		    actionPerformed(e) {
+			root.components.$_textarea.text = "";
+		    }
+		},
+		new JButton {
+		    String text = "Dismiss";
+
+		    actionPerformed(e) {
+			root.visible = FALSE;
+		    }
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	},
+    };
+
+    windowClosing(e) {
+	visible = FALSE;
+    }
+
+    Thread runner = {
+	Process proc;
+
+	run(...) {
+	    String command = argv[1];
+	    Object destination = argv[2];
+	    Object stop = argv[3];
+	    Stream input;
+	    Stream error;
+	    String line;
+
+	    if (command != NULL && destination != NULL) {
+		save stop.enabled = TRUE;
+		proc.alive = FALSE;
+		proc.command = command;
+		proc.alive = TRUE;
+		appendText(destination, "[" + date() + "] " + proc.command + "\n");
+		if ((input = proc.output) != NULL && (error = proc.error) != NULL) {
+		    while ((line = readLine(input)) != NULL)
+			appendText(destination, "    " + line + "\n");
+		    while ((line = readLine(error)) != NULL)
+			appendText(destination, "    " + line + "\n");
+		}
+		appendText(destination, "[" + date() + "] " + "finished\n");
+	    }
+	}
+    };
+
+    Execute(String command, String arg) {
+	if (command@sizeof > 0 && arg@sizeof > 0)
+	    runner.run(command + " " + arg, components.$_textarea, components.$_stop);
+    }
+
+    ShowScreen(Array addresses) {
+	Point point;
+
+	if (!initialized) {
+	    point.x = (VM.screen.width - size.width)/2;
+	    point.y = (VM.screen.height - size.height)/2;
+	    this.location = point;
+	    initialized = TRUE;
+	}
+	if (addresses@sizeof > 1000) {
+	    addresses = new Array[1001] addresses;
+	    addresses[1000] = "truncated at 1000";
+	}
+	components.$_arguments.SetAddresses(addresses);
+	visible = TRUE;
+    }
+
+    Stop() {
+	String message;
+	int    n;
+
+	if (runner.alive || runner.proc.alive) {
+	    for (n = 0; n < 20; n++) {
+		if (runner.alive || runner.proc.alive) {
+		    runner.alive = FALSE;
+		    runner.proc.alive = FALSE;
+		    sleep(0.25);
+		} else break;
+	    }
+	    if (runner.alive || runner.proc.alive)
+		appendText(components.$_textarea, "[" + date() + "] stop failed\n");
+	    else appendText(components.$_textarea, "[" + date() + "] stop succeeded\n");
+	}
+    }
+};
+
+//
+// CONFIGVERSION 4.2 adds a PRIMARY column to the PANELS table and also
+// adds support for buidling SPLITPANES in the PANELS table. Was added
+// quickly - we will take another look in a little while.
+//
+
+CONFIGVERSION = "4.2";
+
+AUTOZOOM = FALSE;
+COLOREDBY = "client_nnn";
+LOCATIONMODE = -1;		// tile new filters right to left
+MENULIMIT = 30;			// max number of items in a menu before rollover
+PRIMARYLABEL = "Hits";
+SECONDARYLABEL = "Bytes";
+SORTEDBY = "hit_plot";
+TIMESHADING = FALSE;
+TITLEMODEL = 1;			// better titles for screens
+
+//
+// A single plot can be controlled by setting various global variables
+// (see setup.yx) but if you have several plots with different settings,
+// as we do in this config file, then this is how you proceed. In this
+// case the two dictionaries are referenced in the EXTRA column in the
+// PLOTS table.
+//
+
+Dictionary HITPLOT_EXTRA = {
+    Array bucketinfo = {0, 3600};
+    Array bucketwidthslider = {60, 60, 1439};
+    int   plotstyleflags = STYLE_ENABLE_STACKS;
+    int   plotstyle = STYLE_STACKED_BARS;
+};
+
+Dictionary REQUESTPLOT_EXTRA = {
+    Array bucketinfo = NULL;
+    Array bucketwidthslider = NULL;
+    int   plotstyleflags = STYLE_ENABLE_EVENTS;
+    int   plotstyle = STYLE_POINTS;
+    int   connect = CONNECT_LINES;
+};
+
+//
+// An array of dictionaries used to extract fields from each input line.
+// Fields split out of each line are the same as what strsplit() would
+// yield if it used the INPUTSEPARATOR array was used to separate each
+// line. This style is relatively new and may not be documented yet in
+// the strsplit reference page, which really means it still may change.
+//
+
+INPUTSEPARATOR = new Array {
+    new Dictionary {
+	String skip = NULL;
+	String left = " ";
+	String right = " ";
+    },
+    NULL,
+    NULL,
+    new Dictionary {
+	String skip = " ";
+	String left = "[";
+	String right = "]";
+    },
+    new Dictionary {
+	String skip = " ";
+	String left = "\"";
+	String right = "\"";
+    },
+    new Dictionary {
+	String skip = NULL;
+	String left = " ";
+	String right = " ";
+    },
+    NULL,
+    new Dictionary {
+	String skip = " ";
+	String left = "\"";
+	String right = "\"";
+    },
+    NULL,
+};
+
+//
+// Small adjustments to the default sizes. HISTOGRAM and SWEEPTABLE
+// are adjusted together mostly because STARTSCREENS uses the default
+// widths.
+//
+
+DIMENSIONS.HISTOGRAM.width += 36;
+DIMENSIONS.SWEEPTABLE.width -= 36;
+
+//
+// TRANSLATORS are dictionaries that can be referenced by their string
+// names under the TRANSLATOR column in the DATAFIELDS table.
+//
+
+TRANSLATORS = new Dictionary {
+    Dictionary statusname_map[] = {
+	"100", "Continue",
+	"101", "Switching Protocols",
+	"200", "OK",
+	"201", "Created",
+	"202", "Accepted",
+	"203", "Non-Authoritative Information",
+	"204", "No Content",
+	"205", "Reset Content",
+	"206", "Partial Content",
+	"300", "Multiple Choices",
+	"301", "Moved Permanently",
+	"302", "Found",
+	"303", "See Other",
+	"304", "Not Modified",
+	"305", "Use Proxy",
+	"306", "(Unused)",
+	"307", "Temporary Redirect",
+	"400", "Bad Request",
+	"401", "Unauthorized",
+	"402", "Payment Required",
+	"403", "Forbidden",
+	"404", "Not Found",
+	"405", "Method Not Allowed",
+	"406", "Not Acceptable",
+	"407", "Proxy Authentication Required",
+	"408", "Request Timeout",
+	"409", "Conflict",
+	"410", "Gone",
+	"411", "Length Required",
+	"412", "Precondition Failed",
+	"413", "Request Entity Too Large",
+	"414", "Request-URI Too Long",
+	"415", "Unsupported Media Type",
+	"416", "Requested Range Not Satisfiable",
+	"417", "Expectation Failed",
+	"500", "Internal Server Error",
+	"501", "Not Implemented",
+	"502", "Bad Gateway",
+	"503", "Service Unavailable",
+	"504", "Gateway Timeout",
+	"505", "HTTP Version Not Supported",
+    };
+
+    Dictionary statustype_map[] = {
+	"100", "Informational",
+	"101", "Informational",
+	"200", "Successful",
+	"201", "Successful",
+	"202", "Successful",
+	"203", "Successful",
+	"204", "Successful",
+	"205", "Successful",
+	"206", "Successful",
+	"300", "Redirection",
+	"301", "Redirection",
+	"302", "Redirection",
+	"303", "Redirection",
+	"304", "Redirection",
+	"305", "Redirection",
+	"306", "Redirection",
+	"307", "Redirection",
+	"400", "Client Error",
+	"401", "Client Error",
+	"402", "Client Error",
+	"403", "Client Error",
+	"404", "Client Error",
+	"405", "Client Error",
+	"406", "Client Error",
+	"407", "Client Error",
+	"408", "Client Error",
+	"409", "Client Error",
+	"410", "Client Error",
+	"411", "Client Error",
+	"412", "Client Error",
+	"413", "Client Error",
+	"414", "Client Error",
+	"415", "Client Error",
+	"416", "Client Error",
+	"417", "Client Error",
+	"500", "Server Error",
+	"501", "Server Error",
+	"502", "Server Error",
+	"503", "Server Error",
+	"504", "Server Error",
+	"505", "Server Error",
+    };
+
+    Dictionary clienterror_map[] = {
+	"400", "1",
+	"401", "1",
+	"402", "1",
+	"403", "1",
+	"404", "1",
+	"405", "1",
+	"406", "1",
+	"407", "1",
+	"408", "1",
+	"409", "1",
+	"410", "1",
+	"411", "1",
+	"412", "1",
+	"413", "1",
+	"414", "1",
+	"415", "1",
+	"416", "1",
+	"417", "1",
+	"", "0",
+    };
+
+    Dictionary servererror_map[] = {
+	"500", "1",
+	"501", "1",
+	"502", "1",
+	"503", "1",
+	"504", "1",
+	"505", "1",
+	"", "0",
+    };
+
+    Dictionary weekday_order[] = {
+	"Sun", "1",
+	"Mon", "2",
+	"Tue", "3",
+	"Wed", "4",
+	"Thu", "5",
+	"Fri", "6",
+	"Sat", "7",
+    };
+};
+
+DATAFIELDS = new Array {
+//
+// NAME                 TYPE           INDEX  COUNTER  UNIXTIME  TRANSLATOR         GENERATOR
+// ----                 ----           -----  -------  --------  ----------         ---------
+   "client",            DATA_STRING,     0,   FALSE,   NULL,     NULL,              NULL,
+   "hit",               DATA_ONE,        0,   TRUE,    NULL,     NULL,              NULL,
+   "identity",          DATA_STRING,     1,   FALSE,   NULL,     NULL,              NULL,
+   "username",          DATA_STRING,     2,   FALSE,   NULL,     NULL,              NULL,
+   "timestamp",         DATA_STRING,     3,   FALSE,   NULL,     NULL,              NULL,
+   "hittime",           DATA_CALL,       3,   FALSE,   TRUE,     NULL,              new Array {BUILTIN_PARSEDATE, "this", "dd/MMM/yyyy:HH:mm:ss"},
+   "requesttime",       DATA_DOUBLE,     3,   FALSE,   TRUE,     NULL,              new Array {"hittime"},
+   "request",           DATA_STRING,     4,   FALSE,   NULL,     NULL,              NULL,
+   "status",            DATA_STRING,     5,   FALSE,   NULL,     NULL,              NULL,
+   "statusname",        DATA_STRING,     5,   FALSE,   NULL,     "statusname_map",  NULL,
+   "statustype",        DATA_STRING,     5,   FALSE,   NULL,     "statustype_map",  NULL,
+   "clienterrortag",    DATA_INTEGER,    5,   FALSE,   NULL,     "clienterror_map", NULL,
+   "servererrortag",    DATA_INTEGER,    5,   FALSE,   NULL,     "servererror_map", NULL,
+   "bytes",             DATA_INTEGER,    6,   FALSE,   NULL,     NULL,              NULL,
+   "referrer",          DATA_STRING,     7,   FALSE,   NULL,     NULL,              NULL,
+   "useragent",         DATA_STRING,     8,   FALSE,   NULL,     NULL,              NULL,
+
+   //
+   // The -1 in the INDEX column means these fields are built when they're
+   // really used. It also currently means their generator can't use "this"
+   // to refer to the desired field.
+   //
+
+   "weekday",           DATA_CALL,      -1,   FALSE,   NULL,     NULL,              new Array {BUILTIN_DATE, "EE", "hittime"},
+   "second",            DATA_DOUBLE,    -1,   FALSE,   NULL,     NULL,              new Array {"hittime", 60, "%"},
+
+   //
+   // Look for IP addresses that are associated with robots.
+   //
+
+   "robotaddress",      DATA_CALL,      -1,   FALSE,   NULL,     NULL,              new Array {BUILTIN_MATCH, "client", ROBOTADDRESSES},
+
+   //
+   // We don't automatically decode fields that might be URL encoded, but
+   // these three fields do the decoding if they're used anywhere.
+   //
+
+   "request_decoded",   DATA_CALL,      -1,   FALSE,   NULL,     NULL,              new Array {BUILTIN_URLDECODE, "request"},
+   "referrer_decoded",  DATA_CALL,      -1,   FALSE,   NULL,     NULL,              new Array {BUILTIN_URLDECODE, "referrer"},
+   "useragent_decoded", DATA_CALL,      -1,   FALSE,   NULL,     NULL,              new Array {BUILTIN_URLDECODE, "useragent"},
+
+   //
+   // This splits the "request" field into three components. An alternative,
+   // if this seems to be too expensive, would be to extract the fields with
+   // a Perl script that preprocesses the log file data.
+   //
+
+   "request_array",     DATA_ARRAY,     -1,   FALSE,   NULL,     NULL,              new Array {"request", " ", " ", " "},
+   "request_method",    DATA_CALL,      -1,   FALSE,   NULL,     NULL,              new Array {BUILTIN_GETINDEX, "request_array", 0},
+   "request_resource",  DATA_CALL,      -1,   FALSE,   NULL,     NULL,              new Array {BUILTIN_URLDECODE, new Array {BUILTIN_GETINDEX, "request_array", 1}},
+   "request_protocol",  DATA_CALL,      -1,   FALSE,   NULL,     NULL,              new Array {BUILTIN_GETINDEX, "request_array", 2},
+
+   //
+   // This splits the "client" IP address into octets and uses some of them
+   // to build fields that make for more manageable histograms. Decided to
+   // stop at 2, but you should be able to figure out how to add more.
+   //
+
+   "client_array",      DATA_ARRAY,     -1,   FALSE,   NULL,     NULL,              new Array {"client", ".", " ", " "},
+   "client_nnn",        DATA_CALL,      -1,   FALSE,   NULL,     NULL,              new Array {BUILTIN_GETINDEX, "client_array", 0},
+   "client_nnn.nnn",    DATA_STRING,    -1,   FALSE,   NULL,     NULL,              new Array {"client_nnn", ".", new Array {BUILTIN_GETINDEX, "client_array", 1}},
+
+   //
+   // This splits the "useragent" field
+   //
+
+   "useragent_array",   DATA_ARRAY,     -1,   FALSE,   NULL,     NULL,              new Array {"useragent", "(", " ", ")"},
+   "useragent_product", DATA_CALL,      -1,   FALSE,   NULL,     NULL,              new Array {BUILTIN_GETINDEX, "useragent_array", 0},
+   "useragent_comment", DATA_CALL,      -1,   FALSE,   NULL,     NULL,              new Array {BUILTIN_GETINDEX, "useragent_array", 1},
+};
+
+HISTOGRAMS = new Array {
+//
+// NAME                 MENULABEL            PRIMARY              SECONDARY  DIVERSITY  AUTOREADY  SPAN  SORTBY            EXTRA
+// ----                 ---------            -------              ---------  ---------  ---------  ----  ------            -----
+   NULL,                "Client {",          NULL,                NULL,      NULL,      FALSE,     0,    NULL,             NULL,
+   "client_nnn",        "NNN.*.*.*",         "client_nnn",        "bytes",   NULL,      FALSE,     0,    SORTBY_OCTET,     NULL,
+   "client_nnn.nnn",    "NNN.NNN.*.*",       "client_nnn.nnn",    "bytes",   NULL,      FALSE,     0,    SORTBY_OCTET,     NULL,
+   NULL,                "-",                 NULL,                NULL,      NULL,      FALSE,     0,    NULL,             NULL,
+   "client",            "IP Address",        "client",            "bytes",   NULL,      FALSE,     0,    SORTBY_OCTET,     NULL,
+   NULL,                "}",                 NULL,                NULL,      NULL,      FALSE,     0,    NULL,             NULL,
+   NULL,                "Status {",          NULL,                NULL,      NULL,      FALSE,     0,    NULL,             NULL,
+   "status",            "Code",              "status",            "bytes",   NULL,      FALSE,     0,    SORTBY_NUMBER,    NULL,
+   "statusname",        "Name",              "statusname",        "bytes",   NULL,      FALSE,     0,    SORTBY_TEXT,      NULL,
+   "statustype",        "Type",              "statustype",        "bytes",   NULL,      FALSE,     0,    SORTBY_TEXT,      NULL,
+   NULL,                "}",                 NULL,                NULL,      NULL,      FALSE,     0,    NULL,             NULL,
+   NULL,                "Request {",         NULL,                NULL,      NULL,      FALSE,     0,    NULL,             NULL,
+   "request_method",    "Method",            "request_method",    "bytes",   NULL,      FALSE,     0,    SORTBY_TEXT,      NULL,
+   "request_protocol",  "Protocol",          "request_protocol",  "bytes",   NULL,      FALSE,     0,    SORTBY_TEXT,      NULL,
+   "request_resource",  "Resource",          "request_resource",  "bytes",   NULL,      FALSE,     0,    SORTBY_TEXT,      NULL,
+   NULL,                "}",                 NULL,                NULL,      NULL,      FALSE,     0,    NULL,             NULL,
+   NULL,                "User Agent {",      NULL,                NULL,      NULL,      FALSE,     0,    NULL,             NULL,
+   "useragent_product", "Product",           "useragent_product", "bytes",   NULL,      FALSE,     0,    SORTBY_TEXT,      NULL,
+   "useragent_comment", "Comment",           "useragent_comment", "bytes",   NULL,      FALSE,     0,    SORTBY_TEXT,      NULL,
+   NULL,                "-",                 NULL,                NULL,      NULL,      FALSE,     0,    NULL,             NULL,
+   "useragent",         "Decoded",           "useragent_decoded", "bytes",   NULL,      FALSE,     0,    SORTBY_TEXT,      NULL,
+   NULL,                "}",                 NULL,                NULL,      NULL,      FALSE,     0,    NULL,             NULL,
+   NULL,                "-",                 NULL,                NULL,      NULL,      FALSE,     0,    NULL,             NULL,
+   "bytes",             "Bytes",             "bytes",             "bytes",   NULL,      FALSE,     0,    SORTBY_NUMBER,    NULL,
+   "identity",          "Identity",          "identity",          "bytes",   NULL,      FALSE,     0,    SORTBY_TEXT,      NULL,
+   "referrer",          "Referrer",          "referrer_decoded",  "bytes",   NULL,      FALSE,     0,    SORTBY_TEXT,      NULL,
+   "robotaddress",      "Robot Address",     "robotaddress",      "bytes",   NULL,      FALSE,     0,    SORTBY_TEXT,      NULL,
+   "username",          "User Name",         "username",          "bytes",   NULL,      FALSE,     0,    SORTBY_TEXT,      NULL,
+   "weekday",           "Weekday",           "weekday",           "bytes",   NULL,      FALSE,     0,    "weekday_order",  NULL,
+};
+
+//
+// Can't reliably use decoded values without also protecting the character
+// that separates columns in the table that we're loading. There probably
+// are fixes that aren't all that difficult. but we're punting right now
+// and just grabbing the fields that haven't been decoded.
+//
+
+SWEEPTABLES = new Array {
+//
+// NAME          MENULABEL      REORDER  RESIZE  EXTRA  COLUMNS
+// ----          ---------      -------  ------  -----  -------
+   "logdetail",  "Log Detail",  TRUE,    TRUE,   NULL,  new Array {
+        //
+        // DATAFIELD            LABEL          SPAN  ALIGNMENT  TYPE           ATTRIBUTES                                                     EXTRA
+        // ---------            -----          ----  ---------  ----           ----------                                                     -----
+	   "hittime",           "Date",         24,  CENTER,    DATE_TYPE,     new Dictionary {String format = "EEE MMM dd HH:mm:ss yyyy";},  NULL,
+	   "client",            "Client",       15,  CENTER,    STRING_TYPE,   NULL,                                                          NULL,
+	   "useragent_product", "Product",      10,  CENTER,    STRING_TYPE,   NULL,                                                          NULL,
+	   "request_protocol",  "Protocol",     10,  CENTER,    STRING_TYPE,   NULL,                                                          NULL,
+	   "statustype",        "Status",       12,  CENTER,    STRING_TYPE,   NULL,                                                          NULL,
+	   "status",            "Code",          6,  CENTER,    INTEGER_TYPE,  NULL,                                                          NULL,
+	   "request_method",    "Method",        6,  CENTER,    STRING_TYPE,   NULL,                                                          NULL,
+	   "request_resource",  "Resource",     50,  LEFT,      STRING_TYPE,   NULL,                                                          NULL,
+	   "referrer",          "Referrer",     50,  LEFT,      STRING_TYPE,   NULL,                                                          NULL,
+	   "useragent",         "User Agent",  150,  LEFT,      STRING_TYPE,   NULL,                                                          NULL,
+    },
+};
+
+PLOTS = new Array {
+//
+// NAME            MENULABEL  VISIBLE  OWNER XVALUE         YVALUE    FILTER       AUTOREADY ANCHOR BORDER INSETS PAD              EXTRA
+// ----            ---------  -------  ----- ------         ------    ------       --------- ------ ------ ------ ---              -----
+   "hit_plot",     NULL,      TRUE,    NULL, "hittime",     "hit",    "logdetail", FALSE,    SOUTH, 2,     2,     HIT_PADDING,     HITPLOT_EXTRA,
+   "request_plot", NULL,      TRUE,    NULL, "requesttime", "second", "logdetail", FALSE,    SOUTH, 2,     2,     REQUEST_PADDING, REQUESTPLOT_EXTRA,
+};
+
+TAGS = new Array {
+//
+// NAME              MENULABEL       VISIBLE OWNER       XVALUE YVALUE            OVERLAPEND FILTER       AUTOREADY PALETTE          EXTRA
+// ----              ---------       ------- -----       ------ ------            ---------- ------       --------- -------          -----
+   "clienterrortag", "Client Error", TRUE,   "hit_plot", NULL,  "clienterrortag", NULL,      "logdetail", FALSE,    PALETTES.color3, NULL,
+   "servererrortag", "Server Error", TRUE,   "hit_plot", NULL,  "servererrortag", NULL,      "logdetail", FALSE,    PALETTES.color2, NULL,
+};
+
+AXES = new Array {
+//
+// NAME             MENULABEL VISIBLE OWNER           ROWS COLUMNS ANCHOR INVERTED TICKINTERVALS TICKLABELS EXTRA
+// ----             --------- ------- -----           ---- ------- ------ -------- ------------- ---------- -----
+   "hit_xaxis",     NULL,     TRUE,   "hit_plot",     1,   1,      NORTH, FALSE,   NULL,         NULL,      2,
+   "hit_yaxis",     NULL,     TRUE,   "hit_plot",     1,   6,      EAST,  FALSE,   NULL,         NULL,      NULL,
+   "request_xaxis", NULL,     TRUE,   "request_plot", 1,   1,      NORTH, FALSE,   NULL,         NULL,      2,
+};
+
+LABELS = new Array {
+//
+// NAME                 MENULABEL  VISIBLE  OWNER             ROWS  COLUMNS  ALIGNMENT  FONT      FOREGROUND      TEXT
+// ----                 ---------  -------  -----             ----  -------  ---------  ----      ----------      ----
+   "clientlabel",       NULL,      TRUE,    "hit_plot",        1,    25,     LEFT,      NULL,     NULL,           NULL,
+   "counterlabel",      NULL,      TRUE,    "hit_plot",        1,     0,     RIGHT,     NULL,     NULL,           NULL,
+   "infolabel",         NULL,      TRUE,    "hit_plot",        1,     0,     LEFT,      NULL,     INFOCOLOR,      NULL,
+   "startlabel",        NULL,      TRUE,    "hit_plot",        1,    25,     LEFT,      NULL,     NULL,           NULL,
+   "endlabel",          NULL,      TRUE,    "hit_plot",        1,    25,     RIGHT,     NULL,     NULL,           NULL,
+   "coloredbylabel",    NULL,      TRUE,    "hit_plot",        1,    25,     RIGHT,     NULL,     COLOREDBYCOLOR, NULL,
+   "clienterrorlabel",  NULL,      TRUE,    "clienterrortag",  1,    0,      RIGHT,     TAGFONT,  NULL,           "client error",
+   "servererrorlabel",  NULL,      TRUE,    "servererrortag",  1,    0,      RIGHT,     TAGFONT,  NULL,           "server error",
+};
+
+PANELS = new Array {
+//
+// NAME             MENULABEL  VISIBLE  OWNER  PRIMARY  WIDTH  HEIGHT  BACKGROUND  LAYOUT
+// ----             ---------  -------  -----  -------  -----  ------  ----------  ------
+   "taglabels",     NULL,      TRUE,    NULL,    NULL,    0,      0,   NULL,       new Array {
+        //
+        // ROWS   COLUMNS    HGAP    VGAP    ORIENTATION    USEALL     COMPONENTS
+        // ----   -------    ----    ----    -----------    ------     ----------
+            0,      1,        0,      0,     HORIZONTAL,    FALSE,     new Array {"clienterrorlabel", "servererrorlabel"},
+   },
+
+   "tagplots",      NULL,      TRUE,    NULL,    NULL,    0,      0,   NULL,       new Array {
+        //
+        // ROWS   COLUMNS    HGAP    VGAP    ORIENTATION    USEALL     COMPONENTS
+        // ----   -------    ----    ----    -----------    ------     ----------
+            0,      1,        0,      0,     HORIZONTAL,    FALSE,     new Array {"clienterrortag", "servererrortag"},
+   },
+
+   "hit_panel",     NULL,      TRUE,    NULL,    NULL,    0,      0,   NULL,       new Array {
+        //
+        // NAME            GRIDX  GRIDY  GRIDWIDTH  GRIDHEIGHT  WEIGHTX  WEIGHTY   IPADX     IPADY     FILL        ANCHOR   INSETS      BACKGROUND
+        // ----            -----  -----  ---------  ----------  -------  -------   -----     -----     ----        ------   ------      ----------
+           NULL,             0,     0,       1,          1,         0,       0,    72.0/8,   72.0/8,   NONE,       CENTER,  NULL,       NULL,
+           "clientlabel",    3,     1,       1,          1,         0,       0,    0,        0,        HORIZONTAL, WEST,    NULL,       NULL,
+	   "counterlabel",   4,     1,       5,          1,       100,       0,    0,        0,        HORIZONTAL, EAST,    NULL,       NULL,
+           "hit_yaxis",      2,     3,       1,          1,         0,       0,    0,        0,        BOTH,       CENTER,  "hit_plot", NULL,
+           "hit_plot",       3,     3,       6,          1,       100,     100,    0,        0,        BOTH,       CENTER,  NULL,       NULL,
+           "taglabels",      0,     4,       3,          1,         0,       0,    0,        0,        BOTH,       EAST,    NULL,       NULL,
+           "tagplots",       3,     4,       6,          1,       100,       0,    0,        0,        BOTH,       CENTER,  "hit_plot", NULL,
+	   "hit_xaxis",      3,     7,       6,          1,       100,       0,    0,        0,        BOTH,       CENTER,  "hit_plot", NULL,
+	   "startlabel",     3,     8,       1,          1,         0,       0,    0,        0,        HORIZONTAL, WEST,    NULL,       NULL,
+           "endlabel",       8,     8,       1,          1,         0,       0,    0,        0,        HORIZONTAL, EAST,    NULL,       NULL,
+	   "infolabel",      3,     9,       5,          1,       100,       0,    0,        0,        HORIZONTAL, CENTER,  NULL,       NULL,
+	   "coloredbylabel", 8,     9,       1,          1,         0,       0,    0,        0,        HORIZONTAL, EAST,    NULL,       NULL,
+           NULL,             10,    10,      1,          1,         0,       0,    72.0/8,   72.0/32,  NONE,       CENTER,  NULL,       NULL,
+   },
+
+   "request_panel", NULL,      TRUE,    NULL,    NULL,    0,      0,   NULL,       new Array {
+        //
+        // NAME            GRIDX  GRIDY  GRIDWIDTH  GRIDHEIGHT  WEIGHTX  WEIGHTY   IPADX     IPADY     FILL      ANCHOR   INSETS          BACKGROUND
+	// ----            -----  -----  ---------  ----------  -------  -------   -----     -----     ----      ------   ------          ----------
+	   NULL,             0,     0,       1,          1,         0,       0,    72.0/8,   72.0/8,   NONE,     CENTER,  "hit_yaxis",    NULL,
+           "request_plot",   3,     3,       6,          1,       100,     100,    0,        0,        BOTH,     CENTER,  NULL,           NULL,
+           "request_xaxis",  3,     7,       6,          1,       100,       0,    0,        0,        BOTH,     CENTER,  "request_plot", NULL,
+           NULL,             10,    10,      1,          1,         0,       0,    72.0/8,   72.0/32,  NONE,     CENTER,  NULL,           NULL,
+   },
+
+   //
+   // This creates a JSplitPane.
+   //
+   "plot_pane",     NULL,      TRUE,    NULL,  "hit_plot",    0,      0,   NULL,       new Array {
+	//
+	// ORIENTATION  CONTINUOUS  DIVIDER  RESIZEWEIGHT   COMPONENTS
+	// -----------  ----------  -------  ------------   ----------
+	   VERTICAL,     FALSE,      0.0,       0.0,        new Array {"request_panel", "hit_panel"},
+    },
+};
+
+CALLBACKS = new Array {
+//
+// OWNER                STATE          FORMATTER                LABEL                 CALLBACK
+// -----                ------         ----------               -----                 --------
+   "hit_xaxis",         "SELECT",      DayFormatter,            "infolabel",          NULL,
+   "hit_xaxis",         "SETSTART",    DayFormatter2,           "startlabel",         NULL,
+   "hit_xaxis",         "SETEND",      DayFormatter2,           "endlabel",           NULL,
+   "hit_yaxis",         "SELECT",      HitFormatter,            "infolabel",          NULL,
+   "hit_yaxis",         "SETEND",      NULL,                    NULL,                 YAxisLoader,
+   "hit_plot",          "POINT",       DayHitFormatter,         "infolabel",          NULL,
+   "hit_plot",          "SWEEP",       DayHitFormatter,         "infolabel",          NULL,
+   "hit_plot",          "SELECT",      DayHitFormatter,         "infolabel",          NULL,
+   "request_plot",      "POINT",       DayHitFormatter,         "infolabel",          NULL,
+   "request_plot",      "SWEEP",       DayHitFormatter,         "infolabel",          NULL,
+   "request_plot",      "SELECT",      DayHitFormatter,         "infolabel",          NULL,
+   "datamanager",       "COLOREDBY",   ColoredByUpdater,        "coloredbylabel",     NULL,
+   "datamanager",       "LOAD",        CounterFormatter,        "counterlabel",       NULL,
+   "datamanager",       "UPDATE",      CounterFormatter,        "counterlabel",       NULL,
+   "client",            "LOAD",        ClientFormatter,         "clientlabel",        NULL,
+   "client",            "UPDATE",      ClientFormatter,         "clientlabel",        NULL,
+
+   //
+   // For now all Histograms call PressedBar() when button 1 is pressed in
+   // bar while the CTRL key is held down. Not convinced they all should
+   // behave that way??
+   //
+
+   "bytes",             "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "client",            "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "client_nnn",        "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "client_nnn.nnn",    "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "identity",          "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "logdetail",         "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "referrer",          "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "request_method",    "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "request_protocol",  "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "request_resource",  "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "robotaddress",      "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "status",            "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "statusname",        "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "statustype",        "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "username",          "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "useragent",         "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "useragent_product", "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "useragent_comment", "PRESSED",     NULL,                    NULL,                 PressedBar,
+   "weekday",           "PRESSED",     NULL,                    NULL,                 PressedBar,
+};
+
+STARTSCREENS = new Array {
+    "plot_pane",
+	SEPARATION,		// X (< 0 lets screen choose)
+	SEPARATION,		// Y (< 0 lets screen choose)
+	0,			// WIDTH (<= 0 lets screen choose)
+	0,			// HEIGHT (<= 0 lets screen choose)
+
+    "logdetail",
+	SEPARATION,
+	-1,
+	0,
+	0,
+
+    "client_nnn",
+	DIMENSIONS.SWEEPTABLE.width + SEPARATION + 5,
+	-1,
+	0,
+	0,
+};
+

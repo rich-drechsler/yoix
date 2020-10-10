@@ -1,0 +1,37 @@
+//
+// Not certain, but some of nameof behavior looks wrong. Needs to
+// be checked before the next release.
+//
+
+tst0(Dictionary dict) {
+    stdout.nextline = "argv[0]=" + argv[0];
+    stdout.nextline = "argv[1]@nameof=" + argv[1]@nameof;
+    stdout.nextline = "dict@nameof=" + dict@nameof;
+}
+
+tst1(Dictionary dt) {
+    Dictionary dict = (*dt);
+
+    stdout.nextline = "argv[0]=" + argv[0];
+    stdout.nextline = "argv[1]@nameof=" + argv[1]@nameof;
+    stdout.nextline = "dict@nameof=" + dict@nameof;
+    stdout.nextline = "(*dt)@nameof=" + (*dt)@nameof;
+}
+
+tst2(Pointer pdt) {
+    Dictionary dict = (*pdt);
+
+    stdout.nextline = "argv[0]=" + argv[0];
+    stdout.nextline = "argv[1]@nameof=" + argv[1]@nameof;
+    stdout.nextline = "dict@nameof=" + dict@nameof;
+    stdout.nextline = "(*pdt)@nameof=" + (*pdt)@nameof;
+}
+
+Dictionary dog = {
+    String name = "cat";
+};
+
+tst0(dog);
+tst1(&dog);
+tst2(&dog);
+

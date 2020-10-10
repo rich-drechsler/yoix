@@ -1,0 +1,21 @@
+//
+// Simple execute error test that makes sure an error message generated
+// in the screen created by reading and executing a data file identifies
+// the source of the error using the path argument that we supplied in
+// the execute call.
+//
+
+import yoix.*.*;
+
+if ((index = lastIndexOf(argv[0], ".")) > 0)
+    path = substring(argv[0], 0, index) + ".data";
+else path = $argv[0] + ".data";
+
+if ((fp = fopen(path, "r")) != NULL) {
+    data = readStream(fp);
+    Builder = execute(data, path);
+    screen = Builder();
+    screen.visible = TRUE;
+    close(fp);
+} else fprintf(stderr, "%s: can't open %s\n", argv[0], path);
+

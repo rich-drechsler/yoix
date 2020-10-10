@@ -1,0 +1,379 @@
+import yoix.*.*;
+setLocale(Locale.ITALY); // test locale handling in table
+
+String basefont = "Courier-plain-12";
+
+ColumnWidth(Object font, Object info) {
+
+    double   width = 72;
+    double   sw;
+    Pointer  ptr;
+
+    if (info instanceof String)
+	width = stringWidth(font, info);
+    else if (info instanceof Number)
+	width = info * stringWidth(font, "m");
+    else if (info instanceof Array) {
+	width = 0;
+	for (ptr in info) {
+	    sw = stringWidth(font, *ptr);
+	    width = (width < sw) ? sw : width;
+	}
+    }
+
+    return(width + 3.0 * VM.screen.pixelwidth); // border + rounding
+}
+
+TableSorter(e) {
+    int idx;
+    int len;
+    int off;
+    int i;
+    int j;
+
+    //
+    // A generic invocationAction() event handler that can be used
+    // by the JTable component. It uses the spare "etc" field in
+    // JTable to store sort column info across invocations.
+    // 
+
+    save this.root.cursor = Cursor.WAIT_CURSOR;
+
+    if (e == NULL) {
+	if (this.etc != NULL && this.etc@sizeof > 0) {
+	    this.action(TABLE_SORT, this.etc + off);
+	}
+    } else if (e.valuesColumn >= 0) {
+	if ((e.modifiers&CTRL_MASK) == 0) {
+	    this.etc = new Array[0,...] {};
+	    len = 0;
+	} else {
+	    e.modifiers &= ~CTRL_MASK;
+	    if (this.etc == NULL)
+		this.etc = new Array[0,...] {};
+	    len = this.etc@length;
+	}
+
+	if (e.modifiers == BUTTON1_MASK) {
+	    if (len == 0 && this.columns[e.valuesColumn].state > 0)
+		idx = 0;
+	    else idx = 1 + e.valuesColumn;
+	} else {
+	    if (len == 0 && this.columns[e.valuesColumn].state < 0)
+		idx = 0;
+	    else idx = -(1 + e.valuesColumn);
+	}
+	for (i=0; i<len; i++) {
+	    if (idx == this.etc[i]) {
+		for (j=i; j>0; j--)
+		    this.etc[j] = this.etc[j-1];
+		this.etc[0] = 0;
+		idx = 0;
+		break;
+	    } else if (-idx == this.etc[i]) {
+		this.etc[i] = idx;
+		idx = 0;
+		break;
+	    }
+	}
+	for (off=0; off<len; off++) {
+	    if (this.etc[off] != 0)
+		break;
+	}
+	if (idx != 0) {
+	    this.etc[len] = idx;
+	    len++;
+	}
+
+	if (len == off) {
+	    this.action(TABLE_SORT, NULL);
+	    this.etc = new Array[0,...] {};
+	} else this.action(TABLE_SORT, this.etc + off);
+
+	if (defined("dfltcellcolors", this)) {
+	    if (len == off) {
+		this.cellcolors = this.dfltcellcolors;
+	    } else {
+		Array  values;
+		Array  cols;
+		Array  etc;
+
+		cols = new Array[len-off];
+		etc = (this.etc + off);
+		for (m = 0; m < cols@length; m++) {
+		    cols[m] = abs(etc[m]) - 1;
+		}
+		this.cellcolors = getArrayBands(
+		    this.action(TABLE_JOIN, cols, TRUE, TRUE, 1),
+		    unroll(this.dfltcellcolors)
+		    );
+	    }
+	}
+    }
+}
+
+JTable jt = {
+    int tooltips = 1;
+    int resize = 1;
+    int reorder = 1;
+    int scroll = AS_NEEDED;
+    Color background = Color.blue;
+
+    Array altbackground = {
+	Color.orange,
+	Color.red,
+	Color.green,
+    };
+    Array altforeground = {
+	Color.black,
+	Color.pink,
+	Color.magenta,
+    };
+    Array cellcolors = {
+	new Array[] { Color.yellow, Color.orange },
+	Color.red,
+    };
+    Array dfltcellcolors = cellcolors;
+
+    Array columns = {
+	new JTableColumn {
+	    //Array altbackground = {
+		//Color.orange,
+		//Color.red,
+		//Color.green,
+	    //};
+	    //Array altforeground = {
+		//Color.black,
+		//Color.pink,
+		//Color.magenta,
+	    //};
+	    Array cellcolors = {
+		Color.lightGray,
+		new Array { Color.magenta, Color.red, Color.green, Color.yellow, Color.blue },
+	    };
+	    String header = "Shares";
+	    int type = HISTOGRAM_TYPE;
+	    String text = "12.5\n10\n15\n8\n9\n";
+	    double etc = 15;
+	    int alignment = LEFT;
+	},
+	new JTableColumn {
+	    //Array altbackground = {
+		//Color.orange,
+		//Color.red,
+		//Color.green,
+	    //};
+	    //Array altforeground = {
+		//Color.black,
+		//Color.pink,
+		//Color.magenta,
+	    //};
+	    //Array cellcolors = {
+		//new Array[] { Color.yellow, Color.yellow, Color.orange, Color.orange },
+		//Color.red,
+	    //};
+	    String header = "First Name";
+	    int type = STRING_TYPE;
+	    String text = "Mary\nAlison\nKathy\nSharon\nAngela\n";
+	},
+	new JTableColumn {
+	    //Array altbackground = {
+		//Color.pink,
+		//Color.red,
+		//Color.green,
+	    //};
+	    //Array altforeground = {
+		//Color.black,
+		//Color.pink,
+		//Color.magenta,
+	    //};
+	    //Array cellcolors = {
+		//new Array[] { Color.orange, Color.orange, Color.yellow, Color.yellow },
+		//Color.red,
+	    //};
+	    String header = "Last Name";
+	    String font = "Helvetica-plain-18";
+	    int type = STRING_TYPE;
+	    String text = "Lih\nHuml\nWalrath\nZakhour\nWalrath\n";
+	},
+	new JTableColumn {
+	    //Array altbackground = {
+		//Color.pink,
+		//Color.red,
+		//Color.green,
+	    //};
+	    //Array altforeground = {
+		//Color.black,
+		//Color.pink,
+		//Color.magenta,
+	    //};
+	    //Array cellcolors = {
+		//new Array[] { Color.green, Color.green, Color.yellow, Color.yellow },
+		//Color.red,
+	    //};
+	    String header = "Sport";
+	    int type = STRING_TYPE;
+	    String text = "Snowboarding\nRowing\nChasing toddlers\nSpeed reading\nTeaching high school\n";
+	    double width = ColumnWidth(basefont, linesplit(text));
+	},
+	new JTableColumn {
+	    //Array altbackground = {
+		//Color.pink,
+		//Color.red,
+		//Color.green,
+	    //};
+	    //Array altforeground = {
+		//Color.black,
+		//Color.pink,
+		//Color.magenta,
+	    //};
+	    //Array cellcolors = {
+		//new Array[] { Color.orange, Color.orange, Color.yellow, Color.yellow },
+		//Color.red,
+	    //};
+	    String header = "Factor";
+	    int type = DOUBLE_TYPE;
+	    String text = "11.23\n155\n2134.57\n2\n16543";
+	    Dictionary attributes = {
+		String inputLocale = "en_US"; // input data in US format
+	    };
+	},
+	new JTableColumn {
+	    //Array altbackground = {
+		//Color.pink,
+		//Color.red,
+		//Color.green,
+	    //};
+	    //Array altforeground = {
+		//Color.black,
+		//Color.pink,
+		//Color.magenta,
+	    //};
+	    //Array cellcolors = {
+		//new Array[] { Color.orange, Color.orange, Color.yellow, Color.yellow },
+		//Color.red,
+	    //};
+	    String header = "Percent";
+	    int type = PERCENT_TYPE;
+	    String text = "0.17\n0.173\n0.178\n0.5\n1.234\n";
+	},
+	new JTableColumn {
+	    //Array altbackground = {
+		//Color.pink,
+		//Color.red,
+		//Color.green,
+	    //};
+	    //Array altforeground = {
+		//Color.black,
+		//Color.pink,
+		//Color.magenta,
+	    //};
+	    //Array cellcolors = {
+		//new Array[] { Color.orange, Color.orange, Color.yellow, Color.yellow },
+		//Color.red,
+	    //};
+	    String header = "Date";
+	    int type = DATE_TYPE;
+	    Dictionary attributes = {
+		String inputLocale = "en_US"; // input data in US format
+	    };
+	    double width = ColumnWidth(basefont, "EEE MMM dd HH:mm:ss zzz yyyy");
+	    String text = "Fri Jun  6 11:56:58 EDT 2003\nFri Jun  6 13:46:58 EDT 2003\nFri Jun  6 11:46:57 EDT 2003\nFri Jun  6 11:46:59 EDT 2003\nFri Jun  6 11:46:58 EDT 2003\n";
+	},
+	new JTableColumn {
+	    //Array altbackground = {
+		//Color.pink,
+		//Color.red,
+		//Color.green,
+	    //};
+	    //Array altforeground = {
+		//Color.black,
+		//Color.pink,
+		//Color.magenta,
+	    //};
+	    //Array cellcolors = {
+		//new Array[] { Color.orange, Color.orange, Color.yellow, Color.yellow },
+		//Color.red,
+	    //};
+	    String header = "Salary";
+	    int type = MONEY_TYPE;
+	    String text = "143.1234\n1923.321\n12.5\n-142\n123.123\n";
+	},
+	new JTableColumn {
+	    //Array altbackground = {
+		//Color.pink,
+		//Color.red,
+		//Color.green,
+	    //};
+	    //Array altforeground = {
+		//Color.black,
+		//Color.pink,
+		//Color.magenta,
+	    //};
+	    //Array cellcolors = {
+		//new Array[] { Color.orange, Color.orange, Color.yellow, Color.yellow },
+		//Color.red,
+	    //};
+	    String header = "# of Years";
+	    int type = INTEGER_TYPE;
+	    String text = "5\n3\n2\n20\n4\n";
+	},
+	new JTableColumn {
+	    //Array altbackground = {
+		//Color.pink,
+		//Color.red,
+		//Color.green,
+	    //};
+	    //Array altforeground = {
+		//Color.black,
+		//Color.pink,
+		//Color.magenta,
+	    //};
+	    //Array cellcolors = {
+		//new Array[] { Color.orange, Color.orange, Color.yellow, Color.yellow },
+		//Color.red,
+	    //};
+	    String header = "Vegetarian";
+	    int type = BOOLEAN_TYPE;
+	    String text = "0\nyes\nno\ntrue\nfalse\n";
+	},
+	new JTableColumn {
+	    //Array altbackground = {
+		//Color.pink,
+		//Color.red,
+		//Color.green,
+	    //};
+	    //Array altforeground = {
+		//Color.black,
+		//Color.pink,
+		//Color.magenta,
+	    //};
+	    //Array cellcolors = {
+		//new Array[] { Color.orange, Color.orange, Color.yellow, Color.yellow },
+		//Color.red,
+	    //};
+	    String header = "Timer";
+	    int type = TIMER_TYPE;
+	    String text = "1d2m\n23h12m\n23h11m59s\n2d\n5m\n";
+	    double width = ColumnWidth(basefont, 11);
+	},
+    };
+    //String values = "Mary|Walrath|Snowboarding|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|143.1234|5|false|1d2m\nAlison|Huml|Rowing|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|1923.321|3|true|23h12m\nKathy|Walrath|Chasing toddlers|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|12.5|2|false|23h11m59s\nSharon|Zakhour|Speed reading|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|-142|20|true|2d\nAngela|Lih|Teaching high school|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|123.123|4|false|5m\n";
+    //Array types = {
+	//STRING_TYPE, STRING_TYPE, STRING_TYPE, ICON_TYPE, PERCENT_TYPE, DATE_TYPE, MONEY_TYPE, INTEGER_TYPE, BOOLEAN_TYPE, TIMER_TYPE,
+    //};
+
+    Function invocationAction  = TableSorter;
+    
+};
+
+JFrame f = {
+    int visible = 1;
+    Dimension size = NULL;
+    String font = basefont;
+
+    Array layout = {
+	jt,
+	CENTER,
+    };
+};

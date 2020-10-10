@@ -1,0 +1,115 @@
+#!<_PERL_PATH_> -w
+#
+# Simple administrative script that arranges for the distribution of
+# a broadcast message. Details must agree with what's done in the rc
+# file, which is where it's read and sent to each user. Type
+#
+#	broadcast.pl /tmp/xxx
+#
+# to use the contents of file /tmp/xxx as the broadcast message. Omit
+# the file name and broadcast.pl gets the message from standard input.
+# Use
+#
+#	broadcast.pl -c
+#
+# to cancel the current broadcast message, if there is one. Use
+#
+#	broadcast.pl -r
+#
+# to resend the current broadcast message, if there is one. Everyone
+# gets the message again the next time they contact the server.
+#
+
+use strict;
+use sigtrap;
+use Cwd;
+use vars qw(<_PERL_GLOBAL_VARIABLES_>);
+
+$SERVERHOMEDIR="<_SERVER_HOMEDIR_DQ_>";
+$SERVERSETUP=$SERVERHOMEDIR . "/etc/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_rc.pl";
+
+if (! -r "$SERVERSETUP") {
+    print "STATUS=internalerror\n";
+    print "REASON=server+cannot+find+or+read+setup+file\n";
+    exit(1);
+}
+require $SERVERSETUP;
+
+$ENV{PATH} = $ENV{PATH} . ":$ADMINBINDIR";
+
+my $ARGC = @ARGV;
+my $ARG;
+my $ARGN;
+my $ACTION = "SEND";
+my $DATE = `TZ=EST5EDT date`;
+my $TMPFILE = "/tmp/broadcast." . $$;
+
+for ($ARGN = 0; $ARGN < $ARGC; $ARGN++) {
+    $ARG = $ARGV[$ARGN];
+    if ($ARG eq "-c") {			# cancel the current broadcast
+	$ACTION = "CANCEL";
+    } elsif ($ARG eq "-r") {		# resend the current broadcast
+	$ACTION = "RESEND";
+    } elsif ($ARG eq "-s") {		# send a new broadcast
+	$ACTION = "SEND";
+    } elsif ($ARG eq "-") {
+	last;
+    } elsif ($ARG =~ /^-.*/) {
+	printf(STDERR "invalid option $ARG\n");
+	exit(1);
+    } else {
+	last;
+    }
+}
+
+if ($ARGN == $ARGC) {
+    $ARGV[$ARGC] = "-";
+    $ARGC++;
+}
+
+if ($ACTION eq "SEND") {
+    unlink($TMPFILE);
+    for (; $ARGN < $ARGC; $ARGN++) {
+	AppendFile($ARGV[$ARGN], $TMPFILE, 0);
+    }
+
+    if (-s $TMPFILE) {
+	if (open(TMPFILE, $TMPFILE)) {
+	    if (open(MESSAGE, ">" . $BROADCASTMESSAGE . ".tmp")) {
+		printf(MESSAGE "Broadcast message - $DATE\n");
+		while (<TMPFILE>) {
+		    print(MESSAGE "    " . $_);
+		}
+		close(MESSAGE);
+		AppendFile($BROADCASTMESSAGE, $BROADCASTMESSAGE . ".old", 1);
+		AppendFile($BROADCASTLOG, $BROADCASTLOG . ".old", 1);
+		rename($BROADCASTMESSAGE . ".tmp", $BROADCASTMESSAGE);
+	    }
+	    close(TMPFILE);
+	}
+    }
+    unlink($TMPFILE);
+} elsif ($ACTION eq "CANCEL") {
+    AppendFile($BROADCASTMESSAGE, $BROADCASTMESSAGE . ".old", 1);
+    AppendFile($BROADCASTLOG, $BROADCASTLOG . ".old", 1);
+} elsif ($ACTION eq "RESEND") {
+    AppendFile($BROADCASTLOG, $BROADCASTLOG . ".old", 1);
+}
+
+sub AppendFile {
+    my ($SOURCE, $DEST, $UNLINK) = @_;
+
+    if (open(INPUT, $SOURCE)) {
+	if (open(OUTPUT, ">>" . $DEST)) {
+	    while (<INPUT>) {
+		print(OUTPUT $_);
+	    }
+	    close(OUTPUT);
+	    if ($UNLINK) {
+		unlink($SOURCE);
+	    }
+	}
+	close(INPUT);
+    }
+}
+

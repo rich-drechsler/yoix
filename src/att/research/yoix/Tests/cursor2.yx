@@ -1,0 +1,202 @@
+//
+// Modified version of the last example that shows how custom cursors
+// can be created and used. The key is the paint() function and hotspot
+// field that can be defined in an image.
+//
+
+import yoix.*.*;
+
+Image triangle = {
+    int type = TYPE_RGBA;
+
+    //
+    // You could set the image's size using getBestCursorSize(), if you
+    // want, but if you don't the interpreter will do it for you (behind
+    // your back) and if the size changes paint() will be called again.
+    // In other words, something like
+    //
+    //    Dimension size = getBestCursorSize(72, 72);
+    //
+    // might eliminate an unnecessary paint() call, but efficiency won't
+    // be an issue if you're only creating a few custom cursors.
+    //
+
+    Dimension size = {
+	double width = 72;
+	double height = 72;
+    };
+
+    paint(Rectangle r) {
+	Rectangle bbox;
+
+	//
+	// Added a hotspot field to images and we guarantee that the
+	// image's paint() function is called after the image's size
+	// has been set to an acceptable cursor size, but before the
+	// interpreter uses the hotspot field. That means your paint()
+	// function can also be responsible for setting hotspot, based
+	// on the the image's current size.
+	// 
+	graphics {
+	    gsave();
+	    initclip();
+	    clippath();
+	    bbox = pathbbox();
+	    newpath();
+
+	    moveto(0, 0);
+	    rlineto(bbox.width, 0);
+	    rlineto(0, bbox.height);
+	    closepath();
+	    setrgbcolor(0, 1, 1);
+	    gsave();
+	    fill();
+	    grestore();
+
+	    setlinewidth(1);
+	    setrgbcolor(1, 0, 0);
+	    stroke();
+	    grestore();
+
+	    hotspot = new Point {
+		double x = bbox.width/2;
+		double y = bbox.height/2;
+	    };
+	}
+    }
+};
+
+//
+// The addCursor() call is optional, because you can assign an image (or
+// even a string) directly to the cursor field (as we'll show below), but
+// will be more efficient if you want to share the cursor or use it more
+// than a few times.
+//
+
+addCursor("TRIANGLE", triangle);
+
+JMenuBar menubar = {
+    Menu items = {
+	"File", new Menu {
+	    "Open", new Dictionary {
+		String command = "Open File";
+		String accelerator = "control O";
+		String group = "xxxxx";
+		int    state = TRUE;
+	    },
+	    "Close", new Dictionary {
+		String command = "Close File";
+		String accelerator = "ctrl W";
+		String group = "xxxxx";
+		int    state = FALSE;
+		int    enabled = TRUE;
+	    },
+
+	    "Cursors", new Menu {
+		"Default", "xxx",
+		"Wait", "yyy",
+		"Move", "zzz",
+		"-", NULL,
+		"Triangle 1", "triangle1",
+		"Triangle 2", "triangle2",
+		"Triangle 3", "triangle3",
+		"-", NULL,
+		"Logo", "logo",
+	    },
+	    "-", NULL,
+	    "Exit", "Exit",
+	},
+
+	"Edit", new Menu {
+	    "Save", "Save", 1,
+	    "Save As", "Save As",
+	},
+    };
+};
+
+JFrame frame = {
+    JMenuBar menubar = menubar;
+    int      cursor = Cursor.MOVE_CURSOR;
+
+    //
+    // Default layout manager is BorderLayout, so you could delete
+    // the next line.
+    //
+
+    BorderLayout layoutmanager;
+
+    Array layout = {
+	new JButton {
+	    String text = "Show MenuBar";
+	    Color  background = Color.green;
+
+	    actionPerformed(e) {
+		frame.menubar = menubar;
+	    }
+	}, EAST,
+
+	new JButton {
+	    String text = "Hide MenuBar";
+
+	    Color background = {
+		double blue = 1.0;
+	    };
+
+	    actionPerformed(e) {
+		frame.menubar = NULL;
+	    }
+	}, SOUTH,
+    };
+
+    //
+    // Event handlers
+    //
+
+    actionPerformed(e) {
+	fprintf(stderr, "actionPerformed: e=%O\n", e);
+	switch (e.command) {
+	    case "Exit":
+		exit(0);
+		break;
+
+	    case "xxx":
+		cursor = Cursor.DEFAULT_CURSOR;
+		break;
+
+	    case "yyy":
+		cursor = Cursor.WAIT_CURSOR;
+		break;
+
+	    case "zzz":
+		cursor = Cursor.MOVE_CURSOR;
+		break;
+
+	    case "triangle1":		// direct reference to addCursor() definition
+		cursor = Cursor.TRIANGLE;
+		break;
+
+	    case "triangle2":		// looks for "TRIANGLE" entry in Cursor
+		cursor = "TRIANGLE";
+		break;
+
+	    case "triangle3":		// creates a new cursor from the image
+		cursor = triangle;
+		break;
+
+	    case "logo":		// loads cursor image from a URL or file
+		cursor = "http://www.yoix.org/imgs/ATTlogo.gif";
+		break;
+
+	    default:
+		cursor = Cursor.DEFAULT_CURSOR;
+		break;
+	}
+    }
+
+    itemStateChanged(e) {
+	fprintf(stderr, "itemStateChanged: e=%O\n", e);
+    }
+};
+
+frame.visible = TRUE;
+

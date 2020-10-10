@@ -1,0 +1,100 @@
+//
+// A smarter version of the spline doodler that saves paths and can
+// repaint them when necessary. It also has hooks that eventually
+// will let us add typed text.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    Dimension size = NULL;
+
+    Array layout = {
+	new JCanvas {
+	    Color background = Color.white;
+
+	    Dimension preferredsize = {
+		double width = 10*72;
+		double height = 8*72;
+	    };
+
+	    Array marks[0, ...];
+	    Array currentmark;
+
+	    componentResized(e) {
+		graphics.initmatrix();
+		graphics.scale(size.width/preferredsize.width, size.height/preferredsize.height);
+		repaint();
+	    }
+
+	    mousePressed(Event e) {
+		if (e.button == 1) {
+		    //
+		    // Splines only right now, but we eventually will
+		    // handle text and use first element in the array
+		    // to decide what's represented. Right now 0 means
+		    // it's spline data.
+		    //
+		    currentmark = new Array[2, ...] {0, e.coordinates.x, e.coordinates.y};
+		} else {
+		    marks = new Array[0, ...];
+		    currentmark = NULL;
+		    repaint();
+		}
+	    }
+
+	    mouseDragged(Event e) {
+		double x = e.coordinates.x;
+		double y = e.coordinates.y;
+		int    count;
+
+		if (currentmark != NULL) {
+		    if (currentmark[0] == 0) {
+			if ((count = currentmark@sizeof)%6 == 1) {
+			    currentmark[count++] = (x + currentmark[count-3])/2;
+			    currentmark[count++] = (y + currentmark[count-3])/2;
+			    DrawSpline(&currentmark[count-8]);
+			}
+			currentmark[count++] = x;
+			currentmark[count++] = y;
+		    }
+		}
+	    }
+
+	    mouseReleased(e) {
+		int count;
+
+		if ((count = currentmark@sizeof) > 0) {
+		    if (currentmark[0] == 0 && count > 8)
+			marks[marks@sizeof] = currentmark;
+		    currentmark = NULL;
+		}
+	    }
+
+	    paint(Rectangle rect) {
+		graphics {
+		    gsave();
+		    rectclip(rect);
+		    for (mark in marks) {
+			if (mark[0][0] == 0) {
+			    for (spline in &mark[0][1] by 6) {
+				if (spline@sizeof >= 8)
+				    DrawSpline(spline);
+			    }
+			}
+		    }
+		    grestore();
+		}
+	    }
+
+	    DrawSpline(Array control) {
+		graphics.moveto(control[0], control[1]);
+		graphics.curveto(control[2], control[3], control[4], control[5], control[6], control[7]);
+		graphics.stroke();
+	    }
+	},
+    };
+};
+
+f.visible = TRUE;
+

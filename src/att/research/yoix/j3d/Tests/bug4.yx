@@ -1,0 +1,128 @@
+import yoix.j3d.*;
+import yoix.*.*;
+
+Alpha alph = {
+    int mode = J3D_COMPLETE;
+    Array waveform = { 2, 0.5, 0, 2, 0.5, 0 };
+    double triggertime = 5;
+};
+
+VirtualUniverse universe = {
+    Color background = Color.gray;
+
+    Array layout = {
+	new BranchGroup {
+	    String tag = "$_branch1";
+
+	    EulerAngle orientation = {
+		double alpha = 45;
+		//double beta = 45;
+		double beta = 22.5;
+	    };
+
+	    Array layout = {
+		new ColorCube {
+		    String tag = "$_colorcube";
+		    double scale = 0.2;
+		    Point3D position = { double x = -3; };
+		    Interpolator interpolator = {
+			Alpha alpha = alph;
+			Array configuration = {
+			    new Configolator {
+				int type = J3D_POSITIONINTERPOLATOR;
+				Array knots = { 0, 0.2, 0.6, 1.0 };
+				Array values = {
+				    0, 4, -2, 8
+				};
+			    },
+			    new Configolator {
+				int type = J3D_ROTATIONINTERPOLATOR;
+				Array values = { 0, 360 };
+			    },
+			    new Configolator {
+				Alpha alpha = {
+				    int mode = J3D_COMPLETE;
+				    Array waveform = { 0.5, 0.5, 0, 0.5, 0.5, 0 };
+				    double triggertime = alph.triggertime;
+				};
+				int type = J3D_SCALEINTERPOLATOR;
+				Array values = { 0.5, 2.0 };
+			    },
+			};
+			preprocessStimulus() {
+			    /////printf("Pre-Location = (%6.3f,%6.3f,%6.3f)\n", location.x, location.y, location.z);
+			}
+			postprocessStimulus() {
+			    /////printf("PostLocation = (%6.3f,%6.3f,%6.3f)\n", location.x, location.y, location.z);
+			}
+		    };
+		},
+		new ColorCube {
+		    String tag = "$_colorcube2";
+		    double scale = 0.2;
+		    Point3D position = { double y = 1; };
+		    Interpolator interpolator = {
+			Alpha alpha = alph;
+			Configolator configuration = {
+			    int type = J3D_ROTATIONINTERPOLATOR;
+			    Array values = { 0, 360 };
+			};
+		    };
+		},
+	    };
+	},
+
+	new ViewPlatform {
+	    String tag = "$_sideview";
+
+	    Transform3D transform = {
+		initializer() {
+		    setToTranslation(0, 0, 10);
+		}
+	    };
+	},
+
+	new ViewPlatform {
+	    String tag = "$_topview";
+
+	    Transform3D transform = {
+		initializer() {
+		    setToViewAt(0, 20, 0, 0, 0, 0, 0, 0, 1);
+		}
+	    };
+	},
+    };
+};
+
+JFrame f = {
+    GridLayout layoutmanager = {
+	int rows = 0;
+	int columns = 1;
+	double vgap = 72.0/4;
+    };
+
+    Array layout = {
+	new Canvas3D {
+            String  tag = "$_topcanvas";
+            ViewPlatform view = universe.tagged.$_topview;
+
+            mousePressed(MouseEvent e) {
+		alph.run = !alph.run;
+            }
+	},
+
+        new Canvas3D {
+            String  tag = "$_sidecanvas";
+            ViewPlatform view = universe.tagged.$_sideview;
+
+            mousePressed(MouseEvent e) {
+		alph.run = !alph.run;
+            }
+        },
+    };
+};
+
+
+
+
+f.visible = TRUE;

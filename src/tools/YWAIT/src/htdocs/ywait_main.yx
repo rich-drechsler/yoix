@@ -1,0 +1,876 @@
+//
+// Your application's main screen that appears after the user logs in and
+// any other startup screens (e.g., broadcast and message of the day) are
+// shown. You undoubtedly will have work to do here. We included lots of
+// extra stuff so you would have non-trival examples of working code, but
+// that also means you'll eventually end up tossing much of this file.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Dimension size = NULL;
+	Insets    border = Global.GetLabeledScreenInsets();
+	String    title = Global.ACRONYM;
+	Font      font = Global.GetPreferredLabelFont();
+	int       opaque = TRUE;
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = NORTHWEST;
+	int    disposeonclose = TRUE;
+	int    initialized = FALSE;
+	int    reloadargs = FALSE;
+	int    savestate = FALSE;    // save screen-specific info this session
+	int    retainstate = TRUE;   // save screen-class info across sessions
+
+	////////////////////////////
+	//
+	// MenuBar Layout
+	//
+	////////////////////////////
+
+	JMenuBar menubar = {
+	    Font  font = Global.GetPreferredMenuFont();
+	    //
+	    // A Swing JMenuBar can be built two different ways. This is
+	    // an example of the new way that only works with Swing. It's
+	    // a little longer and slightly more complicated than the old
+	    // way (see the help screen for an alternate method), but we
+	    // recommend it. The drawback is that it won't work with AWT,
+	    // but you shouldn't be using AWT with YWAIT, so it's really
+	    // not an issue.
+	    // Note: since these are menu items, we did not bother to use
+	    // QueueCommandOnce since repeatedly firing off a menu item is
+	    // less likely than in the case of a button, but there is no
+	    // reason one could not have used QueueCommandOnce here.
+	    //
+	    Array items = {
+		new JMenu {
+		    String text = "File";
+		    Array items = {
+			new JMenuItem {
+			    String text = "Preferences";
+			    String command = "edit_preferences";
+
+			    actionPerformed(e) {
+				Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+			    }
+			},
+			new JMenuItem {
+			    String text = "Raise";
+			    String command = "raise";
+
+			    actionPerformed(e) {
+				Global.AltQueueCommand(root, Global.RaiseAllScreens, root);
+			    }
+			},
+			NULL,
+			new JMenuItem {
+			    String text = "Quit";
+			    String command = "quit";
+
+			    actionPerformed(e) {
+				Global.AltQueueCommand(root, &root.HideScreen);
+			    }
+			},
+		    };
+		},
+		new JMenu {
+		    String text = "Examples";
+		    Array items = {
+			new JMenu {
+			    String text = "Alert";
+			    Array items = {
+				new JMenuItem {
+				    String text = "About";
+				    String command = "alert_about";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.ShowText, "These examples demonstrate simple ways to display text messages (e.g., alerts, errors, warnings) to users. It's something you often need to do when you build your own screens. Look for the ShowAlert(), ShowError(), ShowMessage(), ShowText(), and ShowWarning() calls in the main screen.", "About Alert Examples");
+				    }
+				},
+				NULL,
+				new JMenuItem {
+				    String text = "Example 1";
+				    String command = "alert_1";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.ShowAlert, "A short message displayed near the center of your screen.");
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 2";
+				    String command = "alert_2";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.ShowAlert, root, "A longer message displayed near the center of the main screen. Also notice that it stays on top of the main screen.");
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 3";
+				    String command = "alert_3";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.ShowMessage, "This example uses ShowMessage(), which is the silent version of ShowAlert(), so you won't hear anything when you run this example.");
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 4";
+				    String command = "alert_4";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.ShowMessage, root, "This example shows the use of text that has already been formatted\nwith line breaks and white space. In this case,\n\n    lines will not be changed because\n\nthe formatted argument that follows this message is TRUE.\nAlso, the alert is centered on the main screen.", TRUE);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 5";
+				    String command = "alert_5";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.ShowError, root, "We often use this for unexpected errors, but you can use it whenever you want.");
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 6";
+				    String command = "alert_6";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.ShowWarning, "This example shows the alert displaying a longer\nmessage in a fixed width font with a warning icon and a\nproprietary indicator (because the last argument is TRUE).\nIt preserves:\n\n\tthe given text formatting\n\tbecause the argument that follows the message is TRUE.\n\nThis form is useful for displaying errors generated by external\nprograms (e.g., a database query) where the formatting\nmight be important.", TRUE, TRUE, TRUE);
+				    }
+				},
+			    };
+			},
+			new JMenu {
+			    String text = "Confirm";
+			    Array items = {
+				new JMenuItem {
+				    String text = "About";
+				    String command = "confirm_about";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.ShowText, "These examples are dialogs that let you ask questions and get answers back based on the button that was pressed. It's harder than alerts, but it's really not too bad. Look for ShowConfirm() calls in the main screen and notice how the examples use special fields (e.g., confirmed, canceled, accepted) to get the answer.", "About Confirm Examples");
+				    }
+				},
+				NULL,
+				new JMenuItem {
+				    String text = "Example 1";
+				    String command = "confirm_1";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, &root.ConfirmOne);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 2";
+				    String command = "confirm_2";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, &root.ConfirmTwo);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 3";
+				    String command = "confirm_3";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, &root.ConfirmThree);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 4";
+				    String command = "confirm_4";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, &root.ConfirmFour);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 5";
+				    String command = "confirm_5";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, &root.ConfirmFive);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 6";
+				    String command = "confirm_6";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, &root.ConfirmSix);
+				    }
+				},
+			    };
+			},
+			new JMenu {
+			    String text = "Server";
+			    Array items = {
+				new JMenuItem {
+				    String text = "About";
+				    String command = "server_about";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.ShowText, "These examples are really hooked up to the server. They show how data can be taken out of components (e.g., JTextFields), sent to the server, and how the reponse from the server can be automatically loaded in other components (e.g., JTextAreas and JTables). The screens are heavily commented and they communicate with scripts on the server that are also heavily commented.", "About Server Examples");
+				    }
+				},
+				NULL,
+				new JMenuItem {
+				    String text = "Example 1";
+				    String command = "server_example1";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 2";
+				    String command = "server_example2";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 3";
+				    String command = "server_example3";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+			    };
+			},
+			new JMenu {
+			    String text = "Template";
+			    Array items = {
+				new JMenuItem {
+				    String text = "About";
+				    String command = "screen_template_about";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.ShowText, "These examples are supposed to be screens that you copy and modify when you need to build a new screen. They're not hooked up to the server, but they often include components with event handlers that really do work. The screens are lightly commented, but you can always refer to the comments in the server examples when you need more help.", "About Template Examples");
+				    }
+				},
+				NULL,
+				new JMenuItem {
+				    String text = "Example 1";
+				    String command = "screen_template1";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 2";
+				    String command = "screen_template2";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 3";
+				    String command = "screen_template3";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 3a";
+				    String command = "screen_template3a";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 4";
+				    String command = "screen_template4";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 4a";
+				    String command = "screen_template4a";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 5";
+				    String command = "screen_template5";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Example 6";
+				    String command = "screen_template6";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+			    };
+			},
+			NULL,
+			new JMenu {
+			    String text = "Miscellaneous";
+			    Array items = {
+				new JMenuItem {
+				    String text = "List Selector";
+				    String command = "selector_example1";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+				new JMenuItem {
+				    String text = "DND List";
+				    String command = "dndlist_example";
+				    int    visible = defined("NewDnDList", Global);
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Edit Components";
+				    String command = "edit_example";
+				    int    visible = defined("NewJFrameEditScreen", Global);
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Fancy Table";
+				    String command = "table_example1";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Fancy Table with Search";
+				    String command = "table_example2";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+				new JMenuItem {
+				    String text = "Tree Example";
+				    String command = "tree_example1";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+				new JMenuItem {
+				    //
+				    // Not implemented yet so it's hidden and disabled.
+				    //
+				    String text = "Tree Selector";
+				    String command = "treeselector_demo";
+				    int    enabled = FALSE;
+				    int    visible = FALSE;
+				},
+				new JMenuItem {
+				    String text = "Byzgraf Example";
+				    String command = "byzgraf_example";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+				    }
+				},
+				new JMenuItem {
+				    String text = "View a URL (http://www.att.com)";
+				    String command = "view_url";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.ViewURL, "http://www.att.com");
+				    }
+				},
+				new JMenuItem {
+				    String text = "Unimplemented";
+				    String command = "unimplemented";
+
+				    actionPerformed(e) {
+					Global.QueueCommand(root, Global.ShowUnimplemented, root);
+				    }
+				},
+			    };
+			},
+		    };
+		},
+		new JMenu {
+		    String text = "Show";
+		    Array items = {
+			new JMenuItem {
+			    String text = "Clipboard";
+			    String command = "clipboard";
+
+			    actionPerformed(e) {
+				Global.QueueCommand(root, Global.GetAndShowScreen, command, command);
+			    }
+			},
+			new JMenuItem {
+			    String text = "Debugger";
+			    String command = "debugger";
+			    String tag = command;
+
+			    actionPerformed(e) {
+				Global.QueueCommand(root, Global.GetAndShowScreen,
+				    command, command,
+				    "startup", "RESET_SCREENS",
+				    "autorun", FALSE
+				);
+			    }
+			},
+			new JMenuItem {
+			    String text = "Logins";
+			    String command = "logins";
+
+			    actionPerformed(e) {
+				Global.QueueCommand(root, Global.ShowViewer,
+				    root,
+				    command,
+				    Global.ACRONYM + " Logins",
+				    "GETHISTORY",
+				    command
+				);
+			    }
+			},
+			new JMenuItem {
+			    String text = "Messages";
+			    String command = "messages";
+
+			    actionPerformed(e) {
+				Global.QueueCommand(root, Global.GetAndShowScreen,
+				    command, "viewer_append",
+				    "parent", root,
+				    "title", Global.ACRONYM + " Messages",
+				    "command", "GETMESSAGES"
+				);
+			    }
+			},
+			new JMenuItem {
+			    String text = "MOTD";
+			    String command = "motd";
+
+			    actionPerformed(e) {
+				Global.QueueCommand(root, Global.ShowViewer,
+				    root,
+				    command,
+				    Global.ACRONYM + " MOTD",
+				    "GETMOTD",
+				    ""
+				);
+			    }
+			},
+		    };
+		},
+		new JMenu {
+		    String text = "Send";
+		    Array items = {
+			new JMenuItem {
+			    String text = "Comment";
+			    String command = "send_comment";
+
+			    actionPerformed(e) {
+				Global.QueueCommand(root, Global.GetAndShowScreen,
+				    command, command,
+				    "parent", this
+				);
+			    }
+			},
+			new JMenuItem {
+			    String text = "Message";
+			    String command = "send_message";
+
+			    actionPerformed(e) {
+				Global.QueueCommand(root, Global.GetAndShowScreen,
+				    command, command,
+				    "parent", this
+				);
+			    }
+			},
+			new JMenuItem {
+			    String text = "Password";
+			    String command = "send_password";
+			    String tag = command;
+			    int    enabled = (Global.LoginStyle > 0);
+
+			    actionPerformed(e) {
+				Global.QueueCommand(root, Global.ShowSendPassword, FALSE);
+			    }
+			},
+		    };
+		},
+		new JMenu {
+		    String text = "Help";
+		    Array items = {
+			new JMenuItem {
+			    String text = "About";
+			    String command = "version";
+
+			    actionPerformed(e) {
+				Global.QueueCommand(root, Global.ShowVersion, root);
+			    }
+			},
+			new JMenuItem {
+			    String text = "Who Am I";
+			    String command = "whoami";
+
+			    actionPerformed(e) {
+				Global.QueueCommand(root, Global.ShowWhoAmI, root);
+			    }
+			},
+			NULL,
+			new JMenuItem {
+			    String text = "General";
+			    String command = "help";
+
+			    actionPerformed(e) {
+				Global.QueueCommand(root, Global.ShowHelp, "main_help", "textmode", 1);
+			    }
+			},
+		    };
+		},
+	    };
+	};
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    Global.NewJHeadingLabel(NULL, Global.ACRONYM + " Main Screen"),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+	    },
+
+	    new JPanel {
+		//
+		// This is a panel that you can use to display the special
+		// GUI components (e.g., tables, labels) that you want to
+		// display in the main screen of your application.
+		//
+		BevelBorder border;
+
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JLabel {
+			String text = "This Space Available. Your Application-Specific GUI Displayed Here!";
+			Object transferhandler = NULL;		// required for custom drag and drop
+			Color  foreground = Global.GetPreferredWarningColor();
+			Font   font = Global.GetPreferredHeadingFont();
+			int    alignment = CENTER;
+
+			Function dragGestureRecognized = Global.DragGestureRecognized;
+
+			//
+			// The preferredsize setting is completely arbitrary
+			// and may not even be necessary in your application.
+			//
+			Dimension preferredsize = {
+			    double width = 10.0*72;
+			    double height = 1.5*72;
+			};
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int weightx = 1;
+			int weighty = 1;
+			int fill = BOTH;
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    weightx = 1;
+		int    weighty = 1;
+		int    fill = BOTH;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+
+	    new JPanel {
+		//
+		// This is a panel that's used to display network status
+		// and server information (e.g., messages). You probably
+		// won't change it much, however you can move it around
+		// some. The current arrangement puts it right above the
+		// proprietary label near the bottom of the screen. You
+		// might also choose to move the entire panel into your
+		// application panel (above) and position it differently
+		// (e.g., place it right below a table that you display).
+		// 
+		Font font = Global.GetPreferredStatusFont();
+
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JLabel {
+			BevelBorder border;
+			String      tag = "$_networkstatus";
+			String      tooltiptext = "Server status";
+			Object      transferhandler = NULL;	// required for custom drag and drop
+			int         alignment = LEFT;
+
+			Function dragGestureRecognized = Global.DragGestureRecognized;
+		    },
+		    new GridBagConstraints {
+			int gridx = RELATIVE;
+			int gridy = 1;
+			int weightx = 1;
+			int fill = BOTH;
+		    },
+
+		    new JCanvas {
+			String tag = "$_serverstatus";
+			Insets border = Global.GetSmallShadowInsets();
+			String tooltiptext = "Get messages";
+			Image  envelope = Global.GetMailIcon(72.0/4, 0.9);
+			Image  backgroundimage = NULL;
+			int    backgroundhints = SCALE_NONE;
+			int    state = 1;
+
+			Dimension minimumsize = {
+			    double width = envelope.size.width + border.left + border.right;
+			    double height = envelope.size.height + border.top + border.bottom;
+			};
+
+			ShowStatus(String status) {
+			    switch (status) {
+				case "MAIL":
+				    backgroundimage = envelope;
+				    state = 0;
+				    break;
+
+				default:
+				    backgroundimage = NULL;
+				    state = 1;
+				    break;
+			    }
+			}
+
+			actionPerformed(e) {
+			    Global.GetAndShowScreen(
+				"messages", "viewer_append",
+				"parent", this,
+				"title", Global.ACRONYM + " Messages",
+				"command", "GETMESSAGES"
+			    );
+			}
+		    },
+		    new GridBagConstraints {
+			int gridx = RELATIVE;
+			int gridy = 1;
+			int anchor = CENTER;
+		    },
+
+		    new JCanvas {
+			Insets border = Global.GetSmallShadowInsets();
+			String tooltiptext = "Interrupt server";
+			Image  backgroundimage = Global.GetHaltIcon(72.0/4, 0.9);
+			int    backgroundhints = SCALE_NONE;
+
+			Dimension minimumsize = {
+			    double width = backgroundimage.size.width + border.left + border.right;
+			    double height = backgroundimage.size.height + border.top + border.bottom;
+			};
+
+			actionPerformed(e) {
+			    Global.Stop();
+			}
+		    },
+		    new GridBagConstraints {
+			int gridx = RELATIVE;
+			int gridy = 1;
+			int anchor = CENTER;
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    fill = HORIZONTAL;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+
+	    Global.NewJProprietaryLabel(),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	windowClosed(e) {
+	    //
+	    // Screens that don't define their own windowClosed() event
+	    // handler automatically get one that calls HideScreen(), so
+	    // we could omit this if we wanted.
+	    //
+	    HideScreen();
+	}
+
+	windowClosing(e) {
+	    //
+	    // Returning 0 means the Yoix interpreter will dispose this
+	    // screen and that will generate WindowEvent that's handled
+	    // by our windowClosed() event handler. In other words, any
+	    // cleanup work done by Global.Quit() will happen.
+	    //
+
+	    return(!Global.ShowConfirm(this, "Do you really want to quit?").confirmed);
+	}
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    components.$_networkstatus.text = "";
+	    components.$_serverstatus.ShowStatus(NULL);
+	}
+
+	HideScreen() {
+	    Global.RetainStates(this);
+	    Global.Quit(0);
+	}
+
+	InitializeScreen() {
+	    //
+	    // The first two lines assign components that we display to
+	    // the variables that your applicaiton uses when it wants to
+	    // display status information. The PingServer() call is used
+	    // contact the server so any initial status information will
+	    // be properly displayed (e.g., you may have messages). Omit
+	    // this and the status won't be updated until the server is
+	    // contacted, which might not happen immediately.
+	    //
+	    Global.NetworkStatus = components.$_networkstatus;
+	    Global.ServerStatus = components.$_serverstatus;
+	    Global.PingServer();
+
+            if (Global.ServerType === "PRODUCTION") {
+                this.menubar.components.debugger.visible = FALSE;
+                this.menubar.components.debugger.enabled = FALSE;
+            } else {
+                this.menubar.components.debugger.enabled = TRUE;
+                this.menubar.components.debugger.visible = TRUE;
+            }
+            if (Global.LoginStyle > 0) {
+                this.menubar.components.send_password.enabled = TRUE;
+                this.menubar.components.send_password.visible = TRUE;
+            } else {
+                this.menubar.components.send_password.visible = FALSE;
+                this.menubar.components.send_password.enabled = FALSE;
+            }
+	    this.validate = TRUE;	// probably unnecessary
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	ConfirmOne() {
+	    if (Global.ShowConfirm("Demo a two button confirm dialog that uses default labels?").confirmed)
+		Global.ShowMessage("We think you agreed to the demo!");
+	}
+
+	ConfirmTwo() {
+	    if (Global.ShowConfirm(this, "Demo a two button confirm dialog that uses custom labels? Notice that the dialog is centered on the main screen and the displayed text is much longer than our last example.", new Array {"Agree", "Disagree"}).confirmed)
+		Global.ShowMessage(this, "We think you agreed to the demo!");
+	}
+
+	ConfirmThree() {
+	    Object screen = Global.ShowConfirm("Demo a three button confirm dialog that mixes default and custom labels?", new Array {NULL, "Nope", NULL});
+	    if (!screen.canceled) {
+		if (screen.confirmed)
+		    Global.ShowMessage("We think you agreed to the demo!");
+		else Global.ShowMessage("We think you hit the button labeled \"Nope\"!");
+	    } else Global.ShowMessage("We think you canceled to the demo!");
+	}
+
+	ConfirmFour() {
+	    int count = 1;
+	    Object screen = Global.ShowConfirm(this, "Demo a four button confirm dialog?", new Array {NULL, strfmt("Yes (Loop = %d)", count), "Nope", "Stop Now!"});
+	    while (!screen.canceled && count < 5) {
+		count++;
+		if (screen.confirmed)
+		    Global.ShowMessage(this, strfmt("That was the Confirm demo! (%d left)", (5 - count)));
+		if (!screen.accepted)
+		    screen = Global.ShowConfirm(this, "Demo a four button confirm dialog?", new Array {NULL, strfmt("Yes (Loop = %d)", count), "Nope", "Stop Now!"});
+	    }
+	}
+
+	ConfirmFive() {
+	    int count = 1;
+	    Object screen = Global.ShowConfirm(this, "Demo a two button confirm dialog with checkbox?", new Array {TRUE, strfmt("Yes (Loop = %d)", count), "Nope"});
+	    while (!screen.canceled && count < 5) {
+		count++;
+		if (screen.confirmed)
+		    Global.ShowMessage(this, strfmt("That was the Confirm demo! (%d left)", (5 - count)));
+		if (!screen.accepted)
+		    screen = Global.ShowConfirm(this, "Demo a two button confirm dialog with checkbox?", new Array {TRUE, strfmt("Yes (Loop = %d)", count), "Nope"});
+	    }
+	}
+
+	ConfirmSix() {
+	    int    count = 0;
+	    Object screen;
+	    do {
+		count++;
+		if (count == 1 || !screen.checkstate)
+		    screen = Global.ShowConfirm("Demo a three button confirm dialog with checkbox?", new Array {TRUE, NULL, NULL, NULL});
+		// screen.canceled is true when cancel is pressed OR
+		// when no is pressed and checkbox is checked, so one
+		// can look at screen.checkstate to determin if the checkbox
+		// or check the value of screen.buttontag
+		if (screen.buttontag !== "$_cancel") {
+		    if (screen.confirmed)
+			Global.ShowMessage(strfmt("We think you agreed to the demo! (%d left)", (5 - count)));
+		    else Global.ShowMessage(strfmt("We think you hit the button labeled \"No\"! (%d left)", (5 - count)));
+		} else Global.ShowMessage("We think you canceled to the demo!");
+	    } while (count < 5 && screen.buttontag !== "$_cancel"); // sure test
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);

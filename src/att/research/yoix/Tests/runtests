@@ -1,0 +1,36 @@
+#!/bin/ksh
+# assumes current directory is test directory
+#
+
+MARKER=".marker"
+
+set -- *.yx
+
+if [ -e "$MARKER" ]
+then
+    while [ -n "$1" ]
+    do
+	if [ "$MARKER" -ef "$1" ]
+	then
+	    break
+	fi
+	print "Skip $1..."
+	shift
+    done
+fi
+
+while [ -n "$1" ]
+do
+    /bin/rm -f "$MARKER"
+    ln -s "$1" "$MARKER"
+    print =====================
+    print "Test: $1"
+    print =====================
+    #####cat "$1"
+    read a[0]?"args for $1: " a[1] a[2] a[3] a[4] a[5] a[6] a[7] a[8] a[9]
+    yoix "$1" "${a[@]}"
+    read dummy?"Hit RETURN to continue..."
+    shift
+done
+/bin/rm -f "$MARKER"
+exit 0

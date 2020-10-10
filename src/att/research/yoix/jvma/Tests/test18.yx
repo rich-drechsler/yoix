@@ -1,0 +1,39 @@
+import yoix.*.*;
+import yoix.module.att.research.yoix.jvma.JVMTestModule.*;
+
+//
+// An intentional error
+//
+
+assembleClass(@<<
+    public class ZZZ {
+	extern static java.io.PrintStream java.lang.System.out
+	extern public void java.lang.System.out.println(java.lang.String)
+
+	extern public java.lang.String(java.lang.String)
+
+	double qwert = 12.567
+	public final static double xyzzy = 12345.6
+
+	public static void main(java.lang.String[] args) {
+	    push java.lang.System.out
+	    new java.lang.String
+	    dup
+	    push "This is a test for john"
+	    invoke java.lang.String(java.lang.String)
+	    /////push "Hello, world"
+	    invoke java.lang.System.out.println(java.lang.String)
+	    return
+	}
+
+	public static void say(java.lang.String message) {
+	    push java.lang.System.out
+	    push message
+	    invoke java.lang.System.out.println(java.lang.String)
+	}
+    }
+>>@);
+
+fprintf(stderr, "%s", dumpClassFile());
+writeClassFile("/tmp/xxx");
+

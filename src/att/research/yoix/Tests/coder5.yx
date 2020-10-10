@@ -1,0 +1,56 @@
+import yoix.*.*;
+
+int n;
+
+Array textvals = {
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+};
+
+String step1_out = "4E6F77253235323069732532353230746865253235323074696D652532353041666F722532353230616C6C2532353230676F6F6425323532306D656E2532353041746F2532353230636F6D652532353230746F2532353230746865253235323061696425323530416F66253235323074686569722532353230636F756E7472792E2532353041";
+
+String step2_out = "";
+
+String output;
+String NL = getProperty("line.separator");
+
+StringStream ss1 = {
+    int mode = WRITE;
+    int open = TRUE;
+    int filters = IETFCODER|MIMECODER|HEXCODER;
+};
+
+for (n=0; n<textvals@length; n++) {
+    ss1.nextline = textvals[n];
+    step2_out += textvals[n] + NL;
+}
+close(ss1);
+
+stdout.nextline = "=========== Step 1 ===========";
+
+if (ss1.name === step1_out)
+    stdout.nextline = "Step 1: coding succeeded.";
+else stdout.nextline = "Step 1: coding failed.";
+stdout.nextline = "==============================";
+
+stdout.nextline = ss1.name;
+
+StringStream ss2 = {
+    int mode = READ;
+    int open = TRUE;
+    String name = ss1.name;
+    int filters = IETFCODER|MIMECODER|HEXCODER;
+};
+
+output = ss2.nextbuf;
+
+stdout.nextline = "=========== Step 2 ===========";
+
+if (output === step2_out)
+    stdout.nextline = "Step 2: de-coding succeeded.";
+else stdout.nextline = "Step 2: de-coding failed.";
+stdout.nextline = "==============================";
+
+stdout.nextbuf = output;

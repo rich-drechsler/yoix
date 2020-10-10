@@ -1,0 +1,27 @@
+//
+// A simple function that can be used as an image loader.
+//
+
+import yoix.stdio.*;
+
+ImageLoader(String path, Pointer callback) {
+    Thread thread;
+
+    loader(String path, Pointer callback) {
+	Image image;
+
+	image.source = path;	// load the image
+	if (callback != NULL)
+	    (*callback)(image);
+    }
+
+    thread.queue(loader, path, callback);
+}
+
+Observer(arg, ...) {
+
+    printf("loaded image %O\n", arg);
+}
+
+ImageLoader("http://www.yoix.org/imgs/ATTlogo.gif", &Observer);
+

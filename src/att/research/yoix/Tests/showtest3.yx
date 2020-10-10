@@ -1,0 +1,25 @@
+import yoix.*.*;
+
+JFrame f = {
+    Graphics graphics = {
+	String font = "Lucida-bold-24";
+	Color  foreground = Color.red;
+    };
+
+    paint(Rectangle r) {
+	String text = "hello, world";
+
+	graphics {        // "named block"
+	    gsave();
+	    rectclip(r);
+	    translate(drawable.size.width/2, drawable.size.height/2);
+	    rotate(-30);
+	    moveto(-stringwidth(text)/2, 0);
+	    show(text);
+	    grestore();
+	}
+    }
+};
+
+f.visible = TRUE;
+

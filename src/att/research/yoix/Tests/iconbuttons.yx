@@ -1,0 +1,347 @@
+import yoix.*.*;
+
+Dictionary IconCache[0, ...];
+
+
+
+GetErrorIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.6*72.0);
+    double    shrink = (argc > 2) ? argv[2] : 1.0;
+    String    name = "errorIcon" + toString(size) + toString(shrink);
+
+    //
+    // Old code used VM.screen.uimanager.get(name) to grab the icon, but
+    // we now build and cache our own versions.
+    //
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 8, 0, "STOP", Color.red, Color.white, FALSE, TRUE, TRUE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetFastBackIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    String    name = "fastbackIcon" + toString(size) + toString(iconcolor);
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildControlIcon(CONTROL_FASTBACK, size, iconcolor, FALSE, FALSE);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+
+GetInfoIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.6*72.0);
+    double    shrink = (argc > 2) ? argv[2] : 1.0;
+    String    name = "infoIcon" + toString(size) + toString(shrink);
+
+    //
+    // Old code used VM.screen.uimanager.get(name) to grab the icon, but
+    // we now build and cache our own versions.
+    //
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 4, 0, "i", Color.white, Color.black, TRUE, TRUE, TRUE, shrink, "Times-bolditalic-10");
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+
+GetQuestionIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.6*72.0);
+    double  shrink = (argc > 2) ? argv[2] : 1.0;
+    String  name = "questionIcon" + toString(size) + toString(shrink);
+
+    //
+    // Old code used VM.screen.uimanager.get(name) to grab the icon, but
+    // we now build and cache our own versions.
+    //
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 360, 0, "?", Color.white, Color.black, TRUE, TRUE, TRUE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+
+GetWarningIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.6*72.0);
+    double    shrink = (argc > 2) ? argv[2] : 1.0;
+    String    name = "warningIcon" + toString(size) + toString(shrink);
+
+    //
+    // Old code used VM.screen.uimanager.get(name) to grab the icon, but
+    // we now build and cache our own versions.
+    //
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 3, 0, "!", Color.yellow, Color.black, TRUE, TRUE, TRUE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+
+BuildPolygonIcon(Dimension size, int sides, double degrees, String text, Color polygoncolor, Color textcolor, int smooth, int outline, int addshadow, double shrink, String font) {
+    Image image = {
+	Dimension size = size;
+	int       type = TYPE_RGB_ALPHA;
+
+	Graphics graphics = {
+	    String font = (font == NULL ? "Helvetica-bold-10" : font);
+	    int    antialiasing = TRUE;
+	    int    linejoin = (smooth ? JOIN_ROUND : JOIN_MITER);
+	    int    linecap = (smooth ? CAP_ROUND : CAP_BUTT);
+	};
+
+	String text = text;
+	double shrink = min(shrink, 1.0);
+	Color  polygoncolor = polygoncolor;
+	Color  textcolor = textcolor;
+	double adjustment;
+	double degrees = degrees;
+	int    sides = sides;
+	int    addshadow = addshadow;
+	int    smooth = smooth;
+	int    outline = outline;
+
+	paint(Rectangle r) {
+	    Rectangle textbounds;
+	    Rectangle bounds;
+	    double    factor;
+	    double    scaling;
+	    double    shadow;
+	    double    strokewidth;
+	    double    side;
+	    double    dx;
+	    double    dy;
+	    double    angle;
+	    int       n;
+
+	    angle = 360.0/sides;
+	    dx = abs(sin(angle/2));
+	    dy = abs(cos(angle/2));
+	    side = 2.0*dx;
+
+	    if ((factor = min(size.width, size.height)/72.0) < 1.0) {
+		if (factor <= .25)
+		    factor = 0;
+	    } else factor = min(factor, 2.0);
+	    if (factor == 0) {
+		addshadow = 0;
+		smooth = 0;
+		outline = 0;
+	    }
+	    shadow = factor*72.0/18;
+	    strokewidth = 2.0*shadow;
+
+	    graphics {
+		erasedrawable(0.0);	// make a transparent image
+
+		//
+		// Build a "unit" polygon with center at (0, 0) and a horizontal
+		// side along its bottom.
+		//
+
+		translate(dx, dy);
+		moveto(0, 0);
+
+		for (n = 0; n < sides; n++) {
+		    translate(-side, 0);
+		    lineto(0, 0);
+		    rotate(angle);
+		}
+
+		closepath();
+		rotatepath(degrees);
+		translate(-dx, -dy);	// should be back to the original CTM
+
+		//
+		// Scale the polygon so it fits the comfortably into the image,
+		// then translate the path so it's centered in the image.
+		//
+
+		bounds = pathbbox();
+		adjustment = 0;
+		if (addshadow && shadow > 0)
+		    adjustment += shadow;
+		adjustment += strokewidth;
+		scaling = shrink*min((size.width - 2*adjustment)/bounds.width, (size.height - 2*adjustment)/bounds.height);
+		path.scalepath(scaling, scaling);
+		bounds = pathbbox();
+		path.translatepath(size.width/2 - (bounds.x + bounds.width/2), size.height/2 - (bounds.y + bounds.height/2));
+
+		//
+		// Draw the polygon's shadow, if there's supposed to be one, and
+		// then draw the polygon.
+		//
+
+		if (addshadow && shadow > 0) {
+		    gsave();
+		    path.translatepath(shadow, shadow);
+		    setgray(.5);
+		    linewidth = strokewidth;
+		    strokepath();
+		    fill(.4);
+		    grestore();
+		}
+
+		foreground = polygoncolor;
+		gsave();
+		linewidth = strokewidth;
+		strokepath();
+		fill();
+		grestore();
+		if (outline) {
+		    gsave();
+		    linewidth = strokewidth/2;
+		    foreground = textcolor;
+		    strokepath();
+		    fill();
+		    grestore();
+		}
+		fill();
+
+		//
+		// We deal with the text string as a path that's supposed to fit
+		// comfortably into the polygon that we just drew using the same
+		// techniques that we just used for the polygon.
+		//
+
+		if (text != NULL && text@sizeof > 0) {
+		    moveto(0, 0);
+		    charpath(text);
+		    textbounds = pathbbox();
+		    scaling = 0.9*min(bounds.width/textbounds.width, .6*bounds.height/textbounds.height);
+		    path.scalepath(scaling, scaling);
+		    bounds = pathbbox();
+		    if (sides == 3)
+			path.translatepath(size.width/2 - bounds.x - bounds.width/2, size.height/2 + 1.25 * (bounds.height/2 - (bounds.height + bounds.y)));
+		    else path.translatepath(size.width/2 - bounds.x - bounds.width/2, size.height/2 + (bounds.height/2 - (bounds.height + bounds.y)));
+		    foreground = textcolor;
+
+		    if (scaling < 0.5) {
+			//
+			// This should fatten up text a bit when it's really
+			// small. Thrown in quickly, so there's undoubtedly
+			// lots of room for improvement - maybe later!!
+			//
+			gsave();
+			linewidth = .4;
+			strokepath();
+			fill();
+			grestore();
+		    }
+		    fill();
+
+		}
+	    }
+	}
+    };
+    return(image);
+}
+
+PickIconSize(Object size) {
+    if (!(size instanceof Dimension)) {
+	if (size instanceof Number) {
+	    size = new Dimension {
+		double width = size;
+		double height = size;
+	    };
+	} else if (size instanceof Font) {
+	    size = new Dimension {
+		double width = size.height;
+		double height = size.height;
+	    };
+	} else {
+	    size = new Dimension {
+		double width = 72.0/3;
+		double height = 72.0/3;
+	    };
+	}
+    }
+    return(size);
+}
+
+JFrame jf = {
+
+    Dimension size = NULL;
+    int visible = 1;
+
+    int border = 72/4; //quarter inch margin
+
+    GridBagLayout layoutmanager;
+
+    Array layout = {
+	new JPanel {
+	    String border = "Icon Demo";
+
+	    GridLayout layoutmanager = {
+		int columns = 2;
+	    };
+
+	    Array layout = {
+		new JButton {
+		    Image  icon = GetErrorIcon();
+		    String text = "Error Icon";
+
+		    actionPerformed(e) {
+			fprintf(stderr, "You pressed the %s\n", text);
+		    }
+		},
+		new JButton {
+		    Image  icon = GetWarningIcon();
+		    String text = "Warning Icon";
+
+		    actionPerformed(e) {
+			fprintf(stderr, "You pressed the %s\n", text);
+		    }
+		},
+		new JButton {
+		    Image  icon = GetInfoIcon();
+		    String text = "Info Icon";
+
+		    actionPerformed(e) {
+			fprintf(stderr, "You pressed the %s\n", text);
+		    }
+		},
+		new JButton {
+		    Image  icon = GetQuestionIcon();
+		    String text = "Question Icon";
+
+		    actionPerformed(e) {
+			fprintf(stderr, "You pressed the %s\n", text);
+		    }
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int weightx = 1;
+	    int weighty = 1;
+	    int fill = BOTH;
+	    int gridwidth = REMAINDER;
+	},
+	new JButton {
+	    String text = "Quit";
+
+	    actionPerformed(e) {
+		exit(0);
+	    }
+	},
+	new GridBagConstraints {
+	    int anchor = CENTER;
+	    int gridwidth = REMAINDER;
+	},
+    };
+};

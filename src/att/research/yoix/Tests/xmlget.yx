@@ -1,0 +1,31 @@
+import yoix.*.*;
+
+String xml = @<<
+<message>
+    <line attr1="value 1" attr2="value 2">
+        <![CDATA[   Now is the]]> time
+    </line>
+    <line>
+        for all good men
+    </line>
+    <line>
+    to come to the aid of their party.
+    </line>
+</message>
+>>@;
+
+Object target = xmlToYoix(xml, 1, TOSS_WS_CHARDATA);
+String name = "message/line";
+int    extract = 1;
+
+printf("name=%s, extract=%d\n", name, extract);
+printf("%.5O\n", xmlGet(name, target, extract));
+
+name = "message/line/$attributes";
+printf("\nname=%s, extract=%d\n", name, extract);
+printf("%.5O\n", xmlGet(name, target, extract));
+
+extract = 0;
+printf("\nname=%s, extract=%d\n", name, extract);
+printf("%.5O\n", xmlGet(name, target, extract));
+

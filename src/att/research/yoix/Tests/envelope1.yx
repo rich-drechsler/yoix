@@ -1,0 +1,164 @@
+//
+// A rather complicated example that illustrates how to use an image's
+// paint() function to draw an envelope that you might use as an icon.
+// Our handling of the addresses currently uses charpath() and fill()
+// (rather than charpath() and show()) because we noticed some system
+// dependent behavior when charpath() bounds were used for sizing and
+// positioning of strings rendered by show(). We will investigate.
+//
+
+import yoix.*.*;
+
+Image mail = {
+    int type = TYPE_RGB_ALPHA;
+
+    Dimension size = {
+	double width = 4.0*72;
+	double height = 4.0*72;
+    };
+
+    Graphics graphics = {
+	String font = "Courier-bold-10";
+	int    antialiasing = TRUE;
+    };
+
+    paint(Rectangle r) {
+	Rectangle textbounds;
+	Rectangle bounds;
+	double    factor;
+	double    scaling;
+	double    shadow;
+	double    dx;
+	double    dy;
+	String    sender = "John Q. Programmer\n123 Techno Way\nSoftware City, XX 00000-0000";
+	String    receiver = "The YOIX Team\nAT&T Shannon Laboratory\n180 Park Avenue\nFlorham Park, NJ 07932-0971";
+	Array     lines;
+	int       addshadow = TRUE;
+	int       n;
+
+	if ((factor = min(size.width, size.height)/72.0) < 1.0) {
+	    if (factor <= .25)
+		factor = 0;
+	} else factor = min(factor, 2.0);
+	shadow = factor*72.0/18;
+
+	graphics {
+	    //
+	    // Make a transparent image.
+	    //
+
+	    erasedrawable(0.0);
+
+	    //
+	    // Build an envelope with an appropriate aspect ratio that we
+	    // will scale into the available space.
+	    //
+
+	    moveto(0, 0);
+	    rlineto(100, 0);
+	    rlineto(0, 60);
+	    rlineto(-100, 0);
+	    closepath();
+
+	    //
+	    // Scale the envelope so it fits the comfortably into the image,
+	    // then translate the path so it's centered in the image.
+	    //
+
+	    bounds = pathbbox();
+	    scaling = .95*min((size.width - 2*shadow)/bounds.width, (size.height - 2*shadow)/bounds.height);
+	    path.scalepath(scaling, scaling);
+	    bounds = pathbbox();
+	    path.translatepath(size.width/2 - (bounds.x + bounds.width/2), size.height/2 - (bounds.y + bounds.height/2));
+
+	    //
+	    // Remember the final envelope bounds - we will need them when
+	    // add the stamp and addresses.
+	    //
+
+	    bounds = pathbbox();
+	    dx = max(0.025*bounds.width, 1);
+	    dy = max(0.025*bounds.width, 1);
+
+	    //
+	    // Draw the shadow, if there's supposed to be one, then stroke
+	    // and fill the envelope.
+	    //
+
+	    if (addshadow && shadow > 0) {
+		gsave();
+		path.translatepath(shadow, shadow);
+		setgray(.5);
+		fill(.4);
+		grestore();
+	    }
+
+	    gsave();
+	    setgray(0);
+	    stroke();
+	    grestore();
+	    setgray(1);
+	    fill();
+
+	    //
+	    // Draw the stamp.
+	    //
+
+	    moveto(bounds.x + bounds.width - dx, bounds.y + dy);
+	    rlineto(0, 10*scaling);
+	    rlineto(-8*scaling, 0);
+	    rlineto(0, -10*scaling);
+	    closepath();
+	    setgray(0);
+	    fill();
+
+	    //
+	    // We deal with the addresses as paths that are supposed to fit
+	    // comfortably into the envelope that we just drew using the same
+	    // techniques that we just used for the envelope. Rendering the
+	    // text as a path (rather than by using show()) means the bounds
+	    // that we calculate for the path itself should hold. There were
+	    // some small, but annoying, font sizing problems on some systems
+	    // when we used the charpath() bounds to position the text that
+	    // was drawn with show(). The behavior seems like something that
+	    // should be investigated!!
+	    //
+
+	    lines = strsplit(sender, "\n");
+	    for (n = 0; n < lines@sizeof; n++) {
+		moveto(0, (n+1)*font.height);
+		charpath(lines[n]);
+	    }
+	    textbounds = pathbbox();
+	    scaling = min(.5*bounds.width/textbounds.width, .4*bounds.height/textbounds.height);
+	    path.scalepath(scaling, scaling);
+	    path.translatepath(bounds.x + dx, bounds.y + dy);
+	    fill();
+
+	    lines = strsplit(receiver, "\n");
+	    for (n = 0; n < lines@sizeof; n++) {
+		moveto(0, (n+1)*font.height);
+		charpath(lines[n]);
+	    }
+	    textbounds = pathbbox();
+	    scaling = min(.6*bounds.width/textbounds.width, .4*bounds.height/textbounds.height);
+	    path.scalepath(scaling, scaling);
+	    path.translatepath(bounds.x + .2*bounds.width, bounds.y + .5*bounds.height);
+	    fill();
+	}
+    }
+};
+
+JFrame jf = {
+    Dimension size = NULL;
+    int visible = 1;
+
+    Array layout = {
+	new JButton {
+	    Image icon = mail;
+	    actionPerformed(e) {
+		exit(0);
+	    }
+	}
+    };
+};

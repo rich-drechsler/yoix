@@ -1,0 +1,114 @@
+import yoix.j3d.*;
+import yoix.*.*;
+
+VirtualUniverse universe = {
+    Array layout = {
+	new ColorCube {
+	    String tag = "$_cube1";
+	    double scale = 1.0;
+
+	    Transform3D transform;
+	    Point3D     position;
+	},
+
+	new ViewPlatform {
+	    String tag = "$_view";
+	    double backclipdistance = 20;
+
+	    Transform3D transform = {
+		initializer() {
+		    setToViewAt(
+			25, 25, 25,	// eye
+			0, 0, 0,	// origin
+			0, 1, 0		// orientation
+		    );
+		}
+	    };
+	},
+    };
+};
+
+Frame f = {
+    Array layout = {
+	new Canvas3D {
+            ViewPlatform view = universe.tagged.$_view;
+
+	    mousePressed(e) {
+		int direction = (e.modifiers == BUTTON1_MASK) ? 1 : -1;
+
+		Jump(
+		    universe.tagged.$_cube1,
+		    new Vector3D {double z = 2*direction; double y = 12;},
+		    new Vector3D {double y = -9.8;}
+		);
+	    }
+	}, CENTER,
+    };
+};
+
+Jump(Object obj, Vector3D velocity, Vector3D acceleration) {
+    Point3D  P0 = obj.position;
+    Vector3D V0 = velocity;
+    Vector3D A0 = acceleration;
+    double   start;
+    double   duration;
+    double   t;
+
+    Position(t) {
+	return(
+	    new Point3D {
+		double x = A0.x*t*t/2 + V0.x*t + P0.x;
+		double y = A0.y*t*t/2 + V0.y*t + P0.y;
+		double z = A0.z*t*t/2 + V0.z*t + P0.z;
+	    }
+	);
+    }
+
+    Velocity(t) {
+	return(
+	    new Vector3D {
+		double x = A0.x*t + V0.x;
+		double y = A0.y*t + V0.y;
+		double z = A0.z*t + V0.z;
+	    }
+	);
+    }
+
+    if ((duration = -2*V0.y/A0.y) > 0) {
+	start = time();
+
+	for (t = 0; t < duration; ) {
+	    t = min(time() - start, duration);
+	    obj.position = Position(t);
+	}
+
+	Deform(obj, Velocity(t));
+    }
+}
+
+Deform(Object obj, Vector3D velocity) {
+    Transform3D t0 = obj.transform;
+    Transform3D t = obj.transform;
+    int         n;
+
+    //
+    // Eventually could use velocities to determin how much to shear
+    // and squish.
+    //
+
+    for (n = 0; n < 5; n++) {
+	t.sy *= .75;
+	obj.transform = t;
+sleep(.1);
+    }
+
+    for (n = 0; n < 5; n++) {
+	t.sy /= .75;
+	obj.transform = t;
+sleep(.1);
+    }
+
+    obj.transform = t0;
+}
+
+f.visible = TRUE;

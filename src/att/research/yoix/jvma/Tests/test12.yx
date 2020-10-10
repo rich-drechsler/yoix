@@ -1,0 +1,16 @@
+import yoix.*.*;
+import yoix.module.att.research.yoix.jvma.JVMTestModule.*;
+
+//
+// An intentional error
+//
+
+assembleClass(@<<
+    public class XXX {
+	static double total = 255;
+    }
+>>@);
+
+fprintf(stderr, "%s", dumpClassFile());
+writeClassFile("/tmp/xxx");
+

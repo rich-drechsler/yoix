@@ -1,0 +1,144 @@
+import yoix.j3d.*;
+import yoix.*.*;
+
+Alpha alph = {
+    int mode = J3D_COMPLETE;
+    Array waveform = { 2, 0.5, 0, 2, 0.5, 0 };
+    double triggertime = 5;
+};
+
+VirtualUniverse universe = {
+    Color background = Color.gray;
+
+    Array layout = {
+	new BranchGroup {
+	    String tag = "$_branch1";
+
+	    EulerAngle orientation = {
+		double alpha = 45;
+		//double beta = 45;
+		double beta = 22.5;
+	    };
+
+	    Array layout = {
+		new ColorCube {
+		    String tag = "$_colorcube";
+		    double scale = 0.2;
+		    Point3D position = { double y = 1; };
+		    Interpolator interpolator = {
+			Alpha alpha = alph;
+			Configolator configuration = {
+			    int type = J3D_ROTATIONINTERPOLATOR;
+			    Array knots = { 0, 0.25, 0.5, 0.75, 1 };
+			    Array values = {
+				new Quat4D {
+				    double x = 1;
+				    double y = 2;
+				    double z = 3;
+				    double w = 4;
+				},
+				180,
+				new Quat4D {
+				    double x = 111;
+				    double y = 0;
+				    double z = 1.3;
+				    double w = 2;
+				},
+				new Quat4D {
+				    double x = 0;
+				    double y = 1.3;
+				    double z = 2;
+				    double w = 111;
+				},
+				270,
+			    };
+			};
+		    };
+		},
+		new ColorCube {
+		    String tag = "$_colorcube2";
+		    double scale = 0.2;
+		    Point3D position = { double x = 1; };
+		    Interpolator interpolator = {
+			Alpha alpha = alph;
+			Configolator configuration = {
+			    int type = J3D_ROTATIONINTERPOLATOR;
+			    Array knots = { 0, 0.25, 0.5, 0.75, 1 };
+			    Array values = { 
+				new EulerAngle {
+				    double alpha = 45;
+				    double gamma = 22.5;
+				},
+				180,
+				new AxisAngle {
+				    double x = 45;
+				    double y = 22.5;
+				},
+				new Quat4D {
+				    double x = 0;
+				    double y = 1.3;
+				    double z = 2;
+				    double w = 111;
+				},
+				270,
+			    };
+			};
+		    };
+		},
+	    };
+	},
+
+	new ViewPlatform {
+	    String tag = "$_sideview";
+
+	    Transform3D transform = {
+		initializer() {
+		    setToTranslation(0, 0, 10);
+		}
+	    };
+	},
+
+	new ViewPlatform {
+	    String tag = "$_topview";
+
+	    Transform3D transform = {
+		initializer() {
+		    setToViewAt(0, 20, 0, 0, 0, 0, 0, 0, 1);
+		}
+	    };
+	},
+    };
+};
+
+JFrame f = {
+    GridLayout layoutmanager = {
+	int rows = 0;
+	int columns = 1;
+	double vgap = 72.0/4;
+    };
+
+    Array layout = {
+	new Canvas3D {
+            String  tag = "$_topcanvas";
+            ViewPlatform view = universe.tagged.$_topview;
+
+            mousePressed(MouseEvent e) {
+		alph.run = !alph.run;
+            }
+	},
+
+        new Canvas3D {
+            String  tag = "$_sidecanvas";
+            ViewPlatform view = universe.tagged.$_sideview;
+
+            mousePressed(MouseEvent e) {
+		alph.run = !alph.run;
+            }
+        },
+    };
+};
+
+
+
+
+f.visible = TRUE;

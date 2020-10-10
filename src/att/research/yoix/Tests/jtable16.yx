@@ -1,0 +1,47 @@
+//
+// Small table example that also shows how preferredsize can be
+// used to control one dimension.
+//
+
+import yoix.*.*;
+
+String numbers = "1.23E27\n1.23E24\n1.23E21\n1.23E18\n1.23E15\n1.23E12\n1.23E9\n1.23E6\n1.23E3\n1.23E0\n1.00E0\n1.23E-3\n1.23E-6\n1.23E-9\n1.23E-12\n1.23E-15\n1.23E-18\n1.23E-21\n1.23E-24\n0.00E0\n-1.23E-24\n-1.23E-21\n-1.23E-18\n-1.23E-15\n-1.23E-12\n-1.23E-9\n-1.23E-6\n-1.23E-3\n-1.00E0\n-1.23E0\n-1.23E3\n-1.23E6\n-1.23E9\n-1.23E12\n-1.23E15\n-1.23E18\n-1.23E21\n-1.23E24\n-1.23E27";
+
+JFrame jf = {
+    Dimension size = NULL;
+    int       visible = 1;
+    int       border = 18;
+
+    Array layout = {
+	new JTable {
+	    String tag = "$_table";
+	    int rows = 39;
+	    Color  gridcolor = Color.red;
+
+	    Array columns = {
+		new JTableColumn {
+		    String header = "Value";
+		    int    type = STRING_TYPE;
+		    String text = numbers;
+		},
+		new JTableColumn {
+		    String header = "Compact";
+		    int    type = DOUBLE_TYPE;
+		    String text = numbers;
+		    Dictionary attributes = {
+			String format = "c";
+		    };
+		},
+		new JTableColumn {
+		    String header = "Integral";
+		    int    type = DOUBLE_TYPE;
+		    String text = numbers;
+		    Dictionary attributes = {
+			String format = "i";
+		    };
+		},
+	    };
+
+	}, CENTER,
+    };
+};

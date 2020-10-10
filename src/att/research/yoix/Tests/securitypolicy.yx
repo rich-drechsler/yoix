@@ -1,0 +1,215 @@
+//
+// Some canned security managers, buried in a function that can be
+// called to set a security policy a for the application.
+//
+
+SetSecurityPolicy(name, ...) {
+    String uppercase;
+
+    Dictionary managers = {
+	SecurityManager ALLOW_ALL = {
+	    checkAccept(host, port) = TRUE;
+	    checkAccess(thread) = TRUE;
+	    checkAwtEventQueue() = TRUE;
+	    checkConnect(host, port) = TRUE;
+	    checkDelete(path) = TRUE;
+	    checkExec(command) = TRUE;
+	    checkExit(status) = TRUE;
+	    checkYoixEval(source, type) = TRUE;
+	    checkYoixExecute(source, type, args) = TRUE;
+	    checkYoixInclude(path) = TRUE;
+	    checkYoixOpen(source, type, mode) = TRUE;
+	    checkLink(lib) = TRUE;
+	    checkListen(port) = TRUE;
+	    checkPrintJobAccess() = TRUE;
+	    checkRead(path) = TRUE;
+	    checkWrite(path) = TRUE;
+	};
+
+	SecurityManager REFUSE_ALL = {
+	    checkAccept(host, port) = FALSE;
+	    checkAccess(thread) = FALSE;
+	    checkAwtEventQueue() = FALSE;
+	    checkConnect(host, port) = FALSE;
+	    checkDelete(path) = FALSE;
+	    checkExec(command) = FALSE;
+	    checkExit(status) = FALSE;
+	    checkYoixEval(source, type) = FALSE;
+	    checkYoixExecute(source, type, args) = FALSE;
+	    checkYoixInclude(path) = FALSE;
+	    checkYoixOpen(source, type, mode) = FALSE;
+	    checkLink(lib) = FALSE;
+	    checkListen(port) = FALSE;
+	    checkPrintJobAccess() = FALSE;
+	    checkRead(path) = FALSE;
+	    checkWrite(path) = FALSE;
+	};
+
+	SecurityManager REFUSE_FILE = {
+	    checkDelete(path) = FALSE;
+	    checkExec(command) = FALSE;
+	    checkRead(path) = FALSE;
+	    checkWrite(path) = FALSE;
+	};
+
+	SecurityManager PROMPT_FILE = {
+	    checkDelete(path) {
+		return(ShowSecurityDialog("Allow File Delete", path));
+	    }
+
+	    checkExec(command) {
+		return(ShowSecurityDialog("Allow Command Execution", command));
+	    }
+
+	    checkRead(path) {
+		return(ShowSecurityDialog("Allow File Read", path));
+	    }
+
+	    checkWrite(path) {
+		return(ShowSecurityDialog("Allow File Write", path));
+	    }
+	};
+    };
+
+    uppercase = yoix.string.toUpperCase(name);
+    if (yoix.string.strcmp(uppercase, "NONE") != 0) {
+	if (defined(uppercase, managers) == FALSE) {
+	    yoix.stdio.fprintf(stderr, "Unrecognized security manager %s\n", name);
+	    ////yoix.system.setSecurityManager(REFUSE_ALL);
+	    exit(1);
+	} else yoix.system.setSecurityManager(managers[uppercase]);
+    }
+}
+
+//
+// Simple function that shows a modal dialog with information about the
+// current security check, and returns TRUE or FALSE based on the button
+// the user selects. Doing it all in a function and creating a new dialog
+// each time means cheating should be hard (hopefully impossible).
+//
+
+ShowSecurityDialog(label, path) {
+
+    Dialog dialog = {
+	Dimension size = NULL;
+	int       modal = TRUE;
+	int       allowed = FALSE;
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    new Canvas {
+		Dimension size = {
+		    double width = 72/4;
+		    double height = 72/16;
+		};
+	    },
+	    new GridBagConstraints {
+		int gridx = 0;
+		int gridy = 0;
+	    },
+
+	    new Canvas {
+		Dimension size = {
+		    double width = 72/4;
+		    double height = 72/16;
+		};
+	    },
+	    new GridBagConstraints {
+		int gridx = 10;
+		int gridy = 0;
+	    },
+
+	    new Label {
+		String tag = "$_checking";
+		String font = "Helvetica-bold-14";
+		Color  foreground = yoix.awt.Color.red;
+		int    alignment = yoix.awt.CENTER;
+	    },
+	    new GridBagConstraints {
+		int gridx = 3;
+		int gridy = 2;
+		int gridwidth = 5;
+		int fill = yoix.awt.HORIZONTAL;
+	    },
+
+	    new TextField {
+		String tag = "$_pathname";
+		String font = "Courier-12";
+		Color  background = yoix.awt.Color.white;
+		int    columns = 80;
+		int    scroll = yoix.awt.VERTICAL;
+		int    edit = FALSE;
+	    },
+	    new GridBagConstraints {
+		int gridx = 3;
+		int gridy = 3;
+		int gridwidth = 5;
+		int weightx = 100;
+		int weighty = 100;
+		int fill = yoix.awt.BOTH;
+	    },
+
+	    new Panel {
+		GridLayout layoutmanager;
+
+		Array layout = {
+		    new Button {
+			String text = "OK";
+
+			actionPerformed(e) {
+			    root.allowed = TRUE;
+			    root.SetVisible(FALSE);
+			}
+		    },
+		    new Button {
+			String text = "Cancel";
+
+			actionPerformed(e) {
+			    root.allowed = FALSE;
+			    root.SetVisible(FALSE);
+			}
+		    },
+		};
+	    },
+
+	    new GridBagConstraints {
+		int gridx = 3;
+		int gridy = 9;
+		int gridwidth = 5;
+		int weightx = 100;
+
+		Insets insets = {
+		    int top = 72/8;
+		    int bottom = 72/8;
+		};
+	    },
+	};
+
+	//
+	// Support functions
+	//
+
+	SetVisible(state, ...) {
+	    Point location;
+	    Array args = &state;
+
+	    if (state) {
+		location.x = (VM.screen.width - this.size.width)/2;
+		location.y = (VM.screen.height - this.size.height)/2;
+		this.location = location;
+		this.allowed = FALSE;
+	    }
+	    if (args@length > 2) {
+		this.components.$_checking.text = "Security Check - " + args[1];
+		this.components.$_pathname.text = args[2];
+	    }
+	    this.visible = state;
+	}
+    };
+
+    dialog.SetVisible(TRUE, label, path);
+    dialog.dispose = TRUE;		// currently required
+    return(dialog.allowed);
+}
+

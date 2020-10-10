@@ -1,0 +1,64 @@
+import yoix.*.*;
+
+JFrame f = {
+    FlowLayout layoutmanager = {
+        int  hgap = 9;
+        int  vgap = 72;
+    };
+
+    Array layout = {
+	new JLabel {
+	    String text = "Box A:";
+	},
+        new JComboBox {
+            Array items = {"one", "1", "two", NULL, "three", "3"};
+
+            focusGained(e) {
+                printf("A fG\n");
+	    }
+            focusLost(e) {
+                printf("A fL\n");
+	    }
+            actionPerformed(e) {
+                printf("A aP=%O\n", e);
+	    }
+            itemStateChanged(e) {
+		printf("A iSC=%O\n", e);
+            }
+        },
+	new JPanel {
+	    Dimension preferredsize = { int width = 72; };
+	},
+	new JLabel {
+	    String text = "Box B:";
+	},
+        new JComboBox {
+	    String tag = "$_combo2";
+            Array items = {" ", NULL, "Continue", NULL, "Quit", NULL};
+            int   selected = 0;
+	    int   edit = 1;
+
+            focusGained(e) {
+                printf("B fG\n");
+	    }
+            focusLost(e) {
+                printf("B fL\n");
+	    }
+            actionPerformed(e) {
+                printf("B aP=%O\n", e);
+	    }
+            itemStateChanged(e) {
+		printf("B iSC=%O\n", e);
+		if (e.state == 1) {
+		    if (strcmp(selected, "Quit") == 0)
+			exit(0);
+		}
+	    }
+	    textValueChanged(e) {
+		printf("B tVC=%O\n", e);
+	    }
+        },
+    };
+};
+
+f.visible = TRUE;

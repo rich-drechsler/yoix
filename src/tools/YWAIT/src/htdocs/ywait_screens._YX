@@ -1,0 +1,1246 @@
+//
+// Screen file support. This is the file that manages screens and defines
+// important low level functions, like GetAndShowScreen() and HideScreen(),
+// that eventually must be called whenever screens are shown and hidden.
+// The first section of this file (about 650 lines) defines the low level
+// dictionaries and functions. GetScreen() is the place to start if you're
+// interesting in understanding the low level details. The rest of the file
+// defines convenient functions, like ShowAlert() and ShowViewer(), that
+// also hide ShowScreen() calls that sometimes are complicated. The number
+// of these "helper" functions often grows as we build a production system
+// with lots of custom screens.
+// 
+
+import yoix.*.*;
+
+Dictionary ScreenCache[10, ...];
+Dictionary StateCache[10, ...];
+Dictionary PreBuiltScreens[0, ...];
+
+Dictionary ScreenDirectory[24, ...] = {
+    Dictionary broadcast = {
+	String   URL = ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_broadcast.yx");
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary clipboard = {
+	String   URL = NULL;
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary confirm = {
+	String   URL = ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_confirm.yx");
+	Function Builder;
+	int      cachescreen = FALSE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary debugger = {
+	String   URL = NULL;
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = FALSE;
+    };
+
+    Dictionary edit_preferences = {
+	String   URL = NULL;
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary login = {
+	String   URL = ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_login.yx");
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = FALSE;
+    };
+
+    Dictionary login_password = {
+	String   URL = ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_login_password.yx");
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = FALSE;
+    };
+
+    Dictionary notify = {
+	String   URL = ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_notify.yx");
+	Function Builder;
+	int      cachescreen = FALSE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary pane2screen = {
+	String   URL = NULL;
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary reconnect = {
+	String   URL = ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_reconnect.yx");
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary reconnect_password = {
+	String   URL = ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_reconnect_password.yx");
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary selector_list = {
+	String   URL = NULL;
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary selector_tree = {
+	String   URL = NULL;
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary send_comment = {
+	String   URL = NULL;
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary send_message = {
+	String   URL = NULL;
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary send_password = {
+	String   URL = NULL;
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary test_plugin = {
+	String   URL = NULL;
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary viewer = {
+	String   URL = NULL;
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary viewer_append = {
+	String   URL = NULL;
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary viewer_help = {
+	String   URL = NULL;
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = TRUE;
+    };
+
+    Dictionary welcome = {
+	String   URL = ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_welcome.yx");
+	Function Builder;
+	int      cachescreen = FALSE;
+	int      savebuilder = FALSE;
+    };
+
+    Dictionary main = {
+	String   URL = ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_main.yx");
+	Function Builder;
+	int      cachescreen = TRUE;
+	int      savebuilder = FALSE;
+    };
+};
+
+//
+// These are the names of screens that are loaded while the user logs in.
+//
+
+Array PreloaderScreens = {
+    "welcome",
+    "main",
+    "notify",
+    "confirm",
+};
+
+CleanCachedScreens() {
+    //
+    // Usually run by our low priority garbage colletion thread, but it
+    // can be called by other threads which is why we ignore errors. Used
+    // to make screens disposed screens don't collect in the cache, which
+    // really doesn't happen often.
+    //
+
+    try {
+	for (ptr in ScreenCache) {
+	    if (defined(ptr) && defined("dispose", ptr[0]) && ptr[0].dispose)
+		ptr[0] = NULL;
+	}
+    }
+    catch(e) {
+	return(TRUE);
+    }
+}
+
+DisposeScreen(Object screen) {
+    screen.dispose = TRUE;
+    ScreenCache[screen.screenname] = NULL;
+}
+
+GetAndShowScreen(String name, String builder, ...) {
+    Dimension size;
+    Rectangle state;
+    Object    screen;
+    Point     location;
+
+    if ((screen = GetScreen(unroll(&name))) != NULL) {
+	name = screen.screenname;
+	if (defined(name, StateCache) && (state = StateCache[name]) != NULL) {
+	    StateCache[name] = NULL;
+	    location.x = state.x;
+	    location.y = state.y;
+	    size.width = state.width;
+	    size.height = state.height;
+	} else if ((GetUseRetainedLocation() && HasRetainedLocation(builder)) || (GetUseRetainedSizing() && HasRetainedSizing(builder))) {
+	    if (GetUseRetainedLocation() && HasRetainedLocation(builder))
+		location = GetRetainedLocation(builder);
+	    else location = NULL;
+	    if (GetUseRetainedSizing() && HasRetainedSizing(builder))
+		size = GetRetainedSizing(builder);
+	    else size = screen.size;
+	} else {
+	    size = screen.size;
+	    location = NULL;
+	}
+	ShowScreen(screen, size, location);
+    }
+    return(screen);
+}
+
+GetCachedScreen(String name) {
+    Object screen = NULL;
+
+    if (defined(name, ScreenCache) && (screen = ScreenCache[name]) != NULL) {
+	if (screen.dispose)
+	    screen = NULL;
+    }
+    return(screen);
+}
+
+GetLoadableArgument(String name, Array args) {
+    Pointer ptr;
+    Object  arg;
+
+    //
+    // Primary use is to get the parent of a modal dialog that's being
+    // built by a screen builder. Needed because the parent field has to
+    // be set when the dialog is actually created if we want to keep it
+    // on top of its parent. Setting parent later (i.e., when LoadArgs()
+    // is called) doesn't work and we don't believe Java lets you change
+    // the owner of a dialog after it's created. Clears the args entries
+    // if name is found, even though it's probably not necessary.
+    //
+
+    if (name != NULL) {
+	for (ptr = args; ptr@sizeof > 1; ptr += 2) {
+	    if (*ptr === name) {
+		*ptr++ = NULL;
+		arg = *ptr;
+		*ptr = NULL;
+		break;
+	    }
+	}
+    }
+    return(arg);
+}
+
+GetPreBuiltScreen(String name, Array args, Function Builder, String buildername) {
+    Object screen;
+
+    //
+    // This function should be called from a screen's Builder(). It assumes
+    // a NULL name or args means the was call triggered by prebuilding code,
+    // so in that case nothing is done here and NULL is returned.
+    // 
+
+    if (name != NULL && args != NULL) {		// call isn't from prebuilder
+	if (defined(buildername, PreBuiltScreens) && PreBuiltScreens[buildername] != NULL) {
+	    synchronized(buildername) {
+		if (PreBuiltScreens[buildername] != NULL) {
+		    screen = PreBuiltScreens[buildername];
+		    PreBuiltScreens[buildername] = NULL;
+		}
+	    }
+	}
+	PreBuilderThread.queueOnce(&PreBuildScreen, Builder, buildername);
+    }
+    return(screen);
+}
+
+GetScreen(String name, String builder, ...) {
+    Dictionary dict;
+    Object     screen;
+    Array      args = &builder + 1;
+
+    if (!Quitting) {
+	if ((screen = GetCachedScreen(name)) == NULL) {
+	    if ((dict = LoadScreen(builder)) != NULL && dict.Builder != NULL) {
+		try {
+		    screen = dict.Builder(name, args);
+		    LoadArgs(screen, args);
+		    if (defined("screencolor", screen) && screen.screencolor != NULL)
+			screen.background = screen.screencolor;
+		    else if (defined("parent", screen) && screen.parent != NULL)
+			screen.background = screen.parent.background;
+		    if (dict.cachescreen)
+			ScreenCache[name] = screen;
+		    if (!dict.savebuilder)
+			dict.Builder = NULL;
+
+		    AttachRetainPopup(screen);
+		}
+		catch(e) {
+		    ShowScreenError("building", builder, builder, e.message);
+		    return(TRUE);
+		}
+	    } else ShowScreenError("locating", builder, builder, NULL);
+	} else if (screen.reloadargs)
+	    LoadArgs(screen, args);
+    }
+    return(screen);
+}
+
+GetScreenCacheStatus(String prefix) {
+    String text = "";
+
+    for (ptr in ScreenCache) {
+	if (defined(ptr) && defined("dispose", ptr[0]))
+	    text += strfmt("\n%s%s.dispose = %d", prefix, ptr[0]@nameof, ptr[0].dispose);
+    }
+    return(text);
+}
+
+GetScreenDirectoryEntry(String builder) {
+    Dictionary dict = NULL;
+
+    if (builder != NULL && builder@length > 0) {
+	synchronized(ScreenDirectory) {
+	    if (!defined(builder, ScreenDirectory)) {
+		//
+		// New code that handles screens that haven't been
+		// explicitly mentioned in ScreenDirectory.
+		//
+		ScreenDirectory[builder] = new Dictionary {
+		    String	URL = NULL;
+		    Function	Builder;
+		    int		cachescreen = TRUE;
+		    int		savebuilder = TRUE;
+		};
+	    }
+	}
+	dict = ScreenDirectory[builder];
+    }
+    return(dict);
+}
+
+HideScreen(Object screen) {
+    String fname;
+    int    n;
+
+    if (screen.visible) {
+	screen.visible = FALSE;
+	if (screen.disposeonclose || screen.dispose) {
+	    DisposeScreen(screen);
+	}
+	if (screen.savestate) {
+	    StateCache[screen.screenname] = new Rectangle {
+		double x = screen.location.x;
+		double y = screen.location.y;
+		double width = screen.size.width;
+		double height = screen.size.height;
+	    };
+	}
+	RetainStates(screen);
+	if (defined("local_file_cache", screen)) {
+            for (n = 0; n < screen.local_file_cache@sizeof; n++) {
+                if (defined(n, screen.local_file_cache)) {
+                    if ((fname = screen.local_file_cache[n]) != NULL)
+                        unlink(fname);
+                }
+            }
+	    screen.local_file_cache = new Array[0, ...]{};
+	}
+    }
+}
+
+IsLoaded(String builder) {
+    Dictionary dict;
+
+    return((dict = GetScreenDirectoryEntry(builder)) != NULL && dict.Builder != NULL);
+}
+
+LoadArgs(Object screen, Array args) {
+    for (; args@sizeof > 1; args += 2) {
+	if (args[0] instanceof String && defined(args[0], screen))
+	    screen[args[0]] = args[1];
+    }
+    if (defined("LoadArgs", screen) && screen.LoadArgs instanceof Function)
+	screen.LoadArgs();
+}
+
+LoadScreen(String builder) {
+    Dictionary dict;
+    Stream     stream;
+    String     fullname;
+    Array      data;
+
+    if ((dict = GetScreenDirectoryEntry(builder)) != NULL && dict.Builder == NULL) {
+	if (defined("URL", dict) && dict.URL != NULL) {
+	    if ((stream = open(dict.URL, "r")) != NULL) {
+		try {
+		    dict.Builder = execute(stream, builder, global);
+		}
+		catch(e) {
+		    ShowScreenError("building", builder, dict.URL, e.message);
+		    return(TRUE);
+		}
+		close(stream);
+	    }
+	}
+	if (dict.Builder == NULL && SessionID != NULL) {
+	    fullname = "<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_" + builder + ".yx";
+	    data = RunCommand(NULL, "GETSCREEN",  fullname);
+	    if (data@sizeof > 0) {
+		try {
+		    dict.Builder = execute(data[0], builder, global);
+		}
+		catch(e) {
+		    ShowScreenError("building", builder, fullname, e.message);
+		    return(TRUE);
+		}
+	    }
+	}
+    }
+    return(dict);
+}
+
+PreBuildScreen(Function Builder, String buildername) {
+    //
+    // Makes sure a "prebuilt" screen is saved in PreBuiltScreens under the
+    // buildername name.
+    // 
+
+    if (!defined(buildername, PreBuiltScreens) || PreBuiltScreens[buildername] == NULL) {
+	synchronized(buildername) {
+	    if (!defined(buildername, PreBuiltScreens)) {
+		//
+		// Probably the first call for this screen, so we sleep for
+		// little while to let the Builder() function that should be
+		// running in another thread have more of the CPU cycles.
+		//
+		sleep(3);
+	    }
+	    if (!defined(buildername, PreBuiltScreens) || PreBuiltScreens[buildername] == NULL)
+		PreBuiltScreens[buildername] = Builder(NULL, NULL);
+	}
+    }
+}
+
+RaiseAllScreens(Object except) {
+    Object screen;
+    int    n;
+
+    for (n = 0; n < ScreenCache@sizeof; n++) {
+	if (defined(n, ScreenCache)) {
+	    if ((screen = ScreenCache[n]) != NULL) {
+		if (screen != except && screen.visible)
+		    toFront(screen);
+	    }
+	}
+    }
+}
+
+ResetCursors() {
+    Object screen;
+    int    n;
+
+    for (n = 0; n < ScreenCache@sizeof; n++) {
+	if (defined(n, ScreenCache)) {
+	    if ((screen = ScreenCache[n]) != NULL)
+		screen.cursor = Cursor.STANDARD_CURSOR;
+	}
+    }
+}
+
+ResetScreens(...) {
+    Dictionary newscreencache;
+    Dictionary newstatecache;
+    Dictionary dict;
+    Object     screen;
+    String     name;
+    int        all;
+    int        n;
+
+    //
+    // In old releases this was only used for debugging and development,
+    // but it's now also used to make sure user-defined preferences are
+    // properly loaded, but users probably shouldn't be able to access
+    // this function direcly (e.g., via a menubar entry).
+    //
+
+    all = (argc > 1 && argv[1] != 0);
+
+    for (n = 0; n < ScreenDirectory@sizeof; n++) {
+	if (defined(n, ScreenDirectory)) {	// unnecessary??
+	    if ((dict = ScreenDirectory[n]) != NULL)
+		dict.Builder = NULL;
+	}
+    }
+
+    StopPreBuilder();
+    PreBuiltScreens = new Dictionary[0, ...];
+
+    newscreencache = new Dictionary[10, ...];
+    newstatecache = new Dictionary[10, ...];
+    for (n = 0; n < ScreenCache@sizeof; n++) {
+	if (defined(n, ScreenCache)) {
+	    if ((screen = ScreenCache[n]) != NULL) {
+		if (all || !screen.visible) {
+		    if (!screen.dispose) { // needed?
+			if (defined("HideScreen", screen))
+			    screen.HideScreen = NULL;
+			screen.savestate = FALSE;
+			screen.disposeonclose = TRUE;
+			HideScreen(screen);
+			screen.dispose = TRUE;
+		    }
+		    screen = NULL;
+		} else {
+		    name = ScreenCache[n]@nameof;
+		    newscreencache[name] = screen;
+		    if (defined(name, StateCache))
+			newstatecache[name] = StateCache[name];
+		}
+	    }
+	}
+    }
+    ScreenCache = newscreencache;
+    StateCache = newstatecache;
+    ResetPreferences();
+
+    if (all) {
+	CleanupClient();
+	MainScreen = GetAndShowScreen("main", "main");
+    }
+}
+
+ResetSkins() {
+    Object screen;
+    int    n;
+
+    for (n = 0; n < ScreenCache@sizeof; n++) {
+	if (defined(n, ScreenCache)) {
+	    if ((screen = ScreenCache[n]) != NULL) {
+		if (defined("SetScreenSkin", screen) && screen.SetScreenSkin instanceof Function)
+		    screen.SetScreenSkin();
+		else SetScreenSkin(screen);
+	    }
+	}
+    }
+}
+
+SetScreenLocation(Object screen, Point location) {
+    Dimension size;
+    Insets    insets = NULL;
+    Object    parent;
+    double    adjusty = -72;
+    int       setnone = TRUE;
+    int       screenanchor = NONE;
+    int       style;
+
+    if (location == NULL) {
+	location = new Point;
+	size.width = VM.screen.width;
+	size.height = VM.screen.height;
+	if (defined("screenanchor", screen)) {
+	    if (screen.screenanchor instanceof int) {
+		if ((screenanchor = screen.screenanchor) != NONE) {
+		    if (defined("anchorpoint", screen) && screen.anchorpoint != NULL) {
+			if (screen.anchorpoint instanceof Point) {
+			    location.x = screen.anchorpoint.x;
+			    location.y = screen.anchorpoint.y;
+			    size.width = 0;
+			    size.height = 0;
+			    adjusty = 0;
+			} else if (isComponent(screen.anchorpoint) && screen.anchorpoint.visible) {
+			    if (defined("anchorstyle", screen) && screen.anchorstyle instanceof int)
+				style = screen.anchorstyle;
+			    else style = AUTOMATIC;
+			    location = getLocationOnScreen(screen.anchorpoint);
+			    size = screen.anchorpoint.size;
+			    switch (screenanchor) {
+			    case CENTER:
+				location.x += size.width/2;
+				location.y += size.height/2;
+				break;
+
+			    case NORTH:
+			    case TOP:
+				location.x += size.width/2;
+				break;
+
+			    case SOUTH:
+			    case BOTTOM:
+				location.x += size.width/2;
+				location.y += size.height;
+				break;
+
+			    case WEST:
+			    case LEFT:
+				location.y += size.height/2;
+				break;
+
+			    case EAST:
+			    case RIGHT:
+				location.x += size.width;
+				location.y += size.height/2;
+				break;
+
+			    case NORTHWEST:
+				break;
+
+			    case SOUTHEAST:
+				location.x += size.width;
+				location.y += size.height;
+				break;
+
+			    case NORTHEAST:
+				location.x += size.width;
+				break;
+
+			    case SOUTHWEST:
+				location.y += size.height;
+				break;
+			    }
+			    switch (style) {
+			    case AUTOMATIC:
+				switch (screenanchor) {
+				case CENTER:
+				    location.x -= screen.size.width/2;
+				    location.y -= screen.size.height/2;
+				    break;
+
+				case NORTH:
+				case TOP:
+				    location.x -= screen.size.width/2;
+				    location.y -= screen.size.height;
+				    break;
+
+				case SOUTH:
+				case BOTTOM:
+				    location.x -= screen.size.width/2;
+				    break;
+
+				case WEST:
+				case LEFT:
+				    location.x -= screen.size.width;
+				    location.y -= screen.size.height/2;
+				    break;
+
+				case EAST:
+				case RIGHT:
+				    location.y -= screen.size.height/2;
+				    break;
+
+				case NORTHWEST:
+				    location.x -= screen.size.width;
+				    location.y -= screen.size.height;
+				    break;
+
+				case SOUTHEAST:
+				    break;
+
+				case NORTHEAST:
+				    location.y -= screen.size.height;
+				    break;
+
+				case SOUTHWEST:
+				    location.x -= screen.size.width;
+				    break;
+				}
+				break;
+
+			    case CENTER:
+				location.x -= screen.size.width/2;
+				location.y -= screen.size.height/2;
+				break;
+
+			    case NORTH:
+			    case TOP:
+				location.x -= screen.size.width/2;
+				break;
+
+			    case SOUTH:
+			    case BOTTOM:
+				location.x -= screen.size.width/2;
+				location.y -= screen.size.height;
+				break;
+
+			    case WEST:
+			    case LEFT:
+				location.y -= screen.size.height/2;
+				break;
+
+			    case EAST:
+			    case RIGHT:
+				location.x -= screen.size.width;
+				location.y -= screen.size.height/2;
+				break;
+
+			    case NORTHWEST:
+				break;
+
+			    case SOUTHEAST:
+				location.x -= screen.size.width;
+				location.y -= screen.size.height;
+				break;
+
+			    case NORTHEAST:
+				location.x -= screen.size.width;
+				break;
+
+			    case SOUTHWEST:
+				location.y -= screen.size.height;
+				break;
+			    }
+			    screenanchor = NONE;
+			    setnone = FALSE;
+			}
+		    }
+		}
+	    }
+	}
+
+	if (screen.size != NULL) {
+	    switch (screenanchor) {
+		case CENTER:
+		    location.x += (size.width - screen.size.width)/2;
+		    location.y += (size.height - screen.size.height)/2 + adjusty;
+		    break;
+
+		case NORTH:
+		case TOP:
+		    location.x += (size.width - screen.size.width)/2;
+		    break;
+
+		case SOUTH:
+		case BOTTOM:
+		    location.x += (size.width - screen.size.width)/2;
+		    location.y += (size.height - screen.size.height);
+		    break;
+
+		case WEST:
+		case LEFT:
+		    location.y += (size.height - screen.size.height)/2 + adjusty;
+		    break;
+
+		case EAST:
+		case RIGHT:
+		    location.x += (size.width - screen.size.width);
+		    location.y += (size.height - screen.size.height)/2 + adjusty;
+		    break;
+
+		case NORTHWEST:
+		    break;
+
+		case SOUTHEAST:
+		    location.x += (size.width - screen.size.width);
+		    location.y += (size.height - screen.size.height);
+		    break;
+
+		case NORTHEAST:
+		    location.x += (size.width - screen.size.width);
+		    break;
+
+		case SOUTHWEST:
+		    location.y += (size.height - screen.size.height);
+		    break;
+
+		case NONE:
+		    if (setnone) {
+			if ((parent = screen.parent) != NULL) {
+			    location.x = parent.location.x + (parent.size.width - screen.size.width)/2;
+			    location.y = parent.location.y + (parent.size.height - screen.size.height)/2;
+			} else {
+			    location.x = (VM.screen.width - screen.size.width)/2;
+			    location.y = (VM.screen.height - screen.size.height)/2 + adjusty;
+			}
+		    }
+		    break;
+	    }
+
+	    insets = GetPreferredScreenInsets();
+	    if (location.x + screen.size.width > VM.screen.width - insets.right)
+		location.x = VM.screen.width - screen.size.width - insets.right;
+	    if (location.y + screen.size.height > VM.screen.height - insets.bottom)
+		location.y = VM.screen.height - screen.size.height - insets.bottom;
+
+	    if (location.x < insets.left)
+		location.x = insets.left;
+	    if (location.y < insets.top)
+		location.y = insets.top;
+	}
+    }
+    screen.location = location;
+}
+
+SetScreenSkin(Object screen) {
+    Object skin = NULL;
+
+    //
+    // Currently just a placeholder, but eventually expect it will look
+    // through preferences for an appropriate image. The backgroundimage
+    // field accepts an Image or String (e.g., the URL of a GIF image)
+    // so we do too.
+    //
+
+    if (screen != NULL) {
+	if (skin instanceof Image || skin instanceof String) {
+	    screen.backgroundimage = skin;
+	    screen.backgroundhints = SCALE_TILE;
+	} else screen.backgroundimage = NULL;
+	screen.opaque = (screen.backgroundimage == NULL);
+    }
+}
+
+SetScreenSize(Object screen, Dimension size) {
+    //
+    // Sets the size, but checks to make sure the final height and width
+    // don't exceed bounds set by this.maximumsize. Wouldn't be necessary
+    // if maximimsize was a supported field, which eventually may happen,
+    // but right now the extra work is necessary. Checking screen.size is
+    // a precaution because it could be NULL if original size is NULL and
+    // screen has been disposed. In practice only a few YWAIT screens use
+    // maximumsize, but custom applications often find it useful.
+    // 
+
+    screen.size = size;		// size probably is NULL
+    if (defined("maximumsize", screen)) {
+	if (screen.maximumsize instanceof Dimension) {
+	    if ((size = screen.size) != NULL) {		// "dispose" precaution
+		if (screen.maximumsize.width > 0)
+		    size.width = min(size.width, screen.maximumsize.width);
+		if (screen.maximumsize.height > 0)
+		    size.height = min(size.height, screen.maximumsize.height);
+		screen.size = size;
+	    }
+	}
+    }
+}
+
+ShowScreen(Object screen, Dimension size, Point location) {
+    Object skin = NULL;
+
+    if (!screen.initialized) {
+	//
+	// Make sure there is clean-up - maybe this is too pushy on our part???
+	//
+	if (WindowClosed instanceof Function) {
+	    if (!defined("windowClosed", screen) && !defined("windowClosing", screen))
+		addListener(screen, "windowClosed", WindowClosed);
+	}
+
+	if (!screen.disposeonclose) {
+	    if (WindowClosing instanceof Function) {
+		if (!defined("windowClosing", screen))
+		    addListener(screen, "windowClosing", WindowClosing);
+	    }
+	}
+
+	//
+	// InitializeScreen is for truly one-time initialization
+	//
+	if (defined("InitializeScreen", screen) && screen.InitializeScreen instanceof Function)
+	    screen.InitializeScreen();
+
+	//
+	// LoadScreen is for initialization that a user might want to
+	// call again somewhere in the screen (i.e., a "Reload" button)
+	//
+	if (defined("LoadScreen", screen) && screen.LoadScreen instanceof Function)
+	    screen.LoadScreen();
+	if (defined("SetScreenSize", screen) && screen.SetScreenSize instanceof Function)
+	    screen.SetScreenSize(size);
+	else SetScreenSize(screen, size);
+	if (defined("SetScreenLocation", screen) && screen.SetScreenLocation instanceof Function)
+	    screen.SetScreenLocation(location);
+	else SetScreenLocation(screen, location);
+
+	//
+	// Not completely implemented yet, but it's easy to test if you
+	// really want - just point skin (above) to the URL of an Image
+	// that you want to try. Preference will eventually will support
+	// this stuff.
+	//
+	if (defined("SetScreenSkin", screen) && screen.SetScreenSkin instanceof Function)
+	    screen.SetScreenSkin();
+	else SetScreenSkin(screen);
+	if (defined("title", screen) && defined("screentitle", screen) && screen.screentitle != NULL) {
+	    screen.title += (screen.title@sizeof > 0 ? " " : "") + screen.screentitle;
+	    screen.screentitle = NULL;
+	}
+	screen.initialized = TRUE;
+    } else {
+	//
+	// ReloadScreen is for loading the screen each time the screen is
+	// made visible (after the initial time). The old version always 
+	// called ReloadScreen(), but checking iconified, if it's defined
+	// by the screen, seems reasonable.
+	//
+	if (defined("ReloadScreen", screen) && screen.ReloadScreen instanceof Function) {
+	    if (!defined("iconified", screen) || !screen.iconified)
+		screen.ReloadScreen();
+	}
+    }
+
+    //
+    // A screen that's a modal dialog with its own ShowScreen() function
+    // misbehaves slightly if its ShowScreen() makes it visible and we do
+    // it again here. Means we probably should assume that a screen with
+    // a ShowScreen() function is responsible for making itself visible.
+    //
+
+    if (defined("ShowScreen", screen) && screen.ShowScreen instanceof Function)
+	screen.ShowScreen();
+    else screen.visible = ScreenVisibility;
+}
+
+//
+// Support routines - most are used to show different screens and work by
+// building an appropriate call to GetAndShowScreen(), which does the real
+// work, using arguments that were supplied by the caller.
+//
+
+ShowAlert(...) {
+    //
+    // ShowAlert([parent], text [, title] [, formatted [, fixedwidth [, proprietary]]])
+    //
+    return(ShowNotifyScreen(&argv[1], "<_ACRONYM_DQ_> Alert", GetInfoIcon(), 1));
+}
+
+ShowBroadcast(String text) {
+    Object screen;
+
+    if (text != NULL) {
+	if ((screen = GetScreen("broadcast", "broadcast")) != NULL) {
+	    screen.SetText(text);
+	    ShowScreen(screen, screen.size, NULL);
+	}
+    }
+    return(screen);
+}
+
+ShowConfirm(...) {
+    //
+    // ShowConfirm([parent], text [, title] [, labels] [, formatted [, fixedwidth [, proprietary]]])
+    //
+    return(ShowConfirmScreen(&argv[1], "<_ACRONYM_DQ_> Confirm", GetQuestionIcon(), 1));
+}
+
+ShowConfirmScreen(Array args, String title, Image icon, int beepcount) {
+    Object screen;
+    Object parent = NULL;
+    String text = NULL;
+    Array  labels = NULL;
+    int    formatted = -1;
+    int    fixedwidth = FALSE;
+    int    proprietary = FALSE;
+
+    if (args@sizeof > 0) {
+	if (!(*args instanceof String))
+	    parent = *args++;
+	if (args@sizeof && *args instanceof String)
+	    text = *args++;
+	if (args@sizeof && *args instanceof String)
+	    title = *args++;
+	if (args@sizeof && *args instanceof Array)
+	    labels = *args++;
+	if (args@sizeof && *args instanceof Number)
+	    formatted = *args++;
+	if (args@sizeof && *args instanceof Number)
+	    fixedwidth = *args++;
+	if (args@sizeof && *args instanceof Number)
+	    proprietary = *args++;
+    }
+    screen = GetScreen(
+	"confirm", "confirm",
+	"parent", parent,
+	"title", title,
+	"message_icon", icon,
+	"proprietary", proprietary,
+	"beepcount", beepcount
+    );
+    if (screen != NULL) {
+	screen.SetButtons(labels);
+	screen.SetText(text, formatted, fixedwidth);
+	ShowScreen(screen, NULL, NULL);
+    }
+    return(screen);
+}
+
+ShowError(...) {
+    //
+    // ShowError([parent], text [, title] [, formatted [, fixedwidth [, proprietary]]])
+    //
+    return(ShowNotifyScreen(&argv[1], "<_ACRONYM_DQ_> Error", GetErrorIcon(), 1));
+}
+
+ShowHeaderBroadcast(Dictionary header) {
+    if (header.BROADCAST) {
+	ShowBroadcast(header.BROADCAST);
+	header.BROADCAST = NULL;
+    }
+}
+
+ShowHeaderMessage(Object screen, Dictionary header) {
+    if (header.MESSAGE) {
+	switch (header.STATUS) {
+	    case "ok":
+	    default:
+		ShowAlert(screen, header.MESSAGE);
+		break;
+
+	    case "expired":
+	    case "failed":
+		ShowWarning(screen, header.MESSAGE);
+		break;
+
+	    case "disabled":
+	    case "invalidaccess":
+	    case "internalerror":
+	    case "lapsed":
+	    case "security":
+	    case "validation":
+	    case "rejected":
+		ShowError(screen, header.MESSAGE);
+		break;
+	}
+	header.MESSAGE = NULL;
+    }
+}
+
+ShowHelp(String subject, ...) {
+    Object screen;
+
+    if (subject != NULL) {
+	screen = GetAndShowScreen(
+	    "viewer_help", "viewer_help",
+	    "command", "GETHELP",
+	    "command_arg", subject,
+	    unroll(&subject+1)
+	);
+    }
+    return(screen);
+}
+
+ShowMessage(...) {
+    //
+    // ShowMessage([parent], text [, title] [, formatted [, fixedwidth [, proprietary]]])
+    //
+    return(ShowNotifyScreen(&argv[1], "<_ACRONYM_DQ_> Message", GetInfoIcon(), 0));
+}
+
+ShowNotifyScreen(Array args, String title, Image icon, int beepcount) {
+    Object screen;
+    Object parent = NULL;
+    String text = NULL;
+    int    formatted = -1;
+    int    fixedwidth = FALSE;
+    int    proprietary = FALSE;
+
+    if (args@sizeof > 0) {
+	if (!(*args instanceof String))
+	    parent = *args++;
+	if (args@sizeof && *args instanceof String)
+	    text = *args++;
+	if (args@sizeof && *args instanceof String)
+	    title = *args++;
+	if (args@sizeof && *args instanceof Number)
+	    formatted = *args++;
+	if (args@sizeof && *args instanceof Number)
+	    fixedwidth = *args++;
+	if (args@sizeof && *args instanceof Number)
+	    proprietary = *args++;
+    }
+    screen = GetScreen(
+	"notify", "notify",
+	"parent", parent,
+	"title", title,
+	"message_icon", icon,
+	"proprietary", proprietary,
+	"beepcount", beepcount
+    );
+    if (screen != NULL) {
+	screen.SetText(text, formatted, fixedwidth);
+	ShowScreen(screen, NULL, NULL);
+    }
+    return(screen);
+}
+
+ShowReconnect() {
+    String builder;
+
+    switch (LoginStyle) {
+	case 1:
+	    builder = "reconnect_password";
+	    break;
+
+	default:
+	    builder = "reconnect";
+	    break;
+    }
+
+    return(GetAndShowScreen(builder, builder));
+}
+
+ShowScreenError(String action, String builder, String name, String error) {
+    String message;
+
+    //
+    // Don't use ShowError() if the mistake happened while we were trying
+    // to show the "notify" screen, otherwise we'll probably end up in an
+    // infinite loop.
+    //
+
+    message = "Problem " + action + " " + name + " screen";
+    if (error != NULL)
+	message += ":\n\n    " + error + "\n\n";
+    else message += ". ";
+    if (builder !== "notify") {
+	message += "Contact the <_ACRONYM_DQ_> administrator for more help.";
+        ShowError(error != NULL ? message : fmt(message), TRUE);
+    } else fprintf(stderr, "%s\n", message);
+}
+
+ShowSendPassword(int expired) {
+    return(GetAndShowScreen("send_password", "send_password", "expired", expired));
+}
+
+ShowSelectorList(Object parent, String title, String destination, String label, Array items, int multiplemode, ...) {
+    Object screen;
+
+    //
+    // The old version of this function use QueueCommand(), but it wasn't
+    // obvious why - screen display functions are often called from the
+    // event thread, so there may be another explanation.
+    //
+
+    if (items != NULL) {
+        screen = GetAndShowScreen(
+	    "selector_list" + destination, "selector_list",
+	    "parent", parent,
+	    "title", title,
+	    "destination", destination,
+	    "label", label,
+	    "items", items,
+	    "multiplemode", multiplemode,
+	    unroll(&multiplemode+1)
+	);
+    }
+    return(screen);
+}
+
+ShowSelectorTree(Object parent, String title, String destination, String label, JTreeNode top, int multiplemode) {
+    Object screen;
+
+    //
+    // The old version of this function use QueueCommand(), but it wasn't
+    // obvious why - screen display functions are often called from the
+    // event thread, so there may be another explanation.
+    //
+
+    if (top != NULL) {
+	screen = GetAndShowScreen(
+	    "selector_tree_" + destination, "selector_tree",
+	    "parent", parent,
+	    "title", title,
+	    "destination", destination,
+	    "label", label,
+	    "top", top,
+	    "multiplemode", multiplemode
+	);
+    }
+    return(screen);
+}
+
+ShowText(...) {
+    //
+    // ShowText([parent], text [, title] [, formatted [, fixedwidth [, proprietary]]])
+    //
+    return(ShowNotifyScreen(&argv[1], "<_ACRONYM_DQ_> Text", NULL, 0));
+}
+
+ShowUnimplemented(Object parent) {
+    Array args[0, ...] = {parent, "Unimplemented feature - try again later"};
+
+    return(ShowNotifyScreen(args, "<_ACRONYM_DQ_> Unimplemented", GetWarningIcon(), 1));
+}
+
+ShowVersion(Object parent) {
+    Array args[0, ...] = {parent, trim(GetVersionInfo()), TRUE};
+
+    return(ShowNotifyScreen(args, "<_ACRONYM_DQ_> Version", GetYoixLogoIcon(36), 0));
+}
+
+ShowWarning(...) {
+    //
+    // ShowWarning([parent], text [, title] [, formatted [, fixedwidth [, proprietary]]])
+    //
+    return(ShowNotifyScreen(&argv[1], "<_ACRONYM_DQ_> Warning", GetWarningIcon(), 1));
+}
+
+ShowWhoAmI(Object parent) {
+    Array args[0, ...] = {parent, trim(GetUserInfo()), TRUE};
+
+    return(ShowNotifyScreen(args, "<_ACRONYM_DQ_> Who Am I", NULL, 0));
+}
+
+ShowViewer(Object parent, String name, String title, String command, String command_arg, ...) {
+    Object screen;
+    Array  args;
+
+    if (name != NULL) {
+	args = &command_arg + 1;
+	screen = GetAndShowScreen(
+	    "viewer(" + name + ")", "viewer",
+	    "parent", parent,
+	    "title", title,
+	    "command", command,
+	    "command_arg", command_arg,
+	    "command_results", (args@sizeof > 0) ? new Array {args[0]} : new Array[0]
+	);
+    }
+    return(screen);
+}
+

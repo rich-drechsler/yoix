@@ -1,0 +1,68 @@
+import yoix.*.*;
+
+JFrame f = {
+    Point location = {
+	double x = 100;
+	double y = 50;
+    };
+
+    Array layout = {
+        new JLabel {
+            String tag = "$_label";
+            String text = "Screen Location Test";
+	    String font = "Lucida-bold-14";
+        }, NORTH,
+
+	new JTextArea {
+	    String tag = "$_textarea";
+	    int    rows = 0;
+	    int    columns = 0;
+	    int    scroll = AS_NEEDED;
+	    int    edit = FALSE;
+	}, CENTER,
+
+	new JPanel {
+	    FlowLayout layoutmanager = {
+		double vgap = 72/8;
+	    };
+	    Array layout = {
+		new JPanel {
+		    GridLayout layoutmanager = {
+			double hgap = 72/8;
+		    };
+
+		    Array layout = {
+			new JButton {
+			    String tag = "$_locate_button";
+			    String text = "Locate";
+
+			    actionPerformed(e) {
+				String text;
+
+				text += strfmt("frame location=%O\n", getLocationOnScreen(root));
+				text += strfmt("label location=%O\n", getLocationOnScreen(root.components.$_label));
+				text += strfmt("textarea location=%O\n", getLocationOnScreen(root.components.$_textarea));
+				text += strfmt("locate button location=%O\n", getLocationOnScreen(root.components.$_locate_button));
+				text += strfmt("clear button location=%O\n", getLocationOnScreen(root.components.$_clear_button));
+
+				appendText(root.components.$_textarea, text);
+			    }
+			},
+
+			new JButton {
+			    String tag = "$_clear_button";
+			    String text = "Clear";
+
+			    actionPerformed(e) {
+				root.components.$_textarea.text = NULL;
+			    }
+			},
+		    };
+		},
+	    };
+        }, SOUTH,
+    };
+};
+
+f.visible = TRUE;
+

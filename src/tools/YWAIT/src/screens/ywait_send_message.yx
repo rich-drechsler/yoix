@@ -1,0 +1,173 @@
+//
+// Screen used to send messages to other application users. It also shows
+// what needs to be done if you want a component, like a JTextArea, to serve
+// as a source and sink for drag and drop operations.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Insets border = Global.GetUnLabeledScreenInsets();
+	String title = Global.ACRONYM + " Send Message";
+	Font   font = Global.GetPreferredLabelFont();
+	int    opaque = TRUE;
+
+	Dimension size = {
+	    double width = 7.0*72;
+	    double height = 3.0*72;
+	};
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = FALSE;
+	int    savestate = TRUE;   // save screen-specific info within session
+	int    retainstate = TRUE; // save screen-class info across sessions
+	int    reloadargs = FALSE;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    "To:",
+	    new GridBagConstraints {
+		int gridwidth = RELATIVE;
+	    },
+
+	    Global.NewJTextField("$_to", NULL, 15),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int anchor = WEST;
+	    },
+
+	    Global.NewJTextArea("$_textarea", NULL, 0, 0, AS_NEEDED),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    weightx = 1;
+		int    weighty = 1;
+		int    fill = BOTH;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+
+	    new JPanel {
+		GridLayout layoutmanager;
+		Array layout = {
+		    new JButton {
+			String text = "Send";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    String to = root.components.$_to.text;
+			    String message = root.components.$_textarea.text;
+
+			    if (to@sizeof > 0) {
+				if (trim(message)@sizeof > 0) {
+				    Global.QueueCommandOnce(
+					root,
+					"SENDMESSAGE",
+					root.components.$_to.text,
+					root.components.$_textarea.text
+				    );
+				    Global.AltQueueCommandOnce(root, &root.ClearScreen);
+				    Global.AltQueueCommandOnce(root, &root.HideScreen);
+				} else {
+				    Global.ShowMessage(root, "Your message is empty so nothing has been sent");
+				    root.RequestFocus();
+				}
+			    } else {
+				Global.ShowAlert(root, "No recipients specified (space separated list)");
+				root.RequestFocus();
+			    }
+			}
+		    },
+		    new JButton {
+			String text = "Clear";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    root.ClearScreen();
+			    root.RequestFocus();
+			}
+		    },
+		    new JButton {
+			String text = "Dismiss";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    Global.AltQueueCommand(root, &root.HideScreen);
+			}
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    Global.NewJProprietaryLabel(),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    components.$_textarea.text = "";
+	}
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+
+	ShowScreen() {
+	    visible = Global.ScreenVisibility;
+	    RequestFocus();
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	RequestFocus() {
+	    if (components.$_to.text@sizeof == 0)
+		components.$_to.requestfocus = TRUE;
+	    else components.$_textarea.requestfocus = TRUE;
+	}
+
+	SetText(String text) {
+	    components.$_textarea.text = text;
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);

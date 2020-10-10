@@ -1,0 +1,207 @@
+//
+// List layout test - mostly for checking behavior of lists when the
+// screen is resized.
+//
+
+import yoix.*.*;
+
+Array List1Map = {
+    "X", "1",
+    "XX", "2",
+    "XXX", "3",
+    "XXXX", "4",
+    "XXXXX", "5",
+    "XXXXXX", "6",
+    "XXXXXXX", "7",
+    "XXXXXXXX", "8",
+    "XXXXXXXXX", "9",
+    "XXXXXXXXXX", "10",
+    "XXXXXXXXXXX", "11",
+    "XXXXXXXXXXXX", "12",
+    "XXXXXXXXXXXXX", "13",
+    "XXXXXXXXXXXXXX", "14",
+    "XXXXXXXXXXXXXXX", "15",
+};
+
+Array List2Map = {
+    "This is row one", "1",
+    "This is row two", "2",
+    "This is row three", "3",
+    "This is row four", "4",
+    "This is row five", "5",
+    "This is row six", "6",
+    "This is row seven", "7",
+};
+
+Array List3Map = {
+    "Type One",      "1",
+    "Type Two",      "1",
+    "Type Three",    "1",
+    "Type Four",     "1",
+    "Type Five",     "1",
+    "Type Six",      "1",
+    "Type Seven",    "1",
+    "Type Eight",    "1",
+    "Type Nine",     "1",
+    "Type Ten",      "1",
+    "Type Eleven",   "1",
+    "Type Twelve",   "1",
+    "Type Thirteen", "1",
+};
+
+Array List4Map = {
+    "Status One",   "1",
+    "Status Two",   "2",
+    "Status Three", "3",
+    "Status Four",  "4",
+    "Status Five",  "5",
+};
+
+Array ChoiceMap = {
+    "Some",    "~",
+    "All",     "*",
+    "Only",    "^",
+    "Exactly", ".",
+    "None",    "!",
+};
+
+String ChoiceDefault = "Some";
+
+final int LIST_ROWS = 7;
+
+JFrame screen = {
+    Dimension size = NULL;
+    double    border = 72.0/8;
+    String    title = "List Tests";
+    int       opaque = TRUE;
+
+    GridBagLayout layoutmanager;
+
+    Array layout = {
+	new JPanel {
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		new JPanel {
+		    EtchedBorder border = {
+			String title = "List 1";
+		    };
+
+		    GridBagLayout layoutmanager = {
+			int    columns = 1;
+			double vgap = 72.0/16;
+		    };
+		    Array layout = {
+			new JList {
+			    String tag = "$_list1";
+			    Array  items = List1Map;
+			    int    rows = LIST_ROWS;
+			    int    multiplemode = TRUE;
+			    Object selected = NULL;
+			},
+			BOTH,
+			new JChoice {
+			    String tag = "$_list1_include";
+			    Array  items = ChoiceMap;
+			    Object selected = ChoiceDefault;
+			},
+			NONE,
+		    };
+		},
+		BOTH,
+
+		new JPanel {
+		    EtchedBorder border = {
+			String title = "List 2";
+		    };
+
+		    GridBagLayout layoutmanager = {
+			int    columns = 1;
+			double vgap = 72.0/16;
+		    };
+		    Array layout = {
+			new JList {
+			    String tag = "$_list2";
+			    Array  items = List2Map;
+			    int    rows = LIST_ROWS;
+			    Object selected = NULL;
+			},
+			BOTH,
+			new JChoice {
+			    String tag = "$_list2_include";
+			    Array  items = ChoiceMap;
+			    Object selected = ChoiceDefault;
+			},
+			NONE,
+		    };
+		},
+		BOTH,
+
+		new JPanel {
+		    EtchedBorder border = {
+			String title = "List 3";
+		    };
+
+		    BorderLayout layoutmanager;
+		    Array layout = {
+			new JList {
+			    String tag = "$_list3";
+			    Array  items = List3Map;
+			    int    rows = LIST_ROWS;
+			    Object selected = NULL;
+			},
+		    };
+		},
+
+		new JPanel {
+		    EtchedBorder border = {
+			String title = "List 4";
+		    };
+
+		    BorderLayout layoutmanager;
+		    Array layout = {
+			new JList {
+			    String tag = "$_list4";
+			    Array  items = List4Map;
+			    int    rows = LIST_ROWS;
+			    int    multiplemode = TRUE;
+			    Object selected = NULL;
+			},
+		    };
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int weightx = 1;
+	    int weighty = 1;
+	    int fill = BOTH;
+	},
+
+	new JPanel {
+	    GridLayout layoutmanager;
+	    Array layout = {
+		new JButton {
+		    String text = "Reset";
+
+		    actionPerformed(e) {
+		    }
+		},
+		new JButton {
+		    String text = "Dismiss";
+
+		    actionPerformed(e) {
+		    }
+		 },
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    Insets insets = {
+		double top = 72.0/8;
+	    };
+	},
+    };
+};
+
+screen.visible = TRUE;
+

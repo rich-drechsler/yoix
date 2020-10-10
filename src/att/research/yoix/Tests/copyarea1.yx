@@ -1,0 +1,35 @@
+import yoix.*.*;
+
+JFrame f = {
+    Array layout = {
+	new JCanvas {
+	    Color background = Color.black;
+
+	    Graphics graphics = {
+		String font = "Helvetica-bold-12";
+	    };
+
+	    paint(clip) {
+		double x = 36;
+		double y = 36;
+		double dx = 0;
+		double dy = 40;
+
+		graphics {
+		    gsave();
+		    translate(x, y);
+		    setrgbcolor(.8, .8, .8);
+		    rectfill(0, 0, 36, 36);
+
+		    setrgbcolor(0, 0, 1);
+		    drawString(this, "ABC", 0, 18);
+		    copyArea(this, 0, 0, 36, 36, dx, dy);
+		    grestore();
+		}
+	    }
+	},
+    };
+};
+
+f.visible = TRUE;
+

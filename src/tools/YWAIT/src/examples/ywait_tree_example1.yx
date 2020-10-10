@@ -1,0 +1,257 @@
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Dimension size = NULL;
+	Object    parent = Global.MainScreen;
+	Font      font = Global.GetPreferredLabelFont();
+	int       opaque = TRUE;
+
+	Dimension preferredsize = {
+	    double height = 4.0*72;
+	};
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+        String screenname = name;
+        String screentitle = NULL;
+        Object anchorpoint = NULL;
+        Color  screencolor = NULL;
+        int    anchorstyle = AUTOMATIC;
+        int    screenanchor = CENTER;
+        int    initialized = FALSE;
+        int    disposeonclose = TRUE;
+        int    savestate = TRUE;        // TRUE means remember size and location
+	int    retainstate = TRUE; // remember size and location across sessions
+        int    reloadargs = TRUE;
+
+        ////////////////////////////
+        //
+        // Screen Layout
+        //
+        ////////////////////////////
+
+        GridBagLayout layoutmanager;
+
+        Array layout = {
+            new JPanel {
+                GridBagLayout   layoutmanager;
+                Array layout = {
+                    new JLabel {
+                        String  tag = "$_caption";
+                        String  text = "Sample Tree Based Loosely on a Java Example from Sun";
+                        Font    font = Global.GetPreferredHeadingFont();
+                        int     alignment = CENTER;
+                    },
+                    new GridBagConstraints {
+                        int     gridwidth = REMAINDER;
+                        int     weightx = 1;
+                        int     fill = HORIZONTAL;
+                        int     anchor = CENTER;
+                    },
+		    new JSplitPane {
+			String  tag = "$_split";
+			double  dividerlocation = 0.5;
+			int     continuouslayout = TRUE;
+			int     onetouchexpandable = TRUE;
+			int     orientation = VERTICAL;
+			Array layout = {
+			    new JScrollPane {
+				int scroll = AS_NEEDED;
+				Array layout = {
+				    new JTree {
+					String  tag = "$_tree";
+					int     roothandle = FALSE;
+					Font    font = Global.GetPreferredTreeFont();
+					Color   background = Global.GetPreferredTreeBackground();
+					Color   foreground = Global.GetPreferredTreeForeground();
+
+					mouseClicked(MouseEvent e) {
+					    JTreeNode node = item(e.location.x, e.location.y);
+					    if (node != null)
+						Global.QueueCommand(this, &root.LoadWebPage, node.content);
+					}
+
+					//
+					// Frequently the tree contents is built up
+					// programmatically, but here we will do
+					// it explicitly.
+					//
+					JTreeNode top = {
+					    String     text = "The Java Series";
+					    String     tooltiptext = "example based on TreeDemo.java at java.sun.com";
+					    String     content = "TreeDemoHelp";
+					    Array children = {
+						new JTreeNode {
+						    String text = "Books for Java Programmers";
+						    Array children = {
+							new JTreeNode {
+							    String text = "The Java Tutorial: A Short Course on the Basics";
+							    String content = "tutorial";
+							},
+							new JTreeNode {
+							    String text = "The Java Tutorial Continued: The Rest of the JDK";
+							    String content = "tutorialcont";
+							},
+							new JTreeNode {
+							    String text = "The JFC Swing Tutorial: A Guide to Constructing GUIs";
+							    String content = "swingtutorial";
+							},
+							new JTreeNode {
+							    String text = "Effective Java Programming Guide";
+							    String content = "bloch";
+							},
+							new JTreeNode {
+							    String text = "The Java Programming Language";
+							    String content = "arnold";
+							},
+							new JTreeNode {
+							    String text = "The Java Developers Almanac";
+							    String content = "chanlee";
+							},
+						    };
+						},
+						new JTreeNode {
+						    String text = "Books for Java Implementers";
+						    Array children = {
+							new JTreeNode {
+							    String text = "The Java Virtual Machine Specification";
+							    String content = "vm";
+							},
+							new JTreeNode {
+							    String text = "The Java Language Specification";
+							    String content = "jls";
+							},
+						    };
+						},
+					    };
+					};
+				    },
+				};
+			    },
+			    new JTextPane {
+				String  tag = "$_textpane";
+				int  edit = FALSE;
+				int  mode = 1; // HTML
+			    },
+			};
+                    },
+                    new GridBagConstraints {
+                        int     fill = BOTH;
+                        int     weightx = 1;
+                        int     weighty = 1;
+                        int     gridwidth = REMAINDER;
+                    },
+
+                    new JPanel {
+                        GridLayout layoutmanager = {
+                            int hgap = 36;
+                        };
+
+                        Array layout = {
+                            new JButton {
+                                String  text = "Re-Orient";
+                                Font    font = Global.GetPreferredButtonFont();
+
+                                actionPerformed(e) {
+				    if (root.components.$_split.orientation == VERTICAL)
+					root.components.$_split.orientation = HORIZONTAL;
+				    else root.components.$_split.orientation = VERTICAL;
+				    root.components.$_split.dividerlocation = 0.5;
+                                }
+                            },
+                            new JButton {
+                                String  text = "Dismiss";
+                                Font    font = Global.GetPreferredButtonFont();
+
+                                actionPerformed(e) {
+                                    Global.HideScreen(root);
+                                }
+                            },
+                        };
+                    },
+                    new GridBagConstraints {
+                        int     gridwidth = REMAINDER;
+                        int     anchor = CENTER;
+                        Insets  insets = Global.GetQualifiedInsets(72.0/8, "T");
+                    },
+
+                    new JLabel {
+                        String  text = Global.ProprietaryLabel;
+                        Font    font = Global.GetPreferredProprietaryFont();
+                        int     alignment = CENTER;
+                    },
+                    new GridBagConstraints {
+                        int     gridwidth = REMAINDER;
+                        int     anchor = CENTER;
+                        Insets  insets = Global.GetQualifiedInsets(72.0/32, "T");
+                    },
+                };
+            },
+            new GridBagConstraints {
+                int     gridwidth = REMAINDER;
+                int     weightx = 1;
+                int     weighty = 1;
+                int     fill = BOTH;
+                Insets  insets = Global.GetQualifiedInsets(72.0/4, "TLR");
+            },
+        };
+
+        ////////////////////////////
+        //
+        // Screen Functions
+        //
+        ////////////////////////////
+
+	LoadScreen() {
+	    Global.QueueCommand(this, &LoadWebPage, "TreeDemoHelp");
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	LoadWebPage(String basename) {
+	    //
+	    // Normally you might do something like:
+	    //    URL stream = open(urlbase + basename + ".html", "r");
+	    //    String text = readStream(stream);
+	    // plus error checking, of course, but we want to make
+	    // this demo standalone and the HTML pages (originally
+	    // from java.sun.com) are minimal anyway, so just store
+	    // them all here.
+	    //
+	    Dictionary lookup = {
+		String  TreeDemoHelp = "<h1>Tree Demo</h1>This is the help file (<code>TreeDemoHelp.html</code>) for the tree demo. Selecting any branch node in the tree results in this file being displayed. When you select a leaf node (a book), this pane displays an HTML file for that book.<p>This demo uses a split pane to separate the tree and this HTML view. Drag the divider up or down to change the space distribution.";
+		String  arnold = "<h1>The Java Programming Language</h1><p>blah, blah, blah, blah, blah...";
+		String  bloch = "<h1>Effective Java<br>Programming Language Guide</h1><p>blah, blah, blah, blah, blah...";
+		String  chanlee = "<h1>The Java Developers Almanac</h1><p>blah, blah, blah, blah, blah...";
+		String  jls = "<h1>The Java Language Specification</h1><p>blah, blah, blah, blah, blah...";
+		String  swingtutorial = "<h1>The JFC Swing Tutorial</h1><p>This is the UI trail from the original Tutorial, updated and expanded to reflect the Swing components. More fun than a barrel full of monkeys! Much more fun than a root canal!";
+		String  tutorial = "<h1>The Java Tutorial</h1><p>The one, the only.  Well, it hasn't been the only for quite a while now. This is the original Tutorial book. The third edition includes a chapter about Swing.";
+		String  tutorialcont = "<h1>The Java Tutorial Continued</h1><p>This book covers just about all the API introduced in 1.1 and 1.2 that the other two Tutorial books don't cover.";
+		String  vm = "<h1>The Java Virtual Machine Specification</h1><p>blah, blah, blah, blah, blah...";
+	    };
+
+	    components.$_textpane.text =
+	        defined(basename, lookup) ?
+	        lookup[basename] : lookup["TreeDemoHelp"];
+	    components.$_textpane.selectedends = new Array[] { 0, 0 };
+	}
+
+    };
+
+    return(screen);
+}
+
+return(Builder);

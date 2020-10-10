@@ -1,0 +1,170 @@
+//
+// An example of callback functions that with the help of a support
+// thread (defined below) can flash and center graph nodes and edges,
+// highlight histogram bars, and handle text notes that can be added
+// to graphs. Remember, this is just an example that was borrowed from
+// and existing application and it probably hasn't been tested outside
+// that application, so there's undoubtedly some hard work left to do
+// before this really works.
+//
+// NOTE - the PressedElement() and TypedText() functions are designed
+// to be referenced in the CALLBACKS table defined in the config file.
+// PressedElement() should be associated with the "PRESSED" state and
+// TypedText() should be associated the "TYPEDTEXT" state that is now
+// available in GraphPlots (see init.yx). Histograms used PressedBar()
+// in older implementations, whihc means it may be referenced in old
+// config and that's why it hasn't been deleted.
+//
+
+Dictionary CALLBACK_SUPPORT[0, ...] = {
+    PressedBar(Object owner, String key, Event event) {
+	//
+	// This is only needed for config file backward compatibility,
+	// which means it probably shouldn't be removed.
+	//
+
+	CALLBACK_SUPPORT.PressedElement(owner, key, event);
+    }
+
+    PressedElement(Object owner, String key, Event event) {
+	Array fields;
+	int   incr;
+	int   start;
+	int   index;
+
+	//
+	// In some cases the key string may be all you need, but in others
+	// you may want more information. Use owner.datamanager.getFields(),
+	// which should be called with the key and the magic owner.fieldindex
+	// integer as the only two arguments. The return value is an array of
+	// arrays that represent all the records associated with the pressed
+	// bar. The getFields() builtin can take an optional third argument
+	// (non-zero or zero) that tells it to return the records that are
+	// currently selected or deselected records associated with the bar
+	// or graph element that was pressed.
+	//
+
+	incr = (event.modifiers & BUTTON1_MASK) ? 1 : -1;
+	start = owner.lasthighlight + incr;
+
+	if (!owner.issweepfilter)
+	    index = owner.datamanager.getIndex(key, owner.fieldindex, start, incr);
+	else index = atoi(key);
+
+	if (index >= 0) {
+	    if ((fields = owner.datamanager.getFields(index)) != NULL) {
+		if (fields@sizeof > 0) {
+		    owner.lasthighlight = index;
+		    CALLBACK_SUPPORT.Highlight(owner, owner.datamanager.dataviewers, index, fields);
+		    CALLBACK_SUPPORT.Highlight(owner, owner.datamanager.datafilters, index, fields);
+		    CALLBACK_SUPPORT.Highlight(owner, owner.datamanager.sweepfilters, index, fields);
+		}
+	    }
+	}
+    }
+
+    TypedText(Object owner, String text, double x, double y, double width, int justification) {
+	String str;
+	String sep = " ";
+
+	//
+	// NOTE - some of the important details (e.g., field separator and
+	// partition index) depend on your configuration file!!
+	//
+
+	str = "dummy" + sep;
+	str += toString(DATA_GRAPH_NODE) + sep;
+	str += "<" + sep;
+	str += "T" + sep;
+	str += toString((int)x) + sep;
+	str += toString((int)y) + sep;
+	str += toString(justification) + sep;
+	str += toString((int)width) + sep;
+	str += toString(text@sizeof) + sep;
+	str += "-" + text + sep;
+	str += ">" + sep;
+	str += "A 2 pos N 2 " + toString((int)x) + " " + toString((int)y);
+
+	str += INPUTSEPARATOR + "-1";			// partition
+	str += INPUTSEPARATOR + text;
+	str += "\n";
+
+	owner.datamanager.appendText(str);
+    }
+
+    Highlight(Object owner, Array filters, int index, Array fields) {
+	Object filter;
+	Point  point;
+	int    n;
+
+	if (owner != NULL && filters != NULL) {
+	    for (n = 0; n < filters@sizeof; n++) {
+		filter = filters[n].filter;
+		filter.lasthighlight = index;
+		if (filter instanceof GraphPlot) {
+		    if (filter != owner) {
+			if ((point = filter.getPosition(fields[filter.fieldindex])) != NULL)
+			    CALLBACK_SUPPORT.FlashThread.Flash(filter, index, point);
+			else if ((point = filter.getPosition(fields[0])) != NULL)
+			    CALLBACK_SUPPORT.FlashThread.Flash(filter, index, point);
+		    }
+		} else if (filter.afterPressed != NULL) {
+		    if (filter.issweepfilter)
+			filter.highlighted = toString(index);
+		    else filter.highlighted = index;
+		}
+	    }
+	}
+    }
+
+    Thread FlashThread = {
+	//
+	// A support thread that can be used by callback functions when
+	// they want to flash and center graph nodes. Could also be used
+	// to flash histogram bars - if you want.
+	// 
+	int persistent = TRUE;
+
+	Flash(Object target, int index, ...) {
+	    if (defined("highlighted", target)) {
+		queue(NULL);
+		interrupted = TRUE;
+		sleep(.1);	// seems to help occasional paint problems
+		if (target instanceof GraphPlot)
+		    queue(FlashGraph, target, index, unroll(&index+1));
+		else queue(Flasher, target, index);
+	    }
+	}
+
+	Flasher(Object target, int index) {
+	    int n;
+
+	    if (target != NULL) {
+		for (n = 0; n < 3; n++) {
+		    target.highlighted = index;
+		    sleep(0.25);
+		    target.highlighted = NULL;
+		    sleep(0.25);
+		}
+	    }
+	}
+
+	FlashGraph(GraphPlot graph, int index, Point point) {
+	    Rectangle viewport;
+	    Matrix    matrix;
+	    int       n;
+
+	    if (graph != NULL && point != NULL) {
+		//
+		// A confusing brute force position adjustment of the
+		// graph.
+		//
+		viewport = graph.viewport;
+		matrix.translate(-viewport.width/2, -viewport.height/2).concat(graph.graphmatrix);
+		graph.origin = matrix.transform(point);
+		Flasher(graph, index);
+	    }
+	}
+    };
+};
+

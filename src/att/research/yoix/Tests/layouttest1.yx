@@ -1,0 +1,44 @@
+//
+// An old FlowLayout test.
+//
+
+import yoix.*.*;
+
+JFrame w = {
+    int visible = TRUE;
+
+    FlowLayout layoutmanager = {
+	int hgap = 10;
+	int vgap = 72;
+	int alignment = CENTER;
+    };
+
+    Array layout = {
+	new JButton {
+	    String text = "Align";
+
+	    actionPerformed(ActionEvent e) {
+		w.layoutmanager.alignment++;
+		w.layoutmanager = w.layoutmanager;    // kludge??
+	    }
+	},
+
+	new JButton {
+	    String text = "Shift";
+
+	    actionPerformed(ActionEvent e) {
+		w.layoutmanager.hgap += 6;
+		w.layoutmanager = w.layoutmanager;    // kludge??
+	    }
+	},
+
+	new JButton {
+	    String text = "Dismiss";
+
+	    actionPerformed(ActionEvent e) {
+		exit(0);
+	    }
+	},
+    };
+};
+

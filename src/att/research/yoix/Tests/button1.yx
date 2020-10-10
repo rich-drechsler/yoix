@@ -1,0 +1,37 @@
+import yoix.*.*;
+
+final double SHADOW = 72.0/36;
+
+Image att = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+};
+
+Frame f = {
+    FlowLayout layoutmanager = {
+        int vgap = 72;
+    };
+
+    Array layout = {
+	new Canvas {
+	    double border = SHADOW;
+	    Color  background = Color.gray;
+	    Image  backgroundimage = att;
+	    int    backgroundhints = SCALE_DEFAULT;
+	    int    state = FALSE;
+
+
+	    Dimension size = {
+		double width = att.size.width + 2*SHADOW;
+		double height = att.size.height + 2*SHADOW;
+	    };
+
+	    actionPerformed(ActionEvent e) {
+		printf("URL=%s\n", att.source);
+	    }
+	}
+   };
+};
+
+f.visible = TRUE;
+sleep(5);
+exit(0);

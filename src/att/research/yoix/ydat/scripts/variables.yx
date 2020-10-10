@@ -1,0 +1,243 @@
+//
+// Variables defined and initialized in this file are the ones you're most
+// likely to need in config files. Older versions defined them at the end
+// of setup.yx - we decided to move them here so there's a quick reference
+// file that contains just those variables. If you don't find what you're
+// looking for here try the other files (e.g., setup.yx). More comments will
+// be added in our next release, so there eventually will be more help.
+//
+// The first group of variables are the declarations of the Yoix arrays that
+// are used to build various tables that can be defined in your config file.
+// All of them should be used in the table.yx, which contains the code that's
+// used to extract information from the arrays.
+//
+
+Array AXES;
+Array CALLBACKS;
+Array COMPONENTS;
+Array DATAFIELDS;
+Array DATAFILTERS;		// obsolete - use HISTOGRAMS, GRAPHS etc.
+Array DATATABLES;
+Array GRAPHS;
+Array HISTOGRAMS;
+Array LABELS;
+Array PANELS;
+Array PLOTS;
+Array PLOTFILTERS;		// obsolete - use SWEEPHISTOGRAMS
+Array STACKS;
+Array STARTSCREENS;
+Array SWEEPGRAPHS;
+Array SWEEPHISTOGRAMS;
+Array SWEEPTABLES;
+Array TAGS;
+
+//
+// Config files usually define a special dictionary named TRANSLATORS that
+// can be used to apply quick translations to the strings in the input data
+// stream. Elements in TRANSLATORS should be dictionaries - rules that those
+// dictionaries should follow will be described later...
+//
+
+Dictionary TRANSLATORS;
+
+//
+// These define strings that are used to separate fields in the input data
+// or the columns that are loaded in tables.
+//
+// NOTE - GRAPHSEPARATOR appears to be unused in our current implementation
+// and probably can be removed.
+//
+
+Object INPUTSEPARATOR = "|";
+String TABLESEPARATOR = NULL;
+String GRAPHSEPARATOR;			// currently unused - delete it???
+
+//
+// Many of these need an explanation, but it will have to wait for a while.
+// We also expect to reorganize them as comments are added.
+//
+
+String COLOREDBY;
+String CONFIGVERSION = "4.1";
+String DROPTEXTSUFFIX;
+String FIRSTFOCUS;
+String INPUTCOMMENT;
+String MAINSCREEN;
+String MENUGROUPSEPARATOR;
+String SORTEDBY;
+
+Object PLOTSTYLE = STYLE_BARS;
+Object PRIMARYLABEL;
+Object SECONDARYLABEL;
+Object STACKSTYLE = STYLE_STACKED_BARS;
+
+Array  BUCKETWIDTHSLIDER;
+
+double BARSPACE = 0.5;
+double BUCKETORIGIN = 0;
+double BUCKETWIDTH = 0;
+double DIAMONDSCALE = 1.0;
+double SEPARATION = 0.05*72;
+
+int    ALLOWBLANKSTART = FALSE;
+int    AUTOSHOW = TRUE;
+int    AUTOZOOMMODEL = 0;
+int    DNDKEYCODE = KeyCode.VK_F2;
+int    DNDCURSOR = Cursor.HAND_CURSOR;
+int    DROPTEXTFLAGS = 0;
+int    INTERN = TRUE;
+int    LOCATIONMODE = -1;
+int    MENUBARMODEL = 0;
+int    MONITORTHRESHOLD = 0;
+int    NODEOUTLINESTATES = 5;
+int    OPTION_PANEL = TRUE;
+int    PLOTCONNECT = CONNECT_NONE;
+int    PLOTSTYLEFLAGS = STYLE_ENABLE_EVENTS;
+int    SHOWFIND = 0;
+int    STACKCONNECT = CONNECT_NONE;
+int    TITLEMODEL = 0;
+int    TRIMFIELDS = FALSE;
+int    GRAPH_TIPENABLED = TRUE;
+int    GRAPH_TIPFLAGS = TIP_OVER_NODES|TIP_SHOW_COUNT;
+int    GRAPH_TIPLOCKMODEL = NONE;
+int    PLOT_TIPENABLED = TRUE;
+int    PLOT_TIPFLAGS = TIP_OVER_STACKS|TIP_SHOW_VALUE|TIP_SHOW_TIES;
+int    PLOT_TIPLOCKMODEL = HORIZONTAL;
+int    PLOT_ZOOMMODEL = HORIZONTAL;
+int    STACK_ZOOMMODEL = HORIZONTAL;
+
+//
+// These are the default labels that are displayed in various menus. Some of
+// the associated menus can be hidden by setting the appropriate label string
+// to NULL.
+//
+
+String LABEL_BUCKETS = "Data Buckets";
+String LABEL_CUSTOMIZE = "Customize";
+String LABEL_DIVERSITY = "Diversity";
+String LABEL_DRAWINGSIZES = "Drawing Sizes";
+String LABEL_EDGES = "Edges";
+String LABEL_FIND = "Find";
+String LABEL_LONGDURATION = "Long Duration";
+String LABEL_NODEFILL = NULL;
+String LABEL_NODES = "Nodes";
+String LABEL_PLOTSTYLE = "Style";
+String LABEL_PLOTSWEEP = "Sweep";
+String LABEL_PRESSED = NULL;
+String LABEL_REVERSESHADING = "Reverse Shading";
+String LABEL_TIMESHADING = "Time Shading";
+String LABEL_GRAPH_TIPS = "Tips";
+String LABEL_SPREAD = "Spread";			// probably should be NULL
+String LABEL_STACK_TIPS = "Tips";
+String LABEL_TABLE_SETTINGS = "Settings";
+String LABEL_TIPS_OVER_EDGES = "Edges";
+String LABEL_TIPS_OVER_EVENTS = "Events";	// currently unused
+String LABEL_TIPS_OVER_NODES = "Nodes";
+String LABEL_TIPS_OVER_STACKS = "Stacks";	// currently unused
+
+//
+// Booleans that let you enable or disable the default display of components
+// in sweeptable screens.
+//
+
+int SHOW_SWEEPTABLE_DND = FALSE;
+int SHOW_SWEEPTABLE_EXPORT = FALSE;
+int SHOW_SWEEPTABLE_FILTER = TRUE;
+int SHOW_SWEEPTABLE_RESET = FALSE;
+int SHOW_SWEEPTABLE_ROWINFO = TRUE;
+int SHOW_SWEEPTABLE_SEARCH = TRUE;
+
+//
+// The ATTRIBUTES is very obscure and is only designed to be used by config
+// files that handle xdot data. In fact there's no reason why is needs to be
+// defined as an official YDAT variable since it's only used in config files,
+// so we eventually may remove it.
+//
+
+Object ATTRIBUTES;
+
+//
+// These are the default dimensions used for various objects. You will often
+// see something like
+//
+//     DIMENSIONS.HISTOGRAM.width += 36;
+//
+// in config files that want wider histograms. Default dimensions assigned to
+// other components can be changed the same way.
+//
+
+Dictionary DIMENSIONS = {
+    Dimension DATATABLE = {
+	double width = 4.0*72;
+	double height = VM.screen.height/2 - SEPARATION - 0.5*72;
+    };
+
+    Dimension GRAPH = {
+	double width = VM.screen.width - 2*SEPARATION - 3.0*72;
+	double height = VM.screen.height - 2*SEPARATION - 0.75*72;
+    };
+
+    Dimension HISTOGRAM = {
+	double width = 3.0*72;
+	double height = VM.screen.height/2 - SEPARATION - 0.5*72;
+    };
+
+    Dimension PLOT = {
+	double width = VM.screen.width - 2*SEPARATION;
+	double height = VM.screen.height/2 - 2*SEPARATION - 0.25*72;
+    };
+
+    Dimension MAINSCREEN = {
+	double width = VM.screen.width - 2*SEPARATION;
+	double height = VM.screen.height/2 - 2*SEPARATION - 0.25*72;
+    };
+
+    Dimension SWEEPGRAPH = {
+	double width = HISTOGRAM.height;
+	double height = HISTOGRAM.height;
+    };
+
+    Dimension SWEEPHISTOGRAM = {
+	double width = VM.screen.width - 2*SEPARATION - HISTOGRAM.width - SEPARATION;
+	double height = 0.66*HISTOGRAM.height;
+    };
+
+    Dimension SWEEPTABLE = {
+	double width = VM.screen.width - 2*SEPARATION - HISTOGRAM.width - SEPARATION;
+	double height = 0.66*HISTOGRAM.height;
+    };
+
+    Dimension PLOTFILTER = SWEEPHISTOGRAM;	// obsolete, but used in older config files
+};
+
+//
+// Arrays associated with names, like HISTOGRAM or GRAPH, in the OPERATIONS
+// dictionary control what happens when mouse buttons and modifier keys are
+// pressed. The first entry is for no modifiers, the second is for shift,
+// and the third is for the control key. They currently apply to all mouse
+// buttons, but the low level Java code has the final say.
+//
+// NOTE - there's currently no way to control plots.
+//
+
+Dictionary OPERATIONS = {
+
+    Array DATATABLE = {OP_SELECT, OP_SELECT, OP_PRESS};
+    Array HISTOGRAM = {OP_SELECT, OP_SELECT, OP_PRESS};
+    Array GRAPH = {OP_SELECT, OP_SELECT, OP_PRESS};
+};
+
+//
+// The default mapping of TimeZone names to offsets, which currently must
+// be an array of strings, is used to load a Choice in the new timeshading
+// control screen. Configuration files can override this mapping.
+//
+
+Array TIMESHADING_TIMEZONES = {
+    "PST", "-8",
+    "MST", "-7",
+    "CST", "-6",
+    "EST", "-5",
+    "UTC", "0",
+};
+

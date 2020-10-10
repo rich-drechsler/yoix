@@ -1,0 +1,16 @@
+import yoix.*.*;
+
+Path p;
+
+moveto(x, y) = printf(" moveto(%.1f, %.1f);\n", x, y);
+
+p.moveto(100, 200);
+p.moveto(100, 200);
+p.moveto(200, 400);
+
+printf("Output before CTM change:\n");
+p.pathforall(moveto, NULL, NULL, NULL, NULL);
+p.CTM.scale(2, 2);
+printf("\nOutput after CTM change:\n");
+p.pathforall(moveto, NULL, NULL, NULL, NULL);
+

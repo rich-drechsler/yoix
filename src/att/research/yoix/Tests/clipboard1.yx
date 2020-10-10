@@ -1,0 +1,36 @@
+//
+// Trivial clipboard example.
+//
+
+import yoix.*.*;
+
+Dictionary d1 = {
+    String name = "dictionary 1";
+
+    lostClipboardOwnership(Clipboard arg1, Object arg2) {
+	printf("=== %s lost ownership===\n", name);
+	printf("   new contents=%O\n", arg1.contents);
+	printf("   old contents=%O\n", arg2);
+    }
+};
+
+Dictionary d2 = {
+    String name = "dictionary 2";
+
+    lostClipboardOwnership(Clipboard arg1, Object arg2) {
+	printf("=== %s lost ownership===\n", name);
+	printf("   new contents=%O\n", arg1.contents);
+	printf("   old contents=%O\n", arg2);
+    }
+};
+
+systemclipboard = getSystemClipboard();
+
+systemclipboard.setContents("testing dictionary d1", d1);
+sleep(1);
+systemclipboard.setContents("testing dictionary d2", d2);
+sleep(1);
+systemclipboard.setContents("testing dictionary d1", d1);
+sleep(1);
+systemclipboard.setContents("testing no owner");
+sleep(1);

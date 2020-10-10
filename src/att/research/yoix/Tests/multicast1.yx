@@ -1,0 +1,54 @@
+//
+// A trivial MulitcastSocket test that currently only sends packets out on
+// your local network (because timetolive is set to 1). We've had lots of
+// MulitcastSocket problems on Linux and saw inconsistent behavoir on some
+// other platforms, so you may not have much luck running this script. Type
+// something like,
+//
+//	yoix multicasttest.yx 228.5.6.7 rich
+//
+// in a window to send messages to multicast group 228.5.6.7 as "bill" and
+//
+//	yoix multicasttest.yx 228.5.6.7 john
+//
+// in another window to send more messages and if things work both windows
+// should receive the messages that are sent to the group. If you're running
+// on Linux you may not receive any messages.
+//
+
+import yoix.*.*;
+
+MulticastSocket socket;
+String          buf[100];
+String          address;
+String          name;
+String          message;
+String          group;
+int             counter = 1;
+int             port;
+int             count;
+int             n;
+
+if (argc == 2 || argc == 3) {
+    if (isMulticastAddress(argv[1])) {
+	socket.localport = 6789;
+	socket.joinGroup(argv[1]);
+	name = (argc == 3) ? argv[2] : "unknown";
+    } else fprintf(stderr, "invalid address\n", argv[1]);
+} else fprintf(stderr, "usage error\n");
+
+if (socket.joinedgroups != NULL) {
+    socket.timeout = 1;
+    socket.timetolive = 1;
+    group = socket.joinedgroups[0];
+    for (n = 0; n < 20; n++) {
+	message = strfmt("message %d from %s", counter++, name);
+	count = socket.send(message, group, socket.localport);
+	printf("    sent: count=%d bytes to %s:%d\n", count, group, socket.localport);
+	sleep(2);
+	while (socket.receive(buf, &address, &port) > 0)
+	    printf("received: %s from %s:%d\n", buf, address, port);
+	sleep(2);
+    }
+}
+

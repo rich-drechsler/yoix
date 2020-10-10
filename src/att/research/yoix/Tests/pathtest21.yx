@@ -1,0 +1,33 @@
+import yoix.stdio.*;
+
+Path p;
+Path copy1 = NULL;
+Path copy2 = NULL;
+
+moveto(x, y) = printf(" moveto(%.1f, %.1f);\n", x, y);
+lineto(x, y) = printf(" lineto(%.1f, %.1f);\n", x, y);
+closepath() = printf(" closepath();\n");
+
+p.moveto(50, 50);
+p.lineto(50, 100);
+printf("\nPath before CTM change:\n");
+p.pathforall(moveto, lineto, NULL, NULL, closepath);
+copy1 = p.currentpath();
+p.CTM.scale(.5, .5);
+p.lineto(120, 60);
+printf("\nPath after CTM change (and lineto):\n");
+p.pathforall(moveto, lineto, NULL, NULL, closepath);
+copy2 = p.currentpath();
+p.scalepath(4, 4);
+p.lineto(16, 32);
+printf("\nPath after scalepath change (and lineto):\n");
+p.pathforall(moveto, lineto, NULL, NULL, closepath);
+copy3 = p.currentpath();
+
+printf("\nCopy of path before CTM change:\n");
+copy1.pathforall(moveto, lineto, NULL, NULL, closepath);
+printf("\nCopy of path after CTM change (and lineto):\n");
+copy2.pathforall(moveto, lineto, NULL, NULL, closepath);
+printf("\nCopy of path after scalepath change (and lineto):\n");
+copy3.pathforall(moveto, lineto, NULL, NULL, closepath);
+

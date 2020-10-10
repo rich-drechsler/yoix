@@ -1,0 +1,148 @@
+import yoix.*.*;
+
+TableSorter(e) {
+    int idx;
+    int len;
+    int off;
+    int i;
+    int j;
+
+    //
+    // A generic invocationAction() event handler that can be used
+    // by the JTable component. It uses the spare "etc" field in
+    // JTable to store sort column info across invocations.
+    // 
+
+    save this.root.cursor = Cursor.WAIT_CURSOR;
+
+    if (e == NULL) {
+	if (this.etc != NULL && this.etc@sizeof > 0) {
+	    this.action(TABLE_SORT, this.etc + off);
+	}
+    } else if (e.valuesColumn >= 0) {
+	if ((e.modifiers&CTRL_MASK) == 0) {
+	    this.etc = new Array[0,...] {};
+	    len = 0;
+	} else {
+	    e.modifiers &= ~CTRL_MASK;
+	    if (this.etc == NULL)
+		this.etc = new Array[0,...] {};
+	    len = this.etc@length;
+	}
+
+	if (e.modifiers == BUTTON1_MASK) {
+	    if (len == 0 && this.columns[e.valuesColumn].state > 0)
+		idx = 0;
+	    else idx = 1 + e.valuesColumn;
+	} else {
+	    if (len == 0 && this.columns[e.valuesColumn].state < 0)
+		idx = 0;
+	    else idx = -(1 + e.valuesColumn);
+	}
+	for (i=0; i<len; i++) {
+	    if (idx == this.etc[i]) {
+		for (j=i; j>0; j--)
+		    this.etc[j] = this.etc[j-1];
+		this.etc[0] = 0;
+		idx = 0;
+		break;
+	    } else if (-idx == this.etc[i]) {
+		this.etc[i] = idx;
+		idx = 0;
+		break;
+	    }
+	}
+	for (off=0; off<len; off++) {
+	    if (this.etc[off] != 0)
+		break;
+	}
+	if (idx != 0) {
+	    this.etc[len] = idx;
+	    len++;
+	}
+
+	if (len == off) {
+	    this.action(TABLE_SORT, NULL);
+	    this.etc = new Array[0,...] {};
+	} else this.action(TABLE_SORT, this.etc + off);
+
+	if (defined("dfltcellcolors", this)) {
+	    if (len == off) {
+		this.cellcolors = this.dfltcellcolors;
+	    } else {
+		Array  values;
+		Array  cols;
+		Array  etc;
+
+		cols = new Array[len-off];
+		etc = (this.etc + off);
+		for (m = 0; m < cols@length; m++) {
+		    cols[m] = abs(etc[m]) - 1;
+		}
+		this.cellcolors = getArrayBands(
+		    this.action(TABLE_JOIN, cols, TRUE, TRUE, 1),
+		    unroll(this.dfltcellcolors)
+		    );
+	    }
+	}
+    }
+}
+
+JTable jt = {
+    int reorder = 1;
+    int resize = 1;
+    int scroll = VERTICAL_ALWAYS|HORIZONTAL_AS_NEEDED;
+    int scrolltolastrow = 1;
+    int rowheightadjustment = -1;
+    Color background = Color.blue;
+    int  edit = 1;
+
+    int multiplemode = MULTIPLE_INTERVAL_SELECTION;
+    
+    Array altbackground = {
+	Color.orange,
+	Color.red,
+	Color.green,
+    };
+    Array altforeground = {
+	Color.black,
+	Color.pink,
+	Color.magenta,
+    };
+    Array cellcolors = {
+	new Array[] { Color.yellow, Color.yellow, Color.orange, Color.orange },
+	Color.red,
+    };
+    Array headers = {
+        "First Name", 
+	"Last Name",
+	"Sport",
+	"Flag",
+	"Percent",
+	"Date",
+	"Salary",
+	"# of Years",
+	"Vegetarian",
+	"Timer",
+    };
+    Array types = {
+	TEXT_TYPE, TEXT_TYPE, STRING_TYPE, ICON_TYPE, PERCENT_TYPE, DATE_TYPE, MONEY_TYPE, INTEGER_TYPE, BOOLEAN_TYPE, TIMER_TYPE,
+    };
+    String values = "Mary has a few lines|Walrath has a lot of lines to run a test|Snowboarding|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|143.1234|5|false|1d2m\nAlison^has^fixed^lines|Huml|Rowing|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|1923.321|3|true|23h12m\nKathy|Walrath|Chasing toddlers|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|12.5|2|false|23h11m59s\nSharon|Zakhour|Speed reading|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|-142|20|true|2d\nAngela|Lih|Teaching high school|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|123.123|4|false|5m\n";
+
+    
+    Function invocationAction  = TableSorter;
+};
+
+//jt.action(CELL_SELECTION, TRUE);
+//jt.action(SET_FIELD, 1, 0, "Alison\r\nhas\r\nsome\r\nfixed\r\nlines");
+
+JFrame f = {
+    int visible = 1;
+    Dimension size = NULL;
+
+    Array layout = {
+	jt,
+	CENTER,
+    };
+};

@@ -1,0 +1,875 @@
+//
+// This script is usually executed by the Yoix script that serves as
+// the user interface for ydat and when it's done it returns a Yoix
+// function (named Run) that the caller can use to display data. The
+// implementation is more obscure than you might expect because it's
+// designed to run standalone or as a plugin that's tightly coupled
+// to a Yoix client-server system (e.g., YWAIT).
+//
+
+import yoix.ydat.*;		// data visualization module
+import yoix.*.*;
+import yoix.apple.*;		// custom apple support
+
+//
+// Only set this to TRUE if your data files will sometimes start with
+// Yoix code that the DataManager can identify and evaluate. Setting
+// ALLOWEVAL to TRUE means that when TEXTSEPARATOR is set to a string
+// that's not NULL then it's used to separate the input text into two
+// sections. The first part is assumed to be Yoix code that's executed
+// (via eval) while the second part is assumed to be the data that you
+// want displayed. The current implemention intentionally only provides
+// an easy way to modify translators that may have been defined in the
+// config file, but it's not difficult to imagine much more elaborate
+// things, like including the config file with the data.
+//
+// We're not completely comfortable with the idea that a "data" file
+// could also contain executable code, so by default the feature is
+// disabled. Think carefully before enabling it!!
+//
+
+final int ALLOWEVAL = FALSE;	// think before setting this to TRUE!!
+
+//
+// These may be redefined when we're called from the standard startup
+// script, but there's a chance everything will work if you point the
+// Yoix interpreter at this file (provided HOME is set properly).
+//
+
+Dictionary CONTEXT = NULL;
+int        AUTOZOOM = FALSE;
+double     AXISWIDTH = .75;
+String     CONFIG = NULL;
+String     CONFIGFILE = NULL;
+String     CUSTOMFILE = NULL;
+int        DEBUGGING = FALSE;
+Dictionary EXPORTS = NULL;
+String     HOME = ".";
+double     LINEWIDTH = 1.0;
+int        MENULIMIT = 25;
+int        MENUMODEL = 0;
+Array      MODEL = NULL;
+String     PROGRAM = "ydat";
+String     PROGRAM_UPLOW = "YDAT";
+int        REVERSEPALETTE = FALSE;
+int        REVERSEVIDEO = FALSE;
+String     TEXTSEPARATOR = NULL;
+int        TIMESHADING = TRUE;
+
+Die(String format, ...) {
+    String message = strfmt(unroll(&format));
+
+    stderr.nextline = PROGRAM_UPLOW + ": " + message;
+    showMessageDialog(NULL, message, PROGRAM_UPLOW + " Error", ERROR_MESSAGE);
+    Quit(1);
+}
+
+Warn(String format, ...) {
+    String message = strfmt(unroll(&format));
+
+    showMessageDialog(NULL, message, PROGRAM_UPLOW + " Warning", WARNING_MESSAGE);
+}
+
+Quit(int status) {
+    exit(status);
+}
+
+Include(String program, String name) {
+    if (name != NULL) {
+	if (program != NULL) {
+	    if (!defined("GetFile", CONTEXT) || CONTEXT.GetFile == NULL) {
+		global {
+		    include HOME + "/" + name;
+		}
+	    } else {
+		global {
+		    eval(CONTEXT.GetFile(program + "/" + name));
+		}
+	    }
+	} else {
+	    global {
+		include name;
+	    }
+	}
+    }
+}
+
+GetExport(String key, String value) = defined(key, EXPORTS) ? EXPORTS[key] : value;
+
+GetVersionInfo() {
+    String text;
+
+    text = "YDAT Version " + getModuleVersion("att.research.yoix.ydat.Module") + "\n";
+    text += "Yoix Version " + VM.Version + "\n";
+    text += "Developed by AT&T Labs - Research";
+    return(text);
+}
+
+//
+// A dictionary argument means we were executed by a Yoix startup
+// script and elements in that dictionary override the defaults.
+// Omitting the lines that change HOME and PROGRAM would not be
+// unreasonable, but means their initialization earlier in this
+// script would have to be correct.
+//
+
+if (argc == 2) {
+    if (argv[1] instanceof Dictionary) {	// only when we're executed
+	CONTEXT = argv[1];
+	AUTOZOOM = CONTEXT.AUTOZOOM;
+	AXISWIDTH = CONTEXT.AXISWIDTH;
+	CONFIG = CONTEXT.CONFIG;
+	CONFIGFILE = CONTEXT.CONFIGFILE;
+	CUSTOMFILE = CONTEXT.CUSTOMFILE;
+	DEBUGGING = CONTEXT.DEBUGGING;
+	EXPORTS = CONTEXT.EXPORTS;
+	HOME = CONTEXT.HOME;
+	LINEWIDTH = CONTEXT.LINEWIDTH;
+	MENULIMIT = CONTEXT.MENULIMIT;
+	MENUMODEL = CONTEXT.MENUMODEL;
+	MODEL = CONTEXT.MODEL;
+	PROGRAM = CONTEXT.PROGRAM;
+	PROGRAM_UPLOW = CONTEXT.PROGRAM_UPLOW;
+	REVERSEPALETTE = CONTEXT.REVERSEPALETTE;
+	REVERSEVIDEO = CONTEXT.REVERSEVIDEO;
+	TEXTSEPARATOR = CONTEXT.TEXTSEPARATOR;
+	TIMESHADING = CONTEXT.TIMESHADING;
+
+	Die = CONTEXT.Die;
+	Warn = CONTEXT.Warn;
+	Quit = CONTEXT.Quit;
+    }
+}
+
+//
+// Currently need to make sure either CONFIG or CONFIGFILE is NULL, but
+// that could change in the near future.
+//
+
+if (CONFIGFILE == NULL) {
+    if (CONFIG@sizeof > 0)
+	CONFIG = "config_" + CONFIG + ".yx";
+    else CONFIG = "config.yx";
+} else CONFIG = NULL;
+
+//
+// Make sure important definitions are protected before we include any
+// additional files.
+//
+
+final CONFIG;
+final CONFIGFILE;
+final CONTEXT;
+final CUSTOMFILE;
+final EXPORTS;
+final HOME;
+final PROGRAM;
+final TEXTSEPARATOR;
+
+final Include;
+final GetExport;
+
+Include(PROGRAM, "variables.yx");
+Include(PROGRAM, "setup.yx");
+Include(PROGRAM, "common.yx");
+Include(PROGRAM, "callbacks.yx");
+Include(PROGRAM, CONFIG);
+Include(NULL, CONFIGFILE);
+Include(NULL, CUSTOMFILE);
+Include(PROGRAM, "init.yx");
+Include(PROGRAM, "constructors.yx");
+Include(PROGRAM, "table.yx");
+
+//
+// Adjustment for older config files, which eventually can disappear.
+// We probably should also be checking CONFIGVERSION.
+//
+
+if (HISTOGRAMS == NULL) {
+    HISTOGRAMS = DATAFILTERS;
+    DATAFILTERS = NULL;
+}
+
+//
+// Screen builder that also picks the screen's starting location unless
+// the caller has supplied FALSE as the optional fourth argument. Right
+// now that only happens when we're building startup screens listed in
+// the STARTSCREENS array.
+//
+
+GetScreen(String name, Object parent, Dictionary context, ...) {
+    Dictionary desc;
+    Dimension  size;
+    Object     screen;
+    Point      location;
+    int        mainscreen;
+    int        picklocation = argc > 4 ? argv[4] : TRUE;
+
+    if (!defined(name, context.allscreens) || context.allscreens[name].dispose) {
+	mainscreen = (context.allscreens@sizeof == 0);
+	if (defined(name, context.filters)) {
+	    desc = context.filters[name];
+	    if (desc.filter instanceof Histogram) {
+		screen = NewHistogramScreen(desc.filter, PickTitle(desc, desc.tag), desc.diversity, parent);
+		size = screen.size;
+		size.width = DIMENSIONS.HISTOGRAM.width;
+		if (size.height <= 0 || size.height > DIMENSIONS.HISTOGRAM.height)
+		    size.height = DIMENSIONS.HISTOGRAM.height;
+		if (screen.locationindex < 0)
+		    screen.locationindex = 0;
+	    } else if (desc.filter instanceof GraphPlot) {
+		if (defined(desc.coloredby, context.filters))
+		    desc.filter.coloredby = context.filters[desc.coloredby].filter;
+		screen = NewGraphScreen(desc.filter, PickTitle(desc, desc.tag), parent, mainscreen);
+		size = DIMENSIONS.GRAPH;
+		if (screen.locationindex < 0)
+		    screen.locationindex = 1;
+	    } else if (desc.filter instanceof DataTable) {
+		screen = NewDataTableScreen(desc.filter, PickTitle(desc, desc.tag), parent);
+		size = screen.size;
+		size.width = DIMENSIONS.DATATABLE.width;
+		if (size.height <= 0 || size.height > DIMENSIONS.DATATABLE.height)
+		    size.height = DIMENSIONS.DATATABLE.height;
+		if (screen.locationindex < 0)
+		    screen.locationindex = 2;
+	    }
+	} else if (defined(name, context.sweepfilters)) {
+	    desc = context.sweepfilters[name];
+	    if (desc.filter instanceof Histogram) {
+	        screen = NewSweepHistogramScreen(desc.filter, PickTitle(desc, desc.tag), desc.label, parent);
+	        size = DIMENSIONS.SWEEPHISTOGRAM;
+		if (screen.locationindex < 0)
+		    screen.locationindex = 3;
+	    } else if (desc.filter instanceof DataTable) {
+	        screen = NewSweepTableScreen(desc.filter, PickTitle(desc, desc.tag), desc.label, parent);
+	        size = DIMENSIONS.SWEEPTABLE;
+		if (screen.locationindex < 0)
+		    screen.locationindex = 3;
+	    } else if (desc.filter instanceof GraphPlot) {
+		//
+		// Still needs to be implemented...
+		//
+		screen = NewSweepGraphScreen(desc.filter, PickTitle(desc, desc.tag), parent);
+		size = DIMENSIONS.SWEEPGRAPH;
+		if (screen.locationindex < 0)
+		    screen.locationindex = 3;
+	    }
+	} else if (defined(name, context.allpanels)) {
+	    screen = NewPlotScreen(context.allpanels[name], PickTitle(context.allpanels[name], name), parent, mainscreen);
+	    if (name === MAINSCREEN) {
+		if (defined("MAINSCREEN", DIMENSIONS))
+		    size = DIMENSIONS.MAINSCREEN;
+		else size = NULL;
+	    } else size = NULL;
+	    if (screen.locationindex < 0)
+		screen.locationindex = 4;
+	}
+	if (screen != NULL) {
+	    if (size != NULL && screen.screensize != NULL) {
+		size.width = screen.screensize.width > 0 ? screen.screensize.width : size.width;
+		size.height = screen.screensize.height > 0 ? screen.screensize.height : size.height;
+	    }
+	    if (!defined(name, context.allscreens)) {
+		screen.size = size;
+		if (picklocation)
+		    PickScreenLocation(screen, context.screenlocations, context);
+	    } else {
+		screen.size = context.allscreens[name].size;
+		screen.location = context.allscreens[name].location;
+	    }
+	    context.allscreens[name] = screen;
+	}
+    } else screen = context.allscreens[name];
+
+    return(screen);
+}
+
+PickScreenLocation(Object screen, Array screenlocations, Dictionary context) {
+    Object lastscreen;
+    Point  location;
+
+    if (screen.locationmode != 0) {
+	if (defined(screen.locationindex, screenlocations) && (lastscreen = screenlocations[screen.locationindex]) != NULL) {
+	    switch (screen.locationmode) {
+		case -1:
+		    location.x = lastscreen.location_start.x - screen.size.width - SEPARATION;
+		    if (location.x < 0)
+			location.x = VM.screen.width - screen.size.width - SEPARATION;
+		    location.y = lastscreen.location_start.y;
+		    break;
+
+		case 1:
+		    location.x = lastscreen.location_start.x + lastscreen.size.width + SEPARATION;
+		    if (location.x + screen.size.width > VM.screen.width)
+			location.x = 0;
+		    location.y = lastscreen.location_start.y;
+		    break;
+
+		case -2:
+		    location.x = lastscreen.location_start.x;
+		    location.y = lastscreen.location_start.y - screen.size.height - SEPARATION;
+		    if (location.y < 0)
+			location.y = VM.screen.height - screen.size.height - SEPARATION;
+		    break;
+
+		case 2:
+		    location.x = lastscreen.location_start.x;
+		    location.y = lastscreen.location_start.y + lastscreen.size.height + SEPARATION;
+		    if (location.y + screen.size.height > VM.screen.height)
+			location.y = 0;
+		    break;
+
+		default:
+		    location.x = lastscreen.location_start.x;
+		    location.y = lastscreen.location_start.y;
+		    break;
+	    }
+	    screen.location = location;
+	    screen.location_start = location;
+	} else if (defined(MAINSCREEN, context.allscreens) && (lastscreen = context.allscreens[MAINSCREEN]) != NULL) {
+	    switch (screen.locationmode) {
+		case -1:
+		    location.x = VM.screen.width - screen.size.width - SEPARATION;
+		    location.y = lastscreen.location_start.y + lastscreen.size.height + SEPARATION;
+		    break;
+
+		case 1:
+		    location.x = 0;
+		    location.y = lastscreen.location_start.y + lastscreen.size.height + SEPARATION;
+		    break;
+
+		case -2:
+		    location.x = lastscreen.location_start.x + lastscreen.size.width + SEPARATION;
+		    location.y = VM.screen.height - screen.size.height - SEPARATION;
+		    break;
+
+		case 2:
+		    location.x = lastscreen.location_start.x + lastscreen.size.width + SEPARATION;
+		    location.y = 0;
+		    break;
+	    }
+	    if (location.x + screen.size.width > VM.screen.width)
+		location.x = VM.screen.width - screen.size.width;
+	    if (location.x < 0)
+		location.x = 0;
+	    if (location.y + screen.size.height > VM.screen.height)
+		location.y = VM.screen.height - screen.size.height;
+	    if (location.y < 0)
+		location.y = 0;
+	    screen.location = location;
+	    screen.location_start = location;
+	}
+	screenlocations[screen.locationindex] = screen;
+    }
+}
+
+PickTitle(Object desc, String title) {
+    if (TITLEMODEL != 0) {
+	if (desc != NULL) {
+	    if (defined("menulabel", desc) && desc.menulabel != NULL)
+		title = desc.menulabel;
+	    else title = PROGRAM_UPLOW;
+	}
+    }
+    return(title);
+}
+
+//
+// We've occasionally had trouble determining the initial position of the
+// main screen when there are window manager decorations along the top of
+// the display. What seems to happen when we request an initial position
+// that would cover part of those decorations is that the OS (we've really
+// only verified this on Linux using GNOME) rejects our request and moves
+// the screen, which generates a componentMoved event. If we ask for the
+// position of the screen too quickly after making it visible we end up
+// getting the old location, but using the invokeLater(), notifyAll() and
+// wait() builtins gives the componentMoved event a chance to clear the
+// queue.
+//
+
+GetStartLocation(Object screen) {
+    //
+    // Lets the event queue drain before we read the screen's starting
+    // location.
+    //
+    if (!isDispatchThread()) {
+	NotifyAll(Pointer lock) {
+	    synchronized(lock) {
+		notifyAll(lock);
+	    }
+	}
+	synchronized(screen) {
+	    invokeLater(NotifyAll, screen);
+	    wait(screen);
+	}
+    }
+    return(screen.location);
+}
+
+//
+// Return value when this script is executed is a function that can run
+// the data visualization. First argument, if it's not NULL, is a screen
+// that we use as the parent of the visualization screens that we create.
+// The second argument is the input data that's parsed and displayed by
+// the DataManager based on the configuration file that's read.
+//
+
+Run(Object owner, Object input, ...) {
+    DataManager manager = {
+	String text = NULL;
+	String loadedtext = NULL;
+	String inputcomment = INPUTCOMMENT;
+	Object inputfilter = INPUTSEPARATOR;
+	int    intern = INTERN;
+	int    trimfields = TRIMFIELDS;
+
+	//
+	// A recent addition that lets the caller pass the address of
+	// a reference to us that's supposed to be set to NULL when we
+	// quit.
+	//
+
+	Pointer reference = NULL;
+
+	//
+	// A placeholder for timezone info.
+	//
+
+	Object TZ = NULL;
+
+	//
+	// Dictionaries that are filled by table readers and used elsewhere
+	// to look for objects (e.g., screens) by name. Overkill - I'm sure
+	// many of these could be eliminated.
+	//
+
+	Dictionary context[0, ...] = {
+	    Dictionary fields[0, ...];
+	    Dictionary filters[0, ...];
+	    Dictionary eventplots[0, ...];
+	    Dictionary plotaxes[0, ...];
+	    Dictionary sweepfilters[0, ...];
+	    Dictionary allcomponents[0, ...];
+	    Dictionary allcallbacks[0, ...];
+	    Dictionary allowners[0, ...];
+	    Dictionary allpanels[0, ...];
+	    Dictionary allscreens[0, ...];
+	    Dictionary usedcomponents[0, ...];
+	    Array      reservednames[0, ...];
+
+	    //
+	    // Used to help with initial screen positioning. Entries are
+	    // filled in by GetScreen() when a new screen is created and
+	    // the slot that the new screen goes in is based on the type
+	    // of that screen (e.g., Histogram and GraphPlot screens end
+	    // up in different slots).
+	    //
+
+	    Array screenlocations[0, ...];
+
+	    //
+	    // Mostly a test for the new eval code that's only enabled if
+	    // ALLOWEVAL is TRUE and the TEXTSEPARATOR string isn't NULL.
+	    //
+
+	    Dictionary TRANSLATORS[0, ...] = TRANSLATORS;
+	};
+
+	//
+	// DataManager fields, like datafields or datafilters, were set
+	// here in older versions, but we moved their initialization to
+	// Start() so we could provide a way to override some settings.
+	// We need to declare non-standard fields here even though they
+	// are also initialized later.
+	// 
+
+	Dictionary callbacks;
+	Array      dataviewers;
+
+	//
+	// A recent addition that lets us define a preprocessor function
+	// (typically in the config file) and have it applied when data
+	// is loaded.
+	//
+
+	Function Preprocessor = defined("PREPROCESSOR") ? PREPROCESSOR : NULL;
+
+	Function QuitCleanup = NULL;
+
+	afterColoredBy() {
+	    int length;
+	    int n;
+
+	    if (defined("COLOREDBY", callbacks)) {
+		if (callbacks.COLOREDBY instanceof Array) {
+		    length = callbacks.COLOREDBY@sizeof;
+		    for (n = 0; n < length; n++) {
+			*callbacks.COLOREDBY[n].target = callbacks.COLOREDBY[n].Formatter(this);
+			if (callbacks.COLOREDBY[n].Callback != NULL)
+			    callbacks.COLOREDBY[n].Callback(this);
+		    }
+		} else {
+		    *callbacks.COLOREDBY.target = callbacks.COLOREDBY.Formatter(this);
+		    if (callbacks.COLOREDBY.Callback != NULL)
+			callbacks.COLOREDBY.Callback(this);
+		}
+	    }
+	}
+
+	afterLoad(int count) {
+	    int length;
+	    int n;
+
+	    if (defined("LOAD", callbacks)) {
+		if (callbacks.LOAD instanceof Array) {
+		    length = callbacks.LOAD@sizeof;
+		    for (n = 0; n < length; n++) {
+			*callbacks.LOAD[n].target = callbacks.LOAD[n].Formatter(this);
+			if (callbacks.LOAD[n].Callback != NULL)
+			    callbacks.LOAD[n].Callback(this);
+		    }
+		} else {
+		    *callbacks.LOAD.target = callbacks.LOAD.Formatter(this);
+		    if (callbacks.LOAD.Callback != NULL)
+			callbacks.LOAD.Callback(this);
+		}
+	    }
+	}
+
+	afterUpdate(int count) {
+	    int length;
+	    int n;
+
+	    if (defined("UPDATE", callbacks)) {
+		if (callbacks.UPDATE instanceof Array) {
+		    length = callbacks.UPDATE@sizeof;
+		    for (n = 0; n < length; n++) {
+			*callbacks.UPDATE[n].target = callbacks.UPDATE[n].Formatter(this);
+			if (callbacks.UPDATE[n].Callback != NULL)
+			    callbacks.UPDATE[n].Callback(this);
+		    }
+		} else {
+		    *callbacks.UPDATE.target = callbacks.UPDATE.Formatter(this);
+		    if (callbacks.UPDATE.Callback != NULL)
+			callbacks.UPDATE.Callback(this);
+		}
+	    }
+	}
+
+	//
+	// Lookup functions - currently only for user code.
+	//
+
+	FindComponent(String name) {
+	    return(defined(name, context.allcomponents) ? context.allcomponents[name] : NULL);
+	}
+
+	FindScreen(String name) {
+	    return(defined(name, context.allscreens) ? context.allscreens[name] : NULL);
+	}
+
+	GetColoredByLabel() {
+	    String label = NULL;
+	    String name;
+
+	    if (coloredby != NULL) {
+		name = coloredby.tag;
+		if (defined(name, context.filters))
+		    label = context.filters[name].menulabel;
+	    }
+	    return(label);
+	}
+
+	IsComponentVisible(String name) {
+	    return(defined(name, context.allcomponents) && context.allcomponents[name].visible);
+	}
+
+	IsScreenVisible(String name) {
+	    return(defined(name, context.allcomponents) && context.allcomponents[name].visible);
+	}
+
+	//
+	// Special functions that can be used to set datamanager fields, but
+	// only after cheching one of the context dictionaries.
+	//
+
+	SetColoredBy(String name) {
+	    coloredby = defined(name, context.filters) ? context.filters[name].filter : NULL;
+	}
+
+	SetSortedBy(String name) {
+	    sortedby = defined(name, context.eventplots) ? context.eventplots[name].plot : NULL;
+	}
+
+	SyncColoredBy(String name) {
+	    Object screen;
+	    int    n;
+
+	    SetColoredBy(name);
+	    for (n = 0; n < context.allscreens@sizeof; n++) {
+		if (defined("SyncColoredBy", context.allscreens[n])) {
+		    context.allscreens[n].SyncColoredBy(name);
+		    break;
+		}
+	    }
+	}
+
+	//
+	// Functions used to show screens.
+	//
+
+	RaiseAllScreens() {
+	    Object mainscreen;
+
+	    for (ptr in context.allscreens) {
+		if (ptr[0]@nameof) {
+		    if (ptr[0]@nameof !== MAINSCREEN)
+			toFront(ptr[0]);
+		    else mainscreen = ptr[0];
+		}
+	    }
+	    if (mainscreen)
+		toFront(mainscreen);
+	}
+
+	ShowAllScreens() {
+	    Object mainscreen;
+
+	    for (ptr in context.allscreens) {
+		if (ptr[0]@nameof) {
+		    if (ptr[0]@nameof !== MAINSCREEN) {
+			if (ptr[0].visible || ptr[0].iconified)
+			    ptr[0].visible = TRUE;
+		    } else mainscreen = ptr[0];
+		}
+	    }
+	    if (mainscreen)
+		toFront(mainscreen);
+	}
+
+	ShowScreen(String name, Object parent, Point location) {
+	    Object screen;
+
+	    if ((screen = GetScreen(name, parent, context)) != NULL) {
+		if (location != NULL)
+		    screen.location = location;
+		screen.visible = TRUE;
+		if (screen.location_start == NULL)
+		    screen.location_start = screen.location;
+		if (defined("AfterShowScreen", screen))
+		    screen.AfterShowScreen();
+	    }
+	}
+
+	ShowStartScreens(Array ptr, Object owner) {
+	    Dimension size;
+	    Object    parent;
+	    Object    screen;
+	    Point     location;
+
+	    if ((parent = GetScreen(MAINSCREEN, owner, context)) != NULL || MAINSCREEN == NULL) {
+		for (; ptr@sizeof >= COLUMNS_STARTSCREENS; ptr += COLUMNS_STARTSCREENS) {
+		    if ((screen = GetScreen(ptr[0], parent != NULL ? parent : owner, context, FALSE)) != NULL) {
+			if (parent == NULL) {
+			    parent = screen;
+			    if (MAINSCREEN == NULL)
+				MAINSCREEN = ptr[0];
+			    if (defined("MAINSCREEN", DIMENSIONS))
+				size = DIMENSIONS.MAINSCREEN;
+			    else size = screen.size;
+			} else size = screen.size;
+			size.width = (ptr[3] > 0) ? ptr[3] : size.width;
+			size.height = (ptr[4] > 0) ? ptr[4] : size.height;
+			screen.size = size;
+			PickScreenLocation(screen, context.screenlocations, context);
+			location.x = (ptr[1] >= 0) ? ptr[1] : screen.location.x;
+			location.y = (ptr[2] >= 0) ? ptr[2] : screen.location.y;
+			screen.location = location;
+			screen.visible = TRUE;
+			screen.location_start = GetStartLocation(screen);
+			if (defined("AfterShowScreen", screen))
+			    screen.AfterShowScreen();
+		    } else Die("can't find screen named %s", ptr[0]);
+		}
+	    } else Die("can't find main screen named %s", MAINSCREEN);
+	}
+
+	Dispose() {
+	    int n;
+
+	    for (n = 0; n < context.allscreens@sizeof; n++)
+		context.allscreens[n].visible = FALSE;
+	    text = NULL;
+	    dispose = TRUE;
+	    for (n = 0; n < context.allscreens@sizeof; n++) {
+		context.allscreens[n].dispose = TRUE;
+		if (defined("datamanager", context.allscreens[n]))
+		    context.allscreens[n].datamanager = NULL;
+	    }
+	    for (n = 0; n < context.screenlocations@sizeof; n++)
+		context.screenlocations[n] = NULL;
+	    if (reference != NULL)
+		*reference = NULL;
+	    reference = NULL;
+	    loadedtext = NULL;
+	    if (defined("QuitCleanup", this) && QuitCleanup != NULL && QuitCleanup@sizeof == 1)
+		QuitCleanup(this);
+	}
+
+	Quit(int status) {
+	    Dispose();
+	    global.Quit(status);
+	}
+
+	//
+	// Functions that load data from a file or string.
+	//
+
+	Load(Object input, Function preprocessor) {
+	    String str;
+
+	    Reset();
+	    if (preprocessor != NULL)
+		str = preprocessor(input);
+	    else if (input instanceof String)
+		str = input;
+	    else if (!ALLOWBLANKSTART)
+		Die("supplied input is neither a String nor a graph");
+
+	    text = str;
+	    loadedtext = str;		// Reload() needs a copy
+	}
+
+	LoadArgs(Array args) {
+	    for (; args@sizeof > 1; args += 2)
+		this[args[0]] = args[1];
+	}
+
+	LoadPath(String path) {
+	    Stream stream;
+
+	    if ((stream = open(path, "r")) != NULL) {
+		Load(readStream(stream), Preprocessor);
+		close(stream);
+	    } else Warn("can't open %s", path);
+	}
+
+	LoadSelected() {
+	    Reset();
+	    text = selected;
+	}
+
+	LoadUnselected() {
+	    Reset();
+	    text = unselected;
+	}
+
+	Reload() {
+	    Load(loadedtext, NULL);
+	}
+
+	Reset() {
+	    Object comp;
+	    int    n;
+
+	    for (n = 0; n < context.allcomponents@sizeof; n++) {
+		if ((comp = context.allcomponents[n]) != NULL) {
+		    if (defined("Reset", comp)) {
+			if (comp.Reset instanceof Callable)
+			    comp.Reset();
+		    }
+		}
+	    }
+	}
+
+	SyncSweepFilters(String tag, Object parent) {
+	    Object filter;
+	    int    n;
+
+	    if (defined(tag, context.eventplots)) {
+		if ((filter = context.eventplots[tag].filter) != NULL) {
+		    if (filter instanceof Array) {
+			for (n = 0; n < filter@sizeof; n++) {
+			    if (filter[n] != NULL && filter[n].autoshow)
+				GetScreen(filter[n].tag, parent, context);
+			}
+		    } else if (filter.autoshow)
+			GetScreen(filter.tag, parent, context);
+		}
+	    }
+	}
+
+	//
+	// Called once to start the program.
+	//
+
+	Start(Object input, Object owner) {
+	    Object focus;
+
+	    if (!defined("dispose", owner) || !owner.dispose) {
+		input = Separate(input);
+		Initialize();
+		if (MONITORTHRESHOLD > 0 && input@sizeof > MONITORTHRESHOLD)
+		    monitor = NewMonitorThread();
+		Load(input, Preprocessor);
+		ShowStartScreens(STARTSCREENS, owner);
+		if ((focus = FindComponent(MAINSCREEN)) != NULL)
+		    focus.requestfocus = TRUE;
+		if ((focus = FindComponent(FIRSTFOCUS)) != NULL || (focus = FindComponent(SORTEDBY)) != NULL)
+		    focus.requestfocus = TRUE;
+	    }
+	}
+
+	Separate(Object input) {
+	    Array args;
+
+	    if (input instanceof String) {
+		if (TEXTSEPARATOR@sizeof > 0) {
+		    args = strsplit(input, TEXTSEPARATOR, 2);
+		    if (args@sizeof > 1) {
+			if (args[0]@sizeof > 0) {
+			    if (ALLOWEVAL) {
+				context {
+				    eval(args[0]);
+				}
+			    }
+			}
+			input = args[1];
+		    }
+		}
+	    }
+	    return(input);
+	}
+
+	Initialize() {
+	    //
+	    // Order currently matters, so don't do any rearranging!!
+	    //
+
+	    datafields = BuildDataFields(context);		// must be first
+	    datafilters = BuildDataFilters(context);
+	    dataviewers = BuildDataViewers(context);
+	    datatables = BuildDataTables(context);
+	    sweepfilters = BuildSweepFilters(context);		// must precede plots
+	    dataplots = BuildDataPlots(context);
+	    callbacks = ResolveCallbacks("datamanager", context);
+
+	    BuildPanels(context);
+	    SetColoredBy(COLOREDBY);
+	    SetSortedBy(SORTEDBY);
+	}
+    };
+
+    if (argc > 3) {
+	Array args = unroll(&argv[3]);
+	// leftover for backward-compatibility -- can we get rid of it and just use LoadArgs
+	if (!(*args instanceof String) && *args instanceof Pointer)
+	    manager.reference = *args++;
+	manager.LoadArgs(args);
+    }
+
+    manager.Start(input, owner);
+    return(manager);
+}
+
+return(Run);

@@ -1,0 +1,49 @@
+//
+// Simple example that puts a ColorCube in a BranchGroup that's rotated
+// around its x axis.
+//
+
+import yoix.j3d.*;
+import yoix.*.*;
+
+Frame f = {
+    Array layout = {
+	new Canvas3D {
+	    String tag = "$_canvas";
+
+	    VirtualUniverse view = {
+		Color background = Color.cyan;
+		Image backgroundimage = NULL;
+
+		Array layout = {
+		    new BranchGroup {
+			String tag = "$_branch";
+
+			Transform3D transform = {
+			    initializer() {
+				setToRotationX(30);
+			    }
+			};
+
+			Array layout = {
+			    new ColorCube {
+				String tag = "$_cc";
+				double scale = 0.4;
+			    },
+			};
+		    },
+		};
+	    };
+	}, CENTER,
+    };
+};
+
+f.visible = TRUE;
+
+sleep(2);
+fprintf(stderr, "tagged=%O\n", f.components.$_canvas.universe.tagged);
+sleep(2);
+////fprintf(stderr, "cube=%O\n", f.components.$_canvas.universe.tagged.$_cc);
+////fprintf(stderr, "compiled=%O\n", f.components.$_canvas.universe.tagged.$_cc.compiled);
+fprintf(stderr, "location=%O\n", f.components.$_canvas.universe.tagged.$_cc.location);
+

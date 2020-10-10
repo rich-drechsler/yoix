@@ -1,0 +1,19 @@
+//
+// Shows how an image can be used to tile the the background
+// of a JFrame (also works for an AWT Frame).
+//
+
+import yoix.*.*;
+
+Image img = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+};
+
+JFrame f = {
+    Color background = Color.red;
+    Image backgroundimage = img;
+    int   backgroundhints = SCALE_TILE;		// this is the default
+};
+
+f.visible = TRUE;
+

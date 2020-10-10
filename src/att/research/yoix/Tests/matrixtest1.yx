@@ -1,0 +1,52 @@
+import yoix.*.*;
+
+DrawXAxis(Graphics graphics) {
+    double axislength = 2.5*72;
+    double ticklength = 72/16;
+    double delta = axislength/10;
+    int    n;
+
+    graphics {               // "named block"
+        gsave();
+        moveto(0, 0);
+        lineto(axislength, 0);
+        moveto(delta, 0);
+        for (n = 0; n < 10; n++) {
+            rlineto(0, ticklength);
+            rmoveto(delta, -ticklength);
+        }
+        stroke();
+        grestore();
+    }
+}
+
+DrawAxes(Graphics graphics) {
+    graphics {               // "named block"
+        gsave();
+        DrawXAxis(graphics);
+        rotate(90);
+        scale(1, -1);
+        DrawXAxis(graphics);
+        grestore();
+    }
+}
+
+JFrame f = {
+    Color background = Color.white;
+
+    paint(Rectangle rect) {
+        graphics {          // "named block"
+            gsave();
+            translate(72, 72);
+            setrgbcolor(1, 0, 0);
+            DrawAxes(graphics);
+            rotate(10);
+            setrgbcolor(0, 0, 1);
+            DrawAxes(graphics);
+            grestore();
+        }
+    }
+};
+
+f.visible = TRUE;
+

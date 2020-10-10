@@ -1,0 +1,226 @@
+//
+// A really ugly drag and drop example that you undoubtedly should
+// just ignore. We hack this up when we want to test something and
+// haven't bothered to clean it up, but we didn't want to toss it
+// either. You definitely should ignore it!!!
+//
+
+import yoix.*.*;
+
+Image logo = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+    int    type = TYPE_RGBA;
+};
+
+Window dummy = {
+    Color background = Color.green;
+    Dimension  size = {
+	double width = 144;
+	double height = 24;
+    };
+};
+
+JFrame f = {
+    String title = "Swing Frame";
+    Color  background = Color.gray;
+
+    Dimension size = {
+	double height = 4*72;		// 4 inches
+	double width = VM.screen.width/2;
+    };
+
+    Point location = {
+	double x = 2*72;		// 2 inches
+	double y = 1*72;		// 1 inches
+    };
+
+    //
+    // We didn't initialize the Frame's layoutmanager field, so we get
+    // the default, which for a Frame is BorderLayout. A BorderLayout
+    // layout manager expects to find component (e.g., a Button) and
+    // constraint (e.g., SOUTH) pairs in the layout array.
+    //
+
+    Array layout = {
+	new JLabel {
+	    String font = "Helvetica-plain-14";
+	    String text = "This Is A Centered Label";
+	    Color  foreground = Color.red;
+	    int    alignment = CENTER;
+	}, NORTH,
+
+	new JTextArea {
+	    String tag = "$_textarea";
+	    Color  background = Color.white;
+	    int    rows = 0;
+	    int    columns = 0;
+	    int    edit = TRUE;
+	    int    scroll = AS_NEEDED;
+/////int highlightflags = 0x03;
+int dragenabled = TRUE;
+int caretmodel = 1;
+////Object transferhandler = NULL;
+
+	    dragGestureRecognized(e) {
+		Array  ends = selectedends;
+		String str = NULL;
+		int    position = viewToModel(e.location);
+
+		if ((ends = selectedends) != NULL) {
+		    if (position >= ends[0] && position < ends[1])
+			str = selected;
+		}
+////fprintf(stderr, "dragGestureRecognized: e=%O\n", e);
+		////e.cursor = Cursor.WAIT_CURSOR;
+		e.cursor = logo;
+		////e.image = logo;
+/////e.gap = 72/4;
+/***
+e.ipad = new Insets {
+    double left = 72;
+    double right = 36;
+    double top = 72;
+    double bottom = 36;
+};
+****/
+e.anchor = SOUTH;
+e.dragimagesupported = FALSE;
+/////e.cursor = logo;
+e.visual = selected;
+e.padding = 9;
+
+		return(str@sizeof > 0 ? str : NULL);
+	    }
+
+	    dragEnter(Object e) {
+		//
+		// The argument can be anything, which means this function
+		// handles "drag source" and "drop target" events. Declaring
+		// the argument to be a DragSourceEvent or DropTargetEvent is
+		// how you restrict the event handling. More...
+		//
+
+fprintf(stderr, "dragEnter: e=%O\n", e);
+		/////e.cursor = logo;
+		return(defined("dragowner", e) && !e.dragowner);
+	    }
+
+	    dragExit(Object e) {
+		//
+		// Once again, the argument can be anything, which means this
+		// function handles "drag source" and "drop target" events.
+		//
+fprintf(stderr, "dragExit: e=%O\n", e);
+		////e.cursor = NULL;
+		return(TRUE);
+	    }
+
+	    dragDropEnd(DragSourceEvent e) {
+		Array ends = selectedends;
+////fprintf(stderr, "dragDropEnd: e=%O\n", e);
+////fprintf(stderr, "ends=%O\n", ends);
+/////deleteText(this, ends[0], ends[1] - ends[0]);
+	    }
+
+	    drop(DropTargetEvent e) {
+////fprintf(stderr, "drop: e=%O\n", e);
+		if (e.transferable instanceof String)
+		    insertText(this, e.transferable, viewToModel(e.location));
+		else if (e.transferable instanceof Color)
+		    this.foreground = e.transferable;
+		return(TRUE);
+	    }
+
+	    //
+	    // These two event handlers are available, if you want, but
+	    // we don't need them.
+	    //
+
+	    Function dragOver = NULL;
+	    Function dropActionChanged = NULL;
+	}, CENTER,
+
+	new JPanel {
+	    //
+	    // Here's one way to get vertical margins around the buttons.
+	    //
+	    FlowLayout  layoutmanager = {
+		int vgap = 72/12;
+	    };
+
+	    Array layout = {
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String text = "Update";
+			    Color  background = Color.lightGray;
+			    int    requestfocus = TRUE;
+
+			    actionPerformed(e) {
+				root.components.$_textarea.text += yoix.util.date() + "\n";
+			    }
+			},
+
+			new JButton {
+			    String text = "Clear";
+			    Color  background = Color.lightGray;
+
+			    actionPerformed(e) {
+				root.components.$_textarea.text = "";
+			    }
+			},
+
+			new JButton {
+			    String text = "Toggle";
+			    Color  background = Color.lightGray;
+
+			    actionPerformed(e) {
+				if (root.components.$_textarea.transferhandler == NULL) {
+				    root.components.$_textarea.transferhandler = "";
+				    ////root.components.$_textarea.caretmodel = 0;
+				    root.components.$_textarea.requestfocus = TRUE;
+				} else {
+				    ////root.components.$_textarea.dragGestureRecognized = NULL;
+				    root.components.$_textarea.transferhandler = NULL;
+				    ////root.components.$_textarea.caretmodel = 0;
+				    root.components.$_textarea.requestfocus = TRUE;
+				}
+			    }
+			},
+
+			new JButton {
+			    String text = "Quit";
+			    Color  background = Color.lightGray;
+
+			    actionPerformed(e) {
+				exit(0);
+			    }
+			},
+		    };
+		},
+	    };
+	}, SOUTH,
+
+	//
+	// Side padding - just for looks.
+	//
+	new JCanvas {
+	    Dimension size = {
+		int width = 72/8;
+		int height = 72/8;
+	    };
+	}, EAST,
+
+	new JCanvas {
+	    Dimension size = {
+		int width = 72/8;
+		int height = 72/8;
+	    };
+	}, WEST,
+    };
+};
+
+f.visible = TRUE;
+

@@ -1,0 +1,155 @@
+//
+// A nextfocus example that occasionally arranges to transfer the focus between
+// frames.
+//
+
+import yoix.*.*;
+
+JFrame jf1 = {
+    String title = "Frame 1";
+    double border = 72.0/4;
+    Dimension size = NULL;
+
+    BorderLayout layoutmanager = {
+	double vgap = 72.0/8;
+    };
+
+    Array layout = {
+	new JButton {
+	    String tag = "$_top";
+	    String text = "Top";
+	}, NORTH,
+
+	new JPanel {
+	    Array layout = {
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String tag = "$_left";
+			    String text = "Left";
+			},
+
+			new JButton {
+			    String tag = "$_center";
+			    String text = "---";
+			    int    requestfocus = TRUE;
+
+			    actionPerformed(e) {
+				if (nextfocus == NULL) {
+				    nextfocus = "$_top";
+				    text = "^";
+				} else if (nextfocus === "$_top" || nextfocus == root.components.$_top) {
+				    nextfocus = "$_left";
+				    text = "<--";
+				} else if (nextfocus === "$_left" || nextfocus == root.components.$_left) {
+				    nextfocus = root.components.$_right;
+				    text = "-->";
+				} else if (nextfocus === "$_right" || nextfocus == root.components.$_right) {
+				    nextfocus = root.components.$_bottom;
+				    text = "v";
+				} else if (nextfocus === "$_bottom" || nextfocus == root.components.$_bottom) {
+				    nextfocus = jf2.components.$_center;
+				    text = "+";
+				} else {
+				    nextfocus = NULL;
+				    text = "---";
+				}
+			    }
+			},
+
+			new JButton {
+			    String tag = "$_right";
+			    String text = "Right";
+			},
+		    };
+		},
+	    };
+	}, CENTER,
+
+	new JButton {
+	    String tag = "$_bottom";
+	    String text = "Bottom";
+	}, SOUTH,
+    };
+};
+
+JFrame jf2 = {
+    String title = "Frame 2";
+    double border = 72.0/4;
+    Dimension size = NULL;
+
+    Point location = {
+	double x = 2*jf1.size.width;
+	double y = 2*jf1.size.height;
+    };
+
+    BorderLayout layoutmanager = {
+	double vgap = 72.0/8;
+    };
+
+    Array layout = {
+	new JButton {
+	    String tag = "$_top";
+	    String text = "Top";
+	}, NORTH,
+
+	new JPanel {
+	    Array layout = {
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String tag = "$_left";
+			    String text = "Left";
+			},
+
+			new JButton {
+			    String tag = "$_center";
+			    String text = "---";
+			    int    requestfocus = TRUE;
+
+			    actionPerformed(e) {
+				if (nextfocus == NULL) {
+				    nextfocus = "$_top";
+				    text = "^";
+				} else if (nextfocus === "$_top" || nextfocus == root.components.$_top) {
+				    nextfocus = "$_left";
+				    text = "<--";
+				} else if (nextfocus === "$_left" || nextfocus == root.components.$_left) {
+				    nextfocus = root.components.$_right;
+				    text = "-->";
+				} else if (nextfocus === "$_right" || nextfocus == root.components.$_right) {
+				    nextfocus = "$_bottom";
+				    text = "v";
+				} else if (nextfocus === "$_bottom" || nextfocus == root.components.$_bottom) {
+				    nextfocus = jf1.components.$_center;
+				    text = "+";
+				} else {
+				    nextfocus = NULL;
+				    text = "---";
+				}
+			    }
+			},
+
+			new JButton {
+			    String tag = "$_right";
+			    String text = "Right";
+			},
+		    };
+		},
+	    };
+	}, CENTER,
+
+	new JButton {
+	    String tag = "$_bottom";
+	    String text = "Bottom";
+	}, SOUTH,
+    };
+};
+
+jf1.visible = TRUE;
+jf2.visible = TRUE;
+

@@ -1,0 +1,263 @@
+//
+// A template screen that illustrates selections using ButtonGroups and
+// other components like JChoice and groupings of those components using
+// a variety of Borders.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Dimension size = NULL;
+	Insets    border = Global.GetLabeledScreenInsets();
+	String    title = Global.ACRONYM + " Template 5";
+	Font      font = Global.GetPreferredLabelFont();
+	int       opaque = TRUE;
+
+	//
+	// We use several ButtonGroup to enforce "radio button" behavior.
+	//
+
+	ButtonGroup daygroup;
+	ButtonGroup ampmgroup;
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	//
+	// Every screen should define and initialize the following set
+	// of variables. Expect problems is you omit any of them.
+	//
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = TRUE;   // save screen-specific info within session
+	int    retainstate = TRUE; // save screen-class info across sessions
+	int    reloadargs = FALSE;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    new JLabel {
+		String text = "This is the text displayed by the label";
+		Font   font = Global.GetPreferredHeadingFont();
+		int    alignment = CENTER;
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+	    },
+
+	    new JPanel {
+		BevelBorder border = {
+		    EmptyBorder child = {
+			double insets = 72.0/8;
+		    };
+		};
+
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JPanel {
+			EtchedBorder border = {
+			    String title = "Day";
+			};
+
+			FlowLayout layoutmanager;	// this is the JPanel default
+			Array layout = {
+			    //
+			    // We intentionally mixed JCheckBox and JRadioButton,
+			    // but you probably should be more consistent.
+			    //
+			    new JCheckBox {
+				String      text = "Sun";
+				ButtonGroup group = daygroup;
+			    },
+			    new JRadioButton {
+				String      text = "Mon";
+				ButtonGroup group = daygroup;
+			    },
+			    new JCheckBox {
+				String      text = "Tue";
+				ButtonGroup group = daygroup;
+				////int         state = TRUE;
+			    },
+			    new JRadioButton {
+				String      text = "Wed";
+				ButtonGroup group = daygroup;
+			    },
+			    new JCheckBox {
+				String      text = "Thu";
+				ButtonGroup group = daygroup;
+			    },
+			    new JRadioButton {
+				String      text = "Fri";
+				ButtonGroup group = daygroup;
+			    },
+			    new JCheckBox {
+				String      text = "Sat";
+				ButtonGroup group = daygroup;
+			    },
+			};
+		    },
+		    new GridBagConstraints {
+			int anchor = LEFT;
+		    },
+
+		    new JPanel {
+			EtchedBorder border = {
+			    String title = "Hour";
+			};
+
+			FlowLayout layoutmanager;	// this is the JPanel default
+			Array layout = {
+			    new JChoice {
+				String tag = "$_hour";
+				String selected = "8";
+
+				Array items = {
+				    "1:00", "1",
+				    "2:00", "2",
+				    "3:00", "3",
+				    "4:00", "4",
+				    "5:00", "5",
+				    "6:00", "6",
+				    "7:00", "7",
+				    "8:00", "8",
+				    "9:00", "9",
+				    "10:00", "10",
+				    "11:00", "11",
+				    "12:00", "12",
+				};
+
+				Function mouseWheelMoved = Global.MouseWheelMoved;
+			    },
+
+			    new JRadioButton {
+				String      tag = "$_am";
+				String      text = "AM";
+				ButtonGroup group = ampmgroup;
+				int         state = TRUE;
+			    },
+			    new JRadioButton {
+				String      tag = "$_pm";
+				String      text = "PM";
+				ButtonGroup group = ampmgroup;
+			    },
+			};
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int weightx = 1;
+			int anchor = LEFT;
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = BOTH;
+	    },
+
+	    new JPanel {
+		//
+		// Use GridLayout for equal size buttons and FlowLayout if
+		// each button should size itself based on its label.
+		//
+		GridLayout layoutmanager;
+		Array layout = {
+		    new JButton {
+			String text = "Send";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    Global.QueueCommandOnce(root, &root.HandleSend);
+			}
+		    },
+		    new JButton {
+			String text = "Reset";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    root.ResetScreen();
+			}
+		    },
+		    new JButton {
+			String text = "Dismiss";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    Global.AltQueueCommand(root, &root.HideScreen);
+			}
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    Global.NewJProprietaryLabel(),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	HandleSend() {
+	    String message;
+	    Object day;
+
+	    if ((day = daygroup.selected) != NULL)
+		message = "The selected day is " + day.text + "\n";
+	    else message = "No day has been selected\n";
+	    message += "The selected hour is " + components.$_hour.selected + ampmgroup.selected.text;
+	    Global.ShowMessage(this, message, TRUE);
+	}
+
+	ResetScreen() {
+	    daygroup.selected = NULL;
+	    components.$_hour.selected = "8:00";
+	    ampmgroup.selected = components.$_am;
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);
+

@@ -1,0 +1,2330 @@
+//
+// An installer for YWAIT applications that's based on the one distributed
+// with the Yoix interpreter source code. YWAIT automatically provides some
+// application based customization, but you may need more, so feel free to
+// make changes to this file.
+// 
+
+import yoix.*.*;
+
+//
+// Application dependent definitions.
+//
+
+String Product = "<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>";
+String ProductVersion = "<_JARFILE_RELEASE_DQ_>";
+String ProductDescription = "<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_> Version <_JARFILE_RELEASE_DQ_>";
+String ProductDirectory = "<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>";
+String ProductInstallationDirectory = USERHOME + FILESEPARATOR + ProductDirectory;
+
+//
+// Web sites.
+//
+
+String InstallerWebSite = "http://www.research.att.com/sw/tools/yoix/installer/yoix/";
+String ProductWebSite = InstallerWebSite;
+
+//
+// Fonts
+//
+
+Font TextFontSmall = {String name = "Lucida-bold-10";};
+Font TextFontMedium = {String name = "Lucida-bold-12";};
+Font TextFontLarge = {String name = "Lucida-bold-14";};
+Font TextFontHuge = {String name = "Lucida-plain-18";};
+
+//
+// Colors
+//
+
+Color FrameColor = {
+    double red = 0.75;
+    double green = 0.75;
+    double blue = 0.85;
+};
+
+Color PanelColor = FrameColor;
+Color AxisColor = Color.blue;
+
+//
+// Insets
+//
+
+Insets BorderInsets = {
+    double left = 72.0/16;
+    double bottom = 72.0/16;
+    double right = 72.0/16;
+};
+
+Insets TextAreaInsets = {
+    double top = 72.0/8;
+    double left = 72.0/8;
+    double right = 72.0/8;
+};
+
+Insets SmallBottomInsets = {
+    double bottom = 72.0/8;
+};
+
+Insets SmallLeftInsets = {
+    double left = 72.0/8;
+};
+
+Insets SmallRightInsets = {
+    double right = 72.0/8;
+};
+
+Insets TinyBottomInsets = {
+    double bottom = 72.0/36;
+};
+
+Insets TinyLeftInsets = {
+    double left = 72.0/36;
+};
+
+Insets TinyRightInsets = {
+    double right = 72.0/36;
+};
+
+//
+// Images
+//
+
+Image BackgroundImage;
+Image TileImage;
+
+//
+// Drag and drop support - currently enabled in all JTextAreas.
+//
+
+DragGestureRecognized(e) {
+    Array ends = selectedends;
+    int   index = viewToModel(e.location);
+
+    //
+    // We only start the drag (by returning a non-NULL value)
+    // if the event happened inside the the current selection.
+    //
+
+    if ((ends = selectedends) != NULL) {
+	if (index > ends[0] && index < ends[1])
+	    e.visual = selected;
+    }
+    return(e.visual);
+}
+
+//
+// Messages displayed by the installation panels.
+//
+
+String MessageWelcome = @<\
+Congratulations - you're now running a small Yoix program and that will help you install
+>@ + ProductDescription + @< on your system. The official web site
+
+                    <_WEBSITE_URL_DQ_>
+
+should have more information about >@ + Product + @<. This installer and >@ + Product + @< are Yoix
+applications, so you also may want to visit
+
+                    http://www.yoix.org/
+
+for information about the Yoix interpreter.
+>@;
+
+String MessageLicense = @<\
+Common Public License Version 1.0
+
+THE ACCOMPANYING PROGRAM IS PROVIDED UNDER THE TERMS OF THIS COMMON
+PUBLIC  LICENSE ("AGREEMENT"). ANY USE, REPRODUCTION OR DISTRIBUTION
+OF THE PROGRAM  CONSTITUTES RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT.
+
+1. DEFINITIONS
+
+"Contribution" means:
+
+a) in the case of the initial Contributor, the initial code and
+documentation  distributed under this Agreement, and
+
+b) in the case of each subsequent Contributor:
+
+i) changes to the Program, and
+
+ii) additions to the Program;
+
+where such changes and/or additions to the Program originate from
+and are  distributed by that particular Contributor. A Contribution
+'originates' from a  Contributor if it was added to the Program by
+such Contributor itself or anyone  acting on such Contributor's
+behalf. Contributions do not include additions to  the Program
+which: (i) are separate modules of software distributed in  conjunction
+with the Program under their own license agreement, and (ii) are
+not derivative works of the Program.
+
+"Contributor" means any person or entity that distributes the
+Program.
+
+"Licensed Patents " mean patent claims licensable by a Contributor
+which are  necessarily infringed by the use or sale of its Contribution
+alone or when  combined with the Program.
+
+"Program" means the Contributions distributed in accordance with
+this  Agreement.
+
+"Recipient" means anyone who receives the Program under this
+Agreement,  including all Contributors.
+
+2. GRANT OF RIGHTS
+
+a) Subject to the terms of this Agreement, each Contributor hereby
+grants  Recipient a non-exclusive, worldwide, royalty-free copyright
+license to  reproduce, prepare derivative works of, publicly display,
+publicly perform,  distribute and sublicense the Contribution of
+such Contributor, if any, and  such derivative works, in source
+code and object code form.
+
+b) Subject to the terms of this Agreement, each Contributor hereby
+grants  Recipient a non-exclusive, worldwide, royalty-free patent
+license under  Licensed Patents to make, use, sell, offer to sell,
+import and otherwise  transfer the Contribution of such Contributor,
+if any, in source code and  object code form. This patent license
+shall apply to the combination of the  Contribution and the Program
+if, at the time the Contribution is added by the  Contributor, such
+addition of the Contribution causes such combination to be  covered
+by the Licensed Patents. The patent license shall not apply to any
+other combinations which include the Contribution. No hardware per
+se is  licensed hereunder.
+
+c) Recipient understands that although each Contributor grants the
+licenses  to its Contributions set forth herein, no assurances are
+provided by any  Contributor that the Program does not infringe the
+patent or other intellectual  property rights of any other entity.
+Each Contributor disclaims any liability  to Recipient for claims
+brought by any other entity based on infringement of  intellectual
+property rights or otherwise. As a condition to exercising the
+rights and licenses granted hereunder, each Recipient hereby assumes
+sole  responsibility to secure any other intellectual property
+rights needed, if any.  For example, if a third party patent license
+is required to allow Recipient to  distribute the Program, it is
+Recipient's responsibility to acquire that  license before distributing
+the Program.
+
+d) Each Contributor represents that to its knowledge it has sufficient
+copyright rights in its Contribution, if any, to grant the copyright
+license  set forth in this Agreement.
+
+3. REQUIREMENTS
+
+A Contributor may choose to distribute the Program in object code
+form under  its own license agreement, provided that:
+
+a) it complies with the terms and conditions of this Agreement; and
+
+b) its license agreement:
+
+i) effectively disclaims on behalf of all Contributors all warranties
+and  conditions, express and implied, including warranties or
+conditions of title  and non-infringement, and implied warranties
+or conditions of merchantability  and fitness for a particular
+purpose;
+
+ii) effectively excludes on behalf of all Contributors all liability
+for  damages, including direct, indirect, special, incidental and
+consequential  damages, such as lost profits;
+
+iii) states that any provisions which differ from this Agreement
+are offered  by that Contributor alone and not by any other party;
+and
+
+iv) states that source code for the Program is available from such
+Contributor, and informs licensees how to obtain it in a reasonable
+manner on  or through a medium customarily used for software exchange.
+
+When the Program is made available in source code form:
+
+a) it must be made available under this Agreement; and
+
+b) a copy of this Agreement must be included with each copy of the
+Program.
+
+Contributors may not remove or alter any copyright notices contained
+within  the Program.
+
+Each Contributor must identify itself as the originator of its
+Contribution,  if any, in a manner that reasonably allows subsequent
+Recipients to identify  the originator of the Contribution.
+
+4. COMMERCIAL DISTRIBUTION
+
+Commercial distributors of software may accept certain responsibilities
+with  respect to end users, business partners and the like. While
+this license is  intended to facilitate the commercial use of the
+Program, the Contributor who  includes the Program in a commercial
+product offering should do so in a manner  which does not create
+potential liability for other Contributors. Therefore, if  a
+Contributor includes the Program in a commercial product offering,
+such  Contributor ("Commercial Contributor") hereby agrees to defend
+and indemnify  every other Contributor ("Indemnified Contributor")
+against any losses, damages  and costs (collectively "Losses")
+arising from claims, lawsuits and other legal  actions brought by
+a third party against the Indemnified Contributor to the  extent
+caused by the acts or omissions of such Commercial Contributor in
+connection with its distribution of the Program in a commercial
+product  offering. The obligations in this section do not apply to
+any claims or Losses  relating to any actual or alleged intellectual
+property infringement. In order  to qualify, an Indemnified Contributor
+must: a) promptly notify the Commercial  Contributor in writing of
+such claim, and b) allow the Commercial Contributor  to control,
+and cooperate with the Commercial Contributor in, the defense and
+any related settlement negotiations. The Indemnified Contributor
+may  participate in any such claim at its own expense.
+
+For example, a Contributor might include the Program in a commercial
+product  offering, Product X. That Contributor is then a Commercial
+Contributor. If that  Commercial Contributor then makes performance
+claims, or offers warranties  related to Product X, those performance
+claims and warranties are such  Commercial Contributor's responsibility
+alone. Under this section, the  Commercial Contributor would have
+to defend claims against the other  Contributors related to those
+performance claims and warranties, and if a court  requires any
+other Contributor to pay any damages as a result, the Commercial
+Contributor must pay those damages.
+
+5. NO WARRANTY
+
+EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, THE PROGRAM IS
+PROVIDED ON AN  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
+ANY KIND, EITHER EXPRESS OR  IMPLIED INCLUDING, WITHOUT LIMITATION,
+ANY WARRANTIES OR CONDITIONS OF TITLE,  NON-INFRINGEMENT, MERCHANTABILITY
+OR FITNESS FOR A PARTICULAR PURPOSE. Each  Recipient is solely
+responsible for determining the appropriateness of using  and
+distributing the Program and assumes all risks associated with its
+exercise  of rights under this Agreement, including but not limited
+to the risks and  costs of program errors, compliance with applicable
+laws, damage to or loss of  data, programs or equipment, and
+unavailability or interruption of operations.
+
+6. DISCLAIMER OF LIABILITY
+
+EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, NEITHER RECIPIENT
+NOR ANY  CONTRIBUTORS SHALL HAVE ANY LIABILITY FOR ANY DIRECT,
+INDIRECT, INCIDENTAL,  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING WITHOUT LIMITATION LOST  PROFITS), HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,  STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY  WAY OUT
+OF THE USE OR DISTRIBUTION OF THE PROGRAM OR THE EXERCISE OF ANY
+RIGHTS  GRANTED HEREUNDER, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGES.
+
+7. GENERAL
+
+If any provision of this Agreement is invalid or unenforceable under
+applicable law, it shall not affect the validity or enforceability
+of the remainder of the terms of this Agreement, and without further
+action by the  parties hereto, such provision shall be reformed to
+the minimum extent  necessary to make such provision valid and
+enforceable.
+
+If Recipient institutes patent litigation against a Contributor
+with respect  to a patent applicable to software (including a
+cross-claim or counterclaim in  a lawsuit), then any patent licenses
+granted by that Contributor to such  Recipient under this Agreement
+shall terminate as of the date such litigation  is filed. In addition,
+if Recipient institutes patent litigation against any  entity
+(including a cross-claim or counterclaim in a lawsuit) alleging
+that the  Program itself (excluding combinations of the Program
+with other software or  hardware) infringes such Recipient's
+patent(s), then such Recipient's rights  granted under Section 2(b)
+shall terminate as of the date such litigation is  filed.
+
+All Recipient's rights under this Agreement shall terminate if it
+fails to  comply with any of the material terms or conditions of
+this Agreement and does  not cure such failure in a reasonable
+period of time after becoming aware of  such noncompliance. If all
+Recipient's rights under this Agreement terminate,  Recipient agrees
+to cease use and distribution of the Program as soon as  reasonably
+practicable. However, Recipient's obligations under this Agreement
+and any licenses granted by Recipient relating to the Program shall
+continue  and survive.
+
+Everyone is permitted to copy and distribute copies of this Agreement,
+but in  order to avoid inconsistency the Agreement is copyrighted
+and may only be  modified in the following manner. The Agreement
+Steward reserves the right to  publish new versions (including
+revisions) of this Agreement from time to time.  No one other than
+the Agreement Steward has the right to modify this Agreement.  IBM
+is the initial Agreement Steward. IBM may assign the responsibility
+to  serve as the Agreement Steward to a suitable separate entity.
+Each new version  of the Agreement will be given a distinguishing
+version number. The Program  (including Contributions) may always
+be distributed subject to the version of  the Agreement under which
+it was received. In addition, after a new version of  the Agreement
+is published, Contributor may elect to distribute the Program
+(including its Contributions) under the new version. Except as
+expressly stated  in Sections 2(a) and 2(b) above, Recipient receives
+no rights or licenses to  the intellectual property of any Contributor
+under this Agreement, whether  expressly, by implication, estoppel
+or otherwise. All rights in the Program not  expressly granted under
+this Agreement are reserved.
+
+This Agreement is governed by the laws of the State of New York and
+the  intellectual property laws of the United States of America.
+No party to this  Agreement will bring a legal action under this
+Agreement more than one year  after the cause of action arose. Each
+party waives its rights to a jury trial  in any resulting litigation.
+
+Copyright 2004 by the Open Source Initiative.
+The preceding text is a copy of the license posted at
+http://www.opensource.org/licenses/cpl on 2004-10-08.
+>@;
+
+String MessageOS = @<\
+Make sure you agree with our choice of your operating system - it's in the lower right
+corner of this screen. The operating system determines which scripts are installed
+and influences the installation process in other ways too. For example, Unix scripts
+need to have execute permission set, which can't be done directly in Java or Yoix.
+>@;
+
+String MessageDirectory = @<\
+This screen lets you choose the installation directory for >@ + Product + @<. Our guess is usually
+OK, but you may disagree. We create the directory if it doesn't exist, but not until the
+installation really starts (in a few more screens).
+
+We don't complain if you pick directory that exists, but you must have permission to
+create files in that directory. We also don't complain if you name an existing file that's
+not a directory. In that case the name will be highlighted in red in a later screen as a
+warning that it will be deleted if you proceed with the installation.
+>@;
+
+String MessageJava = @<\
+If you're lucky we found the program that you used when you started Java and you'll see
+a long pathname in the textfield at bottom of this screen. Unfortunately our detective work
+isn't always successful, so some of you may just see the word java in the textfield.
+
+When that happens we couldn't figure out how to start Java and we need your help. If
+you know the command (it should be a full pathname) or can find it using our file browser
+enter it below, otherwise you can continue with the installation, but you probably will
+have to edit the scripts that we install before anything will work.
+>@;
+
+String  MessageOptions = @<\
+The long ticks marks drawn on the two axes in the upper left corner are supposed to
+be separated by one inch. If they don't look right adjust the resolution slider until
+you're satisfied, make sure the slider's checkbox is selected, and we'll add the option
+that you see at the right side of the screen to the scripts that are installed on your
+system. Incidentally, the number in the option will often end up close to the length, in
+inches, of your screen's diagonal.
+
+Take a close look at this message. The font is supposed to be point size 12, but if
+you think it's too big or too small adjust the magnification slider until you're happy,
+make sure the slider's checkbox is selected, and we'll add the option that you see at
+the right side of the screen to the scripts that we install on your system.
+>@;
+
+String MessageInstall = @<\
+We're ready to install >@ + Product + @< on your system. If you are satisfied with the choices shown
+below hit the Next button. Otherwise, go back and change your selections, or quit by
+hitting the Quit button. So far nothing has really happened. No files have been created,
+changed, or installed on your system - you can quit and start again later if you want.
+>@;
+
+String MessageFinal = @<\
+If there were any errors you may want to go back to the previous screen and make a copy
+of what happened during the installation. Otherwise execute the script named >@ + Product + @<
+that was just installed (look for it in the bin directory) and you should connect to the
+>@ + Product + @< server. Rememeber to visit the official web site
+
+                    <_WEBSITE_URL_DQ_>
+
+for information about >@ + Product + @<. This installer and >@ + Product + @< are Yoix applications,
+so you also may want to visit
+
+                    http://www.yoix.org/
+
+
+for information about the Yoix interpreter.
+>@;
+
+//
+// Functions used to pick starting values in several of the installation
+// panels.
+//
+
+OperatingSystem(String name) {
+    if (ISWIN)
+	name = "Windows";
+    else if (ISUNIX)
+	name = "Unix";
+    else if (startsWith(OSNAME, "Mac OS X"))
+	name = "Mac OS X";
+    return(name);
+}
+
+PickInstallationDirectory() {
+    String path = ProductInstallationDirectory;
+
+    if (path@sizeof == 0)
+	path = USERHOME + FILESEPARATOR + ProductDirectory;
+    return(localPath(path));
+}
+
+JavaInterpreter(String name) {
+    String javahome = yoixPath(getProperty("java.home"));
+
+    Array javamap = {
+	javahome + "/bin/java", javahome + "/bin/java",
+	javahome + "/bin/java.exe", javahome + "/bin/java",
+	javahome + "/bin/java.bat", javahome + "/bin/java",
+    };
+
+    for (; javamap@sizeof > 0; javamap += 2) {
+	if (access(javamap[0], F_OK) == 0) {
+	    name = localPath(javamap[1]);
+	    break;
+	}
+    }
+    return(localPath(name));
+}
+
+//
+// Installation Panels
+//
+
+JPanel WelcomePanel = {
+    GridBagLayout layoutmanager;
+    String        message = MessageWelcome;
+
+    BevelBorder border = {
+	String title = "Welcome";
+	EmptyBorder child = {
+	    Insets insets = BorderInsets;
+	};
+    };
+
+    Array layout = {
+	new JTextArea {
+	    String text = message;
+	    Insets insets = TextAreaInsets;
+	    Object transferhandler = NULL;
+	    Color  background = Color.white;
+	    int    opaque = TRUE;
+	    int    edit = FALSE;
+	    int    scroll = AS_NEEDED;
+	    int    caret = 0;
+	    int    rows = 0;
+	    int    columns = 0;
+
+	    Function dragGestureRecognized = DragGestureRecognized;
+	},
+	new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    int    weightx = 100;
+	    int    weighty = 100;
+	    int    fill = BOTH;
+	    Insets insets = SmallBottomInsets;
+	},
+
+	new JPanel {
+	    GridBagLayout layoutmanager;
+
+	    Array layout = {
+		new JButton {
+		    String text = "Quit";
+		    Color  foreground = Color.red;
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 1;
+		    int anchor = WEST;
+		},
+
+		new JButton {
+		    String tag = "$_welcome_continue";
+		    String text = "Continue";
+		    int    requestfocus = TRUE;
+
+		    actionPerformed(e) {
+			root.components.$_cardpanel.nextcard = 1;
+		    }
+		},
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 3;
+		    int weightx = 100;
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int fill = HORIZONTAL;
+	},
+    };
+
+    componentShown(e) {
+	root.components.$_welcome_continue.requestfocus = TRUE;
+    }
+};
+
+JPanel LicensePanel = {
+    GridBagLayout layoutmanager;
+    String        message = MessageLicense;
+
+    BevelBorder border = {
+	String title = "License Agreement";
+	EmptyBorder child = {
+	    Insets insets = BorderInsets;
+	};
+    };
+
+    Array layout = {
+	new JTextArea {
+	    String text = message;
+	    Insets insets = TextAreaInsets;
+	    Object transferhandler = NULL;
+	    Color  background = Color.white;
+	    int    opaque = TRUE;
+	    int    edit = FALSE;
+	    int    scroll = AS_NEEDED;
+	    int    caret = 0;
+	    int    rows = 15;		// currently required and we understand why!!
+	    int    columns = 0;
+
+	    Function dragGestureRecognized = DragGestureRecognized;
+	},
+	new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    int    weightx = 100;
+	    int    weighty = 100;
+	    int    fill = BOTH;
+	    Insets insets = TinyBottomInsets;
+	},
+
+	new JPanel {
+	    BorderLayout layoutmanager;
+	    int          opaque = TRUE;
+
+	    Border border = {
+		int type = ETCHED|LOWERED;
+	    };
+
+	    Array layout = {
+		new JCheckbox {
+		    String tag = "$_license_accepted";
+		    String text = "I accept the terms of this license";
+		    int    state = FALSE;
+
+		    itemStateChanged(e) {
+			root.components.$_license_next.enabled = state;
+			root.components.$_license_next.requestfocus = state;
+		    }
+		}, WEST,
+	    };
+	},
+	new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    int    fill = HORIZONTAL;
+	    Insets insets = SmallBottomInsets;
+	},
+
+	new JPanel {
+	    GridBagLayout layoutmanager;
+
+	    Array layout = {
+		new JButton {
+		    String text = "Quit";
+		    Color  foreground = Color.red;
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 1;
+		    int anchor = WEST;
+		},
+
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String text = "Back";
+
+			    actionPerformed(e) {
+				root.components.$_cardpanel.nextcard = -1;
+			    }
+			},
+
+			new JButton {
+			    String tag = "$_license_next";
+			    String text = "Next";
+			    int    enabled = FALSE;
+
+			    actionPerformed(e) {
+				root.components.$_cardpanel.nextcard = 1;
+			    }
+			},
+		    };
+		},
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 3;
+		    int weightx = 100;
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int fill = HORIZONTAL;
+	},
+    };
+
+    componentShown(e) {
+	root.components.$_license_accepted.state = FALSE;
+	root.components.$_license_accepted.requestfocus = TRUE;
+    }
+};
+
+JPanel OSPanel = {
+    GridBagLayout layoutmanager;
+    String        message = MessageOS;
+
+    BevelBorder border = {
+	String title = "Operating System";
+	EmptyBorder child = {
+	    Insets insets = BorderInsets;
+	};
+    };
+
+    Array layout = {
+	new JTextArea {
+	    String text = message;
+	    Insets insets = TextAreaInsets;
+	    Object transferhandler = NULL;
+	    Color  background = Color.white;
+	    int    opaque = TRUE;
+	    int    edit = FALSE;
+	    int    scroll = AS_NEEDED;
+	    int    caret = 0;
+	    int    rows = 0;
+	    int    columns = 0;
+
+	    Function dragGestureRecognized = DragGestureRecognized;
+	},
+	new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    int    weightx = 100;
+	    int    weighty = 100;
+	    int    fill = BOTH;
+	    Insets insets = SmallBottomInsets;
+	},
+
+	new JPanel {
+	    GridBagLayout layoutmanager;
+
+	    Array layout = {
+		new JButton {
+		    String text = "Quit";
+		    Color  foreground = Color.red;
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 1;
+		    int anchor = WEST;
+		},
+
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String text = "Back";
+
+			    actionPerformed(e) {
+				root.components.$_cardpanel.nextcard = -1;
+			    }
+			},
+
+			new JButton {
+			    String tag = "$_os_next";
+			    String text = "Next";
+			    int    enabled = (OperatingSystem(NULL) != NULL);
+
+			    actionPerformed(e) {
+				root.components.$_cardpanel.nextcard = 1;
+			    }
+			},
+		    };
+		},
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 3;
+		    int weightx = 100;
+		},
+
+		new JChoice {
+		    String tag = "$_os";
+		    String selected = OperatingSystem("Unknown");
+
+		    Array items = {
+			"Windows", "Windows",
+			"Unix", "Unix",
+			"Mac OS X", "Mac OS X",
+			"Unknown", "Unknown",
+		    };
+
+		    itemStateChanged(e) {
+			root.components.$_os_next.enabled = strcmp(selected, "Unknown");
+		    }
+		},
+		new GridBagConstraints {
+		    int gridx = 3;
+		    int gridy = 1;
+		    int gridwidth = 1;
+		    int anchor = EAST;
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int fill = HORIZONTAL;
+	},
+    };
+
+    componentShown(e) {
+	root.components.$_os_next.requestfocus = TRUE;
+    }
+};
+
+JPanel DirectoryPanel = {
+    GridBagLayout layoutmanager;
+    String        message = MessageDirectory;
+    String        tag = "$_directory_panel";
+
+    BevelBorder border = {
+	String title = "Installation Directory";
+	EmptyBorder child = {
+	    Insets insets = BorderInsets;
+	};
+    };
+
+    Array layout = {
+	new JTextArea {
+	    String text = message;
+	    Insets insets = TextAreaInsets;
+	    Object transferhandler = NULL;
+	    Color  background = Color.white;
+	    int    opaque = TRUE;
+	    int    edit = FALSE;
+	    int    scroll = AS_NEEDED;
+	    int    caret = 0;
+	    int    rows = 0;
+	    int    columns = 0;
+
+	    Function dragGestureRecognized = DragGestureRecognized;
+	},
+	new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    int    weightx = 100;
+	    int    weighty = 100;
+	    int    fill = BOTH;
+	    Insets insets = TinyBottomInsets;
+	},
+
+	new JTextField {
+	    String tag = "$_directory";
+	    String text = PickInstallationDirectory();
+	    Color  background = Color.white;
+	    int    opaque = TRUE;
+	    int    edit = TRUE;
+
+	    keyPressed(e) {
+		if (e.keycode == KeyCode.VK_ENTER)
+		    root.components.$_cardpanel.nextcard = 1;
+	    }
+	},
+	new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    int    fill = HORIZONTAL;
+	    Insets insets = SmallBottomInsets;
+	},
+
+	new JPanel {
+	    GridBagLayout layoutmanager;
+
+	    Array layout = {
+		new JButton {
+		    String text = "Quit";
+		    Color  foreground = Color.red;
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 1;
+		    int anchor = WEST;
+		},
+
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String text = "Back";
+
+			    actionPerformed(e) {
+				root.components.$_cardpanel.nextcard = -1;
+			    }
+			},
+
+			new JButton {
+			    String tag = "$_directory_next";
+			    String text = "Next";
+
+			    actionPerformed(e) {
+				root.components.$_cardpanel.nextcard = 1;
+			    }
+			},
+		    };
+		},
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 3;
+		    int weightx = 100;
+		},
+
+		new JButton {
+		    String text = "Browse";
+
+		    actionPerformed(e) {
+			root.components.$_browse.Show(
+			    "$_directory_panel",
+			    root.components.$_directory.text,
+			    SAVE,
+			    "Select",
+			    "Pick the installation directory",
+			    &root.components.$_directory.text
+			);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridx = 3;
+		    int gridy = 1;
+		    int gridwidth = 1;
+		    int anchor = EAST;
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int fill = HORIZONTAL;
+	},
+    };
+
+    componentShown(e) {
+	root.components.$_directory_next.requestfocus = TRUE;
+    }
+};
+
+JPanel JavaPanel = {
+    GridBagLayout layoutmanager;
+    String        message = MessageJava;
+    String        tag = "$_java_panel";
+
+    BevelBorder border = {
+	String title = "Java Interpreter";
+	EmptyBorder child = {
+	    Insets insets = BorderInsets;
+	};
+    };
+
+    Array layout = {
+	new JTextArea {
+	    String text = message;
+	    Insets insets = TextAreaInsets;
+	    Object transferhandler = NULL;
+	    Color  background = Color.white;
+	    int    opaque = TRUE;
+	    int    edit = FALSE;
+	    int    scroll = AS_NEEDED;
+	    int    caret = 0;
+	    int    rows = 0;
+	    int    columns = 0;
+
+	    Function dragGestureRecognized = DragGestureRecognized;
+	},
+	new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    int    weightx = 100;
+	    int    weighty = 100;
+	    int    fill = BOTH;
+	    Insets insets = TinyBottomInsets;
+	},
+
+	new JTextField {
+	    String tag = "$_java";
+	    String text = JavaInterpreter("java");
+	    Color  background = Color.white;
+	    int    opaque = TRUE;
+	    int    edit = TRUE;
+
+	    keyPressed(e) {
+		if (e.keycode == KeyCode.VK_ENTER)
+		    root.components.$_cardpanel.nextcard = 1;
+	    }
+	},
+	new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    int    fill = HORIZONTAL;
+	    Insets insets = SmallBottomInsets;
+	},
+
+	new JPanel {
+	    GridBagLayout layoutmanager;
+
+	    Array layout = {
+		new JButton {
+		    String text = "Quit";
+		    Color  foreground = Color.red;
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 1;
+		    int anchor = WEST;
+		},
+
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String text = "Back";
+
+			    actionPerformed(e) {
+				root.components.$_cardpanel.nextcard = -1;
+			    }
+			},
+
+			new JButton {
+			    String tag = "$_java_next";
+			    String text = "Next";
+
+			    actionPerformed(e) {
+				root.components.$_cardpanel.nextcard = 1;
+			    }
+			},
+		    };
+		},
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 3;
+		    int weightx = 100;
+		},
+
+		new JButton {
+		    String text = "Browse";
+
+		    actionPerformed(e) {
+			root.components.$_browse.Show(
+			    "$_java_panel",
+			    root.components.$_java.text,
+			    LOAD,
+			    "Select",
+			    "Pick the java interpreter",
+			    &root.components.$_java.text
+			);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridx = 3;
+		    int gridy = 1;
+		    int gridwidth = 1;
+		    int anchor = EAST;
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int fill = HORIZONTAL;
+	},
+    };
+
+    componentShown(e) {
+	root.components.$_java_next.requestfocus = TRUE;
+    }
+};
+
+JPanel OptionsPanel = {
+    GridBagLayout layoutmanager;
+    String        message = MessageOptions;
+
+    BevelBorder border = {
+	String title = "Special Options";
+	EmptyBorder child = {
+	    Insets insets = BorderInsets;
+	};
+    };
+
+    Array layout = {
+	new JTextArea {
+	    String text = message;
+	    Insets insets = TextAreaInsets;
+	    Object transferhandler = NULL;
+	    String tag = "$_options_message";
+	    Color  background = Color.white;
+	    int    opaque = TRUE;
+	    int    edit = FALSE;
+	    int    scroll = BOTH;
+	    int    caret = 0;
+	    int    rows = 0;
+	    int    columns = 0;
+
+	    Function dragGestureRecognized = DragGestureRecognized;
+	},
+	new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    int    weightx = 100;
+	    int    weighty = 100;
+	    int    fill = BOTH;
+	    Insets insets = TinyBottomInsets;
+	},
+
+	new JPanel {
+	    BorderLayout layoutmanager;
+
+	    Border border = {
+		int type = ETCHED|LOWERED;
+	    };
+
+	    Array layout = {
+		new JPanel {
+		    String tag = "$_options";
+
+		    GridBagLayout layoutmanager;
+		    Array layout = {
+			new JCheckbox {
+			    String tag = "$_resolution";
+			    String text = "Resolution";
+			    int    state = TRUE;
+
+			    itemStateChanged(e) {
+				root.components.$_resolutionslider.ShowOption();
+			    }
+			},
+			new GridBagConstraints {
+			    int gridx = 1;
+			    int gridy = 1;
+			    int anchor = WEST;
+			},
+
+			new JLabel {
+			    String tag = "$_resolutionoption";
+			    int    alignment = RIGHT;
+			},
+			new GridBagConstraints {
+			    int gridx = 3;
+			    int gridy = 1;
+			    int anchor = EAST;
+	    		    Insets insets = SmallRightInsets;
+			},
+
+			new JSlider {
+			    String tag = "$_resolutionslider";
+			    double scale = 1.0;
+			    int    orientation = HORIZONTAL;
+			    int    maximum = 400;
+			    int    minimum = 100;
+			    int    value = 200.0;
+
+			    stateChanged(e) {
+				scale = value/200.0;
+				ShowOption();
+				if (defined("ShowAxes", root))
+				    root.ShowAxes(scale);
+			    }
+
+			    mouseWheelMoved(e) {
+				value += e.wheelrotation;
+			    }
+
+			    ShowOption() {
+				String option = "";
+				double diagonal;
+
+				if (scale > 0) {
+				    diagonal = VM.screen.diagonal/scale;
+				    if (root.components.$_resolution.state)
+					option += strfmt("-D%.1f", diagonal);
+				}
+				root.components.$_resolutionoption.text = option;
+			    }
+
+			    Reset() {
+				value = 200.0;
+			    }
+			},
+			new GridBagConstraints {
+			    int gridx = 1;
+			    int gridy = 1;
+			    int gridwidth = 3;
+			    int weightx = 100;
+			    int anchor = CENTER;
+			},
+
+			new JCheckbox {
+			    String tag = "$_magnification";
+			    String text = "Magnification";
+			    int    state = TRUE;
+
+			    itemStateChanged(e) {
+				root.components.$_magnificationslider.ShowOption();
+			    }
+			},
+			new GridBagConstraints {
+			    int gridx = 1;
+			    int gridy = 2;
+			    int anchor = WEST;
+			},
+
+			new JLabel {
+			    String tag = "$_magnificationoption";
+			    int    alignment = RIGHT;
+			},
+			new GridBagConstraints {
+			    int gridx = 3;
+			    int gridy = 2;
+			    int anchor = EAST;
+	    		    Insets insets = SmallRightInsets;
+			},
+
+			new JSlider {
+			    String tag = "$_magnificationslider";
+			    double magnification = 1.0;
+			    int    orientation = HORIZONTAL;
+			    int    maximum = 30;
+			    int    minimum = 10;
+			    int    value = 20;
+
+			    stateChanged(e) {
+				magnification = value/20.0;
+				ShowOption();
+				VM.fontmagnification = magnification;
+				root.components.$_options_message.font = TextFontMedium.name;
+			    }
+
+			    mouseWheelMoved(e) {
+				value += e.wheelrotation;
+			    }
+
+			    ShowOption() {
+				String option = "";
+
+				if (root.components.$_magnification.state)
+				    option += strfmt("-m%.2f", magnification);
+				root.components.$_magnificationoption.text = option;
+			    }
+
+			    Reset() {
+				value = 20;
+			    }
+			},
+			new GridBagConstraints {
+			    int gridx = 1;
+			    int gridy = 2;
+			    int gridwidth = 3;
+			    int weightx = 100;
+			    int anchor = CENTER;
+			},
+		    };
+
+		    GetOptions() {
+			String text;
+
+			if (root.components.$_resolution.state)
+			    text = root.components.$_resolutionoption.text;
+			if (root.components.$_magnification.state) {
+			    if (text != NULL)
+				text += " ";
+			    text += root.components.$_magnificationoption.text;
+			}
+			return(text);
+		    }
+
+		    Reset() {
+			root.components.$_resolutionslider.Reset();
+			root.components.$_magnificationslider.Reset();
+		    }
+
+		    ShowOptions() {
+			root.components.$_resolutionslider.ShowOption();
+			root.components.$_magnificationslider.ShowOption();
+		    }
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    int    fill = HORIZONTAL;
+	    Insets insets = SmallBottomInsets;
+	},
+
+	new JPanel {
+	    GridBagLayout layoutmanager;
+
+	    Array layout = {
+		new JButton {
+		    String text = "Quit";
+		    Color  foreground = Color.red;
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 1;
+		    int anchor = WEST;
+		},
+
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String text = "Back";
+
+			    actionPerformed(e) {
+				root.components.$_cardpanel.nextcard = -1;
+			    }
+			},
+
+			new JButton {
+			    String tag = "$_options_next";
+			    String text = "Next";
+
+			    actionPerformed(e) {
+				root.components.$_cardpanel.nextcard = 1;
+			    }
+			},
+		    };
+		},
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 3;
+		    int weightx = 100;
+		},
+
+		new JButton {
+		    String text = "Reset";
+
+		    actionPerformed(e) {
+			root.components.$_options.Reset();
+		    }
+		},
+		new GridBagConstraints {
+		    int gridx = 3;
+		    int gridy = 1;
+		    int gridwidth = 1;
+		    int anchor = EAST;
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int fill = HORIZONTAL;
+	},
+    };
+
+    componentHidden(e) {
+	if (defined("HideAxes", root))
+	    root.HideAxes();
+    }
+
+    componentShown(e) {
+	root.components.$_options_message.preferredsize = root.components.$_options_message.size;
+	root.components.$_options.ShowOptions();
+	if (defined("ShowAxes", root))
+	    root.ShowAxes(root.components.$_resolutionslider.scale);
+	root.components.$_options_next.requestfocus = TRUE;
+    }
+};
+
+JPanel InstallPanel = {
+    GridBagLayout layoutmanager;
+    String        message = MessageInstall;
+
+    BevelBorder border = {
+	String title = "Ready To Install";
+	EmptyBorder child = {
+	    Insets insets = BorderInsets;
+	};
+    };
+
+    Array layout = {
+	new JTextArea {
+	    String text = message;
+	    Insets insets = TextAreaInsets;
+	    Object transferhandler = NULL;
+	    Color  background = Color.white;
+	    int    opaque = TRUE;
+	    int    edit = FALSE;
+	    int    scroll = AS_NEEDED;
+	    int    caret = 0;
+	    int    rows = 0;
+	    int    columns = 0;
+
+	    Function dragGestureRecognized = DragGestureRecognized;
+	},
+	new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    int    weightx = 100;
+	    int    weighty = 100;
+	    int    fill = BOTH;
+	    Insets insets = TinyBottomInsets;
+	},
+
+	new JPanel {
+	    GridBagLayout layoutmanager;
+
+	    Border border = {
+		int type = ETCHED|LOWERED;
+	    };
+
+	    Array layout = {
+		new JLabel {
+		    String text = "Installation Directory: ";
+		    int    alignment = RIGHT;
+		},
+		new GridBagConstraints {
+		    int fill = HORIZONTAL;
+		},
+
+		new JLabel {
+		    String tag = "$_final_dir";
+		    Color  foreground = Color.blue;
+		    int    alignment = LEFT;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 100;
+		    int fill = HORIZONTAL;
+		},
+
+		new JLabel {
+		    String text = "Operating System: ";
+		    int    alignment = RIGHT;
+		},
+		new GridBagConstraints {
+		    int fill = HORIZONTAL;
+		},
+
+		new JLabel {
+		    String tag = "$_final_os";
+		    Color  foreground = Color.blue;
+		    int    alignment = LEFT;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 100;
+		    int fill = HORIZONTAL;
+		},
+
+		new JLabel {
+		    String text = "Java Interpreter: ";
+		    int    alignment = RIGHT;
+		},
+		new GridBagConstraints {
+		    int fill = HORIZONTAL;
+		},
+
+		new JLabel {
+		    String tag = "$_final_java";
+		    Color  foreground = Color.blue;
+		    int    alignment = LEFT;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 100;
+		    int fill = HORIZONTAL;
+		},
+
+		new JLabel {
+		    String text = "Special Options: ";
+		    int    alignment = RIGHT;
+		},
+		new GridBagConstraints {
+		    int fill = HORIZONTAL;
+		},
+
+		new JLabel {
+		    String tag = "$_final_options";
+		    Color  foreground = Color.blue;
+		    int    alignment = LEFT;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 100;
+		    int fill = HORIZONTAL;
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    int    fill = HORIZONTAL;
+	    Insets insets = SmallBottomInsets;
+	},
+
+	new JPanel {
+	    GridBagLayout layoutmanager;
+
+	    Array layout = {
+		new JButton {
+		    String text = "Quit";
+		    Color  foreground = Color.red;
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 1;
+		    int anchor = WEST;
+		},
+
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String text = "Back";
+
+			    actionPerformed(e) {
+				root.components.$_cardpanel.nextcard = -1;
+			    }
+			},
+
+			new JButton {
+			    String tag = "$_install";
+			    String text = "Install";
+
+			    actionPerformed(e) {
+				Thread t;
+
+				root.components.$_cardpanel.nextcard = 1;
+				t.queue(
+				    Installer,
+				    root.components.$_final_os.text,
+				    root.components.$_final_dir.text,
+				    root.components.$_final_java.text,
+				    root.components.$_final_options.text
+				);
+			    }
+			},
+		    };
+		},
+
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 3;
+		    int weightx = 100;
+		},
+
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int fill = HORIZONTAL;
+	},
+    };
+
+    componentShown(e) {
+	if (isFilePath(root.components.$_directory.text))
+	    root.components.$_final_dir.foreground = Color.red;
+	else root.components.$_final_dir.foreground = Color.blue;
+
+	root.components.$_final_dir.text = root.components.$_directory.text;
+	root.components.$_final_os.text = root.components.$_os.selected;
+	root.components.$_final_java.text = root.components.$_java.text;
+	root.components.$_final_options.text = root.components.$_options.GetOptions();
+	root.components.$_install.requestfocus = TRUE;
+    }
+};
+
+JPanel StatusPanel = {
+    GridBagLayout layoutmanager;
+    String        message = NULL;
+
+    BevelBorder border = {
+	String title = "Installation Status";
+	EmptyBorder child = {
+	    Insets insets = BorderInsets;
+	};
+    };
+
+    Array layout = {
+	new JTextArea {
+	    String tag = "$_status";
+	    Insets insets = TextAreaInsets;
+	    Object transferhandler = NULL;
+	    String text = message;
+	    Color  background = Color.white;
+	    int    opaque = TRUE;
+	    int    edit = FALSE;
+	    int    scroll = AS_NEEDED;
+	    int    rows = 15;
+	    int    columns = 0;
+
+	    Function dragGestureRecognized = DragGestureRecognized;
+	},
+	new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    int    weightx = 100;
+	    int    weighty = 100;
+	    int    fill = BOTH;
+	    Insets insets = SmallBottomInsets;
+	},
+
+	new JPanel {
+	    GridBagLayout layoutmanager;
+
+	    Array layout = {
+		new JButton {
+		    String text = "Quit";
+		    Color  foreground = Color.red;
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 1;
+		    int anchor = WEST;
+		},
+
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String text = "Back";
+			    int    enabled = FALSE;
+
+			    actionPerformed(e) {
+				root.components.$_cardpanel.nextcard = -1;
+			    }
+			},
+
+			new JButton {
+			    String tag = "$_status_next";
+			    String text = "Next";
+			    int    enabled = FALSE;
+
+			    actionPerformed(e) {
+				root.components.$_cardpanel.nextcard = 1;
+			    }
+			},
+		    };
+		},
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 3;
+		    int weightx = 100;
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int fill = HORIZONTAL;
+	},
+    };
+
+    componentShown(e) {
+	root.components.$_status_next.requestfocus = TRUE;
+    }
+};
+
+JPanel FinalPanel = {
+    GridBagLayout layoutmanager;
+    String        message = MessageFinal;
+
+    BevelBorder border = {
+	String title = "Final Screen";
+	EmptyBorder child = {
+	    Insets insets = BorderInsets;
+	};
+    };
+
+    Array layout = {
+	new JTextArea {
+	    String text = message;
+	    Insets insets = TextAreaInsets;
+	    Object transferhandler = NULL;
+	    Color  background = Color.white;
+	    int    opaque = TRUE;
+	    int    edit = FALSE;
+	    int    scroll = AS_NEEDED;
+	    int    caret = 0;
+	    int    rows = 0;
+	    int    columns = 0;
+
+	    Function dragGestureRecognized = DragGestureRecognized;
+	},
+	new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    int    weightx = 100;
+	    int    weighty = 100;
+	    int    fill = BOTH;
+	    Insets insets = SmallBottomInsets;
+	},
+
+	new JPanel {
+	    GridLayout layoutmanager;
+
+	    Array layout = {
+		new JButton {
+		    String text = "Back";
+
+		    actionPerformed(e) {
+			root.components.$_cardpanel.nextcard = -1;
+		    }
+		},
+
+		new JButton {
+		    String tag = "$_final_done";
+		    String text = "Done";
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	},
+    };
+
+    componentShown(e) {
+	root.components.$_final_done.requestfocus = TRUE;
+    }
+};
+
+JPanel BrowsePanel = {
+    BorderLayout layoutmanager;
+    String       tag = "$_browse_panel";
+
+    Border border = {
+	String title = "File Browser";
+	int    type = BEVELED|LOWERED;
+    };
+
+    Array layout = {
+	new JFileChooser {
+	    String tag = "$_browse";
+	    Color  background = PanelColor;
+
+	    Pointer target;
+	    String  back;
+
+	    actionPerformed(e) {
+		if (e.command === "ApproveSelection") {
+		    if (file != NULL)
+			*target = file;
+		}
+		root.components.$_cardpanel.nextcard = back;
+	    }
+
+	    Show(String back, String file, int mode, String text, String tooltip, Pointer target) {
+		if (defined(back, root.components)) {
+		    if (target != NULL && *target instanceof String) {
+			this.back = back;
+			this.target = target;
+			this.mode = mode;
+			this.approvebuttontext = text;
+			this.approvebuttontooltiptext = tooltip;
+			this.file = file;
+			root.components.$_cardpanel.nextcard = "$_browse_panel";
+		    }
+		}
+	    } 
+	},
+    };
+};
+
+//
+// Full screen frame - eventually maybe show an image etc.
+//
+
+JFrame InstallationScreen = {
+    BorderLayout layoutmanager;
+    Dimension    size = NULL;
+    String       title = "Yoix Installer";
+    Color        background = FrameColor;
+    Font         font = TextFontMedium;
+    int          opaque = TRUE;
+
+    JMenuBar menubar = {
+	Menu items = {
+	    "Options", new Menu {
+		"Opaque", "options_opaque", opaque,
+	    },
+	};
+    };
+
+    Array layout = {
+	new JLabel {
+	    String text = ProductDescription;
+	    Font   font = TextFontHuge;
+	    int    alignment = CENTER;
+	}, NORTH,
+
+	new JPanel {
+	    GridBagLayout layoutmanager;
+	    String        tag = "$_paintpanel";
+	    double        axisscale = 0;
+
+	    Array layout = {
+		new JPanel {
+		    GridBagLayout layoutmanager;
+		    Color         background = PanelColor;
+
+		    Array layout = {
+			new JPanel {
+			    CardLayout layoutmanager;
+			    String     tag = "$_cardpanel";
+
+			    Array layout = {
+				//
+				// Primary panels that are listed in order of
+				// their appearance. A panel that's NULL will
+				// be skipped (by the Yoix layout machinery).
+				//
+				WelcomePanel,
+				LicensePanel,
+				OSPanel,
+				DirectoryPanel,
+				JavaPanel,
+				OptionsPanel,
+				InstallPanel,
+				StatusPanel,
+				FinalPanel,
+
+				//
+				// Support panels
+				//
+				BrowsePanel,
+			    };
+			},
+		    };
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 100;
+		    int weighty = 100;
+		    int anchor = SOUTHEAST;
+
+		    Insets insets = {
+			double right = 72.0/2;
+			double bottom = 72.0/2;
+		    };
+		},
+	    };
+
+	    paint(Rectangle r) {
+		if (axisscale > 0) {
+		    graphics {
+			gsave();
+			translate(36, 18);
+			scale(axisscale, axisscale);
+			foreground = AxisColor;
+			DrawAxis(graphics);
+			rotate(90);
+			scale(1, -1);
+			DrawAxis(graphics);
+			grestore();
+		    }
+		}
+	    }
+
+	    DrawAxis(Graphics graphics) {
+		int axislength = 3*72;
+		int ticklength = 72/16;
+		int delta = 72/8;
+		int x;
+
+		graphics {
+		    gsave();
+		    moveto(0, 0);
+		    lineto(axislength, 0);
+		    for (x = delta; x <= axislength; x += delta) {
+			moveto(x, 0);
+			if (x%72 == 0)
+			    rlineto(0, 2.0*ticklength);
+			else rlineto(0, 1.0*ticklength);
+		    }
+		    stroke();
+		    grestore();
+		}
+	    }
+
+	    PaintAxes(double scale) {
+		axisscale = scale;
+		repaint();
+	    }
+
+	}, CENTER,
+    };
+
+    itemStateChanged(Event e) {
+	switch (e.item) {
+	    case "options_opaque":
+		opaque = e.state;
+		break;
+
+	    default:
+		break;
+	}
+    }
+
+    HideAxes() {
+	components.$_paintpanel.PaintAxes(0);
+    }
+
+    ShowAxes(scale) {
+	components.$_paintpanel.PaintAxes(scale);
+    }
+
+    ShowFinished() {
+	components.$_status_next.enabled = TRUE;
+	validate = TRUE;
+    }
+
+    ShowScreen() {
+	Dimension size = this.size;
+	Point     location;
+
+	size.width = min(size.width + 3*72.0 + 72.0/2, VM.screen.width - 72);
+	size.height = min(size.height + 1.5*72.0, VM.screen.height - 72);
+	location.x = (VM.screen.width - size.width)/2;
+	location.y = (VM.screen.height - size.height)/2 - 72/2;
+	this.size = size;
+	this.location = location;
+	if (TileImage.flags & IMAGE_ALLBITS) {
+	    this.backgroundimage = TileImage;
+	    this.backgroundhints = SCALE_TILE;
+	} else if (BackgroundImage.flags & IMAGE_ALLBITS) {
+	    this.backgroundimage = BackgroundImage;
+	    this.backgroundhints = SCALE_NONE;
+	}
+	this.visible = TRUE;
+    }
+};
+
+//
+// Flags and operating system definitions.
+//
+
+int OS_UNIX = 0x01;
+int OS_WINDOWS = 0x02;
+int OS_MAC = 0x04;
+int OS_NONE = 0x08;
+int OS_MASK = (OS_UNIX | OS_WINDOWS | OS_MAC | OS_NONE);
+
+int ARCHIVE_ZIPPED = 0x20;
+int STDIN_ZIPPED = 0x40;
+int IS_OPTIONAL = 0x80;
+
+Dictionary OS_MAP[] = {
+    "Unix", OS_UNIX,
+    "Mac OS X", OS_UNIX,
+    "Windows", OS_WINDOWS,
+    "Unknown", OS_NONE,
+};
+
+//
+// System dependent Java options - currently only for SGI running some
+// versions of Java. Unfortunate, but required.
+//
+
+String JAVAOPTIONS = "";
+String JAVAVERSION = getProperty("java.version");
+
+if (ISUNIX && getProperty("os.name") === "Irix") {
+    if (JAVAVERSION != NULL && startsWith(JAVAVERSION, "1.3"))
+	JAVAOPTIONS = "-green";
+}
+
+//
+// Everything[] array describes everything that we currently can install.
+// The commands[] arrays are the hardest - see the Installer() function
+// for the complete story. Notice that we use special string delimiters
+// (i.e., the # character) in the commands[] arrays because they let us
+// eliminate some escapes.
+//
+
+Array Everything = {
+    new Dictionary {
+	int    flags = OS_MASK | STDIN_ZIPPED;
+	String source = "<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>Client.jar";
+	String directory = "lib";
+	String file = "<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>Client.jar";
+	String mode = "644";
+	String data = NULL;
+    },
+
+    new Dictionary {
+	int    flags = OS_MASK | STDIN_ZIPPED;
+	String source = NULL;
+	String directory = "cache";
+	String file = NULL;
+	String mode = NULL;
+	String data = NULL;
+    },
+
+    new Dictionary {
+	int    flags = OS_UNIX | STDIN_ZIPPED;
+	String source = "<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>.sh";
+	String directory = "bin";
+	String file = "<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>";
+	String mode = "755";
+	String data = NULL;
+	String jarfile = "lib/<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>Client.jar";
+
+	Array commands = {
+	    "java",
+		@<<return strfmt(>>@ +
+		@<<"\n%s %s -ms32m -mx128m -Dyoix.home=%s -jar %s %s <_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_> \"$@\"\n", >>@ +
+		@<<command, JAVAOPTIONS, home, components[n].jarfile, options);>>@,
+	};
+    },
+
+    new Dictionary {
+	int    flags = OS_WINDOWS | STDIN_ZIPPED;
+	String source = "<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>.bat";
+	String directory = "bin";
+	String file = "<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>.bat";
+	String mode = "755";
+	String data = NULL;
+	String jarfile = "lib\\<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>Client.jar";
+
+	Array commands = {
+	    "java",
+		@<<return strfmt(>>@ +
+		@<<"\r\n%s %s -ms32m -mx128m -Dyoix.home=%s -jar %s %s <_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_> >>@ +
+		@<<%%1 %%2 %%3 %%4\r\n", >>@ +
+		@<<command, JAVAOPTIONS, home, components[n].jarfile, options);>>@,
+	};
+    },
+
+    new Dictionary {
+	int    flags = OS_UNIX | STDIN_ZIPPED;
+	String source = "<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>.sh";
+	String directory = "bin";
+	String file = "<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>_test";
+	String mode = "755";
+	String data = NULL;
+	String jarfile = "lib/<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>Client.jar";
+
+	Array commands = {
+	    "java",
+		@<<return strfmt(>>@ +
+		@<<"\n%s %s -ms32m -mx128m -Dyoix.home=%s -jar %s %s \"$@\"\n", >>@ +
+		@<<command, JAVAOPTIONS, home, components[n].jarfile, options);>>@,
+	};
+    },
+
+    new Dictionary {
+	int    flags = OS_WINDOWS | STDIN_ZIPPED;
+	String source = "<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>.bat";
+	String directory = "bin";
+	String file = "<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>_test.bat";
+	String mode = "755";
+	String data = NULL;
+	String jarfile = "lib\\<_BETA_PREFIX_DQ_><_ACRONYM_UPLOW_DQ_>Client.jar";
+
+	Array commands = {
+	    "java",
+		@<<return strfmt(>>@ +
+		@<<"\r\n%s %s -ms32m -mx128m -Dyoix.home=%s -jar %s %s >>@ +
+		@<<%%1 %%2 %%3 %%4\r\n", >>@ +
+		@<<command, JAVAOPTIONS, home, components[n].jarfile, options);>>@,
+	};
+    },
+
+    new Dictionary {
+	int    flags = OS_MASK | ARCHIVE_ZIPPED | STDIN_ZIPPED;
+	String source = "top.zip";
+	String directory = NULL;
+	String file = NULL;
+	String mode = "644";
+	String data = NULL;
+    },
+
+    new Dictionary {
+	int    flags = OS_MASK | ARCHIVE_ZIPPED | STDIN_ZIPPED | IS_OPTIONAL;
+	String source = "license.zip";
+	String directory = "license";
+	String file = NULL;
+	String mode = "644";
+	String data = NULL;
+    },
+};
+
+//
+// The Installer() function handles the real installation.
+//
+
+Installer(String os_name, String directory, String command, String options) {
+    String dest;
+    String ocommand;
+    String home;
+    Array  components[0, ...];
+    int    os;
+    int    errors;
+    int    m;
+    int    n;
+
+    os = defined(os_name, OS_MAP) ? OS_MAP[os_name] : OS_NONE;
+    ocommand = command;
+    if (strpbrk(command, " \t") != NULL)
+	command = "\"" + command + "\"";
+    if (os == OS_WINDOWS && endsWith(ocommand, ".exe"))		// small kludge
+	ocommand = substring(ocommand, 0, ocommand@sizeof - 4);
+
+    directory = trim(directory, NULL, FILESEPARATOR);
+    home = directory;
+    if (strpbrk(home, " \t") != NULL)
+	home = "\"" + home + "\"";
+
+    for (n = m = 0; n < Everything@length; n++) {
+	if (Everything[n] != NULL) {
+	    if (Everything[n].flags & os) {
+		if (Everything[n].source != NULL) {
+		    ShowStatus("Reading " + Everything[n].source);
+		    if ((Everything[n].data = LoadData(Everything[n])) == NULL) {
+			if (Everything[n].flags & IS_OPTIONAL)
+			    components[m++] = Everything[n];
+			else errors++;
+		    } else components[m++] = Everything[n];
+		} else components[m++] = Everything[n];
+	    }
+	}
+    }
+
+    if (errors == 0) {
+	if (isDirectoryPath(directory) == FALSE) {
+	    if (access(directory, F_OK) == 0) {
+		ShowStatus(strfmt("Removing %s", directory));
+		unlink(directory);
+	    }
+	}
+
+	errors += MakeDirectory(directory, "755");
+
+	for (n = 0; n < components@length; n++) {
+	    if (components[n].directory != NULL)
+		components[n].directory = directory + FILESEPARATOR + components[n].directory;
+	    else components[n].directory = directory;
+	    errors += MakeDirectory(components[n].directory, "755");
+	}
+
+	for (n = 0; n < components@length; n++) {
+	    if (defined("jarfile", components[n])) {
+		components[n].jarfile = directory + FILESEPARATOR + components[n].jarfile;
+		if (strpbrk(components[n].jarfile, " \t") != NULL)
+		    components[n].jarfile = "\"" + components[n].jarfile + "\"";
+	    }
+	    if (defined("commands", components[n])) {
+		for (m = 0; m < components[n].commands@length; m += 2) {
+		    if (endsWith(ocommand, components[n].commands[m])) {
+			components[n].data += "" + eval(components[n].commands[m+1]);
+			break;
+		    }
+		}
+	    }
+	}
+
+	for (n = 0; n < components@length; n++) {
+	    if (components[n].file != NULL) {
+		if (components[n].data != NULL) {
+		    dest = components[n].directory + FILESEPARATOR + components[n].file;
+		    ShowStatus("Installing " + dest);
+		    errors += WriteData(dest, components[n].data);
+		    if (components[n].mode != NULL)
+			ChangeMode(dest, components[n].mode);
+		}
+	    } else if (components[n].flags&ARCHIVE_ZIPPED)
+		errors += WriteZippedData(components[n]);
+	}
+    }
+
+    if (errors == 0)
+	printf(Product + " has been installed in directory %s\n", directory);
+
+    ShowStatus(strfmt("\nInstallation complete: %d errors", errors));
+    InstallationScreen.ShowFinished();
+}
+
+//
+// Installer support functions.
+//
+
+ChangeMode(String path, String mode) {
+    Process p;
+    int     result = 0;
+
+    if (ISUNIX || startsWith(OSNAME, "Mac OS X")) {
+	p.command = new Array[] { "/bin/chmod", mode, path };
+	p.alive = TRUE;
+	waitFor(p);
+	if (result = p.exitvalue)
+	    ShowStatus("Can't set permissions on " + path);
+    }
+
+    return(result == 0 ? 0 : 1);
+}
+
+LoadData(Dictionary dict) {
+    Stream stream;
+    String data;
+
+    //
+    // Assumes ISO8895_1 encoding - binary data may cause trouble if
+    // that's not the case. Eventually will add "rb" and "wb" modes
+    // to easily force the issue.
+    //
+
+    if (dict.source != NULL) {
+	if ((dict.flags & STDIN_ZIPPED) == 0) {
+	    if ((stream = open(dict.source, "r")) != NULL) {
+		if ((data = readStream(stream)) == NULL)
+		    ShowStatus("Can't read " + dict.source);
+		close(stream);
+	    } else ShowStatus("Can't open " + dict.source);
+	} else if (defined(dict.source, unzipped)) {
+	    data = unzipped[dict.source];
+	} else ShowStatus("Can't find " + dict.source);
+    }
+    return(data);
+}
+
+MakeDirectory(String path, String mode) {
+    int result = 0;
+
+    if (isDirectoryPath(path) == 0) {
+	if ((result = mkdirs(path)) == 0)
+	    result = ChangeMode(path, mode);
+	else ShowStatus("Can't make directory " + path);
+    }
+    return(result == 0 ? 0 : 1);
+}
+
+ShowStatus(String str) {
+    appendText(InstallationScreen.components.$_status, str + "\n");
+}
+
+WriteData(String path, String data) {
+    Stream stream;
+    int    result = 1;
+
+    //
+    // Assumes ISO8895_1 encoding - binary data may cause trouble if
+    // that's not the case. Eventually will add "rb" and "wb" modes
+    // to easily force the issue.
+    //
+
+    if ((stream = open(path, "w")) != NULL) {
+	if (write(stream, data, data@length) < data@length)
+	    ShowStatus("Can't write " + path);
+	else result = 0;
+	close(stream);
+    } else ShowStatus("Can't open " + path);
+
+    return(result == 0 ? 0 : 1);
+}
+
+WriteZippedData(Dictionary component) {
+    ZipEntry ze;
+    String   block;
+    String   path;
+    Stream   output;
+    int      errors;
+    int      n;
+
+    StringStream input = {
+	String name = component.data;
+	int    mode = READ;
+	int    filters = ZIPPED;
+	int    open = TRUE;
+    };
+
+    while(ze = input.nextentry) {
+	path = component.directory + FILESEPARATOR + ze.name;
+	if ((output = open(path, "w")) != NULL) {
+	    ShowStatus("Installing " + path);
+	    while ((block = input.nextbuf) != NULL)
+		output.nextbuf = block;
+	    close(output);
+	    if (component.mode != NULL)
+		errors += ChangeMode(path, component.mode);
+	} else {
+	    ShowStatus("Can't open " + path);
+	    errors++;
+	}
+    }
+
+    close(input);
+    return(errors);
+}
+
+//
+// Store entries in dictionary if stdin is a zipped file.
+//
+
+Dictionary unzipped[0, ...];
+
+if (stdin.filters == ZIPPED) {
+    ZipEntry ze;
+    while ((ze = stdin.nextentry) != NULL)
+	unzipped[ze.name] = readStream(stdin);
+}
+
+//
+// Start the installation.
+//
+
+InstallationScreen.ShowScreen();
+

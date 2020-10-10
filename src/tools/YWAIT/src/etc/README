@@ -1,0 +1,65 @@
+Some important files that you should understand before you start running
+a service that supports real users. Make sure you look at the passwd file
+that YWAIT generated - there probably will be a single user named "guest"
+that has an empty (i.e., ::) password field. As discussed below, it just
+means the first actual login as guest gets to set the password, so you
+probably should be the one to do it.
+
+    passwd
+	A simple password file that your application uses when the
+	version that YWAIT originally generated is installed. The
+	passwd file is read by a perl function named ValidateUser()
+	that's defined in ywait_rc._PL. The ValidateUser() call that
+	handles user logins comes from
+
+		../subs/ywait_validation.pl
+
+	so all you have to do is change that call and you can handle
+	user validation any way that you choose. In other words, if
+	you customize ywait_validation.pl you don't need passwd and
+	you probably should change Makefile so it's not installed,
+	which happens if you remove the LOCAL_INSTALL definition in
+	Makefile or remove passwd from this directory.
+
+	Comments in the passwd file explain the fields, but several
+	points are worth emphasizing. You probably should not edit
+	the installed version of passwd while the system is running.
+	Instead create new one-line entry for a user and append that
+	line to the installed version of passwd file. ValidateUser()
+	doesn't object if a user has several entries - it just grabs
+	the last one. The installed passwd file can grow, so what we
+	typically do is have run a cron job run that moves the passwd
+	file, which means nobody can log in, saves a copy somewhere,
+	removes duplicate lines, and puts the cleaned up file back as
+	the installed passwd file. It's a quick process that probably
+	won't ever be noticed by your users. YWAIT provides a way for
+	you to manage the passwd file - just take a look at the
+
+		../admin/bin/crontab._PL
+		../admin/bin/cleanup._PL
+
+	scripts an you should see what we mean.
+
+	The second point is that ValidateUser() interprets an empty
+	password field (i.e., ::) as a request to fill it using the
+	password the user supplies the next time that user logs in. 
+	It's a convenient way for you to create an entry for someone
+	and let them set their own password. Just remember the rules
+	mentioned in the last paragraph - create a valid one-line
+	entry with an empty password field and append that entry to
+	the installed passwd file.
+
+    ywait_rc._PL
+	A really important file that's included by the cgi scripts
+
+		../cgi-bin/ywait_exec._PL
+		../cgi-bin/ywait_login._PL
+
+	every time they run. There are some very important variables
+	in ywait_rc._PL (they're defined after the initial comments)
+	that control the behavior of your system, and if you're the
+	administrator you should understand what the definitions do.
+	Read the comments at the start of ywait_rc._PL and pay close
+	attention to variables named RUNSTATE, PINGTIMER, LOGDETAIL,
+	CHECKHOST, and SESSIONIDTIMER.
+

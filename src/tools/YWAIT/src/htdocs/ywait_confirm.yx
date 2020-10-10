@@ -1,0 +1,283 @@
+//
+// Confirm dialog - for short messages.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+Builder(String name, Array args) {
+
+    JDialog screen = {
+	Insets border = Global.GetUnLabeledScreenInsets();
+	Object parent = Global.GetLoadableArgument("parent", args);
+	Font   font = Global.GetPreferredLabelFont();
+	int    autoraise = TRUE;
+	int    modal = TRUE;
+	int    opaque = TRUE;
+
+	Dimension maximumsize = {
+	    double width = 8.0*72.0;
+	    double height = VM.screen.height/2;
+	};
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = NONE;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = FALSE;   // save screen-specific info within session
+	int    retainstate = FALSE; // save screen-class info across sessions
+	int    reloadargs = FALSE;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	Image  message_icon = Global.GetLoadableArgument("message_icon", args);
+	int    proprietary = FALSE;
+	int    beepcount = 1;
+	int    confirmed = FALSE;
+	int    rejected  = FALSE;
+	int    accepted = FALSE;
+	int    canceled = FALSE;
+	int    checkstate = FALSE;
+	String buttontag = NULL;
+
+	//
+	// This must follow message_icon initialization!! Don't like the order
+	// dependence in variable declarations - sorry.
+	//
+
+	double message_icon_width = message_icon != NULL ? message_icon.size.width : 0;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    //
+	    // The JPanel just helps placement of the icon by paint(). Omitting
+	    // it and using size of the JTextArea won't always be right because
+	    // the JTextArea's size currently doesn't account for the fact that
+	    // it may be in a JScrollPane. We're not 100% sure we should change
+	    // our low level Java code, so we use the JPanel as a workaround.
+	    //
+	    new JPanel {
+		String tag = "$_message_panel";
+
+		BorderLayout layoutmanager;
+		Array layout = {
+		    Global.NewJTextArea("$_message", NULL, 0, 0, AS_NEEDED, "edit", FALSE, "opaque", FALSE, "textwrap", 0),
+		    CENTER,
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    weightx = 1;
+		int    weighty = 1;
+		int    fill = BOTH;
+		Insets insets = Global.GetInsets(0, 0, message_icon_width, 0);
+	    },
+
+	    new JPanel {
+		GridLayout layoutmanager = {
+		    int useall = FALSE;
+		};
+
+		Array layout = {
+		    new JButton {
+			String tag = "$_accepted";
+			String text = "Yes to All";
+			Font   font = Global.GetPreferredButtonFont();
+			int    visible = FALSE;
+
+			actionPerformed(e) {
+			    root.accepted = TRUE;
+			    root.canceled = FALSE;
+			    root.confirmed = TRUE;
+			    root.rejected = FALSE;
+			    root.checkstate = root.components.$_nevermore.state;
+			    root.buttontag = tag;
+			    Global.AltQueueCommand(root, &root.HideScreen);
+			}
+		    },
+		    new JButton {
+			String tag = "$_yes";
+			String text = "Yes";
+			Font   font = Global.GetPreferredButtonFont();
+			int    requestfocus = TRUE;
+
+			actionPerformed(e) {
+			    root.accepted = root.CheckNevermore();
+			    root.canceled = FALSE;
+			    root.confirmed = TRUE;
+			    root.rejected = FALSE;
+			    root.checkstate = root.components.$_nevermore.state;
+			    root.buttontag = tag;
+			    Global.AltQueueCommand(root, &root.HideScreen);
+			}
+		    },
+		    new JButton {
+			String tag = "$_no";
+			String text = "No";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    root.accepted = FALSE;
+			    root.canceled = root.CheckNevermore();
+			    root.confirmed = FALSE;
+			    root.rejected = TRUE;
+			    root.checkstate = root.components.$_nevermore.state;
+			    root.buttontag = tag;
+			    Global.AltQueueCommand(root, &root.HideScreen);
+			}
+		    },
+		    new JButton {
+			String tag = "$_cancel";
+			String text = "Cancel";
+			Font   font = Global.GetPreferredButtonFont();
+			int    visible = FALSE;
+
+			actionPerformed(e) {
+			    root.accepted = FALSE;
+			    root.canceled = TRUE;
+			    root.confirmed = FALSE;
+			    root.rejected = FALSE;
+			    root.checkstate = root.components.$_nevermore.state;
+			    root.buttontag = tag;
+			    Global.AltQueueCommand(root, &root.HideScreen);
+			}
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetInsets(72.0/8, 0, message_icon_width, message_icon_width);
+	    },
+
+	    new JCheckBox {
+		String tag = "$_nevermore";
+		String text = "Apply this answer to any other instances";
+		int    state = FALSE;
+		int    visible = FALSE;
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    anchor = LEFT;
+		Insets insets = Global.GetInsets(72.0/8, 0, message_icon_width, message_icon_width);
+	    },
+
+	    Global.NewJProprietaryLabel("$_proprietary"),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    components.$_message.text = "";
+	}
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+
+	LoadArgs() {
+	    if (proprietary) {
+		components.$_proprietary.text = Global.ProprietaryLabel;
+		components.$_proprietary.border = Global.GetQualifiedInsets(72.0/32, "T");
+	    } else {
+		components.$_proprietary.text = "";
+		components.$_proprietary.border = NULL;
+	    }
+	    components.$_message.opaque = (message_icon == NULL);
+	}
+
+	ShowScreen() {
+	    Global.SoundBeeps(beepcount);	// modal so it should not be visible
+	    visible = Global.ScreenVisibility;
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	paint(Rectangle r) {
+	    Point corner;
+
+	    graphics {
+		gsave();
+		rectclip(r);
+		recterase(r, root.opaque);
+		if (message_icon != NULL) {
+		    corner = getLocationInRoot(components.$_message_panel);
+		    moveto(corner.x/2, corner.y + components.$_message_panel.size.height/2);
+		    rmoveto(-message_icon.size.width/2, -message_icon.size.height/2);
+		    showimage(message_icon);
+		}
+		grestore();
+	    }
+	}
+
+	CheckNevermore() {
+	    return(components.$_nevermore.visible && components.$_nevermore.state);
+	}
+
+	SetButtons(Array labels) {
+	    Array tags = {"$_accepted", "$_yes", "$_no", "$_cancel"};
+	    int   n;
+
+	    // reset, too
+	    buttontag = NULL;
+	    components.$_nevermore.state = checkstate = FALSE;
+
+	    if (labels@sizeof >= 1 && labels@sizeof <= 4) {
+		if (labels[0] instanceof Number)
+		    components.$_nevermore.visible = *labels++;
+		if (labels@sizeof < 4)
+		    tags++;
+		for (n = 0; n < labels@sizeof && n < tags@sizeof; n++) {
+		    components[tags[n]].visible = TRUE;
+		    if (labels[n] != NULL)
+			components[tags[n]].text = labels[n];
+		}
+	    }
+	}
+
+	SetText(String text, int formatted, int fixedwidth) {
+	    if (fixedwidth)
+		components.$_message.font = Global.GetPreferredMonospaceFont();
+	    if (formatted < 0)
+		formatted = (text =~ "[\n\t]");
+	    components.$_message.text = formatted ? text : fmt(text);
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);

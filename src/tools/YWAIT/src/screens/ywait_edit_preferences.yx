@@ -1,0 +1,1498 @@
+//
+// Screen used to edit and update user level preferences.
+//
+// NOTE - had some small problems with JColorChooser sizing, so that part
+// of the layout can use some attention. Need to track the behavior down,
+// deal with it, and remove the kludges.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+String NOCOLORNAME = "<unnamed>";
+String FONTSAMPLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n0123456789\n`~!@#$%^&*()_-+={}[]\\/|'\";:<>,.?";
+
+//
+// Event handlers that are usually used as arguments in various constructor
+// function calls.
+//
+
+ActionPerformedColor(e) {
+    if (defined(text, Color))
+	root.components.$_chooser.color = Color[text];
+}
+
+ItemStateChangedFont(e) {
+    if (e.state)
+	root.components.$_fpreview.font = root.PickFontName();
+}
+
+TextValueChangedNumber(e) {
+    int valid;
+
+    if (text@length > 0) {
+	if (root.prefdict.type == Global.VTYPE_INT)
+	    valid = regexec(Global.VTYPE_INT_RE, text);
+	else valid = regexec(Global.VTYPE_DOUBLE_RE, text);
+    } else valid = TRUE;
+
+    if (!valid) {
+	beep();
+	text = last_valid;
+    } else last_valid = text;
+}
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Dimension size = NULL;
+	Insets    border = Global.GetLabeledScreenInsets();
+	String    title = Global.ACRONYM + " Preference Editor";
+	Object    parent = Global.MainScreen;
+	Font      font = Global.GetPreferredLabelFont();
+	int       opaque = TRUE;
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = FALSE;
+	int    savestate = TRUE;
+	int    retainstate = TRUE; // save screen-class info across sessions
+	int    reloadargs = TRUE;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	Dictionary prefdict = NULL;
+	JTreeNode  prefjtnd = NULL;
+
+	////////////////////////////
+	//
+	// MenuBar Layout
+	//
+	////////////////////////////
+
+	JMenuBar menubar = {
+	    Font font = Global.GetPreferredMenuFont();
+
+	    Array items = {
+		new JMenu {
+		    String text = "File";
+		    Array items = {
+			new JMenuItem {
+			    String text = "Session Save";
+			    String command = "session_save";
+			    String tag = command;
+			},
+			new JMenuItem {
+			    String text = "Server Save";
+			    String command = "server_save";
+			    String tag = command;
+			},
+			NULL,
+			new JMenuItem {
+			    String text = "Dismiss";
+			    String command = "dismiss";
+			    String tag = command;
+			},
+		    };
+		},
+		new JMenu {
+		    String text = "Edit";
+		    Array items = {
+			new JMenuItem {
+			    String text = "Expand All";
+			    String command = "expand_all";
+			    String tag = command;
+			},
+			new JMenuItem {
+			    String text = "Expand Selected Node Fully";
+			    String command = "expand_selected";
+			    String tag = command;
+			},
+			new JMenuItem {
+			    String text = "Collapse All";
+			    String command = "collapse_all";
+			    String tag = command;
+			},
+			new JMenuItem {
+			    String text = "Collapse Selected Node Fully";
+			    String command = "collapse_selected";
+			    String tag = command;
+			},
+			NULL,
+			new JMenuItem {
+			    String text = "Make Selected Visible";
+			    String command = "show_selected";
+			    String tag = command;
+			},
+			NULL,
+			new JMenu {
+			    String text = "Reset to Saved";
+			    Array items = {
+				new JMenuItem {
+				    String text = "Current Value";
+				    String command = "reset_saved_crnt";
+				    String tag = command;
+				},
+				new JMenuItem {
+				    String text = "All Values";
+				    String command = "reset_saved_all";
+				    String tag = command;
+				},
+			    };
+			},
+			new JMenu {
+			    String text = "Reset to Default";
+			    Array items = {
+				new JMenuItem {
+				    String text = "Current Value";
+				    String command = "reset_dflt_crnt";
+				    String tag = command;
+				},
+				new JMenuItem {
+				    String text = "All Values";
+				    String command = "reset_dflt_all";
+				    String tag = command;
+				},
+			    };
+			},
+		    };
+		},
+	    };
+	};
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    new JPanel {
+		GridLayout layoutmanager;
+		Array layout = {
+		    new JPanel {
+			GridBagLayout layoutmanager = {
+			    int columns = 1;
+			};
+			Array layout = {
+			    Global.NewJHeadingLabel(NULL, "User Preferences"),
+			    new JScrollPane {
+				String tag = "$_treepane";
+				int    scroll = AS_NEEDED;
+
+				Array layout = {
+				    new JTree {
+					String tag = "$_tree";
+					Color  background = Global.GetPreferredTreeBackground();
+					Color  foreground = Global.GetPreferredTreeForeground();
+					Font   font = Global.GetPreferredTreeFont();
+					int    tooltips = TRUE;
+
+					mouseClicked(MouseEvent e) {
+					    root.SetPreference(item(e.location.x, e.location.y));
+					}
+				    },
+				};
+			    },
+			    BOTH,
+			};
+		    },
+
+		    new JPanel {
+			String tag = "$_card";
+
+			CardLayout layoutmanager;
+			Array layout = {
+			    new JPanel {
+				String tag = "$_blank";
+			    },
+
+			    new JPanel {
+				String tag = "$_nbrfield";
+				Insets border = Global.GetQualifiedInsets(72.0/8, "L");
+
+				BorderLayout layoutmanager;
+				Array layout = {
+				    new JPanel {
+					String tag = "$_nbrpanel";
+
+					GridBagLayout layoutmanager = {
+					    int columns = 1;
+					};
+					Array layout = {
+					    Global.NewJLabel("$_nbrlabel", NULL, "alignment", LEFT),
+					    HORIZONTAL_WEIGHT_NONE,
+					    Global.NewJTextField(
+						"$_nbrentry", NULL, 10,
+						"last_valid", "",
+						"previous", new Object,
+						"textValueChanged", TextValueChangedNumber
+					    ),
+					    72.0/8,
+					    new JButton {
+						String text = "Record Change";
+						Font   font = Global.GetPreferredButtonFont();
+
+						actionPerformed(e) {
+						    root.RecordNumberChange();
+						}
+					    },
+					    NONE,
+					};
+				    },
+				    CENTER,
+				};
+			    },
+
+			    new JPanel {
+				String tag = "$_nbrcombo";
+				Insets border = Global.GetQualifiedInsets(72.0/8, "L");
+
+				BorderLayout layoutmanager;
+				Array layout = {
+				    new JPanel {
+					String tag = "$_nbopanel";
+
+					GridBagLayout layoutmanager = {
+					    int columns = 1;
+					};
+					Array layout = {
+					    Global.NewJLabel("$_nbolabel", NULL, "alignment", LEFT),
+					    HORIZONTAL_WEIGHT_NONE,
+					    Global.NewJChoice(
+						"$_nboentry", NULL, NULL,
+						"last_valid", "",
+						"previous", new Object,
+						"textValueChanged", TextValueChangedNumber
+					    ),
+					    72.0/8,
+					    new JButton {
+						String text = "Record Change";
+						Font   font = Global.GetPreferredButtonFont();
+
+						actionPerformed(e) {
+						    root.RecordNumberComboChange();
+						}
+					    },
+					    NONE,
+					};
+				    },
+				    CENTER,
+				};
+			    },
+
+			    new JPanel {
+				String tag = "$_nbrpair";
+				Insets border = Global.GetQualifiedInsets(72.0/8, "L");
+
+				BorderLayout layoutmanager;
+				Array layout = {
+				    new JPanel {
+					String tag = "$_pairpanel";
+
+					GridBagLayout layoutmanager = {
+					    int columns = 1;
+					};
+					Array layout = {
+					    Global.NewJLabel("$_nbr1label", NULL, "alignment", LEFT),
+					    HORIZONTAL,
+					    Global.NewJTextField(
+						"$_nbr1entry", NULL, 0,
+						"last_valid", "",
+						"previous", new Object,
+						"textValueChanged", TextValueChangedNumber
+					    ),
+					    72.0/8,
+					    Global.NewJLabel("$_nbr2label", NULL, "alignment", LEFT),
+					    Global.NewJTextField(
+						"$_nbr2entry", NULL, 0,
+						"last_valid", "",
+						"previous", new Object,
+						"textValueChanged", TextValueChangedNumber
+					    ),
+					    72.0/8,
+					    new JButton {
+						String text = "Record Change";
+						Font   font = Global.GetPreferredButtonFont();
+
+						actionPerformed(e) {
+						    root.RecordNumberPairChange();
+						}
+					    },
+					    NONE,
+					};
+				    },
+				    CENTER,
+				};
+			    },
+
+			    new JPanel {
+				String tag = "$_stringvalue";
+				Insets border = Global.GetQualifiedInsets(72.0/8, "L");
+
+				BorderLayout layoutmanager;
+				Array layout = {
+				    new JPanel {
+					String tag = "$_stringpanel";
+
+					GridBagLayout layoutmanager = {
+					    int columns = 1;
+					};
+					Array layout = {
+					    Global.NewJLabel("$_stringlabel", NULL, "alignment", LEFT),
+					    HORIZONTAL,
+					    Global.NewJTextField("$_stringentry", NULL, 0, "previous", NULL, "splitter", NULL),
+					    72.0/8,
+					    new JButton {
+						String text = "Record Change";
+						Font   font = Global.GetPreferredButtonFont();
+
+						actionPerformed(e) {
+						    root.RecordStringChange();
+						}
+					    },
+					    NONE,
+					};
+				    },
+				    CENTER,
+				};
+			    },
+
+			    new JPanel {
+				String tag = "$_tblockvalue";
+				Insets border = Global.GetQualifiedInsets(72.0/8, "L");
+
+				BorderLayout layoutmanager;
+				Array layout = {
+				    new JPanel {
+					String tag = "$_tblockpanel";
+
+					GridBagLayout layoutmanager = {
+					    int columns = 1;
+					};
+					Array layout = {
+					    Global.NewJLabel("$_tblocklabel", NULL, "alignment", LEFT),
+					    HORIZONTAL_WEIGHT_NONE,
+					    Global.NewJTextArea(
+						"$_tblockentry", NULL, 0, 20, AS_NEEDED,
+						"autotrim", TRUE,
+						"previous", NULL
+					    ),
+					    72.0/8,
+					    new JButton {
+						String text = "Record Change";
+						Font   font = Global.GetPreferredButtonFont();
+
+						actionPerformed(e) {
+						    root.RecordTextBlockChange();
+						}
+					    },
+					    NONE,
+					};
+				    },
+				    CENTER,
+				};
+			    },
+
+			    new JPanel {
+				String tag = "$_booleanvalue";
+				Insets border = Global.GetQualifiedInsets(72.0/8, "L");
+
+				BorderLayout layoutmanager;
+				Array layout = {
+				    new JPanel {
+					String tag = "$_booleanpanel";
+
+					GridBagLayout layoutmanager = {
+					    int columns = 1;
+					};
+					Array layout = {
+					    Global.NewJCheckBox("$_bv_checkbox", NULL, NULL, FALSE, "previous", FALSE),
+					    72.0/8,
+					    new JButton {
+						String text = "Record Change";
+						Font   font = Global.GetPreferredButtonFont();
+
+						actionPerformed(e) {
+						    root.RecordBooleanChange();
+						}
+					    },
+					};
+				    },
+				    CENTER,
+				};
+			    },
+
+			    new JPanel {
+				String tag = "$_colorvalue";
+				Insets border = Global.GetQualifiedInsets(72.0/8, "L");
+
+				BorderLayout layoutmanager;
+				Array layout = {
+				    new JPanel {
+					String tag = "$_colorpanel";
+
+					GridBagLayout layoutmanager = {
+					    int columns = 1;
+					};
+					Array layout = {
+					    new JPanel {
+						//
+						// Had small problems with JColorChooser
+						// sizing that we didn't track down. Using
+						// an extra JPanel, which really should be
+						// unnecessary, helped. We only tested on
+						// Linux, so it could depend on the OS or
+						// Java version. We will investigate later.
+						//
+						GridBagLayout layoutmanager;
+						Array layout = {
+						    new JColorChooser {
+							String tag = "$_chooser";
+							Font   font = Global.GetPreferredLabelFont();
+
+							stateChanged(e) {
+							    root.SetColorText(color);
+							}
+						    },
+						    new GridBagConstraints {
+							Insets insets = Global.GetQualifiedInsets(72.0/4, "TBLR");
+						    },
+						};
+					    },
+					    NONE,
+					    72.0/8,
+
+					    new JPanel {
+						GridBagLayout layoutmanager;
+						Array layout = {
+						    new JPanel {
+							Border border = Global.NewEtchedBorder("Color Name", 72.0/16);
+	
+							GridBagLayout layoutmanager;
+							Array layout = {
+							    Global.NewJChoice("$_colorname", NULL, NULL,
+								"autotrim", TRUE,
+								"edit", TRUE,
+								"focusaction", FALSE,
+								"actionPerformed", ActionPerformedColor
+							    ),
+							};
+						    },
+						    72.0/16,
+						    new JPanel {
+							EmptyBorder border = {
+							    //
+							    // This is supposed to compensate for the title
+							    // text in the other panels and hopefully will
+							    // end up centering the button relative to the
+							    // components contained in those panels.
+							    //
+							    Font font = Global.GetPreferredTitledBorderFont();
+							    Insets insets = {
+								double top = font.ascent/2 + font.descent;
+							    };
+							};
+
+							GridBagLayout layoutmanager;
+							Array layout = {
+							    new JButton {
+								String text = "Record Change";
+								Font   font = Global.GetPreferredButtonFont();
+
+								actionPerformed(e) {
+								    root.RecordColorChange();
+								}
+							    },
+							};
+						    },
+						    NONE,
+						};
+					    },
+					    NONE,
+					    72.0/4,
+					    0.0,
+					};
+				    },
+				    CENTER,
+				};
+			    },
+
+			    new JPanel {
+				String tag = "$_fontvalue";
+				Insets border = Global.GetQualifiedInsets(72.0/8, "L");
+
+				BorderLayout layoutmanager;
+				Array layout = {
+				    new JPanel {
+					String tag = "$_fontpanel";
+
+					GridBagLayout layoutmanager = {
+					    int columns = 1;
+					};
+					Array layout = {
+					    Global.NewJTextArea("$_fpreview", FONTSAMPLE, 0, 0, AS_NEEDED, "edit", FALSE, "previous", NULL),
+					    BOTH,
+					    72.0/8,
+
+					    new JPanel {
+						GridBagLayout layoutmanager = {
+						    int    columns = 2;
+						    double vgap = 72.0/16;
+						};
+						Array layout = {
+						    "Name:",
+						    RIGHT,
+						    Global.NewJChoice(
+							"$_fontname", NULL, "Dialog",
+							"labels", getFontList(),
+							"requestfocus", TRUE,
+							"itemStateChanged", ItemStateChangedFont
+						    ),
+						    LEFT, HORIZONTAL_WEIGHT_NONE,
+
+						    "Face:",
+						    Global.NewJChoice(
+							"$_fontface", NULL, "plain",
+							"labels", new Array {"plain", "bold", "italic", "bolditalic"},
+							"itemStateChanged", ItemStateChangedFont
+						    ),
+
+						    "Size:",
+						    Global.NewJChoice(
+							"$_fontsize", NULL, "12",
+							"labels", new Array {
+							    "4", "5", "6", "7", "8", "9",
+							    "10", "11", "12", "14", "16",
+							    "18", "20", "22", "24", "28",
+							    "32", "36", "40", "44", "48",
+							    "56", "64", "72", "80", "88",
+							    "96",
+							},
+							"itemStateChanged", ItemStateChangedFont
+						    ),
+						};
+					    },
+					    NONE,
+					    72.0/8,
+					    new JButton {
+						String text = "Record Change";
+						Font   font = Global.GetPreferredButtonFont();
+
+						actionPerformed(e) {
+						    root.RecordFontChange();
+						}
+					    },
+					    72.0/8,
+					};
+				    },
+				    CENTER,
+				};
+			    },
+			};
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = BOTH;
+	    },
+
+	    new JPanel {
+		Array layout = {
+		    new JButton {
+			String text = "Apply Immediately";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    root.EditSave(FALSE);
+			    Global.QueueCommandOnce(root, &Global.ServerSave, root, TRUE);
+			    Global.ResetScreens(TRUE);
+			}
+		    },
+		    new JButton {
+			String text = "Apply Next Session";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    Global.QueueCommandOnce(root, &Global.ServerSave, root, TRUE);
+			}
+		    },
+		    new JButton {
+			String text = "Dismiss";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    root.HideScreen();
+			}
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    Global.NewJProprietaryLabel(),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	actionPerformed(e) {
+	    Array  selected;
+
+	    switch (e.command) {
+		//
+		// Actions that don't have to be queued or that can't wait to
+		// collect their arguments (for absolutely any reason) must go
+		// outside the Global.QueueEvent() in the default case.
+		//
+		case "dismiss":
+		    HideScreen();
+		    break;
+
+		default:
+		    if (Global.QueueEvent(this, &actionPerformed, e) == FALSE) {
+			switch (e.command) {
+			    case "session_save":
+				EditSave(FALSE);
+				break;
+
+			    case "server_save":
+				EditSave(FALSE);
+				Global.QueueCommandOnce(this, &ServerSave, root, TRUE);
+				break;
+
+			    case "reset_dflt_crnt":
+				if (prefdict != NULL)
+				    SetEdit(prefjtnd, prefdict, prefdict.value[Global.VDFLT]);
+				break;
+
+			    case "reset_dflt_all":
+				DefaultReset(FALSE);
+				break;
+
+			    case "reset_saved_crnt":
+				if (prefdict != NULL)
+				    SetEdit(prefjtnd, prefdict, prefdict.value[Global.VCRNT]);
+				break;
+
+			    case "reset_saved_all":
+				DefaultReset(TRUE);
+				break;
+
+			    case "show_selected":
+				if ((selected = components.$_tree.action(GET_SELECTED_NODES)) != NULL && selected@length > 0) {
+				    components.$_tree.action(MAKE_NODE_VISIBLE, selected[0]);
+				}
+				break;
+
+			    case "expand_all":
+				if ((selected = components.$_tree.action(GET_SELECTED_NODES)) == NULL || selected@length == 0) {
+				    selected = NULL;
+				}
+				ExpandAll();
+				if (selected != NULL) {
+				    components.$_tree.action(SELECT_NODES, selected);
+				}
+				break;
+
+			    case "expand_selected":
+				if ((selected = components.$_tree.action(GET_SELECTED_NODES)) != NULL && selected@length > 0) {
+				    // assume single selection mode
+				    ExpandTree(selected[0]);
+				    components.$_tree.action(SELECT_NODES, selected);
+				}
+			        break;
+
+			    case "collapse_all":
+				if ((selected = components.$_tree.action(GET_SELECTED_NODES)) == NULL || selected@length == 0) {
+				    selected = NULL;
+				}
+				CollapseTree(components.$_tree.top);
+				if (selected != NULL) {
+				    components.$_tree.action(SELECT_NODES, selected);
+				}
+				break;
+
+			    case "collapse_selected":
+				if ((selected = components.$_tree.action(GET_SELECTED_NODES)) != NULL && selected@length > 0) {
+				    // assume single selection mode
+				    CollapseTree(selected[0]);
+				    components.$_tree.action(SELECT_NODES, selected);
+				}
+			        break;
+
+			    default:
+				if (e.command@sizeof > 0)
+				    Global.ShowMessage(this, "Missing action command: " + e.command, ERROR_MESSAGE);
+				break;
+			}
+		    }
+		    break;
+	    }
+	}
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    Object  menubar = this.menubar;
+
+            components.$_tree.action(SELECT_NONE);
+            components.$_card.nextcard = "$_blank";
+            prefdict = NULL;
+	    if (menubar != NULL) {
+		menubar.setEnabled("reset_saved_crnt", FALSE);
+		menubar.setEnabled("reset_dflt_crnt", FALSE);
+	    }
+	}
+
+	HideScreen() {
+	    if (NeedsSave()) {
+		if (Global.ShowConfirm(this, "Quit without saving changes to existing preferences?").confirmed)
+		    Global.HideScreen(this);
+	    } else Global.HideScreen(this);
+	    ClearScreen();
+	}
+
+	InitializeScreen() {
+	    ClearScreen();
+	}
+
+	LoadScreen() {
+	    Global.QueueCommandOnce(this, &LoadData);
+	}
+
+	ReloadScreen() {
+	    ClearScreen();
+	    LoadScreen();
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	BuildDictionaryTree(Dictionary prefs, String name) {
+	    return(BuildDictionaryTreeRecurse("", name, prefs));
+	}
+
+	BuildDictionaryTreeRecurse(String path, String name, Dictionary dict) {
+	    Dictionary elem;
+	    String     newpath = path + name;
+	    Array      kids[0,...];
+	    Array      names = getDictionaryNames(dict, TRUE); // get AND sort names
+	    int        type;
+	    int        i;
+
+	    // non-folders first
+	    for (i = 0; i < names@length; i++) {
+		if (dict[names[i]] instanceof Dictionary) {
+		    elem = dict[names[i]];
+		    if (defined("type", elem))
+			type = elem.type;
+		    else type = Global.VTYPE_FOLDER;
+		    if (type != Global.VTYPE_FOLDER)
+			kids[kids@length] = BuildDictionaryTreeElement(newpath + ":", names[i], elem);
+		}
+	    }
+	    // then folders
+	    for (i = 0; i < names@length; i++) {
+		if (dict[names[i]] instanceof Dictionary) {
+		    elem = dict[names[i]];
+		    if (defined("type", elem))
+			type = elem.type;
+		    else type = Global.VTYPE_FOLDER;
+		    if (type == Global.VTYPE_FOLDER)
+			kids[kids@length] = BuildDictionaryTreeRecurse(newpath + ":", names[i], elem);
+		}
+	    }
+
+	    return(
+		isGrowable(dict) && defined("subtype", dict) && defined("sublabel", dict)
+		?
+		new JTreeNode {
+		    String  tag = newpath;
+		    String  text = name;
+		    String  tooltiptext = "Dynamic Folder";
+		    Pointer content = &dict;
+		    Array   children = (kids@length > 0) ? kids : NULL;
+		}
+		:
+		new JTreeNode {
+		    String  tag = newpath;
+		    String  text = name;
+		    String  tooltiptext = "Folder";
+		    Pointer content = NULL;
+		    Array   children = (kids@length > 0) ? kids : NULL;
+		}
+	    );
+	}
+
+	BuildDictionaryTreeElement(String path, String name, Dictionary elem) {
+	    return new JTreeNode {
+		String  tag = path + name;
+		String  text = elem.label;
+		String  tooltiptext = (elem.type == Global.VTYPE_COLOR ? getColorName(elem.value[Global.VEDIT]) : (elem.type == Global.VTYPE_FONT ? elem.value[Global.VEDIT].name : toString(elem.value[Global.VEDIT])));
+		Pointer content = &elem;
+		Array   children = NULL;
+	    };
+	}
+
+	CollapseTree(JTreeNode base) {
+	    Array nodes;
+	    int   i;
+
+	    if (base != NULL) {
+		nodes = components.$_tree.action(DEPTH_FIRST, base);
+		for (i = 0; i < nodes@length; i++) {
+		    if (components.$_tree.action(NODE_IS_EXPANDED, nodes[i])) {
+			components.$_tree.action(COLLAPSE_NODE, nodes[i]);
+		    }
+		}
+		components.$_tree.action(EXPAND_NODE, components.$_tree.top);
+	    }
+	}
+
+	DefaultReset(int reset) {
+	    Dictionary prefs = Global.PREFERENCES;
+
+	    DefaultResetRecurse(prefs, reset);
+	    components.$_card.nextcard = "$_blank";
+	    prefdict = NULL;
+	    this.menubar.setEnabled("reset_saved_crnt", FALSE);
+	    this.menubar.setEnabled("reset_dflt_crnt", FALSE);
+	}
+
+	DefaultResetRecurse(Dictionary prefs, int reset) {
+	    int  type;
+	    int  i;
+
+	    for (i = 0; i < prefs@length; i++) {
+		if (prefs[i] instanceof Dictionary) {
+		    if (defined("type", prefs[i]))
+			type = prefs[i].type;
+		    else type = Global.VTYPE_FOLDER;
+
+		    if (type == Global.VTYPE_FOLDER) {
+			DefaultResetRecurse(prefs[i], reset);
+		    } else if (defined("value", prefs[i]) && !defined("parent", prefs[i])) {
+			if (reset)
+			    prefs[i].value[Global.VEDIT] = prefs[i].value[Global.VCRNT];
+			else prefs[i].value[Global.VEDIT] = prefs[i].value[Global.VDFLT];
+
+			if (defined("value_name", prefs[i])) {
+			    if (reset)
+				prefs[i].value_name[Global.VEDIT] = prefs[i].value_name[Global.VCRNT];
+			    else prefs[i].value_name[Global.VEDIT] = prefs[i].value_name[Global.VDFLT];
+			}
+		    }
+		}
+	    }
+	}
+
+	EditSave(int startup) {
+	    Dictionary prefs = Global.PREFERENCES;
+
+	    if (startup) {
+		this.menubar.setEnabled("reset_saved_all", TRUE);
+		this.menubar.setEnabled("reset_dflt_all", TRUE);
+		//this.menubar.setEnabled("apply_prefs", TRUE);
+	    }
+
+	    EditSaveRecurse(prefs, startup);
+	    components.$_card.nextcard = "$_blank";
+	    prefdict = NULL;
+	    this.menubar.setEnabled("reset_saved_crnt", FALSE);
+	    this.menubar.setEnabled("reset_dflt_crnt", FALSE);
+
+	}
+
+	EditSaveRecurse(Dictionary prefs, int startup) {
+	    int type;
+	    int i;
+
+	    for (i = 0; i < prefs@sizeof; i++) {
+		if (prefs[i] instanceof Dictionary) {
+		    if (defined("type", prefs[i]))
+			type = prefs[i].type;
+		    else type = Global.VTYPE_FOLDER;
+
+		    if (type == Global.VTYPE_FOLDER)
+			EditSaveRecurse(prefs[i], startup);
+		    else if (defined("value", prefs[i])) {
+			if (startup)
+			    prefs[i].value[Global.VEDIT] = prefs[i].value[Global.VCRNT];
+			else prefs[i].value[Global.VCRNT] = prefs[i].value[Global.VEDIT];
+
+			if (defined("value_name", prefs[i])) {
+			    if (startup)
+				prefs[i].value_name[Global.VEDIT] = prefs[i].value_name[Global.VCRNT];
+			    else prefs[i].value_name[Global.VCRNT] = prefs[i].value_name[Global.Global.VEDIT];
+			}
+		    }
+		}
+	    }
+	}
+
+	ExpandAll() {
+	    components.$_tree.action(EXPAND_ALL);
+	}
+
+	ExpandTree(JTreeNode base) {
+	    Array nodes = components.$_tree.action(BREADTH_FIRST, base);
+	    int   i;
+
+	    for (i = 0; i < nodes@length; i++)
+		components.$_tree.action(EXPAND_NODE, nodes[i]);
+	}
+
+	LoadData() {
+	    components.$_tree.top = BuildDictionaryTree(Global.PREFERENCES, "PREFERENCES");
+	    components.$_colorname.labels = getDictionaryNames(Color, TRUE);
+	    EditSave(TRUE);
+	}
+
+	NeedsSave() {
+	    Dictionary prefs = Global.PREFERENCES;
+	    int        save_needed = FALSE;
+
+	    if (prefs != NULL)
+		save_needed = NeedsSaveRecurse(prefs);
+	    return(save_needed);
+	}
+
+	NeedsSaveRecurse(Dictionary prefs) {
+	    int save_needed = FALSE;
+	    int type;
+	    int i;
+
+	    for (i = 0; i < prefs@length; i++) {
+		if (prefs[i] instanceof Dictionary) {
+		    if (defined("type", prefs[i]))
+			type = prefs[i].type;
+		    else type = Global.VTYPE_FOLDER;
+
+		    if (type == Global.VTYPE_FOLDER) {
+			if (NeedsSaveRecurse(prefs[i])) {
+			    save_needed = TRUE;
+			    break;
+			}
+		    } else if (defined("value", prefs[i])) {
+			if (prefs[i].value[Global.VCRNT] !== prefs[i].value[Global.VEDIT]) {
+			    save_needed = TRUE;
+			    break;
+			}
+		    }
+		}
+	    }
+	    return(save_needed);
+	}
+
+	PickFontName() {
+	    return(
+		components.$_fontname.selected + "-" +
+		components.$_fontface.selected + "-" +
+		components.$_fontsize.selected
+	    );
+	}
+
+	RecordBooleanChange() {
+	    JCheckBox jcb = components.$_bv_checkbox;
+
+	    if (jcb.previous != jcb.state) {
+		jcb.previous = jcb.state;
+		if (prefdict.type == Global.VTYPE_FOLDER) {
+		    // dynamic folder
+		    if (jcb.state) { // clear it
+			Array       chain;
+			Pointer     ptr;
+			Dictionary  dict = new Dictionary[0,...];
+			Dictionary  tdict;
+
+			for (ptr in prefdict) {
+			    if (!(*ptr instanceof Dictionary))
+				dict[(*ptr)@nameof] = *ptr;
+			}
+			// take advantage of prefjtnd (kludge alert), which is the arg
+			// array from BuildDictionaryTreeRecurse
+			chain = strsplit(prefjtnd.content[-2], ":");
+			tdict = Global;
+			for (ptr in chain)
+			    if ((*ptr)@sizeof > 0)
+				tdict = tdict[*ptr];
+			tdict[prefjtnd.content[-1]] = dict;
+			components.$_tree.top = BuildDictionaryTree(Global.PREFERENCES, "PREFERENCES");
+			components.$_card.nextcard = "$_blank";
+			prefdict = NULL;
+			prefjtnd = NULL;
+		    }
+		} else SetEdit(prefjtnd, prefdict, jcb.state);
+	    }
+	}
+
+	RecordColorChange() {
+	    String name;
+	    String suggested_name;
+	    Color  color = NULL;
+
+	    color = components.$_chooser.color;
+	    name = getColorName(color);
+	    suggested_name = components.$_colorname.text;
+
+	    if (name == NULL) {
+		if (suggested_name@length == 0 || suggested_name === NOCOLORNAME) {
+		    suggested_name = strfmt("#%02x%02x%02x", 255*color.red, 255*color.green, 255*color.blue);
+		    components.$_colorname.text = suggested_name;
+		}
+		if (!addColor(suggested_name, color)) {
+		    Global.ShowAlert(this, strfmt("A color by the name '%s' is already in the Color dictionary. Please choose another name.", suggested_name));
+		    components.$_colorname.selectedends = new Array[] { 0 };
+		    components.$_colorname.requestfocus = TRUE;
+		} else {
+		    components.$_colorname.labels = getDictionaryNames(Color, TRUE);
+		    components.$_chooser.reset = color;
+		    if (prefdict != NULL)
+			SetEdit(prefjtnd, prefdict, color);
+		    components.$_colorname.selected = suggested_name;
+		}
+	    } else if (name === suggested_name) {
+		components.$_chooser.reset = color;
+		components.$_colorname.selected = name;
+		if (prefdict != NULL)
+		    SetEdit(prefjtnd, prefdict, color);
+	    } else {
+		Global.ShowMessage(this, strfmt("FYI: This color is already in the Color dictionary under the name '%s'.", name));
+		suggested_name = name;
+		components.$_colorname.text = name;
+		components.$_chooser.reset = color;
+		components.$_colorname.selected = name;
+		if (prefdict != NULL)
+		    SetEdit(prefjtnd, prefdict, color);
+	    }
+	}
+
+	RecordFontChange() {
+	    String fontname = PickFontName();
+	    Font   font = new Font {String name = fontname;};
+
+	    if (font != NULL)
+		SetEdit(prefjtnd, prefdict, font);
+	    else Global.ShowMessage(this, "Cannot generate a font from " + fontname);
+	}
+
+	RecordNumberChange() {
+	    JTextField jtf = components.$_nbrentry;
+	    Object     val;
+
+	    if (jtf.text@length > 0) {
+		if (prefdict.type == Global.VTYPE_INT)
+		    val = atoi(jtf.text);
+		else val = atof(jtf.text);
+
+		if (jtf.previous != val) {
+		    if (defined("range",prefdict) && prefdict.range != NULL && prefdict.range@sizeof == 4) {
+			if (val < prefdict.range[0] || (!prefdict.range[1] && val == prefdict.range[0]) || prefdict.range[2] < val || (!prefdict.range[3] && val == prefdict.range[2])) {
+			    Global.ShowAlert(this, "The specified value is not in the appropriate range. The value must be corrected before it can be saved.");
+			    return;
+			}
+		    }
+
+		    if (defined("validate", prefdict)) {
+			if (prefdict.validate(val)) {
+			    jtf.previous = val;
+			    SetEdit(prefjtnd, prefdict, val);
+			} else if (defined("errmsg", prefdict) && prefdict.errmsg != NULL)
+			    Global.ShowAlert(this, prefdict.errmsg);
+			else Global.ShowAlert(this, "The entry is not valid. The entry must be corrected before it can be saved.");
+		    } else {
+			jtf.previous = val;
+			SetEdit(prefjtnd, prefdict, val);
+		    }
+		}
+	    } else Global.ShowAlert(this, "An empty entry is not valid. The entry must be corrected before it can be saved.");
+	}
+
+	RecordNumberComboChange() {
+	    JComboBox jcb = components.$_nboentry;
+	    Object    val;
+
+	    if (jcb.selected@length > 0) {
+		if (prefdict.type == Global.VTYPE_INT)
+		    val = atoi(jcb.selected);
+		else val = atof(jcb.selected);
+
+		if (jcb.previous != val) {
+		    if (defined("range",prefdict) && prefdict.range != NULL && prefdict.range@sizeof == 4) {
+			if (val < prefdict.range[0] || (!prefdict.range[1] && val == prefdict.range[0]) || prefdict.range[2] < val || (!prefdict.range[3] && val == prefdict.range[2])) {
+			    Global.ShowAlert(this, "The specified value is not in the appropriate range. The value must be corrected before it can be saved.");
+			    return;
+			}
+		    }
+
+		    if (defined("validate", prefdict)) {
+			if (prefdict.validate(val)) {
+			    jcb.previous = val;
+			    SetEdit(prefjtnd, prefdict, val);
+			} else if (defined("errmsg", prefdict) && prefdict.errmsg != NULL)
+			    Global.ShowAlert(this, prefdict.errmsg);
+			else Global.ShowAlert(this, "The entry is not valid. The entry must be corrected before it can be saved.");
+		    } else {
+			jcb.previous = val;
+			SetEdit(prefjtnd, prefdict, val);
+		    }
+		}
+	    } else Global.ShowAlert(this, "An empty entry is not valid. The entry must be corrected before it can be saved.");
+	}
+
+	RecordNumberPairChange() {
+	    JTextField jtf0 = components.$_nbr1entry;
+	    JTextField jtf1 = components.$_nbr2entry;
+	    Object     val;
+	    Object     val0;
+	    Object     val1;
+
+	    if (jtf0.text@length > 0 && jtf1.text@length > 0) {
+		val0 = atof(jtf0.text);
+		val1 = atof(jtf1.text);
+		if (prefdict.type == Global.VTYPE_DIMENSION)
+		    val = new Dimension;
+		else val = new Point;
+		val[prefdict.value[Global.VEDIT][0]@nameof] = val0;
+		val[prefdict.value[Global.VEDIT][1]@nameof] = val1;
+
+		if (jtf0.previous != val0 || jtf1.previous != val1) {
+		    if (defined("validate", prefdict)) {
+			if (prefdict.validate(val)) {
+			    jtf0.previous = val0;
+			    jtf1.previous = val1;
+			    SetEdit(prefjtnd, prefdict, val);
+			} else if (defined("errmsg", prefdict) && prefdict.errmsg != NULL)
+			    Global.ShowAlert(this, prefdict.errmsg);
+			else Global.ShowAlert(this, "The entry is not valid. The entry must be corrected before it can be saved.");
+		    } else {
+			jtf0.previous = val0;
+			jtf1.previous = val1;
+			SetEdit(prefjtnd, prefdict, val);
+		    }
+		}
+	    } else Global.ShowAlert(this, "An empty entry is not valid. The entry must be corrected before it can be saved.");
+	}
+
+	RecordStringChange() {
+	    JTextField jtf = components.$_stringentry;
+	    Object     val;
+	    Array      nbrs;
+
+	    if (jtf.previous !== jtf.text) {
+		if (jtf.splitter == NULL)
+		    val = jtf.text;
+		else {
+		    nbrs = strsplit(gsubsti(" ", "  +", jtf.text), jtf.splitter);
+		    val = new Array[nbrs@length];
+		    if (prefdict.type == Global.VTYPE_INTS) {
+			for (ptr in nbrs)
+			    val[ptr@offset] = atoi(*ptr);
+		    } else {
+			for (ptr in nbrs)
+			    val[ptr@offset] = atof(*ptr);
+		    }
+		}
+		if (defined("validate", prefdict)) {
+		    if (prefdict.validate(val)) {
+			if (val == NULL)
+			    jtf.previous = "";
+			else jtf.previous = strjoin(val, " ");
+			SetEdit(prefjtnd, prefdict, val);
+		    } else if (defined("errmsg", prefdict) && prefdict.errmsg != NULL)
+			Global.ShowAlert(this, prefdict.errmsg);
+		    else Global.ShowAlert(this, "The entry is not valid. The entry must be corrected before it can be saved.");
+		} else {
+		    if (val == NULL)
+			jtf.previous = "";
+		    else jtf.previous = strjoin(val, " ");
+		    SetEdit(prefjtnd, prefdict, val);
+		}
+	    }
+	}
+
+	RecordTextBlockChange() {
+	    JTextArea jta = components.$_tblockentry;
+
+	    if (jta.previous !== jta.text) {
+		if (defined("validate", prefdict)) {
+		    if (prefdict.validate(jta.text)) {
+			jta.previous = jta.text;
+			SetEdit(prefjtnd, prefdict, jta.text);
+		    } else if (defined("errmsg", prefdict) && prefdict.errmsg != NULL)
+			Global.ShowAlert(this, prefdict.errmsg);
+		    else Global.ShowAlert(this, "The entry is not valid. The entry must be corrected before it can be saved.");
+		} else {
+		    jta.previous = jta.text;
+		    SetEdit(prefjtnd, prefdict, jta.text);
+		}
+	    }
+	}
+
+	SetEdit(JTreeNode node, Dictionary pref, Object value, ...) {
+	    if (!defined("parent", pref) || value@sizeof > 0) {
+		pref.value[Global.VEDIT] = value;
+		if (argc == 5)
+		    pref.value_name[Global.VEDIT] = argv[3];
+		SetPreference(node);
+	    }
+	}
+
+	SetPreference(JTreeNode node) {
+	    String name;
+	    String label;
+	    String value;
+	    Object obj;
+	    Array  flds;
+	    int    type;
+	    int    idx;
+
+	    if (node != NULL && node.content != NULL) {
+		if ((idx = lastIndexOf(node.tag, ':')) < 0) {
+		    name = node.tag;
+		} else {
+		    name = substring(node.tag, idx+1);
+		}
+
+		// content is a pointer to a Dictionary
+		prefdict = *(node.content);
+		prefjtnd = node;
+
+		if (defined("type", prefdict))
+		    type = prefdict.type;
+		else type = Global.VTYPE_FOLDER;
+
+		switch (type) {
+		case Global.VTYPE_BOOLEAN:
+		    components.$_bv_checkbox.text = prefdict.label;
+		    components.$_bv_checkbox.state = prefdict.value[Global.VEDIT];
+		    components.$_bv_checkbox.previous = prefdict.value[Global.VEDIT];
+		    components.$_booleanpanel.border = Global.NewEtchedBorder(name, 72.0/16);
+		    components.$_card.nextcard = "$_booleanvalue";
+		    components.$_bv_checkbox.requestfocus = TRUE;
+		    menubar.setEnabled("reset_saved_crnt", TRUE);
+		    menubar.setEnabled("reset_dflt_crnt", TRUE);
+		    break;
+		case Global.VTYPE_COLOR:
+		    components.$_chooser.reset = prefdict.value[Global.VEDIT];
+		    label = getColorName(prefdict.value[Global.VEDIT]);
+		    components.$_colorname.text = label;
+		    if (defined(label, Color))
+			components.$_colorname.selected = label;
+		    components.$_colorpanel.border = Global.NewEtchedBorder(name, 72.0/16);
+		    components.$_card.nextcard = "$_colorvalue";
+		    components.$_chooser.requestfocus = TRUE;
+		    menubar.setEnabled("reset_saved_crnt", TRUE);
+		    menubar.setEnabled("reset_dflt_crnt", TRUE);
+		    break;
+		case Global.VTYPE_DOUBLE:
+		case Global.VTYPE_INT:
+		    if (defined("range",prefdict) && prefdict.range != NULL && prefdict.range@sizeof == 4) {
+			// value, inclusive_boolean, value, inclusive_boolean
+			label = prefdict.label;
+			if (prefdict.range[1])
+			    label += " [";
+			else label += " (";
+			label += toString(prefdict.range[0]) + "," + toString(prefdict.range[2]);
+			if (prefdict.range[3])
+			    label += "]:";
+			else label += "):";
+		    } else label = prefdict.label + ":";
+		    if (defined("values",prefdict) && prefdict.values != NULL && prefdict.values@sizeof > 1) {
+			// editable_boolean, values...
+			components.$_nbolabel.text = label;
+			components.$_nboentry.edit = prefdict.values[0];
+			flds = new Array[prefdict.values@sizeof - 1];
+			for (idx=0; idx<flds@sizeof; idx++)
+			    flds[idx] = toString(prefdict.values[idx+1]);
+			components.$_nboentry.labels = flds;
+			components.$_nboentry.selected = toString(prefdict.value[Global.VEDIT]);
+			components.$_nboentry.previous = prefdict.value[Global.VEDIT];
+			components.$_nbopanel.border = Global.NewEtchedBorder(name, 72.0/16);
+			components.$_card.nextcard = "$_nbrcombo";
+			components.$_nboentry.requestfocus = TRUE;
+		    } else {
+			components.$_nbrlabel.text = label;
+			components.$_nbrentry.text = toString(prefdict.value[Global.VEDIT]);
+			components.$_nbrentry.previous = prefdict.value[Global.VEDIT];
+			components.$_nbrpanel.border = Global.NewEtchedBorder(name, 72.0/16);
+			components.$_card.nextcard = "$_nbrfield";
+			components.$_nbrentry.requestfocus = TRUE;
+		    }
+		    menubar.setEnabled("reset_saved_crnt", TRUE);
+		    menubar.setEnabled("reset_dflt_crnt", TRUE);
+		    break;
+		case Global.VTYPE_DIMENSION:
+		case Global.VTYPE_POINT:
+		    components.$_nbr1label.text = prefdict.value[Global.VEDIT][0]@nameof + ":";
+		    components.$_nbr1entry.text = toString(prefdict.value[Global.VEDIT][0]);
+		    components.$_nbr1entry.previous = prefdict.value[Global.VEDIT][0];
+		    components.$_nbr2label.text = prefdict.value[Global.VEDIT][1]@nameof + ":";
+		    components.$_nbr2entry.text = toString(prefdict.value[Global.VEDIT][1]);
+		    components.$_nbr2entry.previous = prefdict.value[Global.VEDIT][1];
+		    components.$_nbrpanel.border = Global.NewEtchedBorder(name, 72.0/16);
+		    components.$_card.nextcard = "$_nbrpair";
+		    components.$_nbrentry.requestfocus = TRUE;
+		    menubar.setEnabled("reset_saved_crnt", TRUE);
+		    menubar.setEnabled("reset_dflt_crnt", TRUE);
+		    break;
+		case Global.VTYPE_DOUBLES:
+		case Global.VTYPE_INTS:
+		    obj = prefdict.value[Global.VEDIT];
+		    if (obj == NULL)
+			value = "";
+		    else value = strjoin(obj, " ");
+		    components.$_stringlabel.text = prefdict.label + ":";
+		    components.$_stringentry.splitter = " ";
+		    components.$_stringentry.text = value;
+		    components.$_stringentry.previous = value;
+		    components.$_stringpanel.border = Global.NewEtchedBorder(name, 72.0/16);
+		    components.$_card.nextcard = "$_stringvalue";
+		    components.$_stringentry.requestfocus = TRUE;
+		    menubar.setEnabled("reset_saved_crnt", TRUE);
+		    menubar.setEnabled("reset_dflt_crnt", TRUE);
+		    break;
+		case Global.VTYPE_FONT:
+		    components.$_fpreview.font = prefdict.value[Global.VEDIT];
+		    components.$_fpreview.previous = prefdict.value[Global.VEDIT];
+		    flds = strsplit(prefdict.value[Global.VEDIT].name, "-");
+		    components.$_fontname.selected = flds[0];
+		    components.$_fontface.selected = flds[1];
+		    components.$_fontsize.selected = flds[2];
+		    components.$_fontpanel.border = Global.NewEtchedBorder(name, 72.0/16);
+		    components.$_card.nextcard = "$_fontvalue";
+		    components.$_fontname.requestfocus = TRUE;
+		    menubar.setEnabled("reset_saved_crnt", TRUE);
+		    menubar.setEnabled("reset_dflt_crnt", TRUE);
+		    break;
+		case Global.VTYPE_STRING:
+		    if (defined("encoding", prefdict)) {
+			if (prefdict.encoding == Global.VPHEX)
+			    value = htoa(prefdict.value[Global.VEDIT]);
+			else if (prefdict.encoding == Global.VPURL)
+			    value = urlDecode(prefdict.value[Global.VEDIT], TRUE);
+			else value = prefdict.value[Global.VEDIT];
+		    } else value = prefdict.value[Global.VEDIT];
+		    if (value == NULL)
+			value = "";
+		    components.$_stringentry.splitter = NULL;
+		    components.$_stringlabel.text = prefdict.label + ":";
+		    components.$_stringentry.text = value;
+		    components.$_stringentry.previous = value;
+		    components.$_stringpanel.border = Global.NewEtchedBorder(name, 72.0/16);
+		    components.$_card.nextcard = "$_stringvalue";
+		    components.$_stringentry.requestfocus = TRUE;
+		    menubar.setEnabled("reset_saved_crnt", TRUE);
+		    menubar.setEnabled("reset_dflt_crnt", TRUE);
+		    break;
+		case Global.VTYPE_TEXTBLOCK:
+		    if (defined("encoding", prefdict)) {
+			if (prefdict.encoding == Global.VPHEX)
+			    value = htoa(prefdict.value[Global.VEDIT]);
+			else if (prefdict.encoding == Global.VPURL)
+			    value = urlDecode(prefdict.value[Global.VEDIT], TRUE);
+			else value = prefdict.value[Global.VEDIT];
+		    } else value = prefdict.value[Global.VEDIT];
+		    if (value == NULL)
+			value = "";
+		    components.$_tblocklabel.text = prefdict.label + ":";
+		    components.$_tblockentry.text = value;
+		    components.$_tblockentry.previous = value;
+		    components.$_tblockpanel.border = Global.NewEtchedBorder(name, 72.0/16);
+		    components.$_card.nextcard = "$_tblockvalue";
+		    components.$_tblockentry.requestfocus = TRUE;
+		    menubar.setEnabled("reset_saved_crnt", TRUE);
+		    menubar.setEnabled("reset_dflt_crnt", TRUE);
+		    break;
+		case Global.VTYPE_FOLDER:
+		    // should only get here for dynamic folders, but let's check
+		    if (defined("subtype", prefdict) && defined("sublabel", prefdict)) {
+			components.$_bv_checkbox.text = "Clear contents of this dynamic folder?"; 
+			components.$_bv_checkbox.state = FALSE;
+			components.$_bv_checkbox.previous = FALSE;
+			components.$_booleanpanel.border = Global.NewEtchedBorder(name, 72.0/16);
+			components.$_card.nextcard = "$_booleanvalue";
+			components.$_bv_checkbox.requestfocus = TRUE;
+		    } else {
+			Global.ShowMessage(this, strfmt("Mislabeled dynamic folder encountered. Please report to the application administrator. In the meantime, it will be ignored."));
+			components.$_card.nextcard = "$_blank";
+			prefdict = NULL;
+		    }
+		    menubar.setEnabled("reset_saved_crnt", FALSE);
+		    menubar.setEnabled("reset_dflt_crnt", FALSE);
+		    break;
+		default:
+		    Global.ShowMessage(this, strfmt("Unrecognized preference type indicator (%d) needs to be reported to the application administrator. In the meantime, it will be ignored.", type));
+		    components.$_card.nextcard = "$_blank";
+		    prefdict = NULL;
+		    menubar.setEnabled("reset_saved_crnt", FALSE);
+		    menubar.setEnabled("reset_dflt_crnt", FALSE);
+		    break;
+		}
+	    } else {
+		components.$_card.nextcard = "$_blank";
+		prefdict = NULL;
+		menubar.setEnabled("reset_saved_crnt", FALSE);
+		menubar.setEnabled("reset_dflt_crnt", FALSE);
+	    }
+	}
+
+	SetColorText(Color color) {
+	    String name = getColorName(color);
+
+	    if (name == NULL) {
+		name = NOCOLORNAME;
+		components.$_colorname.text = name;
+		components.$_colorname.selectedends = new Array[] { 0 };
+		components.$_colorname.requestfocus = TRUE;
+	    } else {
+		components.$_colorname.text = name;
+		if (defined(name, Color))
+		    components.$_colorname.selected = name;
+	    }
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);

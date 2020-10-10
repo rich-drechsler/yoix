@@ -1,0 +1,40 @@
+//
+// This really is a check to make sure multiple threads don't interfere
+// with each other during security checks.
+//
+
+import yoix.*.*;
+
+SecurityManager sm = {
+    checkPropertiesAccess() {
+	printf("checkPropertiesAccess:\n");
+	sleep(5);
+	return(TRUE);
+    }
+
+    checkReadProperty(name) {
+	printf("checkReadProperty: name=%s\n", name);
+	sleep(5);
+	return(TRUE);
+    }
+};
+
+setSecurityManager(sm);
+
+Thread thread1 = {
+    run(...) {
+	getProperty("user.home");
+	getProperties();
+    }
+};
+
+Thread thread2 = {
+    run(...) {
+	getProperty("java.home");
+    }
+};
+
+thread1.run();
+sleep(2);
+thread2.run();
+

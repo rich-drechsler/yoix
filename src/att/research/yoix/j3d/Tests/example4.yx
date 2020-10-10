@@ -1,0 +1,81 @@
+//
+// Here's an example that creates two separate views in a universe and
+// then uses those two views (via their tags) in two different canvases.
+// Notice in this case there's no entry named "viewplatform" in the
+// universe.tagged dictionary because (so far) nobody has assigned the
+// universe to the view field in a Canvas3D. However if you did it
+// and dumped tagged safterward you should see "viewplatform" listed
+// along with the other objects.
+//
+
+import yoix.j3d.*;
+import yoix.*.*;
+
+VirtualUniverse universe = {
+    Array layout = {
+	new BranchGroup {
+	    String tag = "$_branch1";
+
+	    EulerAngle orientation = {
+		double alpha = 10;
+		double beta = 30;
+	    };
+
+	    Array layout = {
+		new ColorCube {
+		    String tag = "$_colorcube";
+		    double scale = 0.2;
+		},
+	    };
+	},
+
+	new ViewPlatform {
+	    String tag = "$_sideview";
+
+	    Transform3D transform = {
+		initializer() {
+		    setToTranslation(0, 0, 10);
+		}
+	    };
+	},
+
+	new ViewPlatform {
+	    String tag = "$_topview";
+
+	    Transform3D transform = {
+		initializer() {
+		    setToRotationX(-90).translate(0, 0, 5);
+		}
+	    };
+	},
+    };
+};
+
+Frame f = {
+    Point location = {
+	double x = 0;
+	double y = 0;
+    };
+
+    GridLayout layoutmanager = {
+	int rows = 0;
+	int columns = 1;
+	double vgap = 72.0/4;
+    };
+
+    Array layout = {
+	new Canvas3D {
+            String  tag = "$_topcanvas";
+            ViewPlatform view = universe.tagged.$_topview;
+	},
+
+        new Canvas3D {
+            String  tag = "$_sidecanvas";
+            ViewPlatform view = universe.tagged.$_sideview;
+        },
+    };
+};
+
+f.visible = TRUE;
+
+fprintf(stderr, "universe.tagged=%O\n", universe.tagged);

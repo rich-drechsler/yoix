@@ -1,0 +1,242 @@
+//
+// A template for a simple screen the contains a JLabel, a JTextArea, and
+// a JPanel that holds a JCheckBox, a JChoice, and JButtons. Illustrates
+// one way to horizontally center a component (e.g., the panel containing
+// the buttons) in a screen when it's surrounded by components (e.g., the
+// checkbox and choice) that don't necessarily have the same size.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+//
+// These are the event handlers that we want to use in components that we
+// build using functions defined in ywait_constructors.yx.
+//
+
+ItemStateChangedChecked(e) {
+    String message = "Approved is" + (state ? " " : " not ") + "checked.";
+
+    //
+    // Notice the the checkbox isn't completely repainted until you dismiss
+    // the dialog if ShowMessage() is called from this event handler. Change
+    // the call to something like,
+    //
+    //    Global.QueueCommand(root, &root.HandleCheckBox, message);
+    //
+    // and it will be immediately repainted.
+    //
+
+    Global.ShowMessage(root, message);
+}
+
+ItemStateChangedSelected(e) {
+    //
+    // You get two events when something changes. One is for the item that
+    // was "deselected" and the second is for the newly selected item.
+    //
+
+    Global.ShowText(
+	root,
+	strfmt("You get two events when a change is made - this event is:\n\ne=%O\n", e),
+	TRUE
+    );
+}
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Insets border = Global.GetLabeledScreenInsets();
+	String title = Global.ACRONYM + " Template 4";
+	Font   font = Global.GetPreferredLabelFont();
+	int    opaque = TRUE;
+
+	//
+	// This is starting screen size. Setting size to NULL is special
+	// and means the individual components displayed in the screen
+	// determine the size.
+	//
+
+	Dimension size = {
+	    double width = 7.0*72;
+	    double height = 3.0*72;
+	};
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	//
+	// Every screen should define and initialize the following set
+	// of variables. Expect problems is you omit any of them.
+	//
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = TRUE;   // save screen-specific info within session
+	int    retainstate = TRUE; // save screen-class info across sessions
+	int    reloadargs = FALSE;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    Global.NewJHeadingLabel(NULL, "Another Template Screen"),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+	    },
+
+	    Global.NewJTextArea(
+		"$_textarea", "Change this message to whatever you want...\n", 0, 0, AS_NEEDED,
+		"textwrap", 0,
+		"edit", FALSE
+	    ),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = BOTH;
+	    },
+
+	    new JPanel {
+		//
+		// We use this technique when we there are several components
+		// that need to be arranged in a row and we want one of them,
+		// usually several buttons, to be horizontally centered in the
+		// screen. If you think a BorderLayout also works then give
+		// it a try, but make sure you test the case where the left
+		// and right components are a different size. You probably
+		// should also move the components (with their constraints)
+		// around in the layout array and see what happens when the
+		// screen gets very small.
+		//
+		GridBagLayout layoutmanager;
+
+		Array layout = {
+		    new JPanel {
+			//
+			// Use GridLayout for equal size buttons and FlowLayout if
+			// each button should size itself based on its label.
+			//
+			GridLayout layoutmanager;
+			Array layout = {
+			    new JButton {
+				String text = "Send";
+				Font   font = Global.GetPreferredButtonFont();
+
+				actionPerformed(e) {
+				    //
+				    // You undoubtedly have work to do here. All we
+				    // currently do is arrange to call HandleSend()
+				    // (it's defined below) from the command thread
+				    // rather than from Java's event thread. It's a
+				    // common approach when the work we're supposed
+				    // to do could take a while (e.g., contacting the
+				    // server).
+				    //
+				    Global.QueueCommandOnce(root, &root.HandleSend);
+				}
+			    },
+			    new JButton {
+				String text = "Dismiss";
+				Font   font = Global.GetPreferredButtonFont();
+
+				actionPerformed(e) {
+				    Global.AltQueueCommand(root, &root.HideScreen);
+				}
+			    },
+			};
+		    },
+		    new Dictionary {
+			int gridx = 1;
+			int gridy = 1;
+			int weightx = 1;
+		    },
+
+		    Global.NewJCheckBox(
+			"$_checkbox", "Approved", NULL, FALSE,
+			"requestfocusenabled", FALSE,
+			"itemStateChanged", ItemStateChangedChecked
+		    ),
+		    LEFT,
+
+		    Global.NewJChoice(
+			"$_choice", new Array {"Item 1", "1", "An Item", "2", "Item 3", "3"}, 0,
+			"itemStateChanged", ItemStateChangedSelected
+		    ),
+		    RIGHT,
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    fill = HORIZONTAL;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    Global.NewJProprietaryLabel(),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    components.$_textarea.text = "";
+	}
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	HandleCheckBox(String message) {
+	    Global.ShowMessage(this, message);
+	}
+
+	HandleSend() {
+	    //
+	    // This function is eventually called when the user presses
+	    // the Send button. All we do is pop up a message dialog, so
+	    // you will have to change things. You probably will want to
+	    // contact the server using Global.QueueCommand(), however
+	    // in this case Global.RunCommand() may be more appropriate
+	    // because we probably know we got here via QueueCommand()
+	    // when the Send button was pressed.
+	    // 
+
+	    Global.ShowMessage(this, "This is a message from HandleSend...");
+	    HideScreen();
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);
+

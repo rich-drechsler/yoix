@@ -1,0 +1,36 @@
+import yoix.*.*;
+
+Array message = {
+    "$attributes",
+    new Dictionary {
+	String attr1 = "value 1";
+	String attr2 = "value 2";
+    },
+    "line",
+    "   Now is the time",
+    "line",
+    "for all good men    ",
+    "line",
+    "\tto come to the aid of their party.",
+    "line",
+    NULL,
+};
+
+Dictionary dict = {
+    Array message = message;
+};
+
+String indent = "\t";
+int    flags = 0;
+
+printf("flags=0, indent=\"%s\"\n", cstring(indent));
+printf("%s\n", yoixToXML(message, flags, indent));
+
+printf("\nflags=0, indent=\"%s\"\n", cstring(indent));
+printf("%s\n", yoixToXML(dict, flags, indent));
+
+flags = ADD_XML_DECLARATION|OMIT_NULL_ELEMENTS;
+indent = "    ";
+printf("\nflags=ADD_XML_DECLARATION|OMIT_NULL_ELEMENTS, indent=\"%s\"\n", cstring(indent));
+printf("%s\n", yoixToXML(dict, flags, indent));
+

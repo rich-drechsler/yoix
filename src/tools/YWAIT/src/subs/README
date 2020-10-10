@@ -1,0 +1,44 @@
+These are special Perl subroutines that are used by the Perl scripts
+
+	../bin/ywait_exec._PL
+	../bin/ywait_login._PL
+
+and also by
+
+	../bin/ywait_subtester._PL
+
+which is a script that we occasionally use when we want to test a new
+subroutine. They're automatically loaded by the Perl scripts, but only
+when they're really needed. You'll find some magic Perl code that looks
+something like,
+
+	foreach $TMPTXT (qw(
+		access
+		changepassword
+		checkid
+		cleanuser
+		getfile
+		getprefs
+		logout
+		saveprefs
+		sendmessage
+		serverdemo
+		welcome
+	    )) {
+	    eval "sub $TMPTXT {
+		require \"$SUBSDIR/<_ACRONYM_LOWER_DQ_>_$TMPTXT.pl\";
+		peer_$TMPTXT(\@_);
+	    }";
+	}
+
+in the Perl scripts that use these subroutines. The ones listed are the
+subroutines that will be loaded "on-demand", so if you write your own
+make sure you add them to the list in the appropriate Perl script and
+to the SOURCE list in ./Makefile. Also remember these subroutines are
+loaded by Perl scripts that also include
+
+	../etc/ywait_rc._PL
+
+which means can use anything (e.g., WriteHeader(), WriteLog()) defined
+in that file.
+

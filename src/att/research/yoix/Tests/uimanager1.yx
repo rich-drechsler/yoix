@@ -1,0 +1,4 @@
+import yoix.*.*;
+
+UIManager uim;
+printf("properties=%O\n", uim.properties);

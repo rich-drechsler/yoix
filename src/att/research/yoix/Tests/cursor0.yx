@@ -1,0 +1,23 @@
+import yoix.*.*;
+
+Dimension preferred = {
+    double width = 72;
+    double height = 72;
+};
+
+printf("Preferred size=%O\n", preferred);
+
+//
+// No optional matrix argument, which means the answer will be in units
+// of 72 dots per inch.
+//
+
+printf("Size in default coordinates=%O\n", getBestCursorSize(preferred));
+
+//
+// Use an identity to transform the result, which means the answer will
+// be in pixels.
+//
+
+printf("Size in pixels=%O\n", getBestCursorSize(preferred, new Matrix));
+

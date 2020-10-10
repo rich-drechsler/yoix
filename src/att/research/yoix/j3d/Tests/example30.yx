@@ -1,0 +1,77 @@
+import yoix.j3d.*;
+import yoix.*.*;
+
+PreLoad(String path) {
+    fprintf(stderr, "start loading %s\n", path);
+}
+
+PostLoad(String path, int loaded) {
+    fprintf(stderr, "done loading %s, result=%d\n", path, loaded);
+}
+
+setDefaultPostLoad(PostLoad);
+setDefaultPreLoad(PreLoad);
+
+SceneLoader objloader = {
+    String javaclass = "com.sun.j3d.loaders.objectfile.ObjectFile";
+    String errorscene = "Tests/Samples/dlamp.obj";
+    ////Array  javasetup = {"setFlags", new Array {J3D_LOAD_ALL}};
+    int    model = 1;
+
+    preLoad(String path) {
+	fprintf(stderr, "XXX start loading %s\n", path);
+    }
+
+    postLoad(String path, int loaded) {
+	fprintf(stderr, "done loading %s, result=%d\n", path, loaded);
+    }
+};
+
+Frame f = {
+    Array layout = {
+	new Canvas3D {
+	    String tag = "$_canvas";
+
+	    VirtualUniverse view = {
+		Color background = Color.white;
+		Image backgroundimage = NULL;
+
+		Array layout = {
+		    ////objloader.load("/home/drexler/XXX/bolt1.obj", 1),
+		    ////objloader.load("/home/drexler/XXX/tree1.obj", 2),
+		    ////objloader.load("/tmp/xxx", 1, NULL),
+		    ////"/home/drexler/XXX/bolt1.obj",
+		    /////"/home/drexler/XXX/tree1.obj",
+		    ////"/home/drexler/XXX/tree2.obj",
+		    ////"/home/drexler/Source/Yoix/att/research/yoix/j3d/Tests/Samples/dlamp.obj",
+		    "Tests/Samples/dlamp.obj",
+
+		    new DirectionalLight {
+			Color color = Color.red;
+			int   enabled = TRUE;
+			Point3D position = {
+			    double x = 5;
+			    double y = 5;
+			    double z = -20;
+			};
+
+			Vector3D direction = {
+			    int z = -1;
+			};
+		    },
+		};
+	    };
+	}, CENTER,
+    };
+};
+
+f.visible = TRUE;
+
+//
+// Just an example - using the "view" field to get to tagged in the
+// universe, but that will eventually change because "view" won't
+// always be a universe.
+//
+
+fprintf(stderr, "tagged=%.2O\n", f.components.$_canvas.universe.tagged);
+

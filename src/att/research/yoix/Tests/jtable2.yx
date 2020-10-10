@@ -1,0 +1,768 @@
+import yoix.*.*;
+
+//
+// since input Date data (for DATE_TYPE column) is in US locale format, if this
+// script is run in a different locale (e.g., Locale.ITALY), then it will fail
+// unless we over-ride the default locale OR set the inputLocale attribute of
+// the DATE_TYPE column as is done in jtable10.yx test file
+//
+setLocale(Locale.US);
+
+Array sortcols;
+
+int toggle = true;
+
+int errcnt = 0;
+
+JTable jt = {
+    Color editforeground = Color.black;
+    Color editbackground = Color.white;
+    invocationEditKey(e) {
+	if (e.keyevent == KEYRELEASED && e.keycode == KeyCode.VK_ALT && action(GET_EDITOR_BOX, e.valuesColumn) == NULL) {
+	    Color bk = action(GET_COLUMN_FIELD, e.valuesColumn, "editbackground");
+	    Color fg = action(GET_COLUMN_FIELD, e.valuesColumn, "editforeground");
+	    action(SET_COLUMN_FIELD, e.valuesColumn, "editbackground", fg);
+	    action(SET_COLUMN_FIELD, e.valuesColumn, "editforeground", bk);
+	}
+    }
+	    
+    validator(int row, int col, int type, Object value, Object oldvalue) {
+	fprintf(stderr, "validate(%d, %d): %d %O/%O\n", row, col, type, value, oldvalue);
+	if (value instanceof String) {
+	    fprintf(stderr, "sizeof=%d\n", value@sizeof);
+	    if (value@sizeof < 15) return true;
+	} else if (value instanceof Number) {
+	    if (value < 256) return true;
+	}
+	return false;
+	//errcnt++;
+	//if (errcnt == 5) {
+	    //errcnt = 0;
+	    //return false;
+	//} else return true;
+    }
+    
+    int reorder = 1;
+    int resize = 1;
+    int scroll = VERTICAL_ALWAYS|HORIZONTAL_AS_NEEDED;
+    int scrolltolastrow = 1;
+    Color background = Color.blue;
+    Array altbackground = {
+	Color.orange,
+	Color.red,
+	Color.green,
+    };
+    Array altforeground = {
+	Color.black,
+	Color.pink,
+	Color.magenta,
+    };
+    Array cellcolors = {
+	new Array[] { Color.yellow, Color.yellow, Color.orange, Color.orange },
+	Color.red,
+    };
+    Array headers = {
+        "First Name", 
+	"Last Name",
+	"Sport",
+	"Flag",
+	"Percent",
+	"Date",
+	"Salary",
+	"# of Years",
+	"Vegetarian",
+	"Timer",
+    };
+    Array types = {
+	STRING_TYPE, STRING_TYPE, STRING_TYPE, ICON_TYPE, PERCENT_TYPE, DATE_TYPE, MONEY_TYPE, INTEGER_TYPE, BOOLEAN_TYPE, TIMER_TYPE,
+    };
+    String values = "Mary|Walrath|Snowboarding|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|143.1234|5|false|1d2m\nAlison|Huml|Rowing|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|1923.321|3|true|23h12m\nKathy_J|Walrath|Chasing toddlers|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|12.5|2|false|23h11m59s\nSharon|Zakhour|Speed reading|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|-142|20|true|2d\nAngela|Lih|Teaching high school|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|123.123|4|false|5m\n";
+
+    invocationEdit(e) {
+	fprintf(stderr, "edit: %.2O\n", e);
+	action(TABLE_RESORT);
+    }
+    
+    invocationSelection(e) {
+	if ((e.modifiers & (BUTTON2_MASK|BUTTON3_MASK)) != 0) {
+	    //fprintf(stderr, "e: %.2O\n", e);
+	    String txt = action(GET_FIELD, e.valuesRow, e.valuesColumn);
+	    if (txt === "Kathy") {
+		action(SET_FIELD, e.valuesRow, e.valuesColumn, "Betty", "text");
+	    } else {
+		fprintf(stderr, "value(%d,%d) =  '%O'\n", e.valuesRow, e.valuesColumn, action(GET_FIELD, e.valuesRow, e.valuesColumn, "value"));
+	    }
+	    
+	    //fprintf(stderr, "view: %d\n", e.viewColumn);
+	    //fprintf(stderr, "type align: %d\n", action(GET_TYPE_ALIGNMENT, e.valuesColumn));
+	    //fprintf(stderr, "clmn align: %d\n", action(GET_COLUMN_ALIGNMENT, e.valuesColumn));
+
+	    if ((e.modifiers & BUTTON3_MASK) != 0) {
+		if ((e.modifiers & ALT_MASK) != 0) {
+		    fprintf(stderr, "column: %.2O\n", action(GET_COLUMN, e.valuesColumn));
+		} else if ((e.modifiers & SHIFT_MASK) != 0) {
+		    Object col;
+		    if ((col = action(GET_COLUMN_FIELD, e.valuesColumn, "altbackground")) == null)
+			action(SET_COLUMN_FIELD, e.valuesColumn, "altbackground", Color.gray);
+		    else
+			action(SET_COLUMN_FIELD, e.valuesColumn, "altbackground", null);
+		    //fprintf(stderr, "color: %.2O\n", col);
+		} else {
+		    if (action(GET_COLUMN_FIELD, e.valuesColumn, "alignment") == LEFT)
+			action(SET_COLUMN_FIELD, e.valuesColumn, "alignment", RIGHT);
+		    else if (action(GET_COLUMN_FIELD, e.valuesColumn, "alignment") == RIGHT)
+			action(SET_COLUMN_FIELD, e.valuesColumn, "alignment", CENTER);
+		    else if (action(GET_COLUMN_FIELD, e.valuesColumn, "alignment") == CENTER)
+			action(SET_COLUMN_FIELD, e.valuesColumn, "alignment", LEFT);
+		}
+	    }
+	}
+    }
+
+    invocationAction(e) {
+
+	// over-engineered
+
+	if (e.valuesColumn >= 0) {
+
+	    int idx;
+	    int len;
+	    int off;
+	    int i, j;
+
+	    if ((e.modifiers&CTRL_MASK) == 0) {
+		sortcols = new Array[0,...] {};
+		len = 0;
+	    } else {
+		e.modifiers &= ~CTRL_MASK;
+		len = sortcols@length;
+	    }
+	
+	    if (e.modifiers == BUTTON1_MASK) {
+		    //if (len == 0 && columns[e.valuesColumn].state > 0)
+		    if (len == 0 && action(GET_COLUMN_FIELD, e.valuesColumn, "state") > 0)
+		        idx = 0;
+		    else
+		        idx = 1 + e.valuesColumn;
+	    } else {
+		    //if (len == 0 && columns[e.valuesColumn].state < 0)
+		    if (len == 0 && action(GET_COLUMN_FIELD, e.valuesColumn, "state") < 0)
+		        idx = 0;
+		    else
+		        idx = -(1 + e.valuesColumn);
+	    }
+	    for (i=0; i<len; i++) {
+		if (idx == sortcols[i]) {
+		    for (j=i; j>0; j--) {
+			sortcols[j] = sortcols[j-1];
+		    }
+		    sortcols[0] = 0;
+		    idx = 0;
+		    break;
+		} else if (-idx == sortcols[i]) {
+		    sortcols[i] = idx;
+		    idx = 0;
+		    break;
+		}
+	    }
+	    for(off=0; off<len; off++) {
+		if (sortcols[off] != 0) break;
+	    }
+	    if (idx != 0) {
+		sortcols[len] = idx;
+		len++;
+	    }
+
+	    //fprintf(stderr, "len=%d, idx=%d\n%O\n", len, off, sortcols);
+	    
+	    if (len == off) {
+		action(TABLE_SORT, null);
+		sortcols = new Array[0,...] {};
+	    } else action(TABLE_SORT, sortcols + off);
+	}
+    }
+    
+};
+
+GenerateTableHTML(Object table, Object root, int include_hidden) {
+    Array    lines[5,...];
+    Pointer  ptr = lines;
+    Pointer  tptr;
+    Array    columns;
+    Array    alignments[0,...];
+    Array    halignments[0,...];
+    Array    headers[0,...];
+    Array    types[0,...];
+    Array    position[0,...];
+    Array    strdata;
+    Array    data;
+    String   title = NULL;
+    String   tmpstr;
+    int      sz;
+    int      ln;
+    int      m, n;
+
+    if (defined("tabletitletag", table)) {
+	if (table.tabletitletag instanceof String) {
+	    if (defined(table.tabletitletag, root.components)) {
+		if (defined("text", root.components[table.tabletitletag])) {
+		    title = trim(root.components[table.tabletitletag].text);
+		}
+	    }
+	} else if (table.tabletitletag instanceof Array) {
+	    title = "";
+	    for (tptr in table.tabletitletag) {
+		if (*tptr instanceof String) {
+		    if (defined(*tptr, root.components)) {
+			if (defined("text", root.components[*tptr])) {
+			    title += htmlEncode(trim(root.components[*tptr].text));
+			    if (tptr@sizeof > 1)
+				title += "<br>\n";
+			}
+		    }
+		}
+	    }
+	}
+    }
+
+    if ((title == NULL || title@length == 0) && defined("title", root))
+	title = htmlEncode(root.title);
+
+    if (title == NULL || title@length == 0)
+	title = "Table Conversion to HTML";
+
+    columns = table.columns;
+
+    for (n=0, sz=0; n<columns@sizeof; n++) {
+	if (columns[n].visible) {
+	    types[sz] = columns[n].type;
+	    alignments[sz] =  (columns[n].alignment == LEFT ? "LEFT" : (columns[n].alignment == RIGHT ? "RIGHT" : "CENTER"));
+	    halignments[sz] =  (columns[n].altalignment == CENTER ? "CENTER" : (columns[n].altalignment == LEFT ? "LEFT" : "RIGHT"));
+	    headers[sz] = columns[n].header;
+	    position[sz] = columns[n].view;
+	    sz++;
+	}
+    }
+    qsort(position, CompareNumbers, types, headers, alignments, halignments);
+
+    strdata = table.action(TABLE_JOIN, position, true, true, -1, 0, new Array { "\t", "\n" });
+
+    data = new Array[sz];
+
+    for (n=0; n<sz; n++)
+	data[n] = linesplit(strdata[n]);
+
+    ln = table.rows;
+
+    *ptr++ = strfmt(@<<
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>%s: %s</title>
+    <style type="text/css">
+		    body {
+			font-family : Verdana, Geneva, Arial, Helvetica, sans-serif;
+			font-size : 11px; 
+			background-color:#FFFFFF;
+		    }
+
+		    P, TD {
+			font-family : Verdana, Geneva, Arial, Helvetica, sans-serif;
+			font-size : 11px; 
+		    }
+
+		    TH {
+			font-family : Verdana, Geneva, Arial, Helvetica, sans-serif;
+			font-size : 11px; 
+			font-weight : bold;
+		    }
+
+		    H1 {
+			font-family : Verdana, Geneva, Arial, Helvetica, sans-serif;
+			font-size : 14px;
+			font-weight : bold;
+		    }
+
+		    H2 {
+			font-family : Verdana, Geneva, Arial, Helvetica, sans-serif;
+			font-size : 12px;
+			font-weight : bold;
+		    }
+
+		    H1 A { font-size: 14pt; }
+		    H2 A { font-size: 12pt; }
+		    SMALL { font-size: smaller; }
+		    BIG { font-size: larger; }
+		    STRONG { font-weight: bold; }
+		    EM { font-style: italic; }
+		    CODE { font-family: monospace; }
+		    NORMAL { font-family: Verdana, Geneva, Arial, Helvetica, sans-serif;
+			     font-style: normal; font-weight: normal; }
+		    SMALLPRINT { font-size: xx-small; }
+		    SUB#opt { font-size: smaller; }
+		    SUP#trademark { font-size: small; }
+		    SUP#top { font-size: xx-small; }
+		    TABLE    { margin: 24px;
+		               border-collapse: collapse; }
+                    TD       { border: 1px solid #000000;
+                               padding-left: 5px;
+                               padding-right: 5px; }
+                    TH       { border: 1px solid #000000;
+                               padding: 5px; }
+                    TR#grey  { background-color: #EEEEEE; }
+    </style>
+</head>
+<body bgcolor="#FFFFFF" leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" >
+<center><h1>%s</h1></center>
+<table border=0 cellpadding=0 cellspacing=0 id='page'>
+>>@, 
+		        htmlEncode("TESTING"), title, title);
+
+    // ignores header icons currently (just need to do what ICON_TYPE, below, does)
+    for (n=0; n<sz; n++) {
+	*ptr++ = strfmt("<th valign=top align=%s>%s</th>", halignments[n], htmlEncode(headers[n]));
+    }
+    *ptr++ = "\n";
+    for(m=0; m<ln; m++) {
+	if (m%2)
+	    *ptr++ = "<tr id=grey>";
+	else *ptr++ = "<tr>";
+	for (n=0; n<sz; n++) {
+	    if (data[n]@sizeof > m) {
+		switch (types[n]) {
+		case ICON_TYPE:
+		    // simple test for URL (could do better)
+		    tmpstr = htmlEncode(data[n][m]);
+		    if (strncasecmp(tmpstr,"http",4) == 0)
+			*ptr++ = strfmt("<td valign=top align=%s><img alt='%s' src='%s'></td>", alignments[n], tmpstr, tmpstr);
+		    else {
+			int row = table.action(GET_ROW_DATA_INDEX, m);
+			int col = table.action(GET_COLUMN_DATA_INDEX, position[n]);
+			Object img = table.action(GET_FIELD, row, col, "value");
+			String jpg = NULL;
+
+			if (img != NULL && img instanceof Image)
+			    jpg = encodeImage(img, "jpg");
+
+			if (jpg != NULL) {
+			    String fname;
+			    File fl;
+			    int tries = 0;
+
+			    fname = MakeTempFile(".jpg");
+
+			    while(tries < 3 && (fl = fopen(fname,"w")) == null) {
+				fname = MakeTempFile(".jpg");
+				tries++;
+			    }
+			    if(fl == null) {
+				fname = null;
+				// we tried, give up
+				*ptr++ = strfmt("<td valign=top align=%s><img alt='%s' src='%s'></td>", alignments[n], tmpstr, tmpstr);
+			    } else {
+				fl.nextbuf = jpg;
+				fclose(fl);
+				*ptr++ = strfmt("<td valign=top align=%s><img alt='%s' src='file://%s'></td>", alignments[n], tmpstr, htmlEncode(fname));
+			    }
+			} else {
+			    // best we can do...
+			    *ptr++ = strfmt("<td valign=top align=%s><img src='%s'></td>", alignments[n], tmpstr, tmpstr);
+			}
+		    }
+		    break;
+		case DATE_TYPE:
+		case OBJECT_TYPE: // maybe not a good idea?
+		    *ptr++ = strfmt("<td valign=top align=%s nowrap>%s</td>", alignments[n], htmlEncode(data[n][m]));
+		    break;
+		default:
+		    *ptr++ = strfmt("<td valign=top align=%s>%s</td>", alignments[n], htmlEncode(data[n][m]));
+		    break;
+		}
+	    } else *ptr++ = "<td></td>";
+	}
+	*ptr++ = "</tr>\n";
+    }
+    *ptr = @<<
+</table>
+</body>
+</html>
+>>@;
+    ViewFile(strjoin(lines, ""), ".html", FALSE);
+}
+
+GenerateTableCSV(Object table, Object root, int include_hidden) { // comma-separated values
+    Array    lines[3,...];
+    Pointer  ptr = lines;
+    Pointer  tptr;
+    Array    columns;
+    Array    headers[0,...];
+    Array    position[0,...];
+    String   title = NULL;
+    Regexp   re = null;
+    int      sz;
+    int      ln;
+    int      m, n;
+
+    if (defined("tabletitletag", table)) {
+	if (table.tabletitletag instanceof String) {
+	    if (defined(table.tabletitletag, root.components)) {
+		if (defined("text", root.components[table.tabletitletag])) {
+		    title = trim(root.components[table.tabletitletag].text);
+		}
+	    }
+	} else if (table.tabletitletag instanceof Array) {
+	    title = "";
+	    for (tptr in table.tabletitletag) {
+		if (*tptr instanceof String) {
+		    if (defined(*tptr, root.components)) {
+			if (defined("text", root.components[*tptr])) {
+			    title += trim(root.components[*tptr].text) + "\n";
+			}
+		    }
+		}
+	    }
+	    title = trim(title);
+	}
+    }
+
+    if ((title == NULL || title@length == 0) && defined("title", root))
+	title = root.title;
+
+    if (title == NULL || title@length == 0)
+	title = "Table Conversion to HTML";
+
+    if (indexOf(title, '"') >= 0) {
+	if (re == null)
+	    re = regexp("\"", TEXT_PATTERN);
+	title = gsubsti("\"\"", re, title);
+    }
+
+    *ptr++ = strfmt("\"%s\"\n", title);
+
+    columns = table.columns;
+
+    for (n=0, sz=0; n<columns@sizeof; n++) {
+	if (columns[n].visible || include_hidden) {
+	    headers[sz] = columns[n].header;
+	    position[sz] = columns[n].view;
+	    sz++;
+	}
+    }
+    qsort(position, CompareNumbers, headers);
+
+    for (n=0; n<sz; n++) {
+	if (indexOf(headers[n], '"') >= 0) {
+	    if (re == null)
+		re = regexp("\"", TEXT_PATTERN);
+	    headers[n] = gsubsti("\"\"", re, headers[n]);
+	}
+	if (n+1 == sz)
+	    *ptr++ = strfmt("\"%s\"\n", headers[n]);
+	else *ptr++ = strfmt("\"%s\",", headers[n]);
+    }
+
+    *ptr++ = table.action(TABLE_JOIN, position, true, true, 0, 0, new Array[] { ",", "\n" });
+    
+    // if we use ".csv" suffix, then Excel will autoload the data and stubbornly
+    // insist that long digit strings must be numbers thereby losing precision
+    // beyond 15 digits, using ".xls" keeps the CSV contents in the first column,
+    // whereupon the "Text to Columns" wizard can be invoked to load the data
+    // as desired (invoked from the Excel menubar as Data->"Text to Columns...")
+    fprintf(stderr,"OUTPUT:\n%s\n", strjoin(lines, ""));
+    ViewFile(strjoin(lines, ""), ".xls", FALSE);
+}
+
+CompareNumbers(a, b) = (a - b);
+
+MakeTempFile(...) {
+    String path = tempnam(NULL, "TESTING");
+
+    if (argc > 1)
+	path += argv[1];
+
+    return(path);
+}
+
+GetPreferredViewer() {
+    Process proc;
+    String  viewer;
+
+    //
+    // As rather complicated function that does a pretty good job picking
+    // the command for most operating systems when it's not explicitly set
+    // in the PREFERENCES dictionary. Picking the browser on Unix turns out
+    // to be the hardest.
+    //
+
+    if (ISMAC) {
+	viewer = "open %s"; // should be in /usr/bin
+    } else if (ISWIN) {
+	//
+	// Windows will use one of (this growing list):
+	//
+	//    [C:\WINNT\system32\]cmd.exe /c start %s
+	//    [C:\WINDOWS\COMMAND\]start.exe %s
+	//    [C:\WINDOWS\]RUNDLL32.EXE url.dll.FileProtocolHandler %s
+	//
+	if (isFilePath("c:/winnt/system32/cmd.exe")) {
+	    // windows 2000 and NT
+	    viewer = localPath("c:/winnt/system32/cmd.exe") + " /c start %s";
+	} else if (isFilePath("c:/windows/system32/cmd.exe")) {
+	    // windows XP
+	    viewer = localPath("c:/windows/system32/cmd.exe") + " /c start %s";
+	} else if (isFilePath("c:/windows/command/start.exe")) {
+	    // windows 98
+	    viewer = localPath("c:/windows/command/start.exe") + " %s";
+	} else if (isFilePath("c:/windows/rundll32.exe")) {
+	    // windows 95
+	    viewer = localPath("c:/windows/rundll32.exe") + " url.dll,FileProtocolHandler %s";
+	} else if (indexOf(OSNAME,"2000") >= 0 || indexOf(OSNAME,"NT") >= 0) {
+	    viewer = "cmd.exe /c start %s";
+	} else {
+	    viewer = "start %s";
+	}
+    } else { // ISUNIX
+	if ((proc = exec("netscape -v")) != NULL)
+	    waitFor(proc);
+	if (proc == NULL || proc.exitvalue) {
+	    if ((proc = exec("mozilla -v")) != NULL)
+		waitFor(proc);
+	    if (proc == NULL || proc.exitvalue) {
+		if ((proc = exec("firefox -v")) != NULL)
+		    waitFor(proc);
+		if (proc == NULL || proc.exitvalue) {
+		    viewer = NULL;
+		} else viewer = "firefox -remote openURL(%s)";
+	    } else viewer = "mozilla -remote openURL(%s)";
+	} else viewer = "netscape -remote openURL(%s)";
+    }
+
+    return(viewer);
+}
+
+ViewFile(String text, String extension, int plaintext) {
+    Array   exec_viewer;
+    Process proc;
+    String  viewer;
+    String  fname = NULL;
+    String  directory;
+    String  basename;
+    String  realpath;
+    String  cmd;
+    File    fl;
+    int     tries = 0;
+    int     pexit;
+    int     idx;
+
+    if ((viewer = GetPreferredViewer()) != NULL) {
+	fname = MakeTempFile(extension);
+        while (tries < 3 && (fl = fopen(fname,"w")) == NULL) {
+            fname = MakeTempFile(extension);
+            tries++;
+        }
+	if (fl == NULL) {
+	    ShowAlert("Could not create a needed temporary file (" + fname + ")");
+	    fname = NULL;
+	} else {
+	    if (plaintext)
+		fl.nextbuf = "<PLAINTEXT>";
+	    fl.nextbuf = text;
+	    fclose(fl);
+	}
+
+	realpath = realPath(fname);
+
+	if (!ISUNIX && (idx = lastIndexOf(realpath, "/")) > 0) {
+	    directory = substring(realpath, 0, idx);
+	    basename = substring(realpath, idx+1);
+	} else {
+	    directory = NULL;
+	    basename = realpath;
+	}
+	cmd = strfmt(viewer, basename);
+
+	proc = exec(cmd, NULL, directory);
+	if (proc != NULL) {
+	    String errbuf = proc.error.nextbuf;
+	    if (errbuf != NULL)
+		trim(errbuf);
+	    if (errbuf@length > 0) {
+		if (proc.alive == 0)
+		    errbuf = strfmt("process error: %s", errbuf);
+	    }
+	    try {
+		waitFor(proc);
+		pexit = proc.exitvalue;
+		if (ISUNIX && pexit) {
+		    idx = indexOf(viewer,' ');
+		    if (idx < 0) // unlikely
+			exec_viewer = new Array[] { viewer, basename };
+		    else exec_viewer = new Array[] { substring(viewer,0,idx), basename };
+		    proc = exec(exec_viewer, NULL, directory);
+		    if (proc == NULL || (proc.alive == 0 && proc.exitvalue !=0))
+			ShowAlert("Browser must already be running for viewer to function."); // give up
+		    else {
+			proc.persistent = TRUE;	// allow to live after the application exits
+			pexit = 0;
+		    }
+		}
+	    }
+	    catch(e) {
+		pexit = 1;
+		return(TRUE);
+	    }
+	} else pexit = -1;
+	if (pexit) {
+	    if (ShowConfirm("Could not start viewer. Do you want to save the material to a file?").confirmed) {
+		Array   filtarr = NULL;
+		if (extension@length > 0) {
+		    filtarr = new Array {
+			extension + " files", new Regexp {
+			    String pattern = "*" + extension;
+			    int type = yoix.re.SHELL_PATTERN;
+			    int toyoixpath = TRUE;
+			},
+			NULL, NULL,
+		    };
+		}
+		JFileDialog jfd = {
+		    String directory = getProperty("user.home");
+		    int    mode = SAVE;
+		    Array  filters = filtarr;
+		};
+		jfd.visible = TRUE;
+		if (jfd.file != NULL) {
+		    realpath = jfd.file;
+		    if ((fl = fopen(realpath,"w")) == NULL) {
+			ShowAlert(strfmt("Could not open '%s' for writing", realpath));
+		    } else {
+			fl.nextbuf = text;
+			fclose(fl);
+		    }
+		}
+	    }
+	}
+    } else ShowAlert("Viewer command is not specified under general preferences.");
+
+    return(fname);
+}
+
+JComboBox jcbi = {
+    Array items = {
+        "One",   "1",
+        "Two",   "2",
+        "Three", "3",
+    };
+    int edit = 1;
+};
+
+JComboBox jcbs = {
+    Array labels = {
+        "Snowboarding",
+        "Rowing",
+        "Chasing toddlers",
+        "Speed reading",
+        "Teaching high school",
+        "Software R&D",
+        "None",
+    };
+    Array mappings = {
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	"",
+    };
+};
+
+//jt.tooltips = 1;
+//jt.action(SET_COLUMN_FIELD, 7, "altbackground", Color.gray);
+//jt.action(SET_COLUMN_FIELD, 7, "cellcolors", new Array[] { Color.green, Color.yellow });
+//jt.action(SET_COLUMN_FIELD, 7, "selectionbackground", Color.blue);
+//jt.action(SET_COLUMN_FIELD, 0, "tooltip", new Array[] { null, "dog", null, "cat" });
+//jt.tooltip = new Array[] {
+    //"row1",
+    //null,
+    //"row3",
+    //new Array[] { "col1", null, "col3" },
+//};
+//jt.action(SET_COLUMN_FIELD, 0, "editinfo", new Array[] { null, 1, null, 0, 1 });
+jt.edit = new Array[] {
+    1,
+    null,
+    1,
+    new Array[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+};
+jt.edit = 1;
+
+int include_hidden = FALSE;
+
+
+jt.action(SET_EDITOR_BOX, 7, jcbi);
+jt.action(SET_EDITOR_BOX, 2, jcbs);
+
+JFrame f = {
+    int visible = 1;
+    Dimension size = NULL;
+    String title = "Test \"JTable\"";
+
+    JMenuBar menubar = {
+	Array items = {
+	    new JMenu {
+		String text = "File";
+		String accelerator = "ctrl F";
+		Array items = {
+		    new JMenuItem {
+			String text = "Reset view to data";
+			String accelerator = "ctrl R";
+			actionPerformed(e) {
+			    jt.action(RESETVIEW);
+			}
+		    },
+		    NULL,
+		    new JMenuItem {
+			String text = "Quit";
+			String accelerator = "ctrl Q";
+			actionPerformed(e) {
+			    exit(0);
+			}
+		    },
+		};
+	    },
+	};
+    };
+	    
+    Array layout = {
+	jt,
+	CENTER,
+	new JPanel {
+	    Array layout = {
+		new JButton {
+		    String text = "CSV";
+		    actionPerformed(e) {
+			GenerateTableCSV(jt, root, TRUE);
+		    }
+		},
+		new JButton {
+		    String text = "HTML";
+		    actionPerformed(e) {
+			GenerateTableHTML(jt, root, TRUE);
+		    }
+		},
+		new JCheckBox {
+		    String text = "Resizeable";
+		    int state = jt.resize;
+		    stateChanged(e) {
+			jt.resize = state;
+			if (state)
+			    jt.resizemode = AUTO_RESIZE_ALL_COLUMNS;
+			else jt.resizemode = AUTO_RESIZE_OFF;
+		    }
+		},
+	    };
+	},
+	SOUTH
+    };
+};

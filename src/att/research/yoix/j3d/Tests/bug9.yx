@@ -1,0 +1,74 @@
+import yoix.j3d.*;
+import yoix.*.*;
+
+Frame f = {
+    Array layout = {
+	new Canvas3D {
+	    String tag = "$_canvas";
+
+	    VirtualUniverse view = {
+		////Color background = Color.cyan;
+		Image backgroundimage = NULL;
+
+		Array layout = {
+		    new Shape3D {
+			String tag = "$_shape";
+			Point3D position = {
+			    double z = -5;
+			};
+
+/****
+			EulerAngle orientation = {
+			    double alpha = 0;
+			};
+
+			Transform3D transform = {
+			    double sx = 1.0;
+			    double sz = .5;
+			};
+****/
+
+			Array geometry = {
+			   new TriangleArray {
+////int defaultcapability = 2;
+				int  generatenormals = TRUE;
+				Array coordinates = {
+				    0, 0, 0,
+				    1, 0, 0,
+				    1, 1, 0,
+
+				    0, 0, 0,
+				    1, 1, 0,
+				    1, 1, -1,
+				};
+
+				String colorformat = "RGB";
+				Array colors = {
+				    1, 0, 0,
+				    0, 1, 0,
+				    1, 1, 0,
+				    1, 1, 0,
+				    1, 1, 0,
+				    1, 1, 0,
+				};
+			    },
+			};
+		    },
+		};
+	    };
+	}, CENTER,
+    };
+};
+
+f.visible = TRUE;
+
+fprintf(stderr, "geometry=%.3O\n", f.components.$_canvas.universe.tagged.$_shape.geometry);
+
+/****
+EulerAngle orientation = f.components.$_canvas.universe.tagged.$_shape.orientation;
+while (1) {
+    orientation.alpha += 3;
+    f.components.$_canvas.universe.tagged.$_shape.orientation = orientation;
+    sleep(.1);
+}
+****/

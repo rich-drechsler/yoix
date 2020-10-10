@@ -1,0 +1,40 @@
+import yoix.stdio.*;
+
+String UNDEF = "<undef>";
+String tree = "cedar";
+
+Dictionary tester[0, ...] = {      // growable dictionary
+    String tree = "oak";
+
+    SetVariables(...) {
+        String tree = "spruce";
+        String type = "blue";
+
+        printf("inside before tree: %s\n", this.tree);
+        printf("inside before type: %s\n",
+            defined("type", this) ? this.type : UNDEF);
+
+        while(argv@sizeof > 2)
+            this[*++argv] = *++argv;
+
+        printf("inside after  tree: %s\n", this.tree);
+        printf("inside after  type: %s\n",
+            defined("type", this) ? this.type : UNDEF);
+    }
+};
+
+printf("global before tree: %s\n", this.tree);
+printf("global before type: %s\n",
+       defined("type", this) ? this.type : UNDEF);
+printf("tester before tree: %s\n", tester.tree);
+printf("tester before type: %s\n",
+       defined("type", tester) ? tester.type : UNDEF);
+
+tester.SetVariables("tree", "maple", "type", "sugar");
+
+printf("tester after  tree: %s\n", tester.tree);
+printf("tester after  type: %s\n",
+       defined("type", tester) ? tester.type : UNDEF);
+printf("global after  tree: %s\n", this.tree);
+printf("global after  type: %s\n",
+       defined("type", this) ? this.type : UNDEF);

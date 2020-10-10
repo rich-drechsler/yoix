@@ -1,0 +1,292 @@
+import yoix.*.*;
+
+Array sortcols;
+
+int toggle = true;
+
+int prev_idx = -1;
+
+int errcnt = 0;
+
+Font dialog_plain_13 = new Font { String name = "dialog-plain-13"; };
+Font dialog_bold_13 = new Font { String name = "dialog-bold-13"; };
+
+JTable jt = {
+    validator(int row, int col, int type, Object value, Object oldvalue) {
+	fprintf(stderr, "validate(%d, %d): %d %O/%O\n", row, col, type, value, oldvalue);
+	if (value instanceof String) {
+	    fprintf(stderr, "sizeof=%d\n", value@sizeof);
+	    if (value@sizeof < 15) return true;
+	} else if (value instanceof Number) {
+	    if (value < 256) return true;
+	}
+	return false;
+	//errcnt++;
+	//if (errcnt == 5) {
+	    //errcnt = 0;
+	    //return false;
+	//} else return true;
+    }
+    
+    int reorder = 1;
+    int resize = 1;
+    int scroll = AS_NEEDED;
+    Color background = Color.blue;
+    Array altbackground = {
+	Color.orange,
+	Color.red,
+	Color.green,
+    };
+    Array altforeground = {
+	Color.black,
+	Color.pink,
+	Color.magenta,
+    };
+    Font altfont = dialog_plain_13;
+    Array cellcolors = {
+	new Array[] { Color.yellow, Color.orange },
+	Color.red,
+    };
+    Array dfltcellcolors = cellcolors; // used in sort function - see below
+    Array headers = {
+        "First Name", 
+	"Last Name",
+	"Sport",
+	"Flag",
+	"Percent",
+	"Date",
+	"Salary",
+	"# of Years",
+	"Vegetarian",
+	"Timer",
+    };
+    String values = "Mary|Walrath|Snowboarding|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|143.1234|5|false|1d2m\nAlison|Huml|Rowing|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|1923.321|3|true|23h12m\nKathy|Walrath|Chasing toddlers|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|12.5|2|false|23h11m59s\nSharon|Zakhour|Speed reading|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|-142|20|true|2d\nAngela|Lih|Teaching high school|/home/john/junk/flag.jpg|0.17|Fri Jun  6 11:46:58 EDT 2003|123.123|4|false|5m\n";
+    Array types = {
+	STRING_TYPE, STRING_TYPE, STRING_TYPE, ICON_TYPE, PERCENT_TYPE, DATE_TYPE, MONEY_TYPE, INTEGER_TYPE, BOOLEAN_TYPE, TIMER_TYPE,
+    };
+
+    invocationEdit(e) {
+	fprintf(stderr, "edit: %.2O\n", e);
+	action(TABLE_RESORT);
+    }
+    
+    invocationSelection(e) {
+	if ((e.modifiers & (BUTTON2_MASK|BUTTON3_MASK)) != 0) {
+	    //fprintf(stderr, "e: %.2O\n", e);
+	    String txt = action(GET_FIELD, e.valuesRow, e.valuesColumn);
+	    if (txt === "Kathy") {
+		action(SET_FIELD, e.valuesRow, e.valuesColumn, "Betty", "text");
+	    } else {
+		fprintf(stderr, "value(%d,%d) =  '%O'\n", e.valuesRow, e.valuesColumn, action(GET_FIELD, e.valuesRow, e.valuesColumn, "value"));
+	    }
+	    
+	    //fprintf(stderr, "view: %d\n", e.viewColumn);
+	    //fprintf(stderr, "type align: %d\n", action(GET_TYPE_ALIGNMENT, e.valuesColumn));
+	    //fprintf(stderr, "clmn align: %d\n", action(GET_COLUMN_ALIGNMENT, e.valuesColumn));
+
+	    if ((e.modifiers & BUTTON3_MASK) != 0) {
+		if ((e.modifiers & (CTRL_MASK|SHIFT_MASK)) == (CTRL_MASK|SHIFT_MASK)) {
+		    fprintf(stderr, "column: %.2O\n", action(GET_COLUMN, e.valuesColumn));
+		} else if ((e.modifiers & SHIFT_MASK) != 0) {
+		    Object col;
+		    if ((col = action(GET_COLUMN_FIELD, e.valuesColumn, "altbackground")) == null)
+			action(SET_COLUMN_FIELD, e.valuesColumn, "altbackground", Color.gray);
+		    else
+			action(SET_COLUMN_FIELD, e.valuesColumn, "altbackground", null);
+		    //fprintf(stderr, "color: %.2O\n", col);
+		} else {
+		    if (action(GET_COLUMN_FIELD, e.valuesColumn, "alignment") == LEFT)
+			action(SET_COLUMN_FIELD, e.valuesColumn, "alignment", RIGHT);
+		    else if (action(GET_COLUMN_FIELD, e.valuesColumn, "alignment") == RIGHT)
+			action(SET_COLUMN_FIELD, e.valuesColumn, "alignment", CENTER);
+		    else if (action(GET_COLUMN_FIELD, e.valuesColumn, "alignment") == CENTER)
+			action(SET_COLUMN_FIELD, e.valuesColumn, "alignment", LEFT);
+		}
+	    }
+	}
+    }
+
+    invocationAction(e) {
+
+	// over-engineered
+
+	if (e.valuesColumn >= 0) {
+
+	    int idx;
+	    int len;
+	    int sz;
+	    int off;
+	    int i, j;
+
+	    if ((e.modifiers&(CTRL_MASK|SHIFT_MASK)) != (CTRL_MASK|SHIFT_MASK)) {
+		if ((e.modifiers&CTRL_MASK) == 0) {
+		    sortcols = new Array[0,...] {};
+		    len = 0;
+		} else {
+		    e.modifiers &= ~CTRL_MASK;
+		    len = sortcols@length;
+		}
+	
+		if (e.modifiers == BUTTON1_MASK) {
+		    if (len == 0 && columns[e.valuesColumn].state > 0)
+		        idx = 0;
+		    else
+		        idx = 1 + e.valuesColumn;
+		} else {
+		    if (len == 0 && columns[e.valuesColumn].state < 0)
+		        idx = 0;
+		    else
+		        idx = -(1 + e.valuesColumn);
+		}
+		for (i=0; i<len; i++) {
+		    if (idx == sortcols[i]) {
+			for (j=i; j>0; j--) {
+			    sortcols[j] = sortcols[j-1];
+			}
+			sortcols[0] = 0;
+			idx = 0;
+			break;
+		    } else if (-idx == sortcols[i]) {
+			sortcols[i] = idx;
+			idx = 0;
+			break;
+		    }
+		}
+		for(off=0; off<len; off++) {
+		    if (sortcols[off] != 0) break;
+		}
+		if (idx != 0) {
+		    sortcols[len] = idx;
+		    len++;
+		}
+
+		//fprintf(stderr, "len=%d, idx=%d\n%O\n", len, off, sortcols);
+		if (prev_idx >= 0) {
+		    action(SET_COLUMN_FIELD, prev_idx, "altfont", dialog_plain_13);
+		    prev_idx = -1;
+		}
+	    
+		if (len == off) {
+		    action(TABLE_SORT, null);
+		    sortcols = new Array[0,...] {};
+		    idx = 0;
+		    cellcolors = getArrayBands(columns[idx].values, unroll(dfltcellcolors));
+		    action(SET_COLUMN_FIELD, idx, "altfont", dialog_bold_13);
+		    prev_idx = idx;
+		} else {
+		    action(TABLE_SORT, sortcols + off);
+		    if (prev_idx >= 0) {
+			action(SET_COLUMN_FIELD, prev_idx, "altfont", dialog_plain_13);
+		    }
+		    sz = len - off;
+		    bandcols = new Array[sz];
+		    for (i=0; i < sz; i++) {
+			idx = sortcols[off+i];
+			if (idx < 0) {
+			    idx = -idx;
+			}
+			idx--;
+			bandcols[i] = idx;
+		    }
+		    cellcolors = getArrayBands(action(TABLE_JOIN, bandcols, 1, 1, 1), unroll(dfltcellcolors));
+		}
+	    } else {
+		if (prev_idx >= 0) {
+		    action(SET_COLUMN_FIELD, prev_idx, "altfont", dialog_plain_13);
+		}
+		idx = e.valuesColumn;
+		if (idx == prev_idx) {
+		    prev_idx = -1;
+		    if (len == off) {
+			idx = 0;
+			cellcolors = getArrayBands(columns[idx].values, unroll(dfltcellcolors));
+			action(SET_COLUMN_FIELD, idx, "altfont", dialog_bold_13);
+			prev_idx = idx;
+		    } else {
+			sz = len - off;
+			bandcols = new Array[sz];
+			for (i=0; i < sz; i++) {
+			    idx = sortcols[off+i];
+			    if (idx < 0) {
+				idx = -idx;
+			    }
+			    idx--;
+			    bandcols[i] = idx;
+			}
+			cellcolors = getArrayBands(action(TABLE_JOIN, bandcols, 1, 1, 1), unroll(dfltcellcolors));
+		    }
+		} else {
+		    action(SET_COLUMN_FIELD, idx, "altfont", dialog_bold_13);
+		    cellcolors = getArrayBands(columns[idx].values, unroll(dfltcellcolors));
+		    prev_idx = idx;
+		}
+	    }
+	}
+    }
+    
+};
+
+JComboBox jcbi = {
+    Array items = {
+        "One",   "1",
+        "Two",   "2",
+        "Three", "3",
+    };
+    int edit = 1;
+};
+
+JComboBox jcbs = {
+    Array labels = {
+        "Snowboarding",
+        "Rowing",
+        "Chasing toddlers",
+        "Speed reading",
+        "Teaching high school",
+        "Software R&D",
+        "None",
+    };
+    Array mappings = {
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	"",
+    };
+};
+
+//jt.tooltips = 1;
+//jt.action(SET_COLUMN_FIELD, 7, "altbackground", Color.gray);
+//jt.action(SET_COLUMN_FIELD, 7, "cellcolors", new Array[] { Color.green, Color.yellow });
+//jt.action(SET_COLUMN_FIELD, 7, "selectionbackground", Color.blue);
+//jt.action(SET_COLUMN_FIELD, 0, "tooltip", new Array[] { null, "dog", null, "cat" });
+//jt.tooltip = new Array[] {
+    //"row1",
+    //null,
+    //"row3",
+    //new Array[] { "col1", null, "col3" },
+//};
+//jt.action(SET_COLUMN_FIELD, 0, "editinfo", new Array[] { null, 1, null, 0, 1 });
+jt.edit = new Array[] {
+    1,
+    null,
+    1,
+    new Array[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+};
+jt.edit = 1;
+
+
+
+jt.action(SET_EDITOR_BOX, 7, jcbi);
+jt.action(SET_EDITOR_BOX, 2, jcbs);
+
+JFrame f = {
+    int visible = 1;
+    Dimension size = NULL;
+
+    Array layout = {
+	jt,
+	CENTER,
+    };
+};

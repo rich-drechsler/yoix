@@ -1,0 +1,22 @@
+//
+// A simple change in the implementation of named blocks means you now can
+// force "this", when used in a named block, to refer to the compound object
+// used for the block's storage.
+//
+
+import yoix.*.*;
+
+Dictionary dict = {
+    int count = 10;
+};
+
+this dict {
+    printf("count=%d\n", count);
+    {
+	int count = 1;
+
+	printf("count=%d\n", count);
+	printf("this.count=%d\n", this.count);
+    }
+}
+

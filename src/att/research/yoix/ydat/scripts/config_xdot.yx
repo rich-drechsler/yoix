@@ -1,0 +1,213 @@
+//
+// Config file for xdot files.
+//
+
+CONFIGVERSION = "4.1";
+COLOREDBY = "main";		// no idea if this should be the default
+GRAPHSEPARATOR = " ";		// can't match INPUTSEPARATOR
+INPUTSEPARATOR = "\007";	// can't match GRAPHSEPARATOR
+LOCATIONMODE = 2;
+PRIMARYLABEL = "Counts";
+REVERSEVIDEO = FALSE;
+SECONDARYLABEL = NULL;
+TITLEMODEL = 1;
+
+//
+// Small adjustments to some default sizes.
+//
+
+DIMENSIONS.HISTOGRAM.width += 24;
+
+//
+// This is how to set defaults (e.g., white background) while still
+// letting command line options win. It's rather complicated because
+// we need to override choices made in setup.yx, which is included
+// before this file.
+//
+
+COLORS = MODELS.MergeColors(new Array[] {"WHITE", unroll(MODEL)});
+
+//
+// A dictionary that gives you some extra control over the starting
+// values selected by a graph, but only when it appears under the
+// EXTRA column in the GRAPHS table.
+//
+
+Dictionary GRAPHEXTRA = {
+    int graphmode = OP_SELECT;	// OP_DRAG, OP_GRAB, OP_PRESS, OP_SCROLL, OP_SELECT
+    int nodeflags = 0x00;	// bit 0x04 controls erase mode
+    int edgeflags = 0x04;	// bit 0x04 controls erase mode
+};
+
+//
+// ATTRIBUTES is new and used to identify the attribute names that we
+// expect to find in the xdot file and to map values associated with
+// those names to the appropriate fields in the records that we end up
+// with after PREPROCESSOR() has translated the xdot file. ATTRIBUTES
+// can be an array of strings that are used as attribute names for the
+// data partitions (by default nodes end up in partition 1 and edges
+// end up in partition 2). It can also be a dictionary that associates
+// an attribute name array with a particular data partition.
+//
+// The order of the strings in the attribute name arrays controls the
+// output that's generated when PREPROCESSOR() translates an xdot graph
+// description into records with fields delimited by INPUTSEPARATOR and
+// that match the formal description given in the DATAFIELDS array. The
+// "__name__" and "__label__" strings are magic names that ask our Java
+// to generate a name for the node or edge. If you're not be happy with
+// the automatically generated edge names add custom node and edge names
+// to xdot files (as attributes) and extract those names by changing the
+// "__name__" or "__label__" string in ATTRIBUTES to the string that you
+// used (in the xdot file).
+//
+
+ATTRIBUTES = new Dictionary[] {
+    //
+    // Attribute names for nodes (data partition 1 by default).
+    //
+    "1", new Array {
+	"__name__",		// ==> node name (a magic string)
+    },
+
+    //
+    // Attribute names for edges (data partition 2 by default).
+    //
+    "2", new Array {
+	"__name__",		// ==> edge name (a magic string)
+    },
+};
+
+//
+// If PREPROCESSOR is defined it must be a function that takes input
+// data (i.e., xdot format) as a string and translates it into a form
+// that can be handled by this config file (i.e., records with fields
+// separated by INPUTSEPARATOR that match the description given in the
+// DATAFIELDS array). PREPROCESSOR is another recent addition.
+//
+// Incidentally, if you need to take a closer look at the translation
+// you can temporarily change PREPROCESSOR to something like,
+//
+//	PREPROCESSOR(Object obj) {
+//	    String str;
+//
+//	    str =  dotGraphToYDAT(obj, INPUTSEPARATOR, ATTRIBUTES, TRUE);
+//	    fprintf(stderr, "%s\n", str);
+//	    return(str);
+//	}
+//
+// and the translated string should print on standard error.
+//
+
+PREPROCESSOR(Object obj) = dotGraphToYDAT(obj, INPUTSEPARATOR, ATTRIBUTES, TRUE);
+
+//
+// A dictionary of dictionaries that can be used to translate input
+// strings from one value to another when the dictionary is mentioned
+// under the TRANSLATOR column in the DATAFIELDS table. Unfortunately
+// TRANSLATORS currently can't be applied to DATA_PARTITION entries.
+//
+
+TRANSLATORS = new Dictionary {
+    Dictionary unknown[] = {
+	"\0", "unknown",
+    };
+};
+
+int _N = 0;
+
+DATAFIELDS = new Array {
+//
+// NAME                       TYPE            INDEX  COUNTER  UNIXTIME   TRANSLATOR     GENERATOR
+// ----                       ----            -----  -------  --------   ----------     ---------
+   "$_main",                  DATA_STRING,    _N++,  FALSE,   NULL,      NULL,          NULL,
+   "$_partition",             DATA_INTEGER,   _N++,  FALSE,   NULL,      NULL,          NULL,
+
+   "$_attr1",                 DATA_STRING,    _N++,  FALSE,   NULL,      "unknown",     NULL,
+   "$_attr2",                 DATA_STRING,    _N++,  FALSE,   NULL,      "unknown",     NULL,
+   "$_attr3",                 DATA_STRING,    _N++,  FALSE,   NULL,      "unknown",     NULL,
+   "$_attr4",                 DATA_STRING,    _N++,  FALSE,   NULL,      "unknown",     NULL,
+   "$_attr5",                 DATA_STRING,    _N++,  FALSE,   NULL,      "unknown",     NULL,
+   "$_attr6",                 DATA_STRING,    _N++,  FALSE,   NULL,      "unknown",     NULL,
+   "$_attr7",                 DATA_STRING,    _N++,  FALSE,   NULL,      "unknown",     NULL,
+   "$_attr8",                 DATA_STRING,    _N++,  FALSE,   NULL,      "unknown",     NULL,
+   "$_attr9",                 DATA_STRING,    _N++,  FALSE,   NULL,      "unknown",     NULL,
+   "$_attr10",                DATA_STRING,    _N++,  FALSE,   NULL,      "unknown",     NULL,
+
+    //
+    // Node attributes...
+    //
+
+   "node_name",               DATA_PARTITION,   -1,  FALSE,   NULL,      NULL,          new Array {"$_attr1", "$_partition", 1, "=="},
+
+    //
+    // Edge attributes...
+    //
+
+   "edge_name",               DATA_PARTITION,   -1,  FALSE,   NULL,      NULL,          new Array {"$_attr1", "$_partition", 2, "=="},
+};
+
+//
+// Settings that make small bars (half an inch) and eliminate the
+// count from bar labels. Done because counts should always be 1
+// for nodes and edges.
+//
+// NOTE - entries under the EXTRA column can be NULL, an integer
+// that's used as the histogram's labelflags, or a dictionary of
+// values that are unrolled into the histogram when it's built.
+// See the NewHistogram() "constructor" if you need more info.
+//
+
+Dictionary UNIQUEBARS = {
+    double barspace = 72.0/2;
+    int    labelflags = 0;
+};
+
+HISTOGRAMS = new Array {
+//
+// NAME                 MENULABEL            PRIMARY              SECONDARY      DIVERSITY  AUTOREADY  SPAN  SORTBY          EXTRA
+// ----                 ---------            -------              ---------      ---------  ---------  ----  ------          -----
+   "node_names",        "Nodes",             "node_name",         NULL,          NULL,      FALSE,     0,    SORTBY_TEXT,    UNIQUEBARS,
+   "edge_names",        "Edges",             "edge_name",         NULL,          NULL,      FALSE,     0,    SORTBY_TEXT,    UNIQUEBARS,
+};
+
+GRAPHS = new Array {
+//
+// NAME      MENULABEL  PRIMARY     SECONDARY  COLOREDBY  AUTOREADY  LINEWIDTH  BORDER  INSETS  PAD  PALETTE  EXTRA
+// ----      ---------  -------     ---------  ---------  ---------  ---------  ------  ------  ---  -------  -----
+   "main",   "Graph",   "$_main",   NULL,      NULL,      FALSE,     LINEWIDTH,  0,      0,     0,   NULL,    GRAPHEXTRA,
+};
+
+//
+// Callback table - assumes the referenced functions have already been
+// defined.
+//
+
+CALLBACKS = new Array {
+//
+// OWNER                 STATE          FORMATTER        LABEL         CALLBACK
+// -----                 ------         ----------       -----         --------
+   "main",               "PRESSED",     NULL,            NULL,         CALLBACK_SUPPORT.PressedElement,
+   "node_names",         "PRESSED",     NULL,            NULL,         CALLBACK_SUPPORT.PressedBar,
+   "edge_names",         "PRESSED",     NULL,            NULL,         CALLBACK_SUPPORT.PressedBar,
+};
+
+STARTSCREENS = new Array {
+    "main",
+	SEPARATION,							// X
+	SEPARATION,							// Y
+	VM.screen.width - DIMENSIONS.HISTOGRAM.width - 2*SEPARATION,	// WIDTH (<= 0 lets screen choose)
+	VM.screen.height - 72.0,					// HEIGHT (<= 0 lets screen choose)
+
+    "node_names",
+	VM.screen.width - DIMENSIONS.HISTOGRAM.width - SEPARATION,
+	SEPARATION,
+	DIMENSIONS.HISTOGRAM.width,
+	(VM.screen.height - 72.0 - SEPARATION)/2,
+
+    "edge_names",
+	VM.screen.width - DIMENSIONS.HISTOGRAM.width - SEPARATION,
+	(VM.screen.height - 72.0)/2 + SEPARATION,
+	DIMENSIONS.HISTOGRAM.width,
+	(VM.screen.height - 72.0 - SEPARATION)/2,
+};
+

@@ -1,0 +1,8 @@
+f(Object arg, int n) {
+
+    int offset;
+
+    offset = arg@offset;
+}
+
+f(VM, 12);

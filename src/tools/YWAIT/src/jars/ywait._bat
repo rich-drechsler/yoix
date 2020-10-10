@@ -1,0 +1,227 @@
+@echo off
+rem
+rem The interpreter's startup behavior can be controlled by property
+rem files and command line options. The name of the default property
+rem is "yoix.properties", and the interpreter always looks for one in
+rem the three directories that Java associates with the "yoix.home",
+rem "user.home", and "user.dir" system properties.
+rem
+rem Command line options are processed after all the default property
+rem files are read. Here's a brief description of some of the options:
+rem
+rem	-c	Tells the interpreter start running in a strict mode that
+rem		requires declarations for all variables. Change - to + and
+rem		the interpreter will let you assign values to undeclared
+rem		variables, which are always created in the global block
+rem		(this is the default mode). This option sets the initial
+rem		value of VM.create to TRUE or FALSE, but Yoix scripts can
+rem		(and often do) change VM.create, which will override the
+rem		choice that you made on command line.
+rem
+rem	-dnum	Sets the debugging mode to num, which are flags that are
+rem		officially defined in YoixConstants.java. The most useful
+rem		flag is 1 (i.e., -d1), which has the interpreter to dump
+rem		the value of every expression that is also happens to be
+rem		a statement. This option ends up setting VM.debug, which
+rem		can also be done in Yoix scripts. When we're working on
+rem		the Java code we often use -d16 to generate a Java trace
+rem		whenever there's an error.
+rem
+rem	-enum	Sets the exitmodel to num, which currently should only be
+rem		0, 1, or 2. The exitmodel controls what happens when the
+rem		main thread quits:
+rem
+rem		    0	Nothing special happens when the main thread
+rem			quits, so the Yoix program must call exit()
+rem			to quit.
+rem
+rem		    1	The interpreter does its best to guess if it
+rem			should exit() when the main thread quits. The
+rem			guess currently looks for active threads or
+rem			visible windows before deciding what to do.
+rem
+rem		    2	The interpreter always exits when the main
+rem			thread quits.
+rem
+rem		The default value is currently 1.
+rem
+rem	+f	This is how you ask for the font adjustments described
+rem		under the +D option without having to explicitly set the
+rem		size of your screen. Change + to - and the interpreter
+rem		won't make any font adjustments (this is the default).
+rem
+rem	-g	Ask the interpreter to run in a mode that guarantees that
+rem		command line and source file information will be available
+rem		for error reporting. In addition -g now also automatically
+rem		generates a Yoix stack trace whenever there's an error. An
+rem		application started with -g pays a penalty when compared
+rem		to the same application started with the -O option (it's
+rem		always slower and uses more memory), so -g should probably
+rem		only be used when you need to debug Yoix problems.
+rem
+rem	-lnum	Tells the interpreter to quit after num errors, which is
+rem		a number that can also be set by Yoix scripts using the
+rem		yoix.system.setErrorLimit() builtin. Change the - to +
+rem		and the interpreter locks the error limit, which means
+rem		all subsequent requests to change it will be ignored. A
+rem		num that's less than or equal to 0 (the default) means
+rem		there is no limit.
+rem
+rem	-mnum	This is another way to change font size. Internally Yoix
+rem		multiplies requested font sizes by num before asking Java
+rem		for a font. For example, starting Yoix using
+rem
+rem			-m1.1
+rem
+rem		as an option means that Yoix uses point size
+rem
+rem			11 = 1.1*10
+rem
+rem		whenever it's supposed to use size 10. Try to keep num
+rem		reasonably close to 1.0, because Java can misbehave if
+rem		you get carried away. Values between 0.8 and 1.2 will
+rem		usually work; anything else may be asking for trouble.
+rem
+rem	-ppfx	Sets the prefix string used by the interpreter when its
+rem		asked to read a property file (see the -P option). The
+rem		default prefix string is "", which means an entry like
+rem
+rem			yoix.tmpdir = /usr/tmp
+rem
+rem		in a property file referenced by the -P option wouldn't
+rem		be recognized unless the -pyoix option appeared on the
+rem		command line before the -P option.
+rem
+rem	-u	Disables user modules, which means any request to load
+rem		a class that looks like a user module will be rejected
+rem		with a securitycheck error. Although it looks like you
+rem		can change the - to + and enable user modules, our low
+rem		level Java code (in YoixVM()) doesn't enable them once
+rem		they've been disabled. You can use the checkYoixModule()
+rem		security  checker in the Yoix SecurityManager when you
+rem		want to be more selective.
+rem
+rem	-Cpfx	Quits if Java's classpath, which is often set using the
+rem		CLASSPATH environment variable, isn't empty and doesn't
+rem		start with the string pfx.
+rem
+rem	-Dnum	Tells Yoix the size of your screen (in inches measured
+rem		along the diagonal). For example, we found
+rem
+rem			-D16.1
+rem
+rem		was a good choice on a 17 inch monitor at home, while
+rem
+rem			-D19.2
+rem
+rem		worked well on a 21 inch monitor in our lab. Feel free
+rem		to experiment and pick any value you like. A value less
+rem		than or equal to zero (e.g., -D0.0) disables all screen
+rem		size calculations designed to guess the resolution of
+rem		your screen. Actually that's the default behavior, so
+rem		omitting the -D option accomplishes the same thing.
+rem
+rem	+Dnum	This option does everything that -Dnum does, in addition
+rem		to trying to adjust the fonts so their size matches the
+rem		point size that Yoix asked for. In general if you're not
+rem		happy with fonts, usually because they're too small, and
+rem		you're already using the -D option try changing it to +D
+rem		and see if things improve. For example,
+rem
+rem			+D16.1
+rem
+rem		is the option we prefer on 17 inch monitors.
+rem
+rem	-Ifile	Arranges to include the named file after all command line
+rem		options	are processed, but before the input file named on
+rem		the command line is executed. All files included this way
+rem		run in the environment created for the primary input file.
+rem		This option can be particulary useful when no input file
+rem		is named on the command line (i.e., the Yoix interpreter
+rem		reads from standard input) and you want a way to establish
+rem		a consistent environment, often for debugging purposes.
+rem
+rem	-O	Starts the Yoix interpreter in optimized mode, which can
+rem		improve performance by about 10%, but it currently means
+rem		you get little or no debugging help from error messages.
+rem		Ends up fiddling with VM.addtags, which can also be done
+rem		in Yoix scripts. You should use the -g option if you need
+rem		more help while you're debugging a Yoix script.
+rem
+rem	-Pfile	Tells the interpreter to load properties from file. Lines
+rem		in a property file look like
+rem
+rem			key = value
+rem
+rem		and the only ones recognized must start with the prefix
+rem		that can be set using the -p option, which by default is
+rem		the empty string (i.e., ""). In addition, only properties
+rem		named in the properties Hashtable (below) have any effect.
+rem		At startup the Yoix interpreter looks for files named
+rem		yoix.properties in the directories that Java associates
+rem		with the "yoix.home", "user.home", and "user.dir" system
+rem		properties.
+rem
+rem	-Sstr	Sets the security policy based on str, which should be a
+rem		string of the form "access:category[:arg]". The access
+rem		token in str sets the access mode and should be "allow",
+rem		"prompt", or "deny". The second token in str, which must
+rem		be separated from the access token by a colon, selects
+rem		a category (e.g., "file", "read", "delete") or names an
+rem		individual security checker (e.g., "checkRead"). The arg
+rem		token is optional and appropriate values depends on the
+rem		category. For example,
+rem
+rem			-S"prompt:file:/etc/*"
+rem
+rem		prompts with a dialog whenever a Yoix porgram tries to
+rem		read, write, delete, or execute files under /etc. Using
+rem		temp files is common, so there's an easy way to extend
+rem		permissions to temp files. The option
+rem
+rem			-Sallow:tempfile
+rem
+rem		lets Yoix programs read, write, or delete files that are
+rem		in the official temp directory (i.e., VM.tmpdir), but it
+rem		prompts with a dialog whenever the program accesses files
+rem		in any other directory. The category can also be the name
+rem		of SecurityManager function, so
+rem
+rem			-Sprompt:checkRead
+rem
+rem		prompts with a dialog whenever Java decides it needs to
+rem		find out if a local file can be read, while
+rem
+rem			-Sprompt:checkYoixInclude
+rem
+rem		prompts with a dialog right before the Yoix interpreter
+rem		executes an explicit or implicit (i.e., see the -I option)
+rem		include statement.
+rem
+rem	-Tdir	Names the default directory the interpreter uses when it
+rem		creates temporary files (e.g., via the tempnam builtin).
+rem		Point at a temp directory that's not the system default,
+rem		and the interpreter creates that directory if it doesn't
+rem		already exist.
+rem
+rem	-V	Dump version information and then exit. Change - to + and
+rem		you get a little extra information.
+rem
+rem Older releases started the interpreter using a command line that
+rem looked something like,
+rem
+rem	CLASSPATH=yoix.jar java -mx64m att.research.yoix.YoixMain %1 %2 %3
+rem
+rem which is simple and still works, but the -jar option that was
+rem added to Java 1.2 can also be used, so
+rem
+rem	java -mx64m -jar yoix.jar %1 %2 %3
+rem
+rem is even easier. Our automatically generated scripts now prepend
+rem yoix.jar to the CLASSPATH environment variable, which lets you
+rem point CLASSPATH at user modules and our scripts won't hide them
+rem from Java. User modules can be completely disabled using the -u
+rem option or selectively using the checkYoixModule() function that
+rem has been added to the Yoix SecurityManager.
+rem
+

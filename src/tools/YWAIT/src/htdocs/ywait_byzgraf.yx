@@ -1,0 +1,2843 @@
+//
+// Functions for generating business graphics images. For usage information
+// see the Byzgraf page at the Yoix website: http://www.yoix.org
+// You can also try an example under the default YWAIT "Examples" menubar
+// entry under the "Miscellaneous" choice.
+//
+
+final int BYZGRAF_LINEPLOT  = 0x01;
+final int BYZGRAF_HISTOGRAM = 0x02;
+final int BYZGRAF_STATPLOT  = 0x04;
+
+final int BYZGRAF_BARLIKE = BYZGRAF_HISTOGRAM|BYZGRAF_STATPLOT;
+
+final double BYZPCNTFILL = 0.98;
+
+final double BYZMAJORTICK = 72/8;
+final double BYZMINORTICK = 72/16;
+final double BYZLEGENDGAP = 3;
+final double BYZLEGENDGRAY = 0.7;
+final double BYZGRIDGRAY = 0.9;
+final double BYZLEG = 2.5;
+final double BYZSQRT2 = sqrt(2);
+
+final double BYZPADDING = 72/4;
+
+final String BYZFORMAT = "%g";
+final double BYZSPACER = 72/16;
+
+
+final Dimension BYZPLOTSIZE = {
+    double width = 6 * 72;
+    double height = 3 * 72;
+};
+
+final double BYZDASH = 5;
+final double BYZDOT  = 2;
+final double BYZGAP  = 2;
+final Array  BYZLINESTYLES = {
+    NULL,
+    new Array { BYZDASH, BYZGAP },
+    new Array { BYZDOT, BYZGAP },
+    new Array { BYZDASH, BYZGAP, BYZDOT, BYZGAP },
+    new Array { BYZDASH, BYZGAP, BYZDASH, BYZGAP, BYZDOT, BYZGAP },
+    new Array { BYZDASH+BYZDASH, BYZGAP },
+    new Array { BYZDASH+BYZDASH, BYZGAP, BYZDOT, BYZGAP },
+    new Array { BYZDASH+BYZDASH, BYZGAP, BYZDASH, BYZGAP },
+    new Array { BYZDASH+BYZDASH, BYZGAP, BYZDOT, BYZGAP, BYZDOT, BYZGAP, BYZDOT, BYZGAP },
+    new Array { BYZDASH+BYZDASH, BYZGAP, BYZDOT, BYZGAP, BYZDASH, BYZGAP, BYZDOT, BYZGAP },
+    new Array { BYZDASH+BYZDASH, BYZGAP, BYZDASH, BYZGAP, BYZDOT, BYZGAP },
+    new Array { BYZDASH+BYZDASH, BYZGAP+BYZGAP+BYZGAP+BYZGAP },
+    new Array { BYZDASH, BYZGAP, BYZDOT, BYZGAP, BYZDOT, BYZGAP },
+    new Array { BYZDASH, BYZGAP+BYZGAP+BYZGAP+BYZGAP },
+    new Array { BYZDOT, BYZGAP, BYZDOT, BYZGAP+BYZGAP+BYZGAP+BYZGAP },
+    new Array { BYZDOT, BYZGAP, BYZDOT, BYZGAP, BYZDOT, BYZGAP+BYZGAP+BYZGAP+BYZGAP },
+};
+
+ByzLineSampleSize() {
+    double sz = 0;
+    double ln;
+
+    for (ptr in BYZLINESTYLES) {
+	ln = 0;
+	for (ptr2 in *ptr) {
+	    ln += *ptr2;
+	}
+	if (sz < ln)
+	    sz = ln;
+    }
+
+    return(sz);
+}
+
+final int BYZLINESAMPLESIZE = ByzLineSampleSize() + 2 * BYZLEG;
+
+
+///////
+
+
+ByzDrawAxis(Graphics graphics, Dictionary plotargs, int xaxis, int leftbot) {
+
+    Rectangle strbounds;
+    String    text;
+    String    subtext;
+    String    tmptext;
+    String    label;
+    String    sublabel;
+    Font      f1 = NULL;
+    Font      f2 = NULL;
+    Array     range;
+    Array     ticklabels;
+    int       mjr;
+    int       mnr;
+    int       nbr;
+    double    axislength;
+    double    delta;
+    double    subdelta;
+    double    rounding;
+    double    v0, vdelta;
+    double    limit;
+    double    width, height;
+    double    maxwidth = 0, maxheight = 0;
+    double    spacing;
+    double    vl;
+    int       xbarticks = FALSE;
+    int       ticktext;
+    int       vertext;
+    int       nj, nn, nl, ni;
+
+    maxheight = plotargs.tickfont.height;
+    if (xaxis) {
+	axislength = plotargs.plotsize.width;
+	if (plotargs.type & BYZGRAF_BARLIKE)
+	    xbarticks = TRUE;
+	if (leftbot) {
+	    mjr = plotargs.xmajorticks;
+	    mnr = plotargs.xminorticks;
+	    range = plotargs.xrange;
+	    label = plotargs.xlabel;
+	    sublabel = plotargs.xsublabel;
+	    ticktext = plotargs.xticklabels@sizeof && plotargs.xticktext;
+	    ticklabels = plotargs.xticklabels;
+	    vertext = plotargs.xvertext;
+	    maxwidth = plotargs.xtickspacer;
+	} else {
+	    mjr = plotargs.xmajorticks2;
+	    mnr = plotargs.xminorticks2;
+	    range = plotargs.xrange2;
+	    label = plotargs.xlabel2;
+	    sublabel = plotargs.xsublabel2;
+	    ticktext = plotargs.xticklabels2@sizeof && plotargs.xticktext2;
+	    ticklabels = plotargs.xticklabels2;
+	    vertext = plotargs.xvertext2;
+	    maxwidth = plotargs.xtickspacer2;
+	    if ((plotargs.type & BYZGRAF_BARLIKE) && mjr <= 0 && ticktext && ticklabels@sizeof > 0)
+		mjr = plotargs.bargroups;
+	}
+    } else {
+	axislength = plotargs.plotsize.height;
+	if (leftbot) {
+	    mjr = plotargs.ymajorticks;
+	    mnr = plotargs.yminorticks;
+	    range = plotargs.yrange;
+	    label = plotargs.ylabel;
+	    sublabel = plotargs.ysublabel;
+	    ticktext = plotargs.yticklabels@sizeof && plotargs.yticktext;
+	    ticklabels = plotargs.yticklabels;
+	    vertext = plotargs.yvertext;
+	    maxwidth = plotargs.ytickspacer;
+	} else {
+	    mjr = plotargs.ymajorticks2;
+	    mnr = plotargs.yminorticks2;
+	    range = plotargs.yrange2;
+	    label = plotargs.ylabel2;
+	    sublabel = plotargs.ysublabel2;
+	    ticktext = plotargs.yticklabels2@sizeof && plotargs.yticktext2;
+	    ticklabels = plotargs.yticklabels2;
+	    vertext = plotargs.yvertext2;
+	    maxwidth = plotargs.ytickspacer2;
+	}
+    }
+
+    delta    = mjr > 0 ? axislength/mjr : axislength/10;
+    subdelta = mnr > 0 ? delta/(mnr+1) : delta/4; 
+
+    if (mjr <= 0)
+	range = NULL;
+
+    if (range != NULL) {
+	v0 = range[0];
+	vdelta = (range[1] - range[0]) / mjr;
+    }
+
+    graphics {               // "named block"
+        gsave();
+	if (!leftbot) {
+	    if (xaxis)
+		translate(0, -plotargs.plotsize.height);
+	    else translate(plotargs.plotsize.width, 0);
+	}
+        moveto(0, 0);
+	limit = 0;
+	if (!xaxis) {
+	    if (leftbot) {
+		rotate(90);
+		scale(-1, 1);
+	    } else {
+		rotate(-90);
+	    }
+	} else if (!leftbot) {
+	    scale(1, -1);
+	}
+	gsave();
+        moveto(0, 0);
+        lineto(axislength, 0);
+	if (mjr > 0) {
+	    moveto(0, 0);
+	    for (nj = 0; nj <= mjr; nj++) {
+		rlineto(0, plotargs.majorticklength);
+		v0 += vdelta;
+		if (mnr > 0 && nj < mjr) {
+		    rounding = subdelta;
+		    rmoveto(subdelta, -plotargs.majorticklength);
+		    for (nn = 0; nn < mnr; nn++) {
+			rounding += subdelta;
+			rlineto(0, plotargs.minorticklength);
+			rmoveto(subdelta, -plotargs.minorticklength);
+		    }
+		    rmoveto(delta - rounding, 0);
+		} else rmoveto(delta, -plotargs.majorticklength);
+	    }
+	}
+	stroke();
+        grestore();
+
+	if (ticktext && axislength > 0) {
+	    if (!xbarticks) {
+		for (ptr in ticklabels) {
+		    if (ptr@offset == 0)
+			v0 = 0;
+		    else if (ptr@offset == (ticklabels@sizeof - 1))
+			v0 = axislength;
+		    else v0 = (ptr@offset * axislength) / (ticklabels@sizeof - 1);
+		    f1 = plotargs.tickfont;
+		    gsave();
+		    setfont(f1);
+		    moveto(v0, plotargs.majorticklength);
+		    strbounds = stringbounds(*ptr);
+		    if (xaxis) {
+			if (vertext) {
+			    if (leftbot) {
+				rotate(-90);
+				rmoveto(-strbounds.width-plotargs.spacer, -strbounds.y/2.0);
+			    } else {
+				rotate(90);
+				scale(1, -1);
+				rmoveto(plotargs.spacer, -strbounds.y/2.0);
+			    }
+			} else {
+			    if (leftbot) {
+				rmoveto(-strbounds.width/2, f1.ascent+plotargs.spacer);
+			    } else {
+				scale(1, -1);
+				rmoveto(-strbounds.width/2, -f1.descent-plotargs.spacer);
+			    }
+			}
+			show(*ptr);
+		    } else {
+			rotate(90);
+			if (leftbot) {
+			    scale(-1, 1);
+			    rmoveto(-strbounds.width - plotargs.spacer, f1.descent);
+			} else {
+			    rmoveto(plotargs.spacer, f1.descent);
+			}
+			show(*ptr);
+		    }
+		    grestore();
+		}
+	    } else if (xaxis) {
+		if (leftbot) {
+		    // bar labels
+		    if (plotargs.groupsize == 1)
+			nbr = plotargs.bargroups;
+		    else nbr = plotargs.groupsize;
+		    if (plotargs.bargroups > 0 && plotargs.groupsize > 0 && ticktext && ticklabels@sizeof > 0) {
+			delta = axislength / plotargs.bargroups;
+			vl = 0;
+			nl = 0;
+			f1 = plotargs.tickfont;
+			gsave();
+			setfont(f1);
+			for (nj = 0; nj < plotargs.bargroups; nj++) {
+			    moveto(vl+(plotargs.barspacer+plotargs.barwidth)/2, f1.ascent);
+			    for (nn = 0; nn < plotargs.groupsize; nn++, nl++) {
+				if ((ni = nl%nbr) >= ticklabels@sizeof)
+				    break;
+				text = ticklabels[ni];
+				strbounds = stringbounds(text);
+				gsave();
+				if (vertext) {
+				    rotate(-90);
+				    rmoveto(-(strbounds.width-strbounds.x), f1.descent);
+				} else rmoveto(-(strbounds.width-strbounds.x)/2, 0);
+				show(text);
+				grestore();
+				rmoveto(plotargs.barwidth+plotargs.subbarspacer, 0);
+			    }
+			    vl += delta;
+			}
+			grestore();
+			ticktext = vertext; // for labels
+		    }
+		} else {
+		    // group labels
+		    //mjr = plotargs.bargroups;
+		    if (plotargs.bargroups > 0 && ticktext && ticklabels@sizeof > 0) {
+			delta = axislength / plotargs.bargroups;
+			vl = 0;
+			f1 = plotargs.tickfont;
+			for (nj = 0; nj < plotargs.bargroups; nj++) {
+			    if (nj >= ticklabels@sizeof)
+				break;
+			    gsave();
+			    scale(1, -1);
+			    setfont(f1);
+			    moveto(vl, -f1.descent);
+			    tmptext = text = ticklabels[nj];
+			    strbounds = stringbounds(text);
+			    width = (strbounds.width - strbounds.x);
+			    nn = tmptext@sizeof - 1;
+			    while ((BYZPCNTFILL * delta) < width && nn > 0) {
+				text = substring(tmptext, 0, nn--) + "...";
+				strbounds = stringbounds(text);
+				width = (strbounds.width - strbounds.x);
+			    }
+			    rmoveto((delta - width)/2, 0);
+			    show(text);
+			    grestore();
+			    vl += delta;
+			}
+		    }
+		}
+	    }
+	}
+	grestore();
+
+	gsave();
+	moveto(0,0);
+	if (label != NULL) {
+	    if (leftbot || !xaxis) {
+		text = trim(label);
+		if (sublabel != NULL)
+		    subtext = trim(sublabel);
+		else subtext = NULL;
+		f1 = plotargs.labelfont;
+		f2 = plotargs.sublabelfont;
+	    } else {
+		if (sublabel != NULL)
+		    text = trim(sublabel);
+		else text = NULL;
+		subtext = trim(label);
+		f1 = plotargs.sublabelfont;
+		f2 = plotargs.labelfont;
+	    }
+
+	    if (xaxis) {
+		spacing = (mjr > 0 ? plotargs.majorticklength : 0) + (ticktext ? ((!xaxis || vertext) ? maxwidth : maxheight) : 0 );
+		if (spacing > 0)
+		    spacing += plotargs.spacer;
+		if (text@length > 0) {
+		    setfont(f1);
+		    strbounds = stringbounds(text);
+		    if (leftbot)
+			spacing += f1.height;
+		    moveto((axislength - strbounds.width)/2, leftbot ? spacing : -spacing-plotargs.plotsize.height-f1.descent);
+		    show(text);
+		}
+		if (subtext@length > 0) {
+		    setfont(f2);
+		    strbounds = stringbounds(subtext);
+		    if (leftbot)
+			spacing += f2.height;
+		    else spacing += f1.height;
+		    moveto((axislength - strbounds.width)/2, leftbot ? spacing : -spacing-plotargs.plotsize.height-f2.descent);
+		    show(subtext);
+		}
+	    } else if (leftbot) {
+		rotate(-90);
+		if (text@length > 0) {
+		    setfont(f1);
+		    strbounds = stringbounds(text);
+		    moveto((axislength - strbounds.width)/2, plotargs.padding - plotargs.offset.x + f1.ascent);
+		    show(text);
+		}
+		if (subtext@length > 0) {
+		    setfont(f2);
+		    strbounds = stringbounds(subtext);
+		    moveto((axislength - strbounds.width)/2, plotargs.padding - plotargs.offset.x + f1.height + f2.ascent);
+		    show(subtext);
+		}
+	    } else {
+		rotate(-90);
+		if (text@length > 0) {
+		    setfont(f1);
+		    strbounds = stringbounds(text);
+		    moveto((axislength - strbounds.width)/2, plotargs.fullsize.width - plotargs.offset.x - plotargs.padding - f2.height - f1.descent - f1.leading + plotargs.spacer);
+		    show(text);
+		}
+		if (subtext@length > 0) {
+		    setfont(f2);
+		    strbounds = stringbounds(subtext);
+		    moveto((axislength - strbounds.width)/2, plotargs.fullsize.width - plotargs.offset.x - plotargs.padding - f2.descent + plotargs.spacer);
+		    show(subtext);
+		}
+	    }
+	}
+        grestore();
+    }
+}
+
+ByzDrawGrid(Graphics graphics, Dictionary plotargs) {
+    double gridspace;
+    int    n;
+
+    if (plotargs.background != NULL) {
+	graphics {
+	    gsave();
+	    setrgbcolor(plotargs.background);
+	    moveto(0, 0);
+	    rlineto(0, -plotargs.plotsize.height);
+	    rlineto(plotargs.plotsize.width, 0);
+	    rlineto(0, plotargs.plotsize.height);
+	    rlineto(-plotargs.plotsize.width, 0);
+	    fill(); // don't bother with alpha for this background... want it solid
+	    grestore();
+	}
+    }
+
+    if ((plotargs.grid_vertical || plotargs.grid_horizontal) && (plotargs.xmajorticks > 0 || plotargs.ymajorticks > 0)) {
+	graphics {
+	    if (plotargs.grid_vertical && plotargs.xmajorticks > 0) {
+		gsave();
+		gridspace = plotargs.plotsize.width / plotargs.xmajorticks;
+		setgray(plotargs.gridgray);
+		moveto(0, -plotargs.plotsize.height);
+		for (n = 1; n < plotargs.xmajorticks; n++) {
+		    rmoveto(gridspace, plotargs.plotsize.height);
+		    rlineto(0, -plotargs.plotsize.height);
+		}
+		stroke();
+		grestore();
+	    }
+	    if (plotargs.grid_horizontal && plotargs.ymajorticks > 0) {
+		gsave();
+		gridspace = plotargs.plotsize.height / plotargs.ymajorticks;
+		setgray(plotargs.gridgray);
+		moveto(plotargs.plotsize.width, 0);
+		for (n = 1; n < plotargs.ymajorticks; n++) {
+		    rmoveto(-plotargs.plotsize.width, -gridspace);
+		    rlineto(plotargs.plotsize.width, 0);
+		}
+		stroke();
+		grestore();
+	    }
+	}
+    }
+}
+
+ByzDrawMark(Dictionary dict, Graphics graphics, int nbr) {
+
+    final int MARKCNT = 16;
+
+    Array  save_da;
+    Point  pt;
+    double sleg = BYZSQRT2 * BYZLEG;
+
+    graphics {
+	save_da = dasharray;
+	pt = currentpoint();
+	if (dict != NULL)
+	    dict.strokepaths[dict.strokepaths@sizeof] = currentpath();
+	stroke();
+	moveto(pt.x, pt.y);
+	dasharray = NULL;
+	switch(nbr%MARKCNT) {
+	case 0: // box
+	    rmoveto(0, BYZLEG);
+	    rlineto(BYZLEG, 0);
+	    rlineto(0, -BYZLEG-BYZLEG);
+	    rlineto(-BYZLEG-BYZLEG, 0);
+	    rlineto(0, BYZLEG+BYZLEG);
+	    rlineto(BYZLEG, 0);
+	    rmoveto(0, -BYZLEG);
+	    gsave();
+	    if (dict != NULL)
+		dict.fillpaths[dict.fillpaths@sizeof] = currentpath();
+	    fill();
+	    grestore();
+	    break;
+	case 1: // circle
+	    arc(pt.x, pt.y, BYZLEG, 0, 360);
+	    gsave();
+	    if (dict != NULL)
+		dict.fillpaths[dict.fillpaths@sizeof] = currentpath();
+	    fill();
+	    grestore();
+	    break;
+	case 2: // diamond
+	    rotate(45);
+	    rmoveto(0, BYZLEG);
+	    rlineto(BYZLEG, 0);
+	    rlineto(0, -BYZLEG-BYZLEG);
+	    rlineto(-BYZLEG-BYZLEG, 0);
+	    rlineto(0, BYZLEG+BYZLEG);
+	    rlineto(BYZLEG, 0);
+	    rmoveto(0, -BYZLEG);
+	    rotate(-45);
+	    gsave();
+	    if (dict != NULL)
+		dict.fillpaths[dict.fillpaths@sizeof] = currentpath();
+	    fill();
+	    grestore();
+	    break;
+	case 3: // triangle
+	    rmoveto(0, -4 *BYZLEG/3);
+	    rlineto(BYZLEG, BYZLEG+BYZLEG);
+	    rlineto(-BYZLEG-BYZLEG, 0);
+	    rlineto(BYZLEG, -BYZLEG-BYZLEG);
+	    rmoveto(0, 4 * BYZLEG/3);
+	    gsave();
+	    if (dict != NULL)
+		dict.fillpaths[dict.fillpaths@sizeof] = currentpath();
+	    fill();
+	    grestore();
+	    break;
+	case 4: // inverted-triangle
+	    rmoveto(0, 4 * BYZLEG/3);
+	    rlineto(BYZLEG, -BYZLEG-BYZLEG);
+	    rlineto(-BYZLEG-BYZLEG, 0);
+	    rlineto(BYZLEG, BYZLEG+BYZLEG);
+	    rmoveto(0, -4 *BYZLEG/3);
+	    gsave();
+	    if (dict != NULL)
+		dict.fillpaths[dict.fillpaths@sizeof] = currentpath();
+	    fill();
+	    grestore();
+	    break;
+	case 5: // X
+	    rlineto(BYZLEG, BYZLEG);
+	    rmoveto(-BYZLEG, -BYZLEG);
+	    rlineto(BYZLEG, -BYZLEG);
+	    rmoveto(-BYZLEG, BYZLEG);
+	    rlineto(-BYZLEG, -BYZLEG);
+	    rmoveto(BYZLEG, BYZLEG);
+	    rlineto(-BYZLEG, BYZLEG);
+	    rmoveto(BYZLEG, -BYZLEG);
+	    break;
+	case 6: // *
+	    rlineto(BYZLEG, BYZLEG);
+	    rmoveto(-BYZLEG, -BYZLEG);
+	    rlineto(BYZLEG, -BYZLEG);
+	    rmoveto(-BYZLEG, BYZLEG);
+	    rlineto(-BYZLEG, -BYZLEG);
+	    rmoveto(BYZLEG, BYZLEG);
+	    rlineto(-BYZLEG, BYZLEG);
+	    rmoveto(BYZLEG, -BYZLEG);
+	    rlineto(0, sleg);
+	    rmoveto(0, -sleg);
+	    rlineto(sleg, 0);
+	    rmoveto(-sleg, 0);
+	    rlineto(0, -sleg);
+	    rmoveto(0, sleg);
+	    rlineto(-sleg, 0);
+	    rmoveto(sleg, 0);
+	    break;
+	case 7: // +
+	    rlineto(0, sleg);
+	    rmoveto(0, -sleg);
+	    rlineto(sleg, 0);
+	    rmoveto(-sleg, 0);
+	    rlineto(0, -sleg);
+	    rmoveto(0, sleg);
+	    rlineto(-sleg, 0);
+	    rmoveto(sleg, 0);
+	    break;
+	case 8: // hour-glass
+	    rmoveto(0, BYZLEG);
+	    rlineto(BYZLEG, 0);
+	    rlineto(-BYZLEG-BYZLEG, -BYZLEG-BYZLEG);
+	    rlineto(BYZLEG+BYZLEG, 0);
+	    rlineto(-BYZLEG-BYZLEG, BYZLEG+BYZLEG);
+	    rlineto(BYZLEG, 0);
+	    rmoveto(0, -BYZLEG);
+	    gsave();
+	    if (dict != NULL)
+		dict.fillpaths[dict.fillpaths@sizeof] = currentpath();
+	    fill();
+	    grestore();
+	    break;
+	case 9: // tipped hour-glass
+	    rmoveto(BYZLEG, 0);
+	    rlineto(0, BYZLEG);
+	    rlineto(-BYZLEG-BYZLEG, -BYZLEG-BYZLEG);
+	    rlineto(0, BYZLEG+BYZLEG);
+	    rlineto(BYZLEG+BYZLEG, -BYZLEG-BYZLEG);
+	    rlineto(0, BYZLEG);
+	    rmoveto(-BYZLEG, 0);
+	    gsave();
+	    if (dict != NULL)
+		dict.fillpaths[dict.fillpaths@sizeof] = currentpath();
+	    fill();
+	    grestore();
+	    break;
+	case 10: // open box
+	    rmoveto(0, BYZLEG);
+	    rlineto(BYZLEG, 0);
+	    rlineto(0, -BYZLEG-BYZLEG);
+	    rlineto(-BYZLEG-BYZLEG, 0);
+	    rlineto(0, BYZLEG+BYZLEG);
+	    rlineto(BYZLEG, 0);
+	    rmoveto(0, -BYZLEG);
+	    break;
+	case 11: // open circle
+	    arc(pt.x, pt.y, BYZLEG, 0, 360);
+	    break;
+	case 12: // open diamond
+	    rotate(45);
+	    rmoveto(0, BYZLEG);
+	    rlineto(BYZLEG, 0);
+	    rlineto(0, -BYZLEG-BYZLEG);
+	    rlineto(-BYZLEG-BYZLEG, 0);
+	    rlineto(0, BYZLEG+BYZLEG);
+	    rlineto(BYZLEG, 0);
+	    rmoveto(0, -BYZLEG);
+	    rotate(-45);
+	    break;
+	case 13: // open box with X
+	    rmoveto(0, BYZLEG);
+	    rlineto(BYZLEG, 0);
+	    rlineto(0, -BYZLEG-BYZLEG);
+	    rlineto(-BYZLEG-BYZLEG, 0);
+	    rlineto(0, BYZLEG+BYZLEG);
+	    rlineto(BYZLEG, 0);
+	    rmoveto(0, -BYZLEG);
+	    rlineto(BYZLEG, BYZLEG);
+	    rmoveto(-BYZLEG, -BYZLEG);
+	    rlineto(BYZLEG, -BYZLEG);
+	    rmoveto(-BYZLEG, BYZLEG);
+	    rlineto(-BYZLEG, -BYZLEG);
+	    rmoveto(BYZLEG, BYZLEG);
+	    rlineto(-BYZLEG, BYZLEG);
+	    rmoveto(BYZLEG, -BYZLEG);
+	    break;
+	case 14: // open circle with X
+	    arc(pt.x, pt.y, BYZLEG, 0, 360);
+	    rlineto(BYZLEG, BYZLEG);
+	    rmoveto(-BYZLEG, -BYZLEG);
+	    rlineto(BYZLEG, -BYZLEG);
+	    rmoveto(-BYZLEG, BYZLEG);
+	    rlineto(-BYZLEG, -BYZLEG);
+	    rmoveto(BYZLEG, BYZLEG);
+	    rlineto(-BYZLEG, BYZLEG);
+	    rmoveto(BYZLEG, -BYZLEG);
+	    break;
+	case 15: // open diamond with X
+	    rotate(45);
+	    rmoveto(0, BYZLEG);
+	    rlineto(BYZLEG, 0);
+	    rlineto(0, -BYZLEG-BYZLEG);
+	    rlineto(-BYZLEG-BYZLEG, 0);
+	    rlineto(0, BYZLEG+BYZLEG);
+	    rlineto(BYZLEG, 0);
+	    rmoveto(0, -BYZLEG);
+	    rlineto(BYZLEG, BYZLEG);
+	    rmoveto(-BYZLEG, -BYZLEG);
+	    rlineto(BYZLEG, -BYZLEG);
+	    rmoveto(-BYZLEG, BYZLEG);
+	    rlineto(-BYZLEG, -BYZLEG);
+	    rmoveto(BYZLEG, BYZLEG);
+	    rlineto(-BYZLEG, BYZLEG);
+	    rmoveto(BYZLEG, -BYZLEG);
+	    rotate(-45);
+	    break;
+	}
+	if (dict != NULL)
+	    dict.strokepaths[dict.strokepaths@sizeof] = currentpath();
+	stroke();
+	moveto(pt.x, pt.y);
+	dasharray = save_da;
+    }
+}
+
+ByzLineStyle(int nbr) = BYZLINESTYLES[(nbr%BYZLINESTYLES@sizeof)];
+
+ByzLinePlot(Graphics graphics, Dictionary plotargs) {
+
+    Dictionary  dict;
+    int         loop;
+    int         drawline;
+
+    if (plotargs.xrange@sizeof > 1 && plotargs.yrange@sizeof > 1) {
+
+	plotargs {
+	    Array xd;
+	    Array yd;
+	    Array xr;
+	    Array yr;
+	    Object cl;
+	    Object mk;
+	    Object ls;
+	    Object dl;
+
+	    Color  clr;
+
+	    Array __mark = NULL;
+	    Array __style = NULL;
+	    Array __line = NULL;
+	    Array __color = NULL;
+	    Array _mark = NULL;
+	    Array _style = NULL;
+	    Array _line = NULL;
+	    Array _color = NULL;
+	    Array _mark2 = NULL;
+	    Array _style2 = NULL;
+	    Array _line2 = NULL;
+	    Array _color2 = NULL;
+
+	    Array      ypts;
+	    Pointer    dptr;
+	    double     x, y;
+	    int        idx;
+	    int        n;
+	    int        markit;
+	    int        automark;
+	    int        styleit;
+	    int        autostyle;
+
+	    PlotX(double xpt) = (((xpt - xr[0])/(xr[1] - xr[0])) * plotsize.width);
+
+	    PlotY(double ypt) = (-(((ypt - yr[0])/(yr[1] - yr[0])) * plotsize.height));
+
+	    graphics {
+		gsave();
+		moveto(0,0);
+		for (loop = 0; loop < 2; loop++) {
+		    if (loop == 0) {
+			xd = xdata;
+			yd = ydata;
+			xr = xrange;
+			yr = yrange;
+			cl = colors;
+			mk = markers;
+			ls = linestyles;
+			dl = drawlines;
+
+			__mark = _mark = new Array[0,...];
+			__style = _style = new Array[0,...];
+			__line = _line = new Array[0,...];
+			__color = _color = new Array[0,...];
+		    } else {
+			xd = xdata2;
+			yd = ydata2;
+			xr = xrange2;
+			yr = yrange2;
+			cl = colors2;
+			mk = markers2;
+			ls = linestyles2;
+			dl = drawlines2;
+
+			__mark = _mark2 = new Array[0,...];
+			__style = _style2 = new Array[0,...];
+			__line = _line2 = new Array[0,...];
+			__color = _color2 = new Array[0,...];
+		    }
+
+		    if (mk instanceof int)
+			automark = markit = mk;
+		    else if (mk@sizeof > 0 && mk instanceof Array) {
+			markit = TRUE;
+			automark = FALSE;
+		    } else {
+			markit = FALSE;
+			automark = FALSE;
+		    }
+
+		    if (ls instanceof int)
+			autostyle = styleit = ls;
+		    else if (ls@sizeof > 0 && ls instanceof Array) {
+			styleit = TRUE;
+			autostyle = FALSE;
+		    } else {
+			styleit = FALSE;
+			autostyle = FALSE;
+		    }
+
+		    if (yd@sizeof > 0 && yd[0] instanceof int)
+			yd = new Array [] { yd };
+
+		    if (cl instanceof Color)
+			setrgbcolor(cl);
+
+		    for (dptr in yd) {
+			ypts = *dptr;
+			idx = dptr@offset - yd@offset;
+			__mark[idx] = -1;
+			__style[idx] = NULL;
+			__line[idx] = FALSE;
+			__color[idx] = Color.black;
+
+			dict = new Dictionary {
+			    String descA = plotargs.legend@sizeof > idx ? plotargs.legend[idx] : NULL;
+			    Array fillpaths[0, ...];
+			    Array strokepaths[0, ...];
+			};
+			paths[paths@sizeof] = dict;
+			
+
+			if (cl instanceof Array) {
+			    if (cl@sizeof > idx && (clr = cl[idx]) instanceof Color) {
+				setrgbcolor(clr);
+				__color[idx] = clr;
+			    } else __color[idx] = NULL;
+			} else __color[idx] = cl;
+
+			if (dl@sizeof > idx && dl[idx] instanceof int)
+			    drawline = dl[idx];
+			else if (dl instanceof int)
+			    drawline = dl;
+			else drawline = TRUE;
+			__line[idx] = drawline;
+
+			x = PlotX(xd[0]);
+			y = PlotY(ypts[0]);
+			moveto(x, y);
+			if (drawline && styleit) {
+			    if (autostyle)
+				dasharray = ByzLineStyle(idx);
+			    else {
+				n = ls[idx % ls@sizeof];
+				if (n >= 0)
+				    dasharray = ByzLineStyle(n);
+				else dasharray = NULL;
+			    }
+			} else dasharray = NULL;
+			__style[idx] = new Array[] dasharray;
+			if (markit) {
+			    if (automark)
+				n = idx;
+			    else n = mk[idx % mk@sizeof];
+			    if (n >= 0)
+				ByzDrawMark(dict, graphics, n);
+			    __mark[idx] = n;
+			} else __mark[idx] = -1;
+			for (ptr in &xd[1]) {
+			    x = PlotX(*ptr);
+			    y = PlotY(ypts[ptr@offset - xd@offset]);
+			    if (drawline)
+				lineto(x, y);
+			    else moveto(x, y);
+			    if (markit && n >= 0)
+				ByzDrawMark(dict, graphics, n);
+			}
+			if (currentpoint() != NULL)
+			    dict.strokepaths[dict.strokepaths@sizeof] = currentpath();
+			stroke();
+		    }
+		}
+		grestore();
+	    }
+	}
+    }
+}
+
+ByzGetHistoColor(Object colors, ...) {
+
+    Color color = NULL;
+    int   idx = (argc > 2 && argv[2] instanceof int) ? argv[2] : 0; 
+    int   jdx = (argc > 3 && argv[3] instanceof int) ? argv[3] : 0; 
+    int   kdx = (argc > 4 && argv[4] instanceof int) ? argv[4] : 0; 
+    int   ldx = (argc > 5 && argv[5] instanceof int) ? argv[5] : 0; 
+
+    if (colors == NULL)
+	color = NULL;
+    else if (colors instanceof Color)
+	color = colors;
+    else if (colors instanceof Array && (colors@sizeof > idx || colors@sizeof > (idx = 0))) {
+	if (colors[0] instanceof Color) {
+	    if (argc > 5 && colors@sizeof > ldx)
+		idx = ldx;
+	    else if (argc > 4 && colors@sizeof > kdx)
+		idx = kdx;
+	    else if (argc > 3 && colors@sizeof > jdx)
+		idx = jdx;
+	}
+	if (colors[idx] instanceof Color)
+	    color = colors[idx];
+	else if (colors[idx] instanceof Array && (colors[idx]@sizeof > jdx || colors[idx]@sizeof > (jdx = 0))) {
+	    if (colors[idx][0] instanceof Color) {
+		if (argc > 5 && colors@sizeof > ldx)
+		    jdx = ldx;
+		else if (argc > 4 && colors@sizeof > kdx)
+		    jdx = kdx;
+	    }
+	    if (colors[idx][jdx] instanceof Color)
+		color = colors[idx][jdx];
+	    else if (colors[idx][jdx] instanceof Array && (colors[idx][jdx]@sizeof > kdx || colors[idx][jdx]@sizeof > (kdx = 0))) {
+		if (colors[idx][jdx][0] instanceof Color) {
+		    if (argc > 5 && colors@sizeof > ldx)
+			kdx = ldx;
+		}
+		if (colors[idx][jdx][kdx] instanceof Color)
+		    color = colors[idx][jdx][kdx];
+		else if (colors[idx][jdx][kdx] instanceof Array && (colors[idx][jdx][kdx]@sizeof > ldx || colors[idx][jdx][kdx]@sizeof > (ldx = 0))) {
+		    if (colors[idx][jdx][kdx][ldx] instanceof Color)
+			color = colors[idx][jdx][kdx][ldx];
+		} else abort(strfmt("bad color specification colors[%d][%d][%d][%d]", idx, jdx, kdx, ldx));
+	    } else abort(strfmt("bad color specification colors[%d][%d][%d]", idx, jdx, kdx));
+	} else abort(strfmt("bad color specification colors[%d][%d]", idx, jdx));
+    } else abort(strfmt("bad color specification colors[%d]", idx));
+
+    return(color);
+}
+
+ByzHistogram(Graphics graphics, Dictionary plotargs) {
+
+    Path   p;
+    Point  pt;
+    double x;
+    double y;
+    double ytot;
+    double gwd;
+    double wd;
+    double sp;
+    int    idx, jdx, kdx, ldx;
+
+    if (plotargs.xrange@sizeof > 1 && plotargs.yrange@sizeof > 1) {
+
+	plotargs {
+	    Array _color = new Array[0,...];
+
+	    PlotX(double xpt) = (((xpt - xrange[0])/(xrange[1] - xrange[0])) * plotsize.width);
+
+	    PlotY(double ypt) = (-(((ypt - yrange[0])/(yrange[1] - yrange[0])) * plotsize.height));
+
+	    graphics {
+		gsave();
+		setrgbcolor(ByzGetHistoColor(colors));
+		gwd = bargroupwidth/2;
+		wd = barwidth/2;
+		sp = barspacer/2;
+		for (ptr in ydata) {
+		    idx = ptr@offset - ydata@offset;
+		    x = PlotX(1+idx);
+		    moveto(x - bargroupwidth - sp + barwidth, 0);
+		    if (*ptr instanceof Number) {
+			// single solid bars
+			setrgbcolor(plotargs._color[idx] = ByzGetHistoColor(colors, idx));
+			y = PlotY(*ptr);
+			rlineto(0, y);
+			rlineto(-barwidth, 0);
+			rlineto(0, -y);
+			closepath();
+			paths[paths@sizeof] = new Dictionary {
+			    String descA = xticklabels@sizeof > idx ?
+				xticklabels[idx] : legend@sizeof > idx ?
+				legend[idx] : NULL;
+			    Array fillpaths = { currentpath() };
+			};
+			fill();
+		    } else { // Array
+			for (ptr2 in *ptr) {
+			    jdx = ptr2@offset - (*ptr)@offset;
+			    if (*ptr2 instanceof Number) {
+				// single stacked bars
+				setrgbcolor(plotargs._color[jdx] = ByzGetHistoColor(colors, idx, jdx));
+				y = PlotY(*ptr2);
+				gsave();
+				rlineto(0, y);
+				rlineto(-barwidth, 0);
+				rlineto(0, -y);
+				closepath();
+				paths[paths@sizeof] = new Dictionary {
+				    String descA = legend@sizeof > jdx ?
+					legend[jdx] : NULL;
+				    String descB = xticklabels@sizeof > idx ?
+					xticklabels[idx] : NULL;
+				    Array fillpaths = { currentpath() };
+				};
+				fill();
+				grestore();
+				rmoveto(0, y);
+			    } else { // Array
+				for (ptr3 in *ptr2) {
+				    kdx = ptr3@offset - (*ptr2)@offset;
+				    if (*ptr3 instanceof Number) {
+					// grouped solid bars
+					setrgbcolor(_color[kdx] = ByzGetHistoColor(colors, idx, jdx, kdx));
+					y = PlotY(*ptr3);
+					gsave();
+					rlineto(0, y);
+					rlineto(-barwidth, 0);
+					rlineto(0, -y);
+					closepath();
+					paths[paths@sizeof] = new Dictionary {
+					    String descA = xticklabels@sizeof > kdx ?
+						xticklabels[kdx] : legend@sizeof > kdx ?
+						legend[kdx] : NULL;
+					    String descB = xticklabels2@sizeof > idx ?
+						xticklabels2[idx] : NULL;
+					    Array fillpaths = { currentpath() };
+					};
+					fill();
+					grestore();
+					rmoveto(subbarspacer+barwidth, 0);
+				    } else { // Array
+					ytot = 0;
+					for (ptr4 in *ptr3) {
+					    ldx = ptr4@offset - (*ptr3)@offset;
+					    if (*ptr4 instanceof Number) {
+						// grouped stacked bars
+						setrgbcolor(_color[ldx] = ByzGetHistoColor(colors, idx, jdx, kdx, ldx));
+						y = PlotY(*ptr4);
+						gsave();
+						rlineto(0, y);
+						rlineto(-barwidth, 0);
+						rlineto(0, -y);
+						closepath();
+						paths[paths@sizeof] = new Dictionary {
+						    String descA = legend@sizeof > ldx ?
+							legend[ldx] : NULL;
+						    String descB = xticklabels@sizeof > kdx ?
+							xticklabels[kdx] : NULL;
+						    String descC = xticklabels2@sizeof > idx ?
+							xticklabels2[idx] : NULL;
+						    Array fillpaths = { currentpath() };
+						};
+						fill();
+						grestore();
+						rmoveto(0, y);
+						ytot += y;
+					    } else {
+						// should never happen since we checked earlier
+						abort("bad data type at ydata[%d][%d][%d][%d]", idx, jdx, kdx, ldx);
+					    }
+					}
+					rmoveto(subbarspacer+barwidth, -ytot);
+				    }
+				}
+			    }
+			}
+		    }
+		}
+		grestore();
+	    }
+	}
+
+    }
+}
+
+ByzStatPlot(Graphics graphics, Dictionary plotargs) {
+
+    Dictionary dict;
+    Path       p;
+    Point      pt;
+    double     x;
+    double     y;
+    double     ytot;
+    double     gwd;
+    double     wd;
+    double     sp;
+    double     ymxo, ymxr, yavg, ymnr, ymno;
+    int        idx, jdx, kdx, ldx;
+
+    if (plotargs.xrange@sizeof > 1 && plotargs.yrange@sizeof > 1) {
+
+	plotargs {
+	    Array _color = new Array[0,...];
+
+	    PlotX(double xpt) = (((xpt - xrange[0])/(xrange[1] - xrange[0])) * plotsize.width);
+
+	    PlotY(double ypt) = (-(((ypt - yrange[0])/(yrange[1] - yrange[0])) * plotsize.height));
+	    graphics {
+		gsave();
+		setrgbcolor(ByzGetHistoColor(colors));
+		gwd = bargroupwidth/2;
+		wd = barwidth/2;
+		sp = barspacer/2;
+		for (ptr in ydata) {
+		    idx = ptr@offset - ydata@offset;
+		    x = PlotX(1+idx);
+		    moveto(x - bargroupwidth - sp + barwidth, 0);
+		    // we know it is an array (tested in ByzComputeSizing)
+		    for (ptr2 in *ptr) {
+			jdx = ptr2@offset - (*ptr)@offset;
+			if (*ptr2 instanceof Number) {
+			    // ungrouped statplot bars
+			    // we know these are 5 numbers (tested in ByzComputeSizing)
+			    ymno = PlotY(**ptr);
+			    ymnr = PlotY(*(*ptr+1));
+			    yavg = PlotY(*(*ptr+2));
+			    ymxr = PlotY(*(*ptr+3));
+			    ymxo = PlotY(*(*ptr+4));
+			    if ((_color[idx] = ByzGetHistoColor(colors, idx)) != NULL) {
+				gsave();
+				setrgbcolor(_color[idx]);
+				rmoveto(0, ymnr);
+				rlineto(0, ymxr - ymnr);
+				rlineto(-barwidth, 0);
+				rlineto(0, ymnr - ymxr);
+				closepath();
+				dict = new Dictionary {
+				    String descA = xticklabels@sizeof > idx ?
+					xticklabels[idx] : legend@sizeof > idx ?
+					legend[idx] : NULL;
+				    Array fillpaths = { currentpath() };
+				    Array strokepaths[1];
+				};
+				paths[paths@sizeof] = dict;
+				fill();
+				grestore();
+			    }
+			    gsave();
+			    setgray(0);
+			    rmoveto(0, ymno);
+			    rlineto(-barwidth, 0);
+			    rmoveto(barwidth/2, 0);
+			    rlineto(0, ymnr - ymno);
+			    rlineto(barwidth/2, 0);
+			    rlineto(0, ymxr - ymnr);
+			    rlineto(-barwidth, 0);
+			    rlineto(0, ymnr - ymxr);
+			    rlineto(barwidth/2, 0);
+			    rmoveto(barwidth/2, yavg - ymnr);
+			    rlineto(-barwidth, 0);
+			    rmoveto(barwidth/2, ymxr - yavg);
+			    rlineto(0, ymxo - ymxr);
+			    rmoveto(barwidth/2, 0);
+			    rlineto(-barwidth, 0);
+			    if (_color[idx] == NULL) {
+				paths[paths@sizeof] = new Dictionary {
+				    String descA = xticklabels@sizeof > idx ?
+					xticklabels[idx] : legend@sizeof > idx ?
+					legend[idx] : NULL;
+				    Array strokepaths = { currentpath() };
+				};
+			    } else dict.strokepaths[0] = currentpath();
+			    stroke();
+			    grestore();
+			    rmoveto(barspacer+barwidth, 0);
+			    break;
+			} else { // Array
+			    // grouped statplot bars
+			    // we know these are arrays of 5 numbers (tested in ByzComputeSizing)
+			    ymno = PlotY(**ptr2);
+			    ymnr = PlotY(*(*ptr2+1));
+			    yavg = PlotY(*(*ptr2+2));
+			    ymxr = PlotY(*(*ptr2+3));
+			    ymxo = PlotY(*(*ptr2+4));
+			    if ((_color[jdx] = ByzGetHistoColor(colors, idx, jdx)) != NULL) {
+				gsave();
+				setrgbcolor(_color[jdx]);
+				rmoveto(0, ymnr);
+				rlineto(0, ymxr - ymnr);
+				rlineto(-barwidth, 0);
+				rlineto(0, ymnr - ymxr);
+				closepath();
+				dict = new Dictionary {
+				    String descA = xticklabels@sizeof > jdx ?
+					xticklabels[jdx] : legend@sizeof > jdx ?
+					legend[jdx] : NULL;
+				    String descB = xticklabels2@sizeof > idx ?
+					xticklabels2[idx] : NULL;
+				    Array fillpaths = { currentpath() };
+				    Array strokepaths[1];
+				};
+				paths[paths@sizeof] = dict;
+				fill();
+				grestore();
+			    }
+			    gsave();
+			    setgray(0);
+			    rmoveto(0, ymno);
+			    rlineto(-barwidth, 0);
+			    rmoveto(barwidth/2, 0);
+			    rlineto(0, ymnr - ymno);
+			    rlineto(barwidth/2, 0);
+			    rlineto(0, ymxr - ymnr);
+			    rlineto(-barwidth, 0);
+			    rlineto(0, ymnr - ymxr);
+			    rlineto(barwidth/2, 0);
+			    rmoveto(barwidth/2, yavg - ymnr);
+			    rlineto(-barwidth, 0);
+			    rmoveto(barwidth/2, ymxr - yavg);
+			    rlineto(0, ymxo - ymxr);
+			    rmoveto(barwidth/2, 0);
+			    rlineto(-barwidth, 0);
+			    if (_color[jdx] == NULL) {
+				paths[paths@sizeof] = new Dictionary {
+				    String descA = xticklabels@sizeof > jdx ?
+					xticklabels[jdx] : legend@sizeof > jdx ?
+					legend[jdx] : NULL;
+				    String descB = xticklabels2@sizeof > idx ?
+					xticklabels2[idx] : NULL;
+				    Array strokepaths = { currentpath() };
+				};
+			    } else dict.strokepaths[0] = currentpath();
+			    stroke();
+			    grestore();
+			    rmoveto(subbarspacer+barwidth, 0);
+			}
+		    }
+		}
+		grestore();
+	    }
+	}
+
+    }
+}
+
+ByzComputeSizing(Dictionary plotargs) {
+    double     min_x = POSITIVE_INFINITY;
+    double     max_x = NEGATIVE_INFINITY;
+    double     min_y = POSITIVE_INFINITY;
+    double     max_y = NEGATIVE_INFINITY;
+    double     min_x2 = POSITIVE_INFINITY;
+    double     max_x2 = NEGATIVE_INFINITY;
+    double     min_y2 = POSITIVE_INFINITY;
+    double     max_y2 = NEGATIVE_INFINITY;
+
+    Array      txt;
+    Dimension  dm;
+    Object     previous;
+    double     wd;
+    double     wl;
+    double     val;
+    double     delta;
+    int        lc;
+    int        tc;
+
+    switch(plotargs.type) {
+    case BYZGRAF_LINEPLOT:
+	plotargs.linesamplesize = BYZLINESAMPLESIZE;
+	if (plotargs.title@sizeof > 0)
+	    plotargs.titleheight = max(plotargs.titleheight, plotargs.titlefont.height);
+	if (plotargs.subtitle@sizeof > 0)
+	    plotargs.subtitleheight = max(plotargs.subtitleheight, plotargs.subtitlefont.height);
+	if (plotargs.xlabel@sizeof > 0)
+	    plotargs.labelheight = max(plotargs.labelheight, plotargs.labelfont.height);
+	if (plotargs.xsublabel@sizeof > 0)
+	    plotargs.sublabelheight = max(plotargs.sublabelheight, plotargs.sublabelfont.height);
+	if (plotargs.ylabel@sizeof > 0)
+	    plotargs.labelwidth = max(plotargs.labelwidth, plotargs.labelfont.height);
+	if (plotargs.ysublabel@sizeof > 0)
+	    plotargs.sublabelwidth = max(plotargs.sublabelwidth, plotargs.sublabelfont.height);
+	if (plotargs.xlabel2@sizeof > 0)
+	    plotargs.label2height = max(plotargs.label2height, plotargs.labelfont.height);
+	if (plotargs.xsublabel2@sizeof > 0)
+	    plotargs.sublabel2height = max(plotargs.sublabel2height, plotargs.sublabelfont.height);
+	if (plotargs.ylabel2@sizeof > 0)
+	    plotargs.label2width = max(plotargs.label2width, plotargs.labelfont.height);
+	if (plotargs.ysublabel2@sizeof > 0)
+	    plotargs.sublabel2width = max(plotargs.sublabel2width, plotargs.sublabelfont.height);
+
+	if (plotargs.footer_left@sizeof > 0 || plotargs.footer_center@sizeof > 0 || plotargs.footer_right@sizeof > 0)
+	    plotargs.footerheight = plotargs.footerfont.height;
+
+	plotargs.xrange = new Array NULL;
+	plotargs.yrange = new Array NULL;
+	if (plotargs.bounds != NULL) {
+	    if (defined("x", plotargs.bounds)) {
+		if (defined("min", plotargs.bounds.x))
+		    min_x = plotargs.bounds.x.min;
+		if (defined("max", plotargs.bounds.x))
+		    max_x = plotargs.bounds.x.max;
+	    }
+	    if (defined("y", plotargs.bounds)) {
+		if (defined("min", plotargs.bounds.y))
+		    min_y = plotargs.bounds.y.min;
+		if (defined("max", plotargs.bounds.y))
+		    max_y = plotargs.bounds.y.max;
+	    }
+	}
+	plotargs.legendsize = min(plotargs.legend@sizeof, plotargs.ydata@sizeof) + min(plotargs.legend2@sizeof, plotargs.legend2@sizeof);
+	lc = 0;
+	for (ptr in plotargs.xdata) {
+	    if (*ptr < min_x)
+		min_x = *ptr;
+	    if (*ptr > max_x)
+		max_x = *ptr;
+	}
+	if (plotargs.ydata@sizeof > 0) {
+	    if (plotargs.ydata[0] instanceof Array) {
+		for (ptr2 in plotargs.ydata) {
+		    if (plotargs.xdata@sizeof != (*ptr2)@sizeof)
+			abort(strfmt("xdata and ydata[%d] lengths do not match (%d != %d)", (ptr2@offset - plotargs.ydata@offset), plotargs.xdata@sizeof, (*ptr2)@sizeof));
+
+		    lc++;
+		    for (ptr in *ptr2) {
+			if (*ptr < min_y)
+			    min_y = *ptr;
+			if (*ptr > max_y)
+			    max_y = *ptr;
+		    }
+		}
+	    } else {
+		if (plotargs.xdata@sizeof != plotargs.ydata@sizeof)
+		    abort("xdata and ydata lengths do not match");
+
+		lc++;
+		for (ptr in plotargs.ydata) {
+		    if (*ptr < min_y)
+			min_y = *ptr;
+		    if (*ptr > max_y)
+			max_y = *ptr;
+		}
+	    }
+	    plotargs.xrange = new Array { min_x, max_x };
+	    plotargs.yrange = new Array { min_y, max_y };
+	}
+
+	if (plotargs.xdata2@sizeof == 0 && (!defined("xrange2", plotargs) || plotargs.xrange2 == NULL))
+	    plotargs.xrange2 = plotargs.xrange;
+	if (plotargs.ydata2@sizeof == 0 && (!defined("yrange2", plotargs) || plotargs.yrange2 == NULL))
+	    plotargs.yrange2 = plotargs.yrange;
+
+	if (plotargs.bounds != NULL) {
+	    if (defined("x2", plotargs.bounds)) {
+		if (defined("min", plotargs.bounds.x2))
+		    min_x2 = plotargs.bounds.x2.min;
+		if (defined("max", plotargs.bounds.x2))
+		    max_x2 = plotargs.bounds.x2.max;
+	    }
+	    if (defined("y2", plotargs.bounds)) {
+		if (defined("min", plotargs.bounds.y2))
+		    min_y2 = plotargs.bounds.y2.min;
+		if (defined("max", plotargs.bounds.y2))
+		    max_y2 = plotargs.bounds.y2.max;
+	    }
+	}
+	if (plotargs.xdata2@sizeof > 0) {
+	    for (ptr in plotargs.xdata2) {
+		if (*ptr < min_x2)
+		    min_x2 = *ptr;
+		if (*ptr > max_x2)
+		    max_x2 = *ptr;
+	    }
+	    plotargs.xrange2 = new Array { min_x2, max_x2 };
+	}
+	if (plotargs.ydata2@sizeof > 0) {
+	    if (plotargs.xdata2 == NULL)
+		plotargs.xdata2 = plotargs.xdata;
+
+	    if (plotargs.ydata2[0] instanceof Array) {
+		for (ptr2 in plotargs.ydata2) {
+		    if (plotargs.xdata2@sizeof != ptr2@sizeof)
+			abort(strfmt("xdata2 and ydata2[%d] lengths do not match", (ptr2@offset - plotargs.ydata2@offset)));
+		    lc++;
+		    for (ptr in *ptr2) {
+			if (*ptr < min_y2)
+			    min_y2 = *ptr;
+			if (*ptr > max_y2)
+			    max_y2 = *ptr;
+		    }
+		}
+	    } else {
+		if (plotargs.xdata2@sizeof != plotargs.ydata2@sizeof)
+		    abort("xdata2 and ydata2 lengths do not match");
+
+		lc++;
+		for (ptr in plotargs.ydata2) {
+		    if (*ptr < min_y2)
+			min_y2 = *ptr;
+		    if (*ptr > max_y2)
+			max_y2 = *ptr;
+		}
+	    }
+	    plotargs.yrange2 = new Array { min_y2, max_y2 };
+	}
+
+	if (plotargs.xticklabels@sizeof == 0) {
+	    plotargs.xtickspacer = 0;
+	    if (plotargs.xrange@sizeof && plotargs.xticktext && plotargs.xmajorticks > 0) {
+		txt = new Array[1+plotargs.xmajorticks];
+		val = plotargs.xrange[0];
+		delta = (plotargs.xrange[1] - plotargs.xrange[0]) / plotargs.xmajorticks;
+		for (ptr in txt) {
+		    *ptr = strfmt(plotargs.format, val);
+		    wl = stringBounds(plotargs.tickfont, *ptr).width;
+		    if (plotargs.xtickspacer < wl)
+			plotargs.xtickspacer = wl;
+		    if ((1 + ptr@offset) < plotargs.xmajorticks)
+			val += delta;
+		    else val = plotargs.xrange[1];
+		}
+		plotargs.xticklabels = txt;
+	    }
+	} else {
+	    plotargs.xtickspacer = 0;
+	    for (ptr in plotargs.xticklabels) {
+		if (*ptr instanceof String) {
+		    if ((*ptr)@sizeof > 0) {
+			wl = stringBounds(plotargs.tickfont, *ptr).width;
+			if (plotargs.xtickspacer < wl)
+			    plotargs.xtickspacer = wl;
+		    } else *ptr = "";
+		} else abort(strfmt("Bad element (xticklabels[%d]): %s", (ptr@offset-plotargs.xticklabels@offset), (*ptr)@typename));
+	    }
+	}
+	if (plotargs.yticklabels@sizeof == 0) {
+	    plotargs.ytickspacer = 0;
+	    if (plotargs.yrange@sizeof && plotargs.yticktext && plotargs.ymajorticks > 0) {
+		txt = new Array[1+plotargs.ymajorticks];
+		val = plotargs.yrange[0];
+		delta = (plotargs.yrange[1] - plotargs.yrange[0]) / plotargs.ymajorticks;
+		for (ptr in txt) {
+		    *ptr = strfmt(plotargs.format, val);
+		    wl = stringBounds(plotargs.tickfont, *ptr).width;
+		    if (plotargs.ytickspacer < wl)
+			plotargs.ytickspacer = wl;
+		    if ((1 + ptr@offset) < plotargs.ymajorticks)
+			val += delta;
+		    else val = plotargs.yrange[1];
+		}
+		plotargs.yticklabels = txt;
+	    }
+	} else {
+	    plotargs.ytickspacer = 0;
+	    for (ptr in plotargs.yticklabels) {
+		if (*ptr instanceof String) {
+		    if ((*ptr)@sizeof > 0) {
+			wl = stringBounds(plotargs.tickfont, *ptr).width;
+			if (plotargs.ytickspacer < wl)
+			    plotargs.ytickspacer = wl;
+		    } else *ptr = "";
+		} else abort(strfmt("Bad element (yticklabels[%d]): %s", (ptr@offset-plotargs.yticklabels@offset), (*ptr)@typename));
+	    }
+	}
+	if (plotargs.xticklabels2@sizeof == 0) {
+	    plotargs.xtickspacer2 = 0;
+	    if (plotargs.xrange2@sizeof && plotargs.xticktext2 && plotargs.xmajorticks2 > 0) {
+		txt = new Array[1+plotargs.xmajorticks2];
+		val = plotargs.xrange2[0];
+		delta = (plotargs.xrange2[1] - plotargs.xrange2[0]) / plotargs.xmajorticks2;
+		for (ptr in txt) {
+		    *ptr = strfmt(plotargs.format, val);
+		    wl = stringBounds(plotargs.tickfont, *ptr).width;
+		    if (plotargs.xtickspacer2 < wl)
+			plotargs.xtickspacer2 = wl;
+		    if ((1 + ptr@offset) < plotargs.xmajorticks2)
+			val += delta;
+		    else val = plotargs.xrange2[1];
+		}
+		plotargs.xticklabels2 = txt;
+	    }
+	} else {
+	    plotargs.xtickspacer2 = 0;
+	    for (ptr in plotargs.xticklabels2) {
+		if (*ptr instanceof String) {
+		    if ((*ptr)@sizeof > 0) {
+			wl = stringBounds(plotargs.tickfont, *ptr).width;
+			if (plotargs.xtickspacer2 < wl)
+			    plotargs.xtickspacer2 = wl;
+		    } else *ptr = "";
+		} else abort(strfmt("Bad element (xticklabels2[%d]): %s", (ptr@offset-plotargs.xticklabels2@offset), (*ptr)@typename));
+	    }
+	}
+	if (plotargs.yticklabels2@sizeof == 0) {
+	    plotargs.ytickspacer2 = 0;
+	    if (plotargs.yrange2@sizeof && plotargs.yticktext2 && plotargs.ymajorticks2 > 0) {
+		txt = new Array[1+plotargs.ymajorticks2];
+		val = plotargs.yrange2[0];
+		delta = (plotargs.yrange2[1] - plotargs.yrange2[0]) / plotargs.ymajorticks2;
+		for (ptr in txt) {
+		    *ptr = strfmt(plotargs.format, val);
+		    wl = stringBounds(plotargs.tickfont, *ptr).width;
+		    if (plotargs.ytickspacer2 < wl)
+			plotargs.ytickspacer2 = wl;
+		    if ((1 + ptr@offset) < plotargs.ymajorticks2)
+			val += delta;
+		    else val = plotargs.yrange2[1];
+		}
+		plotargs.yticklabels2 = txt;
+	    }
+	} else {
+	    plotargs.ytickspacer2 = 0;
+	    for (ptr in plotargs.yticklabels2) {
+		if (*ptr instanceof String) {
+		    if ((*ptr)@sizeof > 0) {
+			wl = stringBounds(plotargs.tickfont, *ptr).width;
+			if (plotargs.ytickspacer2 < wl)
+			    plotargs.ytickspacer2 = wl;
+		    } else *ptr = "";
+		} else abort(strfmt("Bad element (yticklabels2[%d]): %s", (ptr@offset-plotargs.yticklabels2@offset), (*ptr)@typename));
+	    }
+	}
+
+	wd = 0;
+	for (ptr in new Array { unroll(plotargs.legend), unroll(plotargs.legend2) } ) {
+	    wl = stringBounds(plotargs.legendfont, *ptr).width;
+	    if (wl > wd)
+		wd = wl;
+	}
+	if (wd > plotargs.legendtextwidth)
+	    plotargs.legendtextwidth = wd;
+
+	plotargs.offset = new Point;
+
+	if (plotargs.plotsize == NULL || (plotargs.plotsize.width <= 0 && plotargs.plotsize.height <= 0)) {
+	    plotargs.sizetofit = 3;
+	    plotargs.plotsize = new Dimension unroll(BYZPLOTSIZE);
+	} else if (plotargs.plotsize.width <= 0) {
+	    plotargs.sizetofit = 1;
+	    plotargs.plotsize.width = BYZPLOTSIZE.width;
+	} else if (plotargs.plotsize.height <= 0) {
+	    plotargs.sizetofit = 2;
+	    plotargs.plotsize.height = BYZPLOTSIZE.height;
+	} else plotargs.sizetofit = 0;
+
+	dm.width = plotargs.padding + plotargs.labelwidth + plotargs.sublabelwidth;
+	if (plotargs.labelwidth > 0 || plotargs.sublabelwidth > 0)
+	    dm.width += plotargs.spacer;
+	if (plotargs.ytickspacer > 0 && plotargs.yticktext)
+	    dm.width += plotargs.spacer + plotargs.ytickspacer;
+	if (plotargs.ymajorticks > 0)
+	    dm.width += plotargs.majorticklength;
+
+	plotargs.offset.x = dm.width;
+
+	dm.width += plotargs.plotsize.width;
+
+	if (plotargs.ymajorticks2 > 0)
+	    dm.width += plotargs.majorticklength;
+	if (plotargs.ytickspacer2 > 0 && plotargs.yticktext2)
+	    dm.width += plotargs.spacer + plotargs.ytickspacer2;
+	if (plotargs.label2width > 0 || plotargs.sublabel2width > 0)
+	    dm.width += plotargs.spacer;
+	dm.width += plotargs.label2width + plotargs.sublabel2width + plotargs.padding;
+
+	// now that we have width, compute legendlines, which we need for height
+	plotargs.legendlines = 0;
+	if (plotargs.legendtextwidth > 0) {
+	    wl = plotargs.plotsize.width - plotargs.spacer;
+	    wd = plotargs.legendtextwidth + plotargs.linesamplesize + plotargs.spacer + plotargs.legendgap;
+	    if (wd > 0) { // should always be true
+		wl = floor(wl/wd);
+		if (wl < 1)
+		    wl = 1;
+		plotargs.legendlines = ceil(plotargs.legendsize / wl);
+	    }
+	}
+
+	// also calculate need for vertical x-axis tick labels
+	if (plotargs.xticklabels@sizeof > 1)
+	    plotargs.xvertext = BYZPCNTFILL * (plotargs.plotsize.width/(plotargs.xticklabels@sizeof - 1)) < plotargs.xtickspacer;
+	else plotargs.xvertext = 0;
+	if (plotargs.xticklabels2@sizeof > 1)
+	    plotargs.xvertext2 = BYZPCNTFILL * (plotargs.plotsize.width/(plotargs.xticklabels2@sizeof - 1)) < plotargs.xtickspacer2;
+	else plotargs.xvertext2 = 0;
+	// just for completeness
+	plotargs.yvertext = 0;
+	plotargs.yvertext2 = 0;
+		
+
+	dm.height = plotargs.padding + plotargs.titleheight + plotargs.subtitleheight;
+	if (plotargs.titleheight > 0 || plotargs.subtitleheight > 0)
+	    dm.height += plotargs.spacer;
+	dm.height += plotargs.label2height + plotargs.sublabel2height;
+	if (plotargs.label2height > 0 || plotargs.sublabel2height > 0)
+	    dm.height += plotargs.spacer;
+	if (plotargs.xtickspacer2 > 0 && plotargs.xticktext2) {
+	    if (plotargs.xvertext2)
+		dm.height += plotargs.spacer + plotargs.xtickspacer2;
+	    else dm.height += plotargs.spacer + plotargs.tickfont.height;
+	}
+	if (plotargs.xmajorticks2 > 0)
+	    dm.height += plotargs.majorticklength;
+
+	dm.height += plotargs.plotsize.height;
+
+	plotargs.offset.y = dm.height;
+
+	if (plotargs.xmajorticks > 0)
+	    dm.height += plotargs.majorticklength;
+	if (plotargs.xtickspacer > 0 && plotargs.xticktext) {
+	    if (plotargs.xvertext)
+		dm.height += plotargs.spacer + plotargs.xtickspacer;
+	    else dm.height += plotargs.spacer + plotargs.tickfont.height;
+	}
+	if (plotargs.labelheight > 0 || plotargs.sublabelheight > 0)
+	    dm.height += plotargs.spacer;
+	dm.height += plotargs.labelheight + plotargs.sublabelheight;
+	if (plotargs.legendtextwidth > 0 && plotargs.legendlines > 0) {
+	    dm.height += 2 * plotargs.spacer; // there is also half a spacer inside legend
+	    dm.height += plotargs.legendlines * plotargs.legendfont.height;
+	}
+	if (plotargs.footerheight > 0)
+	    dm.height += plotargs.spacer + plotargs.footerheight;
+	dm.height += plotargs.padding;
+
+	plotargs.fullsize = new Dimension unroll(dm);
+	break;
+
+    case BYZGRAF_HISTOGRAM:
+	plotargs.linesamplesize = 2 * BYZLEG;
+	if (plotargs.title@sizeof > 0)
+	    plotargs.titleheight = max(plotargs.titleheight, plotargs.titlefont.height);
+	if (plotargs.subtitle@sizeof > 0)
+	    plotargs.subtitleheight = max(plotargs.subtitleheight, plotargs.subtitlefont.height);
+	if (plotargs.xlabel@sizeof > 0)
+	    plotargs.labelheight = max(plotargs.labelheight, plotargs.labelfont.height);
+	if (plotargs.xsublabel@sizeof > 0)
+	    plotargs.sublabelheight = max(plotargs.sublabelheight, plotargs.sublabelfont.height);
+	if (plotargs.ylabel@sizeof > 0)
+	    plotargs.labelwidth = max(plotargs.labelwidth, plotargs.labelfont.height);
+	if (plotargs.ysublabel@sizeof > 0)
+	    plotargs.sublabelwidth = max(plotargs.sublabelwidth, plotargs.sublabelfont.height);
+	if (plotargs.xlabel2@sizeof > 0)
+	    plotargs.label2height = max(plotargs.label2height, plotargs.labelfont.height);
+	if (plotargs.xsublabel2@sizeof > 0)
+	    plotargs.sublabel2height = max(plotargs.sublabel2height, plotargs.sublabelfont.height);
+	if (plotargs.ylabel2@sizeof > 0)
+	    plotargs.label2width = max(plotargs.label2width, plotargs.labelfont.height);
+	if (plotargs.ysublabel2@sizeof > 0)
+	    plotargs.sublabel2width = max(plotargs.sublabel2width, plotargs.sublabelfont.height);
+	if (plotargs.footer_left@sizeof > 0 || plotargs.footer_center@sizeof > 0 || plotargs.footer_right@sizeof > 0)
+	    plotargs.footerheight = plotargs.footerfont.height;
+
+	plotargs.yrange = new Array NULL;
+	if (plotargs.bounds != NULL) {
+	    if (defined("y", plotargs.bounds)) {
+		if (defined("min", plotargs.bounds.y))
+		    min_y = plotargs.bounds.y.min;
+		if (defined("max", plotargs.bounds.y))
+		    max_y = plotargs.bounds.y.max;
+	    }
+	}
+
+	//
+	// ydata can be:
+	//  - array of numbers (one number for each bar height
+	//  - array of arrays, each sub-array being:
+	//    + numbers giving height of stacked bar elements
+	//    + array giving grouped bar data, namely numbers for
+	//      solid bars or arrays of numbers for stacked bars
+	//  There is no mixing (so if you have bar groups and then
+	//  want a single bar, then make a single element array)
+	//
+	plotargs.legendsize = 0;
+	lc = 0;
+	if (plotargs.ydata@sizeof > 0) {
+	    if (plotargs.ydata[0] instanceof Number) {
+		// ungrouped single-value bars
+		for (ptr in plotargs.ydata) {
+		    if (*ptr instanceof Number) {
+			if (*ptr < min_y)
+			    min_y = *ptr;
+			if (*ptr > max_y)
+			    max_y = *ptr;
+		    } else abort(strfmt("Bad data element (ydata[%d]): %s", (ptr@offset-plotargs.ydata@offset), (*ptr)@typename));
+		}
+		plotargs.legendsize = plotargs.ydata@sizeof;
+		lc = 1;
+	    } else if (plotargs.ydata[0] instanceof Array) {
+		if (plotargs.ydata[0]@sizeof > 0) {
+		    if (plotargs.ydata[0][0] instanceof Number) {
+			// ungrouped stacked-value bars
+			for (ptr in plotargs.ydata) {
+			    if (*ptr instanceof Array) {
+				if (**ptr < min_y)
+				    min_y = **ptr;
+				wl = 0;
+				if (plotargs.legendsize < (*ptr)@sizeof)
+				    plotargs.legendsize = (*ptr)@sizeof;
+				for (ptr2 in *ptr) {
+				    if (*ptr2 instanceof Number) {
+					wl += *ptr2;
+				    } else abort(strfmt("Bad data element (ydata[%d][%d]): %s", (ptr@offset-plotargs.ydata@offset), (ptr2@offset-(*ptr)@offset), (*ptr2)@typename));
+				}
+				if (wl > max_y)
+				    max_y = wl;
+			    } else abort(strfmt("Bad data element (ydata[%d]): %s", (ptr@offset-plotargs.ydata@offset), (*ptr)@typename));
+			}
+			lc = 1;
+		    } else if (plotargs.ydata[0][0] instanceof Array) {
+			if (plotargs.ydata[0][0]@sizeof > 0) {
+			    if (plotargs.ydata[0][0][0] instanceof Number) {
+				// grouped single-value bars
+				for (ptr in plotargs.ydata) {
+				    if (*ptr instanceof Array) {
+					tc = 0;
+					lc = 0;
+					for (ptr2 in *ptr) {
+					    if (*ptr2 instanceof Array) {
+						if (++tc > 1)
+						    abort(strfmt("unexpected element at ydata[%d][%d]", (ptr@offset-plotargs.ydata@offset), (ptr2@offset-(*ptr)@offset)));
+						if (lc < (*ptr2)@sizeof)
+						    lc = (*ptr2)@sizeof;
+						for (ptr3 in *ptr2) {
+						    if (*ptr3 instanceof Number) {
+							if (*ptr3 < min_y)
+							    min_y = *ptr3;
+							if (*ptr3 > max_y)
+							    max_y = *ptr3;
+						    } else abort(strfmt("Bad data element (ydata[%d][%d][%d]): %s", (ptr@offset-plotargs.ydata@offset), (ptr2@offset-(*ptr)@offset), (ptr3@offset-(*ptr2)@offset), (*ptr3)@typename));
+						}
+					    } else abort(strfmt("Bad data element (ydata[%d][%d]): %s", (ptr@offset-plotargs.ydata@offset), (ptr2@offset-(*ptr)@offset), (*ptr2)@typename));
+					}
+					plotargs.legendsize = lc;
+				    } else abort(strfmt("Bad data element (ydata[%d]): %s", (ptr@offset-plotargs.ydata@offset), (*ptr)@typename));
+				}
+			    } else if (plotargs.ydata[0][0][0] instanceof Array) {
+				if (plotargs.ydata[0][0][0]@sizeof > 0) {
+				    if (plotargs.ydata[0][0][0][0] instanceof Number) {
+					// grouped stacked-value bars
+					for (ptr in plotargs.ydata) {
+					    if (*ptr instanceof Array) {
+						tc = 0;
+						lc = 0;
+						for (ptr2 in *ptr) {
+						    if (*ptr2 instanceof Array) {
+							if (++tc > 1)
+							    abort(strfmt("unexpected element at ydata[%d][%d]", (ptr@offset-plotargs.ydata@offset), (ptr2@offset-(*ptr)@offset)));
+							if ((*ptr2)@sizeof > lc)
+							    lc = (*ptr2)@sizeof;
+							for (ptr3 in *ptr2) {
+							    if (*ptr3 instanceof Array) {
+								if (**ptr3 < min_y)
+								    min_y = **ptr3;
+								wl = 0;
+								if (plotargs.legendsize < (*ptr3)@sizeof)
+								    plotargs.legendsize = (*ptr3)@sizeof;
+								for (ptr4 in *ptr3) {
+								    if (*ptr4 instanceof Number) {
+									wl += *ptr4;
+								    } else abort(strfmt("Bad data element (ydata[%d][%d][%d][%d]): %s", (ptr@offset-plotargs.ydata@offset), (ptr2@offset-(*ptr)@offset), (ptr3@offset-(*ptr2)@offset), (ptr4@offset-(*ptr3)@offset), (*ptr4)@typename));
+								}
+								if (wl > max_y)
+								    max_y = wl;
+							    } else abort(strfmt("Bad data element (ydata[%d][%d][%d]): %s", (ptr@offset-plotargs.ydata@offset), (ptr2@offset-(*ptr)@offset), (ptr3@offset-(*ptr2)@offset), (*ptr3)@typename));
+							}
+						    } else abort(strfmt("Bad data element (ydata[%d][%d]): %s", (ptr@offset-plotargs.ydata@offset), (ptr2@offset-(*ptr)@offset), (*ptr2)@typename));
+						}
+					    } else abort(strfmt("Bad data element (ydata[%d]): %s", (ptr@offset-plotargs.ydata@offset), (*ptr)@typename));
+					}
+				    } else abort(strfmt("Bad data element (ydata[0][0][0][0]): %s", plotargs.ydata[0][0][0][0]@typename));
+				}
+			    } else abort(strfmt("Bad data element (ydata[0][0][0]): %s", plotargs.ydata[0][0][0]@typename));
+			}
+		    } else abort(strfmt("Bad data element (ydata[0][0]): %s", (plotargs.ydata[0][0])@typename));
+		}
+	    } else abort(strfmt("Bad data element (ydata[0]): %s", (plotargs.ydata[0])@typename));
+	}
+	plotargs.legendsize = min(plotargs.legend@sizeof, plotargs.legendsize);
+
+	plotargs.bargroups = plotargs.ydata@sizeof;
+	plotargs.groupsize = lc;
+	plotargs.xmajorticks = plotargs.bargroups;
+	// force this length so horizontal bar tick text is accounted for by the ticklength
+	if (plotargs.majorticklength < plotargs.tickfont.height)
+	    plotargs.majorticklength = plotargs.tickfont.height;
+	plotargs.xminorticks = 0;
+	plotargs.xrange = new Array { 0, plotargs.bargroups };
+	plotargs.yrange = new Array { min_y, max_y };
+
+	if (plotargs.yrange@sizeof == 2 && plotargs.plotpadratio > 0 && plotargs.plotpadratio < 1) {
+	    wl = (plotargs.yrange[1] - plotargs.yrange[0]) * plotargs.plotpadratio;
+	    if (plotargs.yrange[0] != 0)
+		plotargs.yrange[0] -= wl;
+	    plotargs.yrange[1] += wl;
+	}
+
+	plotargs.xrange2 = plotargs.xrange;
+	if (!defined("yrange2", plotargs) || plotargs.yrange2 == NULL)
+	    plotargs.yrange2 = plotargs.yrange;
+
+	plotargs.xtickspacer = 0;
+	for (ptr in plotargs.xticklabels) {
+	    if ((*ptr)@sizeof > 0) {
+		wl = stringBounds(plotargs.tickfont, *ptr).width;
+		if (plotargs.xtickspacer < wl)
+		    plotargs.xtickspacer = wl;
+	    }
+	}
+	if (plotargs.yticklabels@sizeof == 0) {
+	    plotargs.ytickspacer = 0;
+	    if (plotargs.yrange@sizeof && plotargs.yticktext && plotargs.ymajorticks > 0) {
+		txt = new Array[1+plotargs.ymajorticks];
+		val = plotargs.yrange[0];
+		delta = (plotargs.yrange[1] - plotargs.yrange[0]) / plotargs.ymajorticks;
+		for (ptr in txt) {
+		    *ptr = strfmt(plotargs.format, val);
+		    wl = stringBounds(plotargs.tickfont, *ptr).width;
+		    if (plotargs.ytickspacer < wl)
+			plotargs.ytickspacer = wl;
+		    if ((1 + ptr@offset) < plotargs.ymajorticks)
+			val += delta;
+		    else val = plotargs.yrange[1];
+		}
+		plotargs.yticklabels = txt;
+	    }
+	} else {
+	    plotargs.ytickspacer = 0;
+	    for (ptr in plotargs.yticklabels) {
+		if ((*ptr)@sizeof > 0) {
+		    wl = stringBounds(plotargs.tickfont, *ptr).width;
+		    if (plotargs.ytickspacer < wl)
+			plotargs.ytickspacer = wl;
+		}
+	    }
+	}
+	plotargs.xtickspacer2 = 0;
+	for (ptr in plotargs.xticklabels2) { // group labels
+	    if ((*ptr)@sizeof > 0) {
+		wl = stringBounds(plotargs.tickfont, *ptr).width;
+		if (plotargs.xtickspacer2 < wl)
+		    plotargs.xtickspacer2 = wl;
+	    }
+	}
+	if (plotargs.yticklabels2@sizeof == 0) {
+	    plotargs.ytickspacer2 = 0;
+	    if (plotargs.yrange2@sizeof && plotargs.yticktext2 && plotargs.ymajorticks2 > 0) {
+		txt = new Array[1+plotargs.ymajorticks2];
+		val = plotargs.yrange2[0];
+		delta = (plotargs.yrange2[1] - plotargs.yrange2[0]) / plotargs.ymajorticks2;
+		for (ptr in txt) {
+		    *ptr = strfmt(plotargs.format, val);
+		    wl = stringBounds(plotargs.tickfont, *ptr).width;
+		    if (plotargs.ytickspacer2 < wl)
+			plotargs.ytickspacer2 = wl;
+		    if ((1 + ptr@offset) < plotargs.ymajorticks2)
+			val += delta;
+		    else val = plotargs.yrange2[1];
+		}
+		plotargs.yticklabels2 = txt;
+	    }
+	} else {
+	    plotargs.ytickspacer2 = 0;
+	    for (ptr in plotargs.yticklabels2) {
+		if (*ptr instanceof String) {
+		    if ((*ptr)@sizeof > 0) {
+			wl = stringBounds(plotargs.tickfont, *ptr).width;
+			if (plotargs.ytickspacer2 < wl)
+			    plotargs.ytickspacer2 = wl;
+		    } else *ptr = "";
+		} else abort(strfmt("Bad element (yticklabels2[%d]): %s", (ptr@offset-plotargs.yticklabels2@offset), (*ptr)@typename));
+	    }
+	}
+
+	wd = 0;
+	for (ptr in new Array { unroll(plotargs.legend), unroll(plotargs.legend2) } ) {
+	    wl = stringBounds(plotargs.legendfont, *ptr).width;
+	    if (wl > wd)
+		wd = wl;
+	}
+	if (wd > plotargs.legendtextwidth)
+	    plotargs.legendtextwidth = wd;
+
+	plotargs.offset = new Point;
+
+	if (plotargs.plotsize == NULL || (plotargs.plotsize.width <= 0 && plotargs.plotsize.height <= 0)) {
+	    plotargs.sizetofit = 3;
+	    plotargs.plotsize = new Dimension unroll(BYZPLOTSIZE);
+	} else if (plotargs.plotsize.width <= 0) {
+	    plotargs.sizetofit = 1;
+	    plotargs.plotsize.width = BYZPLOTSIZE.width;
+	} else if (plotargs.plotsize.height <= 0) {
+	    plotargs.sizetofit = 2;
+	    plotargs.plotsize.height = BYZPLOTSIZE.height;
+	} else plotargs.sizetofit = 0;
+
+	dm.width = plotargs.padding + plotargs.labelwidth + plotargs.sublabelwidth;
+	if (plotargs.labelwidth > 0 || plotargs.sublabelwidth > 0)
+	    dm.width += plotargs.spacer;
+	if (plotargs.ymajorticks > 0)
+	    dm.width += plotargs.majorticklength;
+	if (plotargs.ytickspacer > 0 && plotargs.yticktext)
+	    dm.width += plotargs.spacer + plotargs.ytickspacer;
+
+	plotargs.offset.x = dm.width;
+
+	dm.width += plotargs.plotsize.width;
+
+	if (plotargs.ytickspacer2 > 0 && plotargs.yticktext2)
+	    dm.width += plotargs.spacer + plotargs.ytickspacer2;
+	if (plotargs.ymajorticks2 > 0)
+	    dm.width += plotargs.majorticklength;
+	if (plotargs.label2width > 0 || plotargs.sublabel2width > 0)
+	    dm.width += plotargs.spacer;
+	dm.width += plotargs.label2width + plotargs.sublabel2width + plotargs.padding;
+
+	// now that we have width, compute legendlines, which we need for height
+	plotargs.legendlines = 0;
+	if (plotargs.legendtextwidth > 0) {
+	    wl = plotargs.plotsize.width - plotargs.spacer;
+	    wd = plotargs.legendtextwidth + plotargs.linesamplesize + plotargs.spacer + plotargs.legendgap;
+	    if (wd > 0) { // should always be true
+		wl = floor(wl/wd);
+		if (wl < 1)
+		    wl = 1;
+		plotargs.legendlines = ceil(plotargs.legendsize / wl);
+	    }
+	}
+
+
+	if  (plotargs.groupsize > 0) {
+	    plotargs.bargroupwidth = plotargs.plotsize.width/((1+plotargs.bargrouptospaceratio) * plotargs.ydata@sizeof);
+	    if (plotargs.groupsize == 1)
+		plotargs.barwidth = plotargs.bargroupwidth;
+	    else plotargs.barwidth = plotargs.bargroupwidth/(plotargs.groupsize + plotargs.groupsize*plotargs.subbarspaceratio);
+
+	    if (plotargs.barwidth > (wl = (plotargs.maxbarwidthratio * plotargs.plotsize.width)))
+		plotargs.barwidth = wl;
+
+	    plotargs.subbarspacer = plotargs.barwidth * plotargs.subbarspaceratio;
+	    if (plotargs.groupsize == 1)
+		plotargs.bargroupwidth = plotargs.barwidth;
+	    else plotargs.bargroupwidth = plotargs.barwidth + (plotargs.groupsize - 1) * (plotargs.barwidth + plotargs.subbarspacer);
+
+	    if (plotargs.ydata@sizeof > 0)
+		plotargs.barspacer = (plotargs.plotsize.width/plotargs.ydata@sizeof) - plotargs.bargroupwidth;
+	    else plotargs.barspacer = plotargs.plotsize.width - plotargs.bargroupwidth;
+	    if (plotargs.barspacer < 0)
+		plotargs.barspacer = 0;
+	} else {
+	    plotargs.barwidth = 0;
+	    plotargs.bargroupwidth = 0;
+	    plotargs.subbarspacer = 0;
+	    if (plotargs.ydata@sizeof > 0)
+		plotargs.barspacer = plotargs.plotsize.width/plotargs.ydata@sizeof;
+	    else plotargs.barspacer = plotargs.plotsize.width;
+	}
+	plotargs.xvertext = plotargs.barwidth < plotargs.xtickspacer;
+	plotargs.yvertext = 0;
+	plotargs.xvertext2 = 0; // always put horizontal, we truncate if needed
+	plotargs.yvertext2 = 0;
+
+	dm.height = plotargs.padding + plotargs.titleheight + plotargs.subtitleheight;
+	if (plotargs.titleheight > 0 || plotargs.subtitleheight > 0)
+	    dm.height += plotargs.spacer;
+	dm.height += plotargs.label2height + plotargs.sublabel2height;
+	if (plotargs.label2height > 0 || plotargs.sublabel2height > 0)
+	    dm.height += plotargs.spacer;
+	if (plotargs.xtickspacer2 > 0 && plotargs.xticktext2) {
+	    if (plotargs.xvertext2)
+		dm.height += plotargs.spacer + plotargs.xtickspacer2;
+	    else dm.height += plotargs.spacer + plotargs.tickfont.height;
+	}
+	if (plotargs.xmajorticks2 > 0)
+	    dm.height += plotargs.majorticklength;
+
+	dm.height += plotargs.plotsize.height;
+
+	plotargs.offset.y = dm.height;
+
+	if (plotargs.xmajorticks > 0)
+	    dm.height += plotargs.majorticklength;
+	if (plotargs.xtickspacer > 0 && plotargs.xticktext) {
+	    if (plotargs.xvertext)
+		dm.height += plotargs.spacer + plotargs.xtickspacer;
+	    else if (plotargs.type != BYZGRAF_HISTOGRAM || plotargs.xmajorticks == 0)
+		dm.height += plotargs.spacer + plotargs.tickfont.height;
+	}
+	if (plotargs.labelheight > 0 || plotargs.sublabelheight > 0)
+	    dm.height += plotargs.spacer;
+	dm.height += plotargs.labelheight + plotargs.sublabelheight;
+	if (plotargs.legendtextwidth > 0 && plotargs.legendlines > 0) {
+	    dm.height += 2 * plotargs.spacer; // there is also half a spacer inside legend
+	    dm.height += plotargs.legendlines * plotargs.legendfont.height;
+	}
+	if (plotargs.footerheight > 0)
+	    dm.height += plotargs.spacer + plotargs.footerheight;
+	dm.height += plotargs.padding;
+
+	plotargs.fullsize = new Dimension unroll(dm);
+	break;
+
+    case BYZGRAF_STATPLOT:
+	plotargs.linesamplesize = 2 * BYZLEG;
+	if (plotargs.title@sizeof > 0)
+	    plotargs.titleheight = max(plotargs.titleheight, plotargs.titlefont.height);
+	if (plotargs.subtitle@sizeof > 0)
+	    plotargs.subtitleheight = max(plotargs.subtitleheight, plotargs.subtitlefont.height);
+	if (plotargs.xlabel@sizeof > 0)
+	    plotargs.labelheight = max(plotargs.labelheight, plotargs.labelfont.height);
+	if (plotargs.xsublabel@sizeof > 0)
+	    plotargs.sublabelheight = max(plotargs.sublabelheight, plotargs.sublabelfont.height);
+	if (plotargs.ylabel@sizeof > 0)
+	    plotargs.labelwidth = max(plotargs.labelwidth, plotargs.labelfont.height);
+	if (plotargs.ysublabel@sizeof > 0)
+	    plotargs.sublabelwidth = max(plotargs.sublabelwidth, plotargs.sublabelfont.height);
+	if (plotargs.xlabel2@sizeof > 0)
+	    plotargs.label2height = max(plotargs.label2height, plotargs.labelfont.height);
+	if (plotargs.xsublabel2@sizeof > 0)
+	    plotargs.sublabel2height = max(plotargs.sublabel2height, plotargs.sublabelfont.height);
+	if (plotargs.ylabel2@sizeof > 0)
+	    plotargs.label2width = max(plotargs.label2width, plotargs.labelfont.height);
+	if (plotargs.ysublabel2@sizeof > 0)
+	    plotargs.sublabel2width = max(plotargs.sublabel2width, plotargs.sublabelfont.height);
+	if (plotargs.footer_left@sizeof > 0 || plotargs.footer_center@sizeof > 0 || plotargs.footer_right@sizeof > 0)
+	    plotargs.footerheight = plotargs.footerfont.height;
+
+	plotargs.yrange = new Array NULL;
+	if (plotargs.bounds != NULL) {
+	    if (defined("y", plotargs.bounds)) {
+		if (defined("min", plotargs.bounds.y))
+		    min_y = plotargs.bounds.y.min;
+		if (defined("max", plotargs.bounds.y))
+		    max_y = plotargs.bounds.y.max;
+	    }
+	}
+
+	//
+	// ydata can be:
+	//  - array of numbers (one number for each bar height
+	//  - array of arrays, each sub-array being:
+	//    + 5 numbers giving max_outlier, max_range, mean, min_range, min_outlier
+	//    + array indicating grouping of arrays that contains arrays of 5 numbers
+	//      as above 
+	//  There is no mixing (either groups or statplots or single statplots).
+	//
+	plotargs.legendsize = 0;
+	lc = 0;
+	if (plotargs.ydata@sizeof > 0) {
+	    if (plotargs.ydata[0] instanceof Array) {
+		if (plotargs.ydata[0]@sizeof > 0) {
+		    if (plotargs.ydata[0][0] instanceof Number) {
+			// ungrouped statplot bars
+			if (plotargs.legendsize < plotargs.ydata@sizeof)
+			    plotargs.legendsize = plotargs.ydata@sizeof;
+			for (ptr in plotargs.ydata) {
+			    if (*ptr instanceof Array) {
+				if ((*ptr)@sizeof == 5) {
+				    previous = **ptr;
+				    for (ptr2 in *ptr) {
+					if (*ptr2 instanceof Number) {
+					    if (previous <= *ptr2)
+						previous = *ptr2;
+					    else abort(strfmt("Bad data sequence: ydata[%d][%d] is smaller than previous element (%g > %g)", (ptr@offset-plotargs.ydata@offset), (ptr2@offset-(*ptr)@offset), *ptr2, previous));
+					} else abort(strfmt("Bad data element (ydata[%d][%d]): %s", (ptr@offset-plotargs.ydata@offset), (ptr2@offset-(*ptr)@offset), (*ptr2)@typename));
+				    }
+				    if (**ptr < min_y)
+					min_y = **ptr;
+				    if (*(*ptr+4) > max_y)
+					max_y = *(*ptr+4);
+				} else abort(strfmt("Bad array size (ydata[%d]): %d", (ptr@offset-plotargs.ydata@offset), (*ptr)@sizeof));
+			    } else abort(strfmt("Bad data element (ydata[%d]): %s", (ptr@offset-plotargs.ydata@offset), (*ptr)@typename));
+			}
+			lc = 1;
+		    } else if (plotargs.ydata[0][0] instanceof Array) {
+			if (plotargs.ydata[0][0]@sizeof > 0) {
+			    if (plotargs.ydata[0][0][0] instanceof Number) {
+				// grouped statplot bars
+				for (ptr in plotargs.ydata) {
+				    if (*ptr instanceof Array) {
+					if (plotargs.legendsize < (*ptr)@sizeof)
+					    plotargs.legendsize = (*ptr)@sizeof;
+					for (ptr2 in *ptr) {
+					    if (*ptr2 instanceof Array) {
+						if ((*ptr2)@sizeof == 5) {
+						    previous = **ptr2;
+						    for (ptr3 in *ptr2) {
+							if (*ptr3 instanceof Number) {
+							    if (previous <= *ptr3)
+								previous = *ptr3;
+							    else abort(strfmt("Bad data sequence: ydata[%d][%d][%d] is smaller than previous element (%g < %g)", (ptr@offset-plotargs.ydata@offset), (ptr2@offset-(*ptr)@offset), (ptr3@offset-(*ptr2)@offset), *ptr3, previous));
+							} else abort(strfmt("Bad data element (ydata[%d][%d][%d]): %s", (ptr@offset-plotargs.ydata@offset), (ptr2@offset-(*ptr)@offset), (ptr3@offset-(*ptr2)@offset), (*ptr3)@typename));
+						    }
+						    if (**ptr2 < min_y)
+							min_y = **ptr2;
+						    if (*(*ptr2+4) > max_y)
+							max_y = *(*ptr2+4);
+						} else abort(strfmt("Bad array size (ydata[%d][%d]): %d", (ptr@offset-plotargs.ydata@offset), (ptr2@offset-(*ptr)@offset), (*ptr2)@sizeof));
+					    } else abort(strfmt("Bad data element (ydata[%d][%d]): %s", (ptr@offset-plotargs.ydata@offset), (ptr2@offset-(*ptr)@offset), (*ptr2)@typename));
+					}
+				    } else abort(strfmt("Bad data element (ydata[%d]): %s", (ptr@offset-plotargs.ydata@offset), (*ptr)@typename));
+				}
+				lc = plotargs.legendsize;
+			    } else abort(strfmt("Bad data element (ydata[0][0][0]): %s", plotargs.ydata[0][0][0]@typename));
+			}
+		    } else abort(strfmt("Bad data element (ydata[0][0]): %s", (plotargs.ydata[0][0])@typename));
+		}
+	    } else abort(strfmt("Bad data element (ydata[0]): %s", (plotargs.ydata[0])@typename));
+	}
+	plotargs.legendsize = min(plotargs.legend@sizeof, plotargs.legendsize);
+
+	plotargs.bargroups = plotargs.ydata@sizeof;
+	plotargs.groupsize = lc;
+	plotargs.xmajorticks = plotargs.bargroups;
+	// force this length so horizontal bar tick text is accounted for by the ticklength
+	if (plotargs.majorticklength < plotargs.tickfont.height)
+	    plotargs.majorticklength = plotargs.tickfont.height;
+	plotargs.xminorticks = 0;
+	plotargs.xrange = new Array { 0, plotargs.bargroups };
+	plotargs.yrange = new Array { min_y, max_y };
+
+	if (plotargs.yrange@sizeof == 2 && plotargs.plotpadratio > 0 && plotargs.plotpadratio < 1) {
+	    wl = (plotargs.yrange[1] - plotargs.yrange[0]) * plotargs.plotpadratio;
+	    if (plotargs.yrange[0] != 0)
+		plotargs.yrange[0] -= wl;
+	    plotargs.yrange[1] += wl;
+	}
+
+	plotargs.xrange2 = plotargs.xrange;
+	if (!defined("yrange2", plotargs) || plotargs.yrange2 == NULL)
+	    plotargs.yrange2 = plotargs.yrange;
+
+	plotargs.xtickspacer = 0;
+	for (ptr in plotargs.xticklabels) {
+	    if ((*ptr)@sizeof > 0) {
+		wl = stringBounds(plotargs.tickfont, *ptr).width;
+		if (plotargs.xtickspacer < wl)
+		    plotargs.xtickspacer = wl;
+	    }
+	}
+	if (plotargs.yticklabels@sizeof == 0) {
+	    plotargs.ytickspacer = 0;
+	    if (plotargs.yrange@sizeof && plotargs.yticktext && plotargs.ymajorticks > 0) {
+		txt = new Array[1+plotargs.ymajorticks];
+		val = plotargs.yrange[0];
+		delta = (plotargs.yrange[1] - plotargs.yrange[0]) / plotargs.ymajorticks;
+		for (ptr in txt) {
+		    *ptr = strfmt(plotargs.format, val);
+		    wl = stringBounds(plotargs.tickfont, *ptr).width;
+		    if (plotargs.ytickspacer < wl)
+			plotargs.ytickspacer = wl;
+		    if ((1 + ptr@offset) < plotargs.ymajorticks)
+			val += delta;
+		    else val = plotargs.yrange[1];
+		}
+		plotargs.yticklabels = txt;
+	    }
+	} else {
+	    plotargs.ytickspacer = 0;
+	    for (ptr in plotargs.yticklabels) {
+		if ((*ptr)@sizeof > 0) {
+		    wl = stringBounds(plotargs.tickfont, *ptr).width;
+		    if (plotargs.ytickspacer < wl)
+			plotargs.ytickspacer = wl;
+		}
+	    }
+	}
+	plotargs.xtickspacer2 = 0;
+	for (ptr in plotargs.xticklabels2) { // group labels
+	    if ((*ptr)@sizeof > 0) {
+		wl = stringBounds(plotargs.tickfont, *ptr).width;
+		if (plotargs.xtickspacer2 < wl)
+		    plotargs.xtickspacer2 = wl;
+	    }
+	}
+	if (plotargs.yticklabels2@sizeof == 0) {
+	    plotargs.ytickspacer2 = 0;
+	    if (plotargs.yrange2@sizeof && plotargs.yticktext2 && plotargs.ymajorticks2 > 0) {
+		txt = new Array[1+plotargs.ymajorticks2];
+		val = plotargs.yrange2[0];
+		delta = (plotargs.yrange2[1] - plotargs.yrange2[0]) / plotargs.ymajorticks2;
+		for (ptr in txt) {
+		    *ptr = strfmt(plotargs.format, val);
+		    wl = stringBounds(plotargs.tickfont, *ptr).width;
+		    if (plotargs.ytickspacer2 < wl)
+			plotargs.ytickspacer2 = wl;
+		    if ((1 + ptr@offset) < plotargs.ymajorticks2)
+			val += delta;
+		    else val = plotargs.yrange2[1];
+		}
+		plotargs.yticklabels2 = txt;
+	    }
+	} else {
+	    plotargs.ytickspacer2 = 0;
+	    for (ptr in plotargs.yticklabels2) {
+		if (*ptr instanceof String) {
+		    if ((*ptr)@sizeof > 0) {
+			wl = stringBounds(plotargs.tickfont, *ptr).width;
+			if (plotargs.ytickspacer2 < wl)
+			    plotargs.ytickspacer2 = wl;
+		    } else *ptr = "";
+		} else abort(strfmt("Bad element (yticklabels2[%d]): %s", (ptr@offset-plotargs.yticklabels2@offset), (*ptr)@typename));
+	    }
+	}
+
+	wd = 0;
+	for (ptr in new Array { unroll(plotargs.legend), unroll(plotargs.legend2) } ) {
+	    wl = stringBounds(plotargs.legendfont, *ptr).width;
+	    if (wl > wd)
+		wd = wl;
+	}
+	if (wd > plotargs.legendtextwidth)
+	    plotargs.legendtextwidth = wd;
+
+	plotargs.offset = new Point;
+
+	if (plotargs.plotsize == NULL || (plotargs.plotsize.width <= 0 && plotargs.plotsize.height <= 0)) {
+	    plotargs.sizetofit = 3;
+	    plotargs.plotsize = new Dimension unroll(BYZPLOTSIZE);
+	} else if (plotargs.plotsize.width <= 0) {
+	    plotargs.sizetofit = 1;
+	    plotargs.plotsize.width = BYZPLOTSIZE.width;
+	} else if (plotargs.plotsize.height <= 0) {
+	    plotargs.sizetofit = 2;
+	    plotargs.plotsize.height = BYZPLOTSIZE.height;
+	} else plotargs.sizetofit = 0;
+
+	dm.width = plotargs.padding + plotargs.labelwidth + plotargs.sublabelwidth;
+	if (plotargs.labelwidth > 0 || plotargs.sublabelwidth > 0)
+	    dm.width += plotargs.spacer;
+	if (plotargs.ytickspacer > 0 && plotargs.yticktext)
+	    dm.width += plotargs.spacer + plotargs.ytickspacer;
+	if (plotargs.ymajorticks > 0)
+	    dm.width += plotargs.majorticklength;
+
+	plotargs.offset.x = dm.width;
+
+	dm.width += plotargs.plotsize.width;
+
+	if (plotargs.ymajorticks2 > 0)
+	    dm.width += plotargs.majorticklength;
+	if (plotargs.ytickspacer2 > 0 && plotargs.yticktext2)
+	    dm.width += plotargs.spacer + plotargs.ytickspacer2;
+	if (plotargs.label2width > 0 || plotargs.sublabel2width > 0)
+	    dm.width += plotargs.spacer;
+	dm.width += plotargs.label2width + plotargs.sublabel2width + plotargs.padding;
+
+	// now that we have width, compute legendlines, which we need for height
+	plotargs.legendlines = 0;
+	if (plotargs.legendtextwidth > 0) {
+	    wl = plotargs.plotsize.width - plotargs.spacer;
+	    wd = plotargs.legendtextwidth + plotargs.linesamplesize + plotargs.spacer + plotargs.legendgap;
+	    if (wd > 0) { // should always be true
+		wl = floor(wl/wd);
+		if (wl < 1)
+		    wl = 1;
+		plotargs.legendlines = ceil(plotargs.legendsize / wl);
+	    }
+	}
+
+	if  (plotargs.groupsize > 0) {
+	    plotargs.bargroupwidth = plotargs.plotsize.width/((1+plotargs.bargrouptospaceratio) * plotargs.ydata@sizeof);
+	    if (plotargs.groupsize == 1)
+		plotargs.barwidth = plotargs.bargroupwidth;
+	    else plotargs.barwidth = plotargs.bargroupwidth/(plotargs.groupsize + plotargs.groupsize*plotargs.subbarspaceratio);
+
+	    if (plotargs.barwidth > (wl = (plotargs.maxbarwidthratio * plotargs.plotsize.width)))
+		plotargs.barwidth = wl;
+
+	    plotargs.subbarspacer = plotargs.barwidth * plotargs.subbarspaceratio;
+	    if (plotargs.groupsize == 1)
+		plotargs.bargroupwidth = plotargs.barwidth;
+	    else plotargs.bargroupwidth = plotargs.barwidth + (plotargs.groupsize - 1) * (plotargs.barwidth + plotargs.subbarspacer);
+
+	    if (plotargs.ydata@sizeof > 0)
+		plotargs.barspacer = (plotargs.plotsize.width/plotargs.ydata@sizeof) - plotargs.bargroupwidth;
+	    else plotargs.barspacer = plotargs.plotsize.width - plotargs.bargroupwidth;
+	    if (plotargs.barspacer < 0)
+		plotargs.barspacer = 0;
+	} else {
+	    plotargs.barwidth = 0;
+	    plotargs.bargroupwidth = 0;
+	    plotargs.subbarspacer = 0;
+	    if (plotargs.ydata@sizeof > 0)
+		plotargs.barspacer = plotargs.plotsize.width/plotargs.ydata@sizeof;
+	    else plotargs.barspacer = plotargs.plotsize.width;
+	}
+	plotargs.xvertext = plotargs.barwidth < plotargs.xtickspacer;
+	plotargs.yvertext = 0;
+	plotargs.xvertext2 = 0; // always put horizontal, we truncate if needed
+	plotargs.yvertext2 = 0;
+
+	dm.height = plotargs.padding + plotargs.titleheight + plotargs.subtitleheight;
+	if (plotargs.titleheight > 0 || plotargs.subtitleheight > 0)
+	    dm.height += plotargs.spacer;
+	dm.height += plotargs.label2height + plotargs.sublabel2height;
+	if (plotargs.label2height > 0 || plotargs.sublabel2height > 0)
+	    dm.height += plotargs.spacer;
+	if (plotargs.xtickspacer2 > 0 && plotargs.xticktext2) {
+	    if (plotargs.xvertext2)
+		dm.height += plotargs.spacer + plotargs.xtickspacer2;
+	    else dm.height += plotargs.spacer + plotargs.tickfont.height;
+	}
+	if (plotargs.xmajorticks2 > 0)
+	    dm.height += plotargs.majorticklength;
+
+	dm.height += plotargs.plotsize.height;
+
+	plotargs.offset.y = dm.height;
+
+	if (plotargs.xmajorticks > 0)
+	    dm.height += plotargs.majorticklength;
+	if (plotargs.xtickspacer > 0 && plotargs.xticktext) {
+	    if (plotargs.xvertext)
+		dm.height += plotargs.spacer + plotargs.xtickspacer;
+	    else if (plotargs.type != BYZGRAF_HISTOGRAM || plotargs.xmajorticks == 0)
+		dm.height += plotargs.spacer + plotargs.tickfont.height;
+	}
+	if (plotargs.labelheight > 0 || plotargs.sublabelheight > 0)
+	    dm.height += plotargs.spacer;
+	dm.height += plotargs.labelheight + plotargs.sublabelheight;
+	if (plotargs.legendtextwidth > 0 && plotargs.legendlines > 0) {
+	    dm.height += 2 * plotargs.spacer; // there is also half a spacer inside legend
+	    dm.height += plotargs.legendlines * plotargs.legendfont.height;
+	}
+	if (plotargs.footerheight > 0)
+	    dm.height += plotargs.spacer + plotargs.footerheight;
+	dm.height += plotargs.padding;
+
+	plotargs.fullsize = new Dimension unroll(dm);
+	break;
+    }
+
+
+    if (plotargs.imagesize == NULL || (plotargs.imagesize.width <= 0 && plotargs.imagesize.height <= 0)) {
+	if (plotargs.scaling < 0.01)
+	    plotargs.scaling = 0.01;
+
+	plotargs.imagesize = new Dimension {
+	    double width = dm.width * plotargs.scaling;
+	    double height = dm.height * plotargs.scaling;
+	};
+	plotargs.translation = new Point unroll(plotargs.offset);
+    } else {
+	if (plotargs.imagesize.height <= 0) {
+	    plotargs.scaling = plotargs.imagesize.width / dm.width;
+	    plotargs.imagesize.height = dm.height * plotargs.scaling;
+	    plotargs.translation = new Point unroll(plotargs.offset);
+	} else if (plotargs.imagesize.width <= 0) {
+	    plotargs.scaling = plotargs.imagesize.height / dm.height;
+	    plotargs.imagesize.width = dm.width * plotargs.scaling;
+	    plotargs.translation = new Point unroll(plotargs.offset);
+	} else {
+	    wd = plotargs.imagesize.width / dm.width;
+	    wl = plotargs.imagesize.height / dm.height;
+	    if (wl == wd) {
+		plotargs.scaling = wl;
+		plotargs.translation = new Point unroll(plotargs.offset);
+	    } else if (wd < wl) {
+		plotargs.scaling = wd;
+		plotargs.translation = new Point {
+		    double x = plotargs.offset.x;
+		    double y = plotargs.offset.y + ((plotargs.imagesize.height/wd) - dm.height)/2;
+		};
+	    } else {
+		plotargs.scaling = wl;
+		plotargs.translation = new Point {
+		    double x = plotargs.offset.x + ((plotargs.imagesize.width/wl) - dm.width)/2;
+		    double y = plotargs.offset.y;
+		};
+	    }
+	}
+	// sizetofit (0=None;1=X only;2=Y only;3=Both)
+	if (plotargs.sizetofit && plotargs.toggle) {
+	    wd = plotargs.imagesize.width / (dm.width * plotargs.scaling);
+	    wl = plotargs.imagesize.height / (dm.height * plotargs.scaling);
+	    if (wd < wl && (plotargs.sizetofit&0x02) && (wl - wd) > 0.01) {
+		plotargs.plotsize.height += (plotargs.imagesize.height/plotargs.scaling - dm.height);
+	    } else if (wd > wl && (plotargs.sizetofit&0x01) && (wd - wl) > 0.01) {
+		plotargs.plotsize.width += (plotargs.imagesize.width/plotargs.scaling - dm.width);
+	    }
+	    plotargs.toggle = 0;
+	    ByzComputeSizing(plotargs);
+	}
+    }
+}
+
+ByzDrawTitleFooterText(Graphics graphics, Dictionary plotargs) {
+    graphics {
+	if (plotargs.title@sizeof > 0) {
+	    gsave();
+	    translate(plotargs.plotsize.width/2, plotargs.padding + plotargs.titleheight - plotargs.offset.y);
+	    gsave();
+	    setfont(plotargs.titlefont);
+	    moveto(-stringbounds(plotargs.title).width/2, -plotargs.titlefont.descent);
+	    show(plotargs.title);
+	    grestore();
+	    if (plotargs.subtitle@sizeof > 0) {
+		moveto(-stringBounds(plotargs.subtitlefont, plotargs.subtitle).width/2, plotargs.titleheight - plotargs.subtitlefont.descent);
+		setfont(plotargs.subtitlefont);
+		show(plotargs.subtitle);
+	    }
+	    grestore();
+	}
+	if (plotargs.footerheight > 0) {
+	    if (plotargs.footer_left@sizeof > 0) {
+		gsave();
+		translate(plotargs.padding - plotargs.offset.x, plotargs.fullsize.height - plotargs.padding - plotargs.offset.y);
+		moveto(0,0);
+		setfont(plotargs.footerfont);
+		show(plotargs.footer_left);
+		grestore();
+	    }
+	    if (plotargs.footer_left@sizeof > 0) {
+		gsave();
+		translate(plotargs.plotsize.width/2, plotargs.fullsize.height - plotargs.padding - plotargs.offset.y);
+		setfont(plotargs.footerfont);
+		moveto(-stringbounds(plotargs.footer_center).width/2, 0);
+		show(plotargs.footer_center);
+		grestore();
+	    }
+	    if (plotargs.footer_right@sizeof > 0) {
+		gsave();
+		translate(plotargs.fullsize.width - plotargs.offset.x - plotargs.padding, plotargs.fullsize.height - plotargs.padding - plotargs.offset.y);
+		moveto(0, 0);
+		setfont(plotargs.footerfont);
+		moveto(-stringbounds(plotargs.footer_right).width, 0);
+		show(plotargs.footer_right);
+		grestore();
+	    }
+	}
+    }
+}
+
+ByzDrawLegend(Graphics graphics, Dictionary plotargs) {
+    Dimension lgdbox;
+    Point     xlate;
+    double    lgdwidth;
+    double    spc;
+    int       perline;
+    int       idx;
+
+    if (plotargs.legendlines > 0) {
+	lgdwidth = plotargs.legendtextwidth + plotargs.linesamplesize + plotargs.spacer + plotargs.legendgap;
+	perline = (int)(plotargs.plotsize.width / lgdwidth);
+	if (plotargs.legendlines > 1) {
+	    lgdbox.width = plotargs.spacer + perline * lgdwidth;
+	    lgdbox.height = plotargs.legendlines * plotargs.legendfont.height + plotargs.spacer;
+
+	    spc = plotargs.spacer/2 + (plotargs.legendlines - 1) * plotargs.legendfont.height + plotargs.legendfont.descent;
+	} else {
+	    lgdbox.height = plotargs.legendfont.height + plotargs.spacer;
+	    lgdbox.width = plotargs.spacer;
+	    lgdbox.width += (lgdwidth * plotargs.legendsize);
+
+	    spc = plotargs.spacer/2 + plotargs.legendfont.descent;
+	}
+	xlate.x = (plotargs.plotsize.width - lgdbox.width)/2;
+	xlate.y = plotargs.fullsize.height - plotargs.offset.y - plotargs.padding - plotargs.footerheight - ((plotargs.footerheight > 0) ? plotargs.spacer : 0);
+	graphics {
+	    gsave();
+	    translate(xlate.x, xlate.y);
+
+	    setgray(plotargs.legendgray);
+	    // legend box
+	    moveto(0,0);
+	    rlineto(0, -lgdbox.height);
+	    rlineto(lgdbox.width, 0);
+	    rlineto(0, lgdbox.height);
+	    rlineto(-lgdbox.width, 0);
+	    stroke();
+
+	    moveto(0,0);
+	    setgray(0);
+	    setfont(plotargs.legendfont);
+	    moveto(plotargs.spacer/2 - lgdwidth, -spc);
+	    spc = plotargs.spacer;
+	    for (ptr in plotargs.legend) {
+		idx = ptr@offset - plotargs.legend@offset;
+		if (idx >= max(plotargs.ydata@sizeof, plotargs.legendsize))
+		    break;
+		spc += lgdwidth;
+		if (spc > lgdbox.width) {
+		    spc = plotargs.spacer;
+		    rmoveto(-lgdwidth*perline, plotargs.legendfont.height);
+
+		    rmoveto(lgdwidth, 0);
+		    spc += lgdwidth;
+		} else {
+		    rmoveto(lgdwidth, 0);
+		}
+		if (plotargs.type == BYZGRAF_LINEPLOT) {
+		    gsave();
+		    rmoveto(0, -plotargs.legendfont.height/2+plotargs.legendfont.descent);
+		    setrgbcolor(plotargs._color[idx%plotargs._color@sizeof]);
+		    if (plotargs._line[idx%plotargs._line@sizeof]) {
+			gsave();
+			dasharray = plotargs._style[idx%plotargs._style@sizeof];
+			rlineto(plotargs.linesamplesize - BYZLEG, 0);
+			stroke();
+			dasharray = NULL;
+			grestore();
+		    }
+		    rmoveto(plotargs.linesamplesize - BYZLEG, 0);
+		    if (plotargs._mark[idx%plotargs._mark@sizeof] >= 0)
+			ByzDrawMark(NULL, graphics, plotargs._mark[idx%plotargs._mark@sizeof]);
+		    rmoveto(BYZLEG, 0);
+		    setgray(0);
+		    rmoveto(plotargs.legendgap, plotargs.legendfont.height/2-plotargs.legendfont.descent);
+		    show(plotargs.legend[idx%plotargs.legend@sizeof]);
+		    stroke();
+		    grestore();
+		} else if (ptr@offset < plotargs._color@sizeof) {
+		    gsave();
+		    rmoveto(0, -plotargs.legendfont.height/2+plotargs.legendfont.descent);
+		    setrgbcolor(plotargs._color[idx%plotargs._color@sizeof]);
+		    rmoveto(plotargs.linesamplesize - BYZLEG, 0);
+		    ByzDrawMark(NULL, graphics, 0);
+		    rmoveto(BYZLEG, 0);
+		    setgray(0);
+		    rmoveto(plotargs.legendgap, plotargs.legendfont.height/2-plotargs.legendfont.descent);
+		    show(plotargs.legend[idx%plotargs.legend@sizeof]);
+		    stroke();
+		    grestore();
+		}
+	    }
+	    for (ptr in plotargs.legend2) {
+		idx = ptr@offset - plotargs.legend2@offset;
+		if (idx >= max(plotargs.ydata2@sizeof, plotargs.legendsize - plotargs.ydata@sizeof))
+		    break;
+		spc += lgdwidth;
+		if (spc > lgdbox.width) {
+		    spc = plotargs.spacer;
+		    rmoveto(-lgdwidth*perline, plotargs.legendfont.height);
+
+		    rmoveto(lgdwidth, 0);
+		    spc += lgdwidth;
+		} else {
+		    rmoveto(lgdwidth, 0);
+		}
+		gsave();
+		rmoveto(0, -plotargs.legendfont.height/2+plotargs.legendfont.descent);
+		setrgbcolor(plotargs._color2[idx%plotargs._color2@sizeof]);
+		if (plotargs._line2[idx%plotargs._line2@sizeof]) {
+		    gsave();
+		    dasharray = plotargs._style2[idx%plotargs._style2@sizeof];
+		    rlineto(plotargs.linesamplesize - BYZLEG, 0);
+		    stroke();
+		    dasharray = NULL;
+		    grestore();
+		}
+		rmoveto(plotargs.linesamplesize - BYZLEG, 0);
+		if (plotargs._mark2[idx%plotargs._mark2@sizeof] >= 0)
+		    ByzDrawMark(NULL, graphics, plotargs._mark2[idx%plotargs._mark2@sizeof]);
+		rmoveto(BYZLEG, 0);
+		setgray(0);
+		rmoveto(plotargs.legendgap, plotargs.legendfont.height/2-plotargs.legendfont.descent);
+		show(plotargs.legend[idx%plotargs.legend@sizeof]);
+		stroke();
+		grestore();
+	    }
+
+	    stroke();
+	    grestore();
+	}
+    }
+}
+
+///////////////////////////////////////////
+//
+// The following three functions are the only ones
+// really intended for use outside of this file
+//
+///////////////////////////////////////////
+
+ByzMapPointToData(Point pt, Dictionary plotargs) {
+    Point dpt = NULL;
+
+    //
+    // We assume a legitimate plotargs
+    //
+    plotargs {
+	if (plotsize.height > 0 && plotsize.width > 0) {
+	    dpt = new Point {
+		double x = pt.x / scaling;
+		double y = pt.y / scaling;
+	    };
+	    dpt.x = xrange[0] - ((translation.x - dpt.x)/plotsize.width) * (xrange[1] - xrange[0]);
+	    dpt.y = yrange[0] + ((translation.y - dpt.y)/plotsize.height) * (yrange[1] - yrange[0]);
+	}
+    }
+
+    return(dpt);
+}
+
+ByzCheckPointInPlot(Point pt, Dictionary plotargs) {
+    Array       pathlist;
+    Dictionary  result = NULL;
+    Object      found = NULL;
+
+    //
+    // plotargs.path is an Array of dictionaries.
+    // Each Dictionary corresponds to a selectable object described by
+    // up to three strings: descA, descB and descC.
+    // Also in the dictionary are one or more arrays of paths. The arrays
+    // are called: fillpaths, eofillpaths and strokepaths, corresponding
+    // to draw components that have been filled, eofilled or stroked.
+    //
+
+    if (plotargs != NULL && defined("paths", plotargs)) {
+	for (ptr in plotargs.paths) {
+	    if (defined("fillpaths", *ptr) && (*ptr).fillpaths instanceof Array) {
+		for (path in (*ptr).fillpaths) {
+		    if (*path instanceof Path) {
+			if((*path).infill(pt)) {
+			    found = *ptr;
+			    break;
+			}
+		    }
+		}
+	    }
+	    if (found == NULL && defined("eofillpaths", *ptr) && (*ptr).eofillpaths instanceof Array) {
+		for (path in (*ptr).eofillpaths) {
+		    if (*path instanceof Path) {
+			if((*path).ineofill(pt)) {
+			    found = *ptr;
+			    break;
+			}
+		    }
+		}
+	    }
+	    if (found == NULL && defined("strokepaths", *ptr) && (*ptr).strokepaths instanceof Array) {
+		for (path in (*ptr).strokepaths) {
+		    if (*path instanceof Path) {
+			if((*path).instroke(pt)) {
+			    found = *ptr;
+			    break;
+			}
+		    }
+		}
+	    }
+	    if (found) {
+		result = new Dictionary {
+		    String descA = defined("descA", found) ? found.descA : NULL;
+		    String descB = defined("descB", found) ? found.descB : NULL;
+		    String descC = defined("descC", found) ? found.descC : NULL;
+		    Point  pt = ByzMapPointToData(pt, plotargs);
+		};
+	    }
+	}
+    }
+
+    return(result);
+}
+
+ByzPlotImage(int plottype, Array xdata, Array ydata, Dictionary bounds, String title, ...) {
+
+    Pointer    ptr;
+
+    Image      plot = NULL;
+    Dictionary plotargs[79,...] = { // common parts
+	int        type = plottype;
+	//
+	// Declare these both by way of "documentation" of options and
+	// to obviate need for checking if they are defined in dictionary
+	// before referring to them
+	//
+	Array      xdata = xdata;        // main x-axis data points
+	Array      ydata = ydata;        // main y-axis data points
+	Dictionary bounds = bounds;      // min/max axis bounds
+	String     title = title;        // main title
+
+	Dimension  plotsize = NULL;      // size of plot area
+	Dimension  imagesize = NULL;     // size of complete image
+
+	double     spacer = BYZSPACER;             // spacing between elements
+	String     format = BYZFORMAT;             // axis number format
+
+	String     subtitle = NULL;      // sub-title
+
+	Array      xdata2 = NULL;        // secondary x-axis data points
+	Array      ydata2 = NULL;        // secondary y-axis data points
+
+	Array      legend = NULL;        // legend for main x-y graph
+	Array      legend2 = NULL;       // legend for secondary x-y graph
+
+	Color      background = NULL;    // background color of plot area
+
+	String     footer_left = NULL;   // left footer text
+	String     footer_center = NULL; // center footer text
+	String     footer_right = NULL;  // right footer text
+
+	int        grid_vertical = FALSE;    // draw vertical grid if != 0
+	int        grid_horizontal = FALSE;  // draw horiz. grid if != 0
+	double     gridgray = BYZGRIDGRAY;      // gray value of grid 0 -> 1
+	double     legendgray = BYZLEGENDGRAY;  // gray value of legend box
+
+	double     legendgap = BYZLEGENDGAP;    // spacing btwn legend elems
+
+	Object     colors = NULL;      // colors for main data
+	Object     markers = NULL;     // markers for main data
+	Object     linestyles = NULL;  // line style for main data
+	Object     drawlines = NULL;   // 1/0 inidcator to suppress lines
+
+	Object     colors2 = NULL;     // colors for 2ndy data
+	Object     markers2 = NULL;    // markers for 2ndy data
+	Object     linestyles2 = NULL; // line styles for 2ndy data
+	Object     drawlines2 = NULL;  // 1/0 to suppress 2ndy lines
+
+	double     alpha = 1;          // alpha for image background
+	double     scaling = 1;        // ignored if imagesize is not NULL
+	int        sizetofit = 3;      // values are 0=no sizing; 1=just size width; 2=just size height; 3=size both
+
+	double     majorticklength = BYZMAJORTICK; // length of major tick
+	double     minorticklength = BYZMINORTICK; // length of minor tick
+
+	String     xlabel = NULL;        // main x-axis label
+	String     xsublabel = NULL;     // main x-axis sub-label
+	String     ylabel = NULL;        // main y-axis label
+	String     ysublabel = NULL;     // main y-axis sub-label
+
+	String     xlabel2 = NULL;       // secondary x-axis label
+	String     xsublabel2 = NULL;    // secondary x-axis sub-label
+	String     ylabel2 = NULL;       // secondary y-axis label
+	String     ysublabel2 = NULL;    // secondary y-axis sub-label
+
+	int        xmajorticks = 0;      // major tick count for main x-axis
+	int        xminorticks = 0;      // minor tick count for main x-axis
+	int        ymajorticks = 0;      // major tick count for main y-axis
+	int        yminorticks = 0;      // minor tick count for main y-axis
+	int        xmajorticks2 = 0;     // major tick count for 2ndy x-axis
+	int        xminorticks2 = 0;     // minor tick count for 2ndy x-axis
+	int        ymajorticks2 = 0;     // major tick count for 2ndy y-axis
+	int        yminorticks2 = 0;     // minor tick count for 2ndy y-axis
+
+	Array      xticklabels = NULL;    // tick label for main x-axis
+	Array      yticklabels = NULL;    // tick label for main y-axis
+	Array      xticklabels2 = NULL;   // tick label for 2ndy x-axis
+	Array      yticklabels2 = NULL;   // tick label for 2ndy y-axis
+
+	int        xticktext = TRUE;     // 1/0 label main x-axis
+	int        yticktext = TRUE;     // 1/0 label main y-axis
+	int        xticktext2 = FALSE;   // 1/0 label 2ndy x-axis
+	int        yticktext2 = FALSE;   // 1/0 label 2ndy y-axis
+
+	Font       titlefont = { String name = "Tahoma-bold-16"; };
+	Font       subtitlefont = { String name = "Tahoma-normal-14"; };
+	Font       tickfont = { String name = "Tahoma-normal-12"; };
+	Font       labelfont = { String name = "Tahoma-normal-12"; };
+	Font       sublabelfont = { String name = "Tahoma-normal-10"; };
+	Font       legendfont = { String name = "Tahoma-normal-10"; };
+	Font       footerfont = { String name = "Tahoma-normal-8"; };
+
+	double     padding = BYZPADDING;   // padding at edge of image
+
+	//
+	// computed, but minimum value can be set
+	//
+	double     titleheight = 0;     // height of title text
+	double     subtitleheight = 0;  // height of subtitle text
+	double     labelheight = 0;     // height of main x-axis label text
+	double     sublabelheight = 0;  // ht. of main x-axis sublabel text
+	double     labelwidth = 0;      // height of main y-axis label text
+	double     sublabelwidth = 0;   // ht. of main y-axis sublabel text
+	double     label2height = 0;    // height of 2ndy x-axis label text
+	double     sublabel2height = 0; // ht. of 2ndy x-axis sublabel text
+	double     label2width = 0;     // height of 2ndy y-axis label text
+	double     sublabel2width = 0;  // ht. of 2ndy y-axis sublabel text
+	double     legendheight = 0;    // height of legend text
+	double     legendtextwidth = 0; // max width of legend text elem.
+	double     footerheight = 0;    // height of footer text
+
+	double     xtickspacer = 0;     // max width of main x tick labels
+	double     ytickspacer = 0;     // max width of main y tick labels
+	double     xtickspacer2 = 0;    // max width of 2ndy x tick labels
+	double     ytickspacer2 = 0;    // max width of 2ndy y tick labels
+
+	Point      translation;
+	Array      paths[0,...];
+	Image      plotimage = NULL;
+    };
+
+    //
+    // Create default plotargs dictionary based on plot type
+    //
+    switch(plottype) {
+    case BYZGRAF_LINEPLOT:
+	plotargs { // specific parts
+	    // No specifics
+	}
+	break;
+
+    case BYZGRAF_HISTOGRAM:
+	plotargs { // specific parts
+	    double     bargrouptospaceratio = 0.2;
+	    double     subbarspaceratio = 0.25;
+	    double     plotpadratio = 0;
+	    double     maxbarwidthratio = 0.1;
+	}
+	break;
+
+    case BYZGRAF_STATPLOT:
+	plotargs { // specific parts
+	    double     bargrouptospaceratio = 0.2;
+	    double     subbarspaceratio = 0.25;
+	    double     plotpadratio = 0;
+	    double     maxbarwidthratio = 0.10;
+	}
+	break;
+    }
+
+    if (plotargs != NULL) {
+	for (ptr = &title + 1; ptr@sizeof > 0; ptr++) {
+	    if (*ptr instanceof String) {
+		if (ptr@sizeof > 1)
+		    plotargs[*ptr] = *++ptr;
+	    } else if (*ptr instanceof Dictionary)
+		unroll(*ptr, plotargs);
+	}
+
+	plotargs.toggle = 1;
+	ByzComputeSizing(plotargs);
+
+
+	plot = new Image {
+	    Dictionary plotargs = plotargs;
+	    int hasalpha = plotargs.alpha >= 0 && plotargs.alpha <= 1 && plotargs.alpha != 1;
+	    int type = hasalpha ? TYPE_RGB_ALPHA : TYPE_RGB;
+
+	    Dimension size = plotargs.imagesize;
+
+	    Graphics graphics = {
+		int   antialiasing = TRUE;
+		int   textantialiasing = TRUE;
+	    };
+
+
+	    paint(Rectangle r) {
+
+		graphics {
+		    gsave();
+		    // solid white background
+		    rectclip(r);
+		    clippath();
+		    setgray(1);
+		    gsave();
+		    fill(plotargs.alpha);
+		    grestore();
+		    stroke(plotargs.alpha);
+
+		    setrgbcolor(0, 0, 0); // black (default)
+
+		    scale(plotargs.scaling, plotargs.scaling);
+
+		    translate(plotargs.translation.x, plotargs.translation.y);
+
+		    ByzDrawGrid(graphics, plotargs);
+
+		    ByzDrawAxis(graphics, plotargs, true, true);
+		    ByzDrawAxis(graphics, plotargs, false, true);
+		    ByzDrawAxis(graphics, plotargs, true, false);
+		    ByzDrawAxis(graphics, plotargs, false, false);
+
+		    switch(plotargs.type) {
+		    case BYZGRAF_LINEPLOT:
+			ByzLinePlot(graphics, plotargs);
+			break;
+		    case BYZGRAF_HISTOGRAM:
+			ByzHistogram(graphics, plotargs);
+			break;
+		    case BYZGRAF_STATPLOT:
+			ByzStatPlot(graphics, plotargs);
+			break;
+		    }
+
+		    ByzDrawTitleFooterText(graphics, plotargs);
+
+		    ByzDrawLegend(graphics, plotargs);
+
+		    grestore();
+		}
+	    }
+	};
+    }
+
+    plotargs.plotimage = plot;
+
+    return(plotargs);
+}

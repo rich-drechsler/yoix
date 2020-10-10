@@ -1,0 +1,25 @@
+import yoix.*.*;
+
+JFrame f = {
+    Color background = Color.black;
+    paint(Rectangle rect) {
+        graphics {
+            gsave();
+            arc(0, 0, 72, 0, 360);
+            setrgbcolor(1, 0, 0);
+            fill();
+	    translate(size.width/2, size.height/2);
+            arc(0, 0, 72, 0, 360);
+            setrgbcolor(0, 1, 0);
+            fill();
+	    translate(size.width/2, size.height/2);
+            arc(0, 0, 72, 0, 360);
+            setrgbcolor(0, 0, 1);
+            fill();
+            grestore();
+         }
+    }
+};
+
+f.visible = TRUE;
+

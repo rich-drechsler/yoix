@@ -1,0 +1,49 @@
+//
+// Simple line doodler that uses an image to paint.
+//
+
+import yoix.*.*;
+
+Image img = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+    int    type = TYPE_RGB;
+};
+
+JFrame f = {
+    Color background = Color.black;
+
+    Dimension size = {
+	double width = 10*72;
+	double height = 8*72;
+    };
+
+    Graphics graphics = {
+	double linewidth = 18;
+	double linecap = CAP_ROUND;
+	Object foreground = img;
+    };
+
+    int connected = TRUE;
+
+    mousePressed(Event e) {
+	if (e.modifiers & BUTTON2_MASK)
+	    connected = !connected;
+	if (e.modifiers & BUTTON3_MASK)
+	    graphics.erasedrawable();
+	graphics.moveto(e.coordinates.x, e.coordinates.y);
+    }
+
+    mouseDragged(Event e) {
+	double x = e.coordinates.x;
+	double y = e.coordinates.y;
+	if (connected) {
+	    graphics {
+		lineto(x, y);
+		stroke();
+		moveto(x, y);
+	    }
+	} else graphics.rectfill(x, y, 2*VM.screen.pixelwidth, 2*VM.screen.pixelheight);
+    }
+};
+
+f.visible = TRUE;

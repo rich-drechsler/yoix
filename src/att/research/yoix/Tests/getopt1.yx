@@ -1,0 +1,26 @@
+import yoix.*.*;
+
+Option option;
+int    ch;
+
+while ((ch = getopt(option, global.argv, "a:bcx:y:")) != -1) {
+    switch (ch) {
+        case 'a':
+        case 'x':
+        case 'y':
+            printf("ch=%c, optarg=%s\n", ch, option.optarg);
+            break;
+
+        case 'b':
+        case 'c':
+            printf("ch=%c\n", ch);
+            break;
+
+        case '?':
+            fprintf(stderr, "Error: %s\n", option.opterror);
+            break;
+    }
+}
+
+printf("Remaining arguments: %O\n", global.argv + option.optind);
+

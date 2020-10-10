@@ -1,0 +1,211 @@
+//
+// New implementation of the Yoix logo.
+//
+
+import yoix.*.*;
+
+BuildYoixLogoImage(double pointsize, Color color, int addshadow) {
+
+    GenImage(Font imagefont, Color color) {
+	Rectangle textrect;
+	Rectangle rect;
+	Dimension delta;
+	double    radius;
+	Font      regfont;
+
+	//
+	// Construct the font used for the registered mark. We translate
+	// the font so there's no need to move when we use it to show the
+	// registered mark.
+	//
+
+	rect = stringBounds(imagefont, "\xAE", TRUE);
+	delta = imagefont.matrix.idtransform(0, rect.y);
+	regfont = imagefont.scalefont(0.5, 0.5).translatefont(0.0, delta.height);
+
+	//
+	// Estimate the radius of a circle that covers all Y characters
+	// that make up the logo.
+	//
+
+	rect = stringBounds(imagefont, "Y", TRUE);
+	radius = sqrt(rect.width*rect.width + rect.height*rect.height);
+
+	//
+	// Now build a rectangle that's supposed to cover everything. We
+	// could add some slop here, but so far it's not necessary. This
+	// is also where we could account for any extra horizontal spacing
+	// that's added when we print the text string.
+	//
+
+	textrect = stringBounds(imagefont, "Yoix");
+	textrect.width += radius + stringWidth(regfont, "\xAE") - 0.30 * rect.width - 0.6 * stringBounds(imagefont, "i", TRUE).width;
+	textrect.height = 2.0 * radius;
+
+	Image yoixlogo = {
+	    double radius = radius;
+	    Color  imgcolor = color;
+	    Font   imagefont = imagefont;
+	    Font   regfont = regfont;
+	    int    type = TYPE_RGB_ALPHA;
+
+	    Graphics graphics = {
+		Color foreground = imgcolor;
+		Font  font = imagefont;
+		int   textantialiasing = TRUE;
+	    };
+
+	    Dimension size = {
+		// assumes proportional shadow offsets of (0.005, 0.02)
+		double width = textrect.width   * 1.01;
+		double height = textrect.height * 1.04;
+	    };
+
+	    paint(Rectangle r) {
+		double alpha = 1.0;
+		double alpha2 = 0.3333;
+		int    limit = 12;
+		int    n;
+
+
+		kerner(int c0, int c1) {
+		    String str[1];
+		    double width;
+
+		    switch(c0) {
+		    case 'Y':
+			*str = c0;
+			width = stringBounds(font, str, TRUE).width;
+			rmoveto(-0.30*width, 0.0);
+			break;
+
+		    case 'o':
+			*str = c1;
+			width = stringBounds(font, str, TRUE).width;
+			rmoveto(-0.5*width, 0.0);
+			break;
+
+		    case 'i':
+			*str = c0;
+			width = stringBounds(font, str, TRUE).width;
+			rmoveto(-0.1 * width, 0.0);
+			break;
+		    }
+		}
+
+                graphics {
+                    gsave();
+                    erasedrawable(0.0);
+                    rectclip(r);
+		    // assumes proportional shadow offsets of (0.005, 0.02)
+		    translate(this.radius + 0.005 * this.size.width, this.size.height/2.0);
+                    for (n = 0; n < limit; n++) {
+                        moveto(0.0, 0.0);
+                        setfont(this.imagefont);
+                        if (n == 0) {
+                            kshow(kerner, "Yoix", alpha);
+                            setfont(this.regfont);
+                            show("\xAE", alpha);
+                            alpha = alpha2;
+                        } else show("Y", alpha);
+                        alpha *= 0.75;
+                        rotate(30);
+                    } 
+                    grestore();
+                }
+	    }
+	};
+
+	return(yoixlogo);
+    }
+
+    Font basefont = {
+	String name = "ClearviewATT-plain-48";
+    };
+
+    Font imagefont = basefont.scalefont(pointsize/basefont.size, pointsize/basefont.size);
+
+    Image image;
+
+    if (addshadow) {
+	Image logo = GenImage(imagefont, color);
+	image = new Image {
+	    int type = TYPE_RGB_ALPHA;
+
+	    Image source = logo;
+	    Image img = logo;
+	    Image shadow = new Image {
+		Image source = img;
+		Array kernel = new Array[100];
+		int   type = TYPE_RGB_ALPHA;
+
+		for (ptr in kernel)
+		    *ptr = 0.0055;
+
+		paint() {
+		    convolve(kernel);
+		}
+	    };
+
+	    paint(Rectangle r) {
+		graphics {
+		    gsave();
+		    moveto(0, 0);
+		    showimage(this.img);
+		    // uses proportional shadow offsets of (0.005, 0.02)
+		    moveto(this.img.size.height * 0.005, this.img.size.height * 0.02);
+		    showimage(this.shadow);
+		    grestore();
+		}
+	    }
+	};
+    } else image = GenImage(imagefont, color);
+
+    return(image);
+}
+
+//
+// First arg is pointsize of the primary font used by the logo, second arg
+// is either 0/1 to indicate shadow/no-shadow, any other value is considered
+// a filename into which file the generated image will be written.
+//
+
+double sz = (argc > 1) ? atof(argv[1]) : 144;
+int    shdw = 1;
+int    print = 0;
+
+if (argc > 2) {
+    if (argv[2] =~ "^[01]$") {
+	shdw = atoi(argv[2]);
+    } else {
+	print = 1;
+    }
+}
+
+Image yoixlogo = BuildYoixLogoImage(sz, Color.black, (sz >= 18) && shdw);
+
+if (print) {
+    Stream output;
+    if ((output = open(argv[2], "w", FILE)) != NULL) {
+	encodeImage(yoixlogo, "png", output);
+	close(output);
+    }
+} else {
+    JFrame jf = {
+	Dimension size = NULL;
+	int       visible = TRUE;
+
+	Array layout = {
+	    new JPanel {
+		Dimension preferredsize = {
+		    double width = yoixlogo.size.width;
+		    double height = yoixlogo.size.height;
+		};
+		Color background = Color.white;
+		Image backgroundimage = yoixlogo;
+		int   backgroundhints = SCALE_NONE;
+	    },
+	};
+    };
+}
+

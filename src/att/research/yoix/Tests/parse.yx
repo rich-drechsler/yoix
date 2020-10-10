@@ -1,0 +1,258 @@
+import yoix.io.*;
+import yoix.parser.*;
+import yoix.stdio.*;
+import yoix.string.*;
+import yoix.util.*;
+
+indent(int depth) {
+    String ind = "";
+    
+    while(depth-- > 0) {
+	ind += " ";
+    }
+
+    return(ind);
+}
+
+ParseTree tree;
+File f;
+String buf, gr;
+Option  option;
+int     ch;
+String filename = null;
+String parser = "PARSER_XML";
+int addtags = 0;
+
+while ((ch = getopt(option, global.argv, "af:p:")) != -1) {
+    switch(ch) {
+    case 'a':
+	addtags = 1;
+	break;
+    case 'f':
+	filename = option.optarg;
+	break;
+    case 'p':
+	parser = toUpperCase(option.optarg);
+	break;
+    case '?':
+	fprintf(stderr, "ERROR: %s: %s\n", argv[0], option.opterror);
+	exit(1);
+	break;
+    }
+}
+
+if(filename != null) {
+    if((f = fopen(filename, "r")) == null) {
+	fprintf(stderr, "ERROR: %s: could not open '%s' for reading\n", argv[0], filename);
+	exit(2);
+    }
+
+    while(f && (buf = f.nextbuf)) {
+	gr += buf;
+    }
+} else {
+    gr = "\
+<?xml version=\"1.0\" ?>\n\
+<!DOCTYPE graphml SYSTEM \"graphml+gd.dtd\">\n\
+<graphml>\n\
+ <!-- node attribute of type paint with default value -->\n\
+ <key id=\"npaint\" for=\"node\" gd:type=\"paint\">\n\
+  <paint red=\"255\" blue=\"228\" green=\"255\"/>\n\
+ </key>\n\
+\n\
+ <!-- edge attribute of type paint with default value -->\n\
+ <key id=\"epaint\" for=\"edge\" gd:type=\"paint\">\n\
+  <paint red=\"0\" blue=\"0\" green=\"0\" style=\"solid\"/>\n\
+ </key>\n\
+\n\
+ <!-- node attribute of type point with default value -->\n\
+ <key id=\"ngeom\" for=\"node\" gd:type=\"point\">\n\
+  <point shape=\"circle\" width=\"25\" height=\"25\"/>\n\
+ </key>\n\
+\n\
+ <!-- edge attribute of type line with default value -->\n\
+ <key id=\"egeom\" for=\"edge\" gd:type=\"line\">\n\
+  <line shape=\"poly\" width=\"1\"/>\n\
+ </key>\n\
+\n\
+ <!-- node attribute of type label with default value -->\n\
+ <key id=\"nlabel\" for=\"node\" gd:type=\"label\">\n\
+  <label font=\"bold\" size=\"14\" text=\"\"/>\n\
+ </key>\n\
+\n\
+ <!-- edge attribute of type label with default value -->\n\
+ <key id=\"elabel\" for=\"edge\" gd:type=\"label\">\n\
+  <label font=\"roman\" size=\"12\" text=\"\"/>\n\
+ </key>\n\
+\n\
+ <graph id=\"G\" edgedefault=\"directed\">\n\
+  <node id=\"v0\">\n\
+   <data key=\"nlabel\"><label text=\"G\"/></data>\n\
+   <data key=\"ngeom\">\n\
+    <point width=\"42\" height=\"42\">\n\
+     <pos x=\"144.66\" y=\"384.978\"/>\n\
+    </point>\n\
+   </data>\n\
+  </node>\n\
+  <node id=\"v1\">\n\
+   <data key=\"nlabel\"><label text=\"G\"/></data>\n\
+   <data key=\"ngeom\">\n\
+    <point width=\"42\" height=\"42\">\n\
+     <pos x=\"34.5195\" y=\"389.895\"/>\n\
+    </point>\n\
+   </data>\n\
+  </node>\n\
+  <node id=\"v2\">\n\
+   <data key=\"nlabel\"><label text=\"G\"/></data>\n\
+   <data key=\"ngeom\">\n\
+    <point width=\"42\" height=\"42\">\n\
+     <pos x=\"33.5361\" y=\"224.684\"/>\n\
+    </point>\n\
+   </data>\n\
+  </node>\n\
+  <node id=\"v3\">\n\
+   <data key=\"nlabel\"><label text=\"G\"/></data>\n\
+   <data key=\"ngeom\">\n\
+    <point width=\"42\" height=\"42\">\n\
+     <pos x=\"198.747\" y=\"225.668\"/>\n\
+    </point>\n\
+   </data>\n\
+  </node>\n\
+  <node id=\"v4\">\n\
+   <data key=\"nlabel\"><label text=\"G\"/></data>\n\
+   <data key=\"ngeom\">\n\
+    <point width=\"42\" height=\"42\">\n\
+     <pos x=\"199.73\" y=\"306.307\"/>\n\
+    </point>\n\
+   </data>\n\
+  </node>\n\
+  <node id=\"v5\">\n\
+   <data key=\"nlabel\"><label text=\"G\"/></data>\n\
+   <data key=\"ngeom\">\n\
+    <point width=\"42\" height=\"42\">\n\
+     <pos x=\"115.158\" y=\"308.273\"/>\n\
+    </point>\n\
+   </data>\n\
+  </node>\n\
+  <node id=\"v6\">\n\
+   <data key=\"nlabel\"><label text=\"D\"/></data>\n\
+   <data key=\"ngeom\">\n\
+    <point shape=\"rectangle\" width=\"32\" height=\"32\">\n\
+     <pos x=\"298.07\" y=\"387.929\"/>\n\
+    </point>\n\
+   </data>\n\
+   <data key=\"npaint\">\n\
+    <paint red=\"12\" blue=\"160\" green=\"179\"/>\n\
+   </data>\n\
+  </node>\n\
+  <node id=\"v7\">\n\
+   <data key=\"nlabel\"><label text=\"D\"/></data>\n\
+   <data key=\"ngeom\">\n\
+    <point shape=\"rectangle\" width=\"32\" height=\"32\">\n\
+     <pos x=\"291.186\" y=\"229.601\"/>\n\
+    </point>\n\
+   </data>\n\
+   <data key=\"npaint\">\n\
+    <paint red=\"12\" blue=\"160\" green=\"179\"/>\n\
+   </data>\n\
+  </node>\n\
+  <node id=\"v8\">\n\
+   <data key=\"nlabel\"><label text=\"D\"/></data>\n\
+   <data key=\"ngeom\">\n\
+    <point shape=\"rectangle\" width=\"32\" height=\"32\">\n\
+     <pos x=\"411.161\" y=\"353.51\"/>\n\
+    </point>\n\
+   </data>\n\
+   <data key=\"npaint\">\n\
+    <paint red=\"12\" blue=\"160\" green=\"179\"/>\n\
+   </data>\n\
+  </node>\n\
+  <node id=\"v9\">\n\
+   <data key=\"nlabel\"><label text=\"D\"/></data>\n\
+   <data key=\"ngeom\">\n\
+    <point shape=\"rectangle\" width=\"32\" height=\"32\">\n\
+     <pos x=\"408.211\" y=\"254.186\"/>\n\
+    </point>\n\
+   </data>\n\
+   <data key=\"npaint\">\n\
+    <paint red=\"12\" blue=\"160\" green=\"179\"/>\n\
+   </data>\n\
+  </node>\n\
+  <edge source=\"v0\" target=\"v1\">\n\
+   <data key=\"egeom\">\n\
+    <line width=\"3\"/>\n\
+   </data>\n\
+  </edge>\n\
+  <edge source=\"v1\" target=\"v2\">\n\
+   <data key=\"egeom\">\n\
+    <line width=\"3\"/>\n\
+   </data>\n\
+  </edge>\n\
+  <edge source=\"v2\" target=\"v3\">\n\
+   <data key=\"egeom\">\n\
+    <line width=\"3\"/>\n\
+   </data>\n\
+  </edge>\n\
+  <edge source=\"v3\" target=\"v4\">\n\
+   <data key=\"egeom\">\n\
+    <line width=\"3\"/>\n\
+   </data>\n\
+  </edge>\n\
+  <edge source=\"v4\" target=\"v5\">\n\
+   <data key=\"egeom\">\n\
+    <line width=\"3\"/>\n\
+   </data>\n\
+  </edge>\n\
+  <edge source=\"v6\" target=\"v7\" directed=\"false\">\n\
+   <data key=\"egeom\">\n\
+    <line width=\"3\"/>\n\
+   </data>\n\
+  </edge>\n\
+  <edge source=\"v6\" target=\"v8\" directed=\"false\">\n\
+   <data key=\"egeom\">\n\
+    <line width=\"3\"/>\n\
+   </data>\n\
+  </edge>\n\
+  <edge source=\"v8\" target=\"v9\" directed=\"false\">\n\
+   <data key=\"egeom\">\n\
+    <line width=\"3\"/>\n\
+   </data>\n\
+  </edge>\n\
+  <edge source=\"v9\" target=\"v7\" directed=\"false\">\n\
+   <data key=\"egeom\">\n\
+    <line width=\"3\"/>\n\
+   </data>\n\
+  </edge>\n\
+ </graph>\n\
+</graphml>\n\
+";
+}
+
+tree.addtags = addtags;
+tree.parser = yoix.parser[parser];
+tree.parse = gr;
+
+if(tree.errordict) {
+    fprintf(stderr, "ERROR: %s: %s\n", argv[0], tree.errordict.message);
+    exit(1);
+}
+
+ParseTree node;
+
+// same output as tree.tree
+while(tree.walk(node)) {
+    switch(node.length) {
+    case -1:
+	printf("%s<%s>\n", indent(node.depth), tokenImage(node.type, tree.parser));
+	break;
+    case 0:
+	printf("%s<%s %O>\n", indent(node.depth), tokenImage(node.type, tree.parser), node.value);
+	break;
+    default:
+	printf("%s<%s <#%d>>\n", indent(node.depth), tokenImage(node.type, tree.parser), node.length);
+	break;
+    }
+}
+
+exit(0);
+

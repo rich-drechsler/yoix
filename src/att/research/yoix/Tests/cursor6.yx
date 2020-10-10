@@ -1,0 +1,70 @@
+//
+// Another cursor animation example, this time using mouseWheelMoved().
+//
+
+import yoix.*.*;
+
+Dimension CURSOR_SIZE = getBestCursorSize(72.0, 72.0);
+double    CURSOR_LINEWIDTH = 1.0;
+
+Array  cursors[0, ...];
+double radius;
+double start;
+double limit;
+
+PaintCircle(Dimension size, double radius, double linewidth) {
+    Image image = {
+	Dimension size = size;
+	double    radius = radius;
+	double    linewidth = linewidth;
+	int       type = TYPE_RGBA;
+
+	Graphics graphics = {
+	    double linewidth = linewidth;
+	    int    antialiasing = 1;
+	    int    rendering = 1;		// probably no help
+	};
+
+	Point hotspot = {
+	    double x = size.width/2;
+	    double y = size.height/2;
+	};
+
+	paint(Rectangle rect) {
+	    graphics {
+		arc(hotspot.x, hotspot.y, radius, 0, 360);
+		setrgbcolor(1.0, 0, 0);
+		stroke();
+	    }
+	}
+    };
+
+    return(image);
+}
+
+start = max(3, 3*CURSOR_LINEWIDTH);
+limit = floor((CURSOR_SIZE.width - CURSOR_LINEWIDTH)/2);
+
+for (radius = start; radius < limit; radius += 1.0) {
+    cursors[cursors@sizeof] = new Dictionary {
+	String name = strfmt("CIRCLE %d", radius);
+	double radius = radius;
+	Image  image = PaintCircle(CURSOR_SIZE, radius, CURSOR_LINEWIDTH);
+    };
+}
+
+for (ptr in cursors)
+    addCursor(ptr[0].name, ptr[0].image);
+
+JFrame frame = {
+    String cursor = cursors[0].name;
+    int    index = 0;
+
+    mouseWheelMoved(e) {
+	index = max(0, min(cursors@sizeof - 1, index - e.wheelrotation));
+	cursor = cursors[index].name;
+    }
+};
+
+frame.visible = TRUE;
+

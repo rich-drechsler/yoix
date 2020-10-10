@@ -1,0 +1,49 @@
+//
+// Simple example that shows how images can be used as the background
+// of a Canvas.
+//
+
+import yoix.*.*;
+
+Image img = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+    Color  background = NULL;
+    int    type = TYPE_RGB_ALPHA;
+
+    double alpha = 0.0;
+
+    Graphics graphics = {
+	String font = "Helvetical-bold-10";
+    };
+
+    paint() {
+	Rectangle bounds;
+
+	graphics {
+	    gsave();
+	    erasedrawable(alpha);
+	    alpha += .05;
+	    moveto(0, 0);
+	    charpath(">>>");
+	    bounds = pathbbox();
+	    grestore();
+	    gsave();
+	    scale(size.width/bounds.width, size.height/bounds.height);
+	    moveto(-bounds.x, -bounds.y);
+	    show(">>>");
+	    grestore();
+	}
+    }
+};
+
+JFrame f = {
+    paint(Rectangle rect) {
+	img.repaint();
+	img.type = TYPE_GRAY;
+	graphics.moveto(100, 100);
+	graphics.showimage(img);
+    }
+};
+
+f.visible = TRUE;
+

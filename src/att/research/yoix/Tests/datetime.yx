@@ -1,0 +1,676 @@
+//
+//
+// Demo for Locale, TimeZone, Calendar and general date manipulation.
+// You won't see much if your version of Java does not
+// support a reasonable set of Calendar locales. The releases from
+// Sun are good.
+//
+// Haven't tried to convert this to Swing yet - maybe later.
+//
+
+import yoix.*.*;
+
+final int	FIELD_COLUMNS = 50;
+
+String		titleFont = "TimesRoman-bold-18";
+String		labelFont = "TimesRoman-bold-14";
+String		editFont = "Helvetica-plain-14";
+
+int		dflt_isLocalized = FALSE;
+int		dflt_notLenient = FALSE;
+String		dflt_datestyle = toString(DateFormat.DEFAULT);
+String		dflt_timestyle = toString(DateFormat.DEFAULT);
+String		dflt_timefield = toString(Calendar.MONTH);
+String		dflt_locale = "English (United States)";
+int		dflt_addmode = FALSE;
+int		dflt_stylemode = DateFormat.DATETIME;
+
+//
+// No need to make changes beyond this point.
+//
+
+int		isLocalized = dflt_isLocalized;
+int		notLenient = dflt_notLenient;
+int		datestyle = atoi(dflt_datestyle);
+int		timestyle = atoi(dflt_timestyle);
+int		timefield = atoi(dflt_timefield);
+int		addmode = dflt_addmode;
+int		stylemode = dflt_stylemode;
+String		millText;
+String		unixText;
+String		dateText;
+String		frmtText;
+
+int		keep_format = FALSE;
+
+int		i, j;
+
+Calendar	calendar = {
+    double unixtime = yoix.system.time();
+};
+
+final int	NOT_TEXT = 0;
+final int	DATETEXT = 1;
+final int	UNIXTEXT = 2;
+final int	MILLTEXT = 3;
+final int	FRMTTEXT = 4;
+
+final Insets	gbc_insets = {
+    int	left = 2;
+    int	right = 2;
+    int	top = 2;
+    int	bottom = 2;
+};
+
+// 
+// Create timezone entries
+//
+
+Array ids = getTimeZoneIDs();
+Dictionary zones[ids@length, ...];
+for(ptr in ids) {
+    zones[*ptr] = getTimeZone(*ptr);
+    if ((nm = zones[*ptr].displayname(FALSE)) !== *ptr)
+	zones[nm] = zones[*ptr];
+    if ((nm = zones[*ptr].displayname(TRUE)) !== *ptr)
+	zones[nm] = zones[*ptr];
+}
+    
+
+//
+// Relate cities to locale display names and timezones.
+// If the locale displayname and the center column do not
+// match, then the city will not appear in the menu.
+//
+
+Array		cityInfo = {
+    "Athens",           "Greek (Greece)",               "Europe/Athens",
+    "Amsterdam",	"Dutch (Netherlands)",		"Europe/Amsterdam",
+    "Asuncion",		"Spanish (Paraguay)",		"America/Asuncion",
+    "Auckland",		"English (New Zealand)",	"Pacific/Auckland",
+    "Barcelona",	"Catalan (Spain)",		"Europe/Madrid",
+    "Berlin",		"German (Germany)",		"Europe/Berlin",
+    "Bogota",		"Spanish (Colombia)",		"America/Bogota",
+    "Brussels",		"French (Belgium)",		"Europe/Brussels",
+    "Bucharest",	"Romanian (Romania)",		"Europe/Bucharest",
+    "Budapest",		"Hungarian (Hungary)",		"Europe/Budapest",
+    "Buenos Aires",	"Spanish (Argentina)",		"America/Buenos_Aires",
+    "Copenhagen",	"Danish (Denmark)",		"Europe/Copenhagen",
+    "Dublin",		"English (Ireland)",		"Europe/Dublin",
+    "Geneva",		"French (Switzerland)",		"Europe/Zurich",
+    "Helsinki",		"Finnish (Finland)",		"Europe/Helsinki",
+    "Johannesburg",	"English (South Africa)",	"Africa/Johannesburg",
+    "Lisbon",		"Portuguese (Portugal)",	"Europe/Lisbon",
+    "London",		"English (United Kingdom)",	"Europe/London",
+    "Lugano",		"Italian (Switzerland)",	"Europe/Zurich",
+    "Luxembourg",	"French (Luxembourg)",		"Europe/Luxembourg",
+    "Madrid",		"Spanish (Spain)",		"Europe/Madrid",
+    "Mexico City",	"Spanish (Mexico)",		"America/Mexico_City",
+    "Montreal",		"French (Canada)",		"America/Montreal",
+    "New York",		"English (United States)",	"America/New_York",
+    "Oslo",		"Norwegian (Norway,NY)",	"Europe/Oslo",
+    "Paris",		"French (France)",		"Europe/Paris",
+    "Prague",		"Czech (Czech Republic)",	"Europe/Prague",
+    "Reykjavik",	"Icelandic (Iceland)",		"Atlantic/Reykjavik",
+    "Riga",		"Latvian (Lettish) (Latvia)",	"Europe/Riga",
+    "Rome",		"Italian (Italy)",		"Europe/Rome",
+    "San Juan",		"Spanish (Puerto Rico)",	"America/Puerto_Rico",
+    "Sao Paulo",	"Portuguese (Brazil)",		"America/Sao_Paulo",
+    "Shanghai",          "Chinese (China)",              "Asia/Shanghai",
+    "Stockholm",	"Swedish (Sweden)",		"Europe/Stockholm",
+    "Sydney",		"English (Australia)",		"Australia/Sydney",
+    "Tallinn",		"Estonian (Estonia)",		"Europe/Tallinn",
+    "Tokyo",            "Japanese (Japan)",             "Asia/Tokyo",
+    "Vancouver",	"English (Canada)",		"America/Vancouver",
+    "Vienna",		"German (Austria)",		"Europe/Vienna",
+    "Vilnius",		"Lithuanian (Lithuania)",	"Europe/Vilnius",
+    "Zagreb",		"Croatian (Croatia)",		"Europe/Zagreb",
+    "Zurich",		"German (Switzerland)",		"Europe/Zurich",
+};
+
+Array		locales = getCalendarLocales();
+Dictionary	localeMap[locales@length];
+Array		cityItems[2,...];
+Array		localeItems[2,...];
+Dictionary	tzMap[1,...];
+
+format(width, anc) {
+    GridBagConstraints	gbc = {
+	int	gridwidth = width;
+	int	anchor = anc;
+	int	fill = VERTICAL;
+	double	weightx = 1;
+	Insets	insets = gbc_insets;
+    };
+    return(gbc);
+}
+
+resetForm() {
+    keep_format = FALSE;
+
+    isLocalized = dflt_isLocalized;
+    notLenient = dflt_notLenient;
+    datestyle = atoi(dflt_datestyle);
+    timestyle = atoi(dflt_timestyle);
+    timefield = atoi(dflt_timefield);
+    addmode = dflt_addmode;
+    stylemode = dflt_stylemode;
+
+    demo.components["localizedBox"].state = dflt_isLocalized;
+    demo.components["lenientBox"].state = dflt_notLenient;
+    demo.components["cityChoice"].selected = dflt_locale;
+    demo.components["localeChoice"].selected = dflt_locale;
+    demo.components["rollBox"].state = dflt_addmode == FALSE;
+    demo.components["addBox"].state = dflt_addmode == TRUE;
+    demo.components["dateBox"].state = dflt_stylemode == Calendar.DATE;
+    demo.components["timeBox"].state = dflt_stylemode == DateFormat.TIME;
+    demo.components["datetimeBox"].state = dflt_stylemode == DateFormat.DATETIME;
+    demo.components["dateStyleChoice"].selected = dflt_datestyle;
+    demo.components["timeStyleChoice"].selected = dflt_timestyle;
+
+    calendar.unixtime = yoix.system.time();
+
+    setTextFields(NOT_TEXT);
+}
+
+setTextFields(caller) {
+    String localeText = demo.components["localeChoice"].selected;
+    TimeZone tz = tzMap[localeText];
+    Locale lc = localeMap[localeText];
+    int frmterr = FALSE;
+    String format_text;
+    String date_text;
+    double millitime;
+
+    if(caller == FRMTTEXT || keep_format) {
+	format_text = demo.components["frmtText"].text;
+    } else {
+	format_text = getDateFormat(lc, isLocalized, stylemode, datestyle, timestyle);
+	demo.components["frmtText"].text = format_text;
+    }
+
+    if(caller == DATETEXT) {
+	date_text = trim(demo.components["dateText"].text);
+	if(date_text != "") {
+	    try {
+		millitime = parseDate(lc, tz, date_text, format_text, notLenient == FALSE);
+		calendar.unixtime = millitime;
+	    }
+	    catch(e) {
+		frmterr = TRUE;
+		return(TRUE);
+	    }
+	}
+    } else if(caller == MILLTEXT) {
+	if((millitime = atof(demo.components["millText"].text)) != 0) {
+	    calendar.unixtime = millitime / 1000.;
+	}
+    }
+
+    if(frmterr) {
+	demo.components["dateText"].text = "*** error (could not parse) ***";
+    } else {
+	try {
+	    demo.components["dateText"].text = date(lc, tz, format_text, calendar.unixtime);
+	}
+	catch(e) {
+	    demo.components["dateText"].text = "*** error (unknown format pattern elements) ***";
+	    return(TRUE);
+	}
+    }
+    demo.components["unixText"].text = date(calendar.unixtime);
+    demo.components["millText"].text = trim(strfmt("%-20d", calendar.unixtime * 1000.));
+}
+
+changeCalendar(up) {
+    if(addmode) {
+	if(up)
+	    addCalendar(calendar, timefield, 1);
+	else
+	    addCalendar(calendar, timefield, -1);
+    } else
+	rollCalendar(calendar, timefield, up);
+}
+
+for(i = 0; i < locales@length; i++) {
+    localeMap[locales[i].displayname] = locales[i];
+}
+
+for(i = 0, j = 0; i < cityInfo@length; i+=3) {
+    if(defined(cityInfo[i+1], localeMap)) {
+	cityItems[j]   = cityInfo[i];
+	cityItems[j+1] = cityInfo[i+1];
+
+	tzMap[cityInfo[i+1]] = zones[cityInfo[i+2]];
+
+	localeItems[j]   = cityInfo[i+1];
+	localeItems[j+1] = "";
+
+	j += 2;
+    }
+}
+
+qsort(localeItems);
+// put the blanks back where they belong after the qsort
+for(i = localeItems@length/2, j = 0; i < localeItems@length; i++, j+=2) {
+    localeItems[j] = localeItems[i];
+    localeItems[j+1] = NULL;
+}
+
+Frame demo = {
+    int			visible = TRUE;
+
+    String		title = "Date/Time Formatting Demo"; 
+    
+    GridBagLayout	layoutmanager;
+
+    Dimension		size = NULL;
+
+    Array		layout = {
+	new Label {
+	    String	font = titleFont;
+	    String	text = "Date/Time Formatting Demo";
+	    int		alignment = CENTER;
+	},
+	format(REMAINDER, CENTER),
+	new Label {
+	    String	font = titleFont;
+	    String	text = "";
+	    int		alignment = CENTER;
+	},
+	format(REMAINDER, CENTER),
+	new Panel {
+	    GridBagLayout	layoutmanager;
+
+	    Array		layout = {
+		new Label {
+		    String	font = labelFont;
+		    String	text = "New Date";
+		    int		alignment = RIGHT;
+		},
+		format(RELATIVE, RIGHT),
+		new TextField {
+		    String	tag = "dateText";
+		    String	font = editFont;
+		    int		columns = FIELD_COLUMNS;
+
+		    actionPerformed(e) {
+			setTextFields(DATETEXT);
+		    };
+		},
+		format(REMAINDER, CENTER),
+		new Label {
+		    String	font = labelFont;
+		    String	text = "Unix Date";
+		    int		alignment = RIGHT;
+		},
+		format(RELATIVE, RIGHT),
+		new TextField {
+		    String	tag = "unixText";
+		    String	font = editFont;
+		    int		columns = FIELD_COLUMNS;
+		    int		edit = FALSE;
+		},
+		format(REMAINDER, CENTER),
+		new Label {
+		    String	font = labelFont;
+		    String	text = "Millis";
+		    int		alignment = RIGHT;
+		},
+		format(RELATIVE, RIGHT),
+		new TextField {
+		    String	tag = "millText";
+		    String	font = editFont;
+		    int		columns = FIELD_COLUMNS;
+
+		    actionPerformed(e) {
+			setTextFields(MILLTEXT);
+		    };
+		},
+		format(REMAINDER, CENTER),
+		new Label {
+		    String	font = labelFont;
+		    String	text = "Pattern";
+		    int		alignment = RIGHT;
+		},
+		format(RELATIVE, RIGHT),
+		new TextField {
+		    String	tag = "frmtText";
+		    String	font = editFont;
+		    int		columns = FIELD_COLUMNS;
+
+		    actionPerformed(e) {
+			keep_format = TRUE;
+			setTextFields(FRMTTEXT);
+		    };
+		},
+		format(REMAINDER, CENTER),
+		new Label {
+		    String	text = " ";
+		},
+		format(RELATIVE, CENTER),
+		new Panel {
+		    GridLayout	layoutmanager = {
+			int	rows = 1;
+			int	columns = 2;
+			int	hgap = 40;
+			int	vgap = 0;
+		    };
+
+		    Array layout = {
+			new Checkbox {
+			    String	tag = "localizedBox";
+			    String	font = labelFont;
+			    String	text = "Localized Pattern";
+			    int		state = dflt_isLocalized;
+
+			    itemStateChanged(e) {
+				keep_format = FALSE;
+				isLocalized = state;
+				setTextFields(NOT_TEXT);
+			    };
+			},
+			new Checkbox {
+			    String	tag = "lenientBox";
+			    String	font = labelFont;
+			    String	text = "Validation Mode";
+			    int		state = dflt_notLenient;
+
+			    itemStateChanged(e) {
+				notLenient = state;
+				setTextFields(NOT_TEXT);
+			    };
+			},
+		    };
+		},
+		format(REMAINDER, CENTER),
+		new Panel {
+		    GridBagLayout	layoutmanager;
+
+		    Array		layout = {
+			new Panel {
+			    CheckboxGroup	cbg;
+
+			    GridBagLayout	layoutmanager;
+
+			    Array		layout = {
+				new Label {
+				    String	font = labelFont;
+				    String	text = "City";
+				    int		alignment = LEFT;
+				},
+				format(REMAINDER, LEFT),
+				new Choice {
+				    String	tag = "cityChoice";
+				    String	selected = dflt_locale;
+
+				    Array	items = cityItems;
+
+				    itemStateChanged(e) {
+					keep_format = FALSE;
+					if(demo.components["localeChoice"].selected !== selected) {
+					    demo.components["localeChoice"].selected = selected;
+					    setTextFields(NOT_TEXT);
+					}
+				    }
+				},
+				format(REMAINDER, RIGHT),
+				new Label {
+				    String	font = labelFont;
+				    String	text = "Date Fields";
+				    int		alignment = LEFT;
+				},
+				format(REMAINDER, LEFT),
+				new Choice {
+				    String	tag = "fieldChoice";
+				    String	selected = dflt_timefield;
+
+				    Array	items = {
+					"Year",		toString(Calendar.YEAR),
+					"Month",	toString(Calendar.MONTH),
+					"Week",		toString(Calendar.WEEK_OF_YEAR),
+					"Day of Month",	toString(Calendar.DAY_OF_MONTH),
+					"Hour of Day",	toString(Calendar.HOUR_OF_DAY),
+					"Minute",	toString(Calendar.MINUTE),
+					"Second",	toString(Calendar.SECOND),
+					"Millisecond",	toString(Calendar.MILLISECOND),
+				    };
+
+				    itemStateChanged(e) {
+					timefield = atoi(selected);
+				    }
+				},
+				format(REMAINDER, RIGHT),
+				new Panel {
+				    GridBagLayout	layoutmanager;
+
+				    Array		layout = {
+					new Checkbox {
+					    String		tag = "rollBox";
+					    String		text = "Roll";
+					    int			state = dflt_addmode == FALSE;
+					    CheckboxGroup	group = cbg;
+
+					    itemStateChanged(e) {
+						addmode = FALSE;
+					    };
+					},
+					format(RELATIVE, CENTER),
+					new Button {
+					    String	text = "^";
+
+					    actionPerformed(e) {
+						changeCalendar(TRUE);
+						setTextFields(NOT_TEXT);
+					    };
+					},
+					format(REMAINDER, CENTER),
+					new Checkbox {
+					    String		tag = "addBox";
+					    String		text = "Add";
+					    int			state = dflt_addmode == TRUE;
+					    CheckboxGroup	group = cbg;
+
+					    itemStateChanged(e) {
+						addmode = TRUE;
+					    };
+					},
+					format(RELATIVE, CENTER),
+					new Button {
+					    String	text = "v";
+
+					    actionPerformed(e) {
+						changeCalendar(FALSE);
+						setTextFields(NOT_TEXT);
+					    };
+					},
+					format(REMAINDER, CENTER),
+				    };
+				},
+				format(REMAINDER, CENTER),
+			    };
+			},
+			format(1, RIGHT),
+			new Panel {
+			    BorderLayout	layoutmanager;
+			    Array		layout = {
+				new Canvas	{
+				    Color	background = Color.gray;
+
+				    int		state = FALSE;
+
+				    Dimension	size = {
+					double	width = 8;
+					double	height = 150;
+				    };
+
+				    Insets	border = {
+					double	top = 4;
+					double	bottom = 4;
+					double	left = 4;
+					double	right = 4;
+				    };
+				},
+				CENTER,
+			    };
+			},
+			format(RELATIVE, CENTER),
+			new Panel {
+			    CheckboxGroup	cbg;
+
+			    GridBagLayout	layoutmanager;
+
+			    Array		layout = {
+				new Label {
+				    String	font = labelFont;
+				    String	text = "Locale";
+				    int		alignment = LEFT;
+				},
+				format(REMAINDER, LEFT),
+				new Choice {
+				    String	tag = "localeChoice";
+				    String	selected = dflt_locale;
+
+				    Array	items = localeItems;
+
+				    itemStateChanged(e) {
+					keep_format = FALSE;
+					if(demo.components["cityChoice"].selected !== selected) {
+					    demo.components["cityChoice"].selected = selected;
+					    setTextFields(NOT_TEXT);
+					}
+				    }
+				},
+				format(REMAINDER, LEFT),
+				new Checkbox {
+				    String		tag = "dateBox";
+				    String		text = "Date Format";
+				    int			state = dflt_stylemode == Calendar.DATE;
+				    CheckboxGroup	group = cbg;
+			    
+				    itemStateChanged(e) {
+					keep_format = FALSE;
+					stylemode = Calendar.DATE;
+					setTextFields(NOT_TEXT);
+				    };
+				},
+				format(REMAINDER, LEFT),
+				new Checkbox {
+				    String		tag = "timeBox";
+				    String		text = "Time Format";
+				    int			state = dflt_stylemode == DateFormat.TIME;
+				    CheckboxGroup	group = cbg;
+			    
+				    itemStateChanged(e) {
+					keep_format = FALSE;
+					stylemode = DateFormat.TIME;
+					setTextFields(NOT_TEXT);
+				    };
+				},
+				format(REMAINDER, LEFT),
+				new Checkbox {
+				    String		tag = "datetimeBox";
+				    String		text = "Date and Time Format";
+				    int			state = dflt_stylemode == DateFormat.DATETIME;
+				    CheckboxGroup	group = cbg;
+			    
+				    itemStateChanged(e) {
+					keep_format = FALSE;
+					stylemode = DateFormat.DATETIME;
+					setTextFields(NOT_TEXT);
+				    };
+				},
+				format(REMAINDER, LEFT),
+				new Label {
+				    String	font = labelFont;
+				    String	text = "Date Style";
+				    int		alignment = LEFT;
+				},
+				format(RELATIVE, LEFT),
+				new Label {
+				    String	font = labelFont;
+				    String	text = "Time Style";
+				    int		alignment = LEFT;
+				},
+				format(REMAINDER, LEFT),
+				new Choice {
+				    String	tag = "dateStyleChoice";
+				    String	selected = dflt_datestyle;
+				    
+				    Array	items = {
+					"Full",		toString(DateFormat.FULL),
+					"Long",		toString(DateFormat.LONG),
+					"Medium",	toString(DateFormat.MEDIUM),
+					"Short",	toString(DateFormat.SHORT),
+				    };
+
+				    itemStateChanged(e) {
+					keep_format = FALSE;
+					datestyle = atoi(selected);
+					setTextFields(NOT_TEXT);
+				    }
+				},
+				format(RELATIVE, LEFT),
+				new Choice {
+				    String	tag = "timeStyleChoice";
+				    String	selected = dflt_timestyle;
+
+				    Array	items = {
+					"Full",		toString(DateFormat.FULL),
+					"Long",		toString(DateFormat.LONG),
+					"Medium",	toString(DateFormat.MEDIUM),
+					"Short",	toString(DateFormat.SHORT),
+				    };
+
+				    itemStateChanged(e) {
+					keep_format = FALSE;
+					timestyle = atoi(selected);
+					setTextFields(NOT_TEXT);
+				    }
+				},
+				format(REMAINDER, LEFT),
+			    };
+			},
+			format(REMAINDER, LEFT),
+		    };
+		},
+		format(REMAINDER, CENTER),
+		new Panel {
+		    FlowLayout	layoutmanager = new FlowLayout {
+			int	hgap = 66;
+		    };
+
+		    Array	layout = {
+			new Button {
+			    String	text = "Reset";
+
+			    actionPerformed(e) {
+				resetForm();
+			    };
+			},
+			new Button {
+			    String	text = "Update";
+
+			    actionPerformed(e) {
+				calendar.unixtime = yoix.system.time();
+				setTextFields(NOT_TEXT);
+			    };
+			},
+			new Button {
+			    String	text = "Close";
+
+			    actionPerformed(e) {
+				exit(0);
+			    };
+			},
+		    };
+		},
+		format(REMAINDER, CENTER),
+	    };
+	},
+	format(REMAINDER, CENTER),
+    };
+};
+
+setTextFields(NOT_TEXT);
+

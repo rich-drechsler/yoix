@@ -1,0 +1,838 @@
+//
+// Some simple compiler tests. By default it waits between each test until
+// you hit return, but you can use the -p option to skip the pause. First
+// function call uses the interpreter while the second uses the compiled
+// version of the function. Output from each run is saved and compared and
+// if there are any differences they're reported at the end of the run. One
+// function, namely Switch3, is supposed to get a different answer between
+// the first and second runs, so worry about that one.
+//
+
+import yoix.*.*;
+
+VM.addtags = FALSE;
+VM.compiler.addtags = FALSE;
+/////VM.compiler.debug = 0x03;	// shows compiler and assembler output
+
+Dictionary d[0, ...];
+
+int qwert;
+int poiuy = 1000;
+int zzz = 4;
+
+Constant0() = (int)12.4;
+Constant1() = 100 - 12.5 / 3 + 33/3;
+Constant2() = (510/2 & 170.0) | 0x01;
+Constant3() = (256.0 << 2);
+Constant4() = !2;
+Constant5() = 5/2 > 1.0;
+Constant6() = (int)(5/1 + 2.5);
+Constant7() = (2.01 - 2) && (2 - 1);
+Constant8() = 3/2 instanceof int;
+Constant9() = 9 =~ "[0-9]";
+Constant10() = (2 - 1) && 4;
+Constant11() = 2 + 2/1 + 3;
+Constant12() = (5 < 1) ^^ (1.234);
+Constant13() = (1,2,3,4.3) + 5;
+Constant14() = 100 - 12/3;
+Constant15() = !FALSE ? 200.0 : 300 + 123;
+Echo(double n) = n;
+Increment(int n) = n + 1;
+Decrement(int n) = n - 1;
+Add(int left, int right) = left + right;
+Sub(int left, int right) = left - right;
+Div(int left, int right) = left / right;
+QuestionColon1(int cond, int tv, double fv) = cond ? tv : fv;
+QuestionColon2(Object cond, String tv, String fv) = cond ? tv : fv;
+
+Bug1() {
+    int poiuy = 555;
+
+    poiuy /= 2;
+    return(poiuy);
+}
+
+Bug2() {
+    int count = 1234;
+
+    return(count);
+}
+
+Bug3(String str) {
+    if (1)
+	++str;
+    return(str);
+}
+
+Bug4(int arg) {
+    /////Dictionary dict[3];
+    int        n = 12;
+
+    //
+    // Uncompiled version gets an error, compiled gets an answer
+    // that looks strange (at best). May need an addLvalue() in
+    // the compiler somewhere in the address related code??
+    //
+
+    &n++;
+    /////dict.n = &n++;
+    ////n += 1;
+    /////dict.str = "now is the time";
+    /////return(&dict.n);
+}
+
+Bug5() {
+    F(int n) = n + 1;
+
+    return(F);
+}
+
+Bug6() {
+    String pattern = "^n";
+
+    return("now" =~ pattern);
+}
+
+Assign(int value) {
+    value += 27;
+    return(value + 100);
+}
+
+Comma(int arg1, int arg2, int arg3) {
+    return(arg1, arg2, arg3);
+}
+
+Return(int value) {
+
+    /////value = "sdasadsad";
+    return(value);
+}
+
+If(int arg) {
+    if (arg)
+	arg++;
+    return(arg);
+}
+
+IfElse(Object expr, int truebranch, int falsebranch) {
+
+    if (expr)
+	return(truebranch);
+    else return(falsebranch);
+}
+
+Conditional1(int arg) {
+    if (1 && 2)
+	arg++;
+    else arg--;
+    return(arg);
+}
+
+Conditional2(int arg) {
+    if (1 && 2 || 0)
+	arg++;
+    else arg--;
+    return(arg);
+}
+
+Conditional3(int arg) {
+    if (1 && 2 && 3 || 0)
+	arg++;
+    else arg--;
+    return(arg);
+}
+
+Conditional4(int arg) {
+    if (0 || 1 && 2 && 0 || 0)
+	arg++;
+    else arg--;
+    return(arg);
+}
+
+Relational1(int arg1, int arg2) {
+    Array a[8];
+
+    a[0] = arg1 < arg2;
+    a[1] = arg1 <= arg2;
+    a[2] = arg1 > arg2;
+    a[3] = arg1 >= arg2;
+    a[4] = arg1 == arg2;
+    a[5] = arg1 != arg2;
+    a[6] = arg1 === arg2;
+    a[7] = arg1 !== arg2;
+
+    return(a);
+}
+
+Relational2(Object arg1, Object arg2) {
+    Array a[8];
+
+    a[0] = arg1 < arg2;
+    a[1] = arg1 <= arg2;
+    a[2] = arg1 > arg2;
+    a[3] = arg1 >= arg2;
+    a[4] = arg1 == arg2;
+    a[5] = arg1 != arg2;
+    a[6] = arg1 === arg2;
+    a[7] = arg1 !== arg2;
+
+    return(a);
+}
+
+Relational3(int arg1, int arg2) {
+    Array a[8];
+
+    if (arg1 < arg2)
+	a[0] = 1;
+    else a[0] = 0;
+    if (arg1 <= arg2)
+	a[1] = 1;
+    else a[1] = 0;
+    if (arg1 > arg2)
+	a[2] = 1;
+    else a[2] = 0;
+    if (arg1 >= arg2)
+	a[3] = 1;
+    else a[3] = 0;
+    if (arg1 == arg2)
+	a[4] = 1;
+    else a[4] = 0;
+    if (arg1 != arg2)
+	a[5] = 1;
+    else a[5] = 0;
+    if (arg1 === arg2)
+	a[6] = 1;
+    else a[6] = 0;
+    if (arg1 !== arg2)
+	a[7] = 1;
+    else a[7] = 0;
+
+    return(a);
+}
+
+Relational4(Object arg1, Object arg2) {
+    Array a[8];
+
+    if (arg1 < arg2)
+	a[0] = 1;
+    else a[0] = 0;
+    if (arg1 <= arg2)
+	a[1] = 1;
+    else a[1] = 0;
+    if (arg1 > arg2)
+	a[2] = 1;
+    else a[2] = 0;
+    if (arg1 >= arg2)
+	a[3] = 1;
+    else a[3] = 0;
+    if (arg1 == arg2)
+	a[4] = 1;
+    else a[4] = 0;
+    if (arg1 != arg2)
+	a[5] = 1;
+    else a[5] = 0;
+    if (arg1 === arg2)
+	a[6] = 1;
+    else a[6] = 0;
+    if (arg1 !== arg2)
+	a[7] = 1;
+    else a[7] = 0;
+
+    return(a);
+}
+
+While(int start, int stop, int counter) {
+    String str = "now is the time";
+
+    counter = 0;
+/****
+    while (counter < stop) {
+	counter += 1;
+	str++;
+    }
+****/
+    while (counter < stop) {
+	counter++;
+	start++;
+    }
+    return(counter);
+}
+
+DoWhile(int start, int stop, int counter) {
+
+    counter = 0;
+    do {
+	counter++;
+	start += 1;
+    } while (start < stop);
+    return(counter);
+}
+
+For(int index, int arg1, int arg2) {
+
+    for (index = 12; index < 20; index++) {
+	arg1 += arg2;
+	if (arg1 > 2000)
+	    break;
+    }
+    return(arg1);
+}
+
+PostIncrement(String str) {
+/****
+    int n = 2;
+    Object qqq;
+qqq = "for all good men";
+    qqq++;
+    return(qqq);
+****/
+
+    int n;
+    while (n++ < 500000)
+	str++;
+    str -= str@offset;
+    return(str);
+
+/****
+    poiuy++;
+    return(poiuy);
+****/
+
+/****
+    str[1]++;
+    return(str);
+****/
+}
+
+PreIncrement(String str) {
+    int n;
+    while (++n < 500000)
+	--str;
+    str -= str@offset;
+    return(str);
+/****
+    return(--poiuy);
+****/
+}
+
+Attribute(String arg) {
+    arg++;
+    return(arg@sizeof);
+}
+
+New(int length) {
+    return(new Dictionary[length]);
+}
+
+IllegalJump(int arg) {
+
+    if (arg)
+	break;
+    else arg;
+    return(arg);
+}
+
+Exit(int arg) {
+
+    if (arg > 0)
+	exit(arg);
+    return(arg);
+}
+
+Declaration1(int arg) {
+    Array a[arg];
+    int n = 100;
+n += 20;
+    final int m = n + 100;
+
+    /////n = 100;
+    /////m = 200;
+    return(n + m);
+}
+
+
+Declaration2(int arg) {
+    int answer;
+    int n = 5;
+
+    if (arg) {
+	int n = 10;
+	answer = n;
+    } else answer = n;
+    return(answer);
+}
+
+Declaration3(int arg) {
+    int answer = arg;
+    int dummy = answer++;
+
+    return(answer);
+}
+
+External(int arg) {
+
+    qwert = arg - poiuy;
+    return(qwert);
+}
+
+FunctionDef() {
+    F(int n) = n + 1;
+
+    return(F);
+}
+
+Import() {
+    Dictionary d = {
+	String asdfg = "Now is the time";
+	String lkjh = "for all good men";
+	Array abcdef = {1,2,3};
+    };
+
+    import d.*;
+
+    return(asdfg);
+
+/****
+    import yoix.*.*;
+
+    return(printf);
+****/
+}
+
+Typedef(int length) {
+
+    //
+    // This one can't run twice, so shouldn't included in the FunctionCalls
+    // array that's defined below.
+    //
+
+    typedef xxx(count) {
+	Array a[count];
+	int   n;
+
+	for (n = 0; n < count; n++)
+	    a[n] = n;
+
+	return(a);
+    }
+
+    xxx qqq[length];
+    return(qqq);
+}
+
+Synchronized() {
+    int count = 0;
+
+    synchronized(global) {
+	count++;
+    }
+    return(count);
+}
+
+Try(int arg) {
+    try {
+	int qwert = 100;
+
+	arg += qwert;
+    }
+    catch(e) {}
+    return(arg);
+}
+
+Finally(int arg) {
+    int qqq = 12;
+
+    finally {
+	return(qqq);
+    }
+
+    qqq += 5;
+}
+
+Save(int arg) {
+    arg += 1;
+    save poiuy = arg;
+
+    arg = poiuy + 10;
+    return(arg);
+}
+
+NamedBlock(int arg) {
+    int bm;
+
+    VM {
+	bm = buttonmodel;
+    }
+
+    return(bm);
+}
+
+ForEach(int arg) {
+    int count = 0;
+
+    for (ptr in VM by 1) {
+	count++;
+    }
+    return(count);
+}
+
+Qualifier(int arg) {
+    int count;
+
+    const count = 100;
+    /////count += 3;
+    return(count);
+}
+
+Include(String path) {
+    int count = 1;
+
+    if (access(path, R_OK) == 0) {
+	int count = 2;
+	include(path);
+	if (count > 100) {
+	    int dummy = 10;
+	    count += dummy;
+	}
+return(count);
+    }
+    return(count);
+}
+
+Switch1(int arg) {
+    switch (arg) {
+	case 1:
+	    arg += 1;
+	    break;
+
+	default:
+	    arg += 100;
+	    break;
+    }
+
+    return(arg);
+}
+
+
+Switch2(arg) {
+    String answer = "qwert";
+
+    switch (arg) {
+	case 1:
+	case 2:
+	    answer = "multicase";
+	    break;
+
+	case 3:
+	    answer = "three";
+	    break;
+
+	case 4:
+	    switch (arg + 10) {
+		case 10:
+		    answer = "impossible";
+		    break;
+
+		case 14:
+		    answer = "four + ten";
+		    break;
+	    }
+	    break;
+
+	case 5:
+	    answer = "five";
+	    break;
+
+	default:
+	    answer = "none of the above";
+	    break;
+    }
+
+    return(answer);
+}
+
+
+Switch3(int arg) {
+
+    int x = 10;
+
+    switch (arg) {
+	case x++:
+	    break;
+
+	default:
+	    x += 100;
+	    break;
+    }
+
+    return(x);
+}
+
+Array(int arg) {
+    Array array[arg];
+
+    array[arg-1] = "Now is the time";
+    return(array[arg-1]);
+}
+
+Dictionary(int arg) {
+    Dictionary dict[arg];
+
+    dict.str = "Now is the time";
+    return(dict.str);
+}
+
+Global(int arg) {
+
+    global.d.str = "Now is the time";
+    return(global.d);
+}
+
+This(int arg) {
+
+    this.d.str = "Now is the time";
+    return(this.d);
+}
+
+Address(int arg) {
+    Dictionary dict[3];
+    int        n = 12;
+
+    dict.n = n++;
+    ////n += 1;
+    /////dict.str = "now is the time";
+    return(&dict.n);
+}
+
+Indirection(int arg) {
+    Object ptr = &VM.Version;
+
+    return(*(ptr+1));
+}
+
+FunctionCall1(int arg) {
+    double total;
+    int    n;
+
+VM.compiler.compileFunction(Constant1);
+    for (n = 0; n < 3; n++)
+	total += Constant1();
+    return(total);
+
+    /////compileFunction(Constant1);
+    /////return(Constant1());
+}
+
+Argv(int arg) {
+    Object obj;
+
+    obj = global.argv;
+    return(obj);
+}
+
+Eval1(int arg) {
+    int count = arg;
+
+    //
+    // Calling eval() is supposed to disable local variable copies.
+    //
+
+    count++;
+    eval("count++;");
+    count++;
+    return(count);
+}
+
+Eval2(int arg) {
+    Pointer ptr;
+    int     count = arg;
+
+    //
+    // Taking the address of eval is also supposed to disable local variable
+    // copies.
+    //
+
+    count++;
+    ptr = &eval;
+    count++;
+    (*ptr)("count++;");
+    return(count);
+}
+
+Eval3(int arg) {
+	Pointer ptr;
+	int     count = arg;
+
+	//
+	// Taking the address of any reserved word should also supposed to
+	// disable local variable copies because eval() could be accessed
+	// via the pointer.
+	//
+
+	count++;
+	ptr = &NULL;
+	count++;
+	return(count);
+}
+
+Join1(Array fields) {
+    String str = NULL;
+
+    for (ptr in fields) {
+	if (str != NULL)
+	    str += "|";
+	str += ptr[0];
+    }
+    return(str);
+}
+
+Join2(Array fields) {
+    String str;
+
+    str = yoix.string.strjoin(fields, "|");
+    return(str);
+}
+
+Array FunctionCalls = {
+    Constant1, NULL,
+    Constant2, NULL,
+    Constant3, NULL,
+    Constant4, NULL,
+    Constant5, NULL,
+    Constant6, NULL,
+    Constant7, NULL,
+    Constant8, NULL,
+    Constant9, NULL,
+    Constant10, NULL,
+    Constant11, NULL,
+    Constant12, NULL,
+    Constant13, NULL,
+    Constant14, NULL,
+    Constant15, NULL,
+    Echo, 3,
+    Increment, 3,
+    Decrement, 3,
+    Add, new Array {12.45, 98.5},
+    Sub, new Array {12, 98},
+    Div, new Array {100, 20},
+    QuestionColon1, new Array {FALSE, 1, 2.567},
+    Assign, 5,
+    If, 1,
+    IfElse, new Array {0, 2, 3},
+    Comma, new Array {10, 20, 30},
+    Return, 12,
+    Conditional1, 13,
+    Conditional2, 13,
+    Conditional3, 13,
+    Conditional4, 13,
+    Relational1, new Array {1, 2},
+    Relational2, new Array {1, 2},
+    Relational3, new Array {1, 2},
+    Relational4, new Array {1, 2},
+    While, new Array {1, 1000000, 10000},
+    DoWhile, new Array {1, 1000, -12},
+    PostIncrement, "Now is the time",
+    PreIncrement, "Now is the time",
+    Attribute, "Now is the time",
+    New, 3,
+    For, new Array {0, 100, 1000},
+    Declaration1, 1000,
+    Declaration2, 1,
+    Declaration3, 542,
+    External, 122,
+    FunctionDef, NULL,
+    Import, NULL,
+    Synchronized, NULL,
+    Try, 10,
+    Finally, 10,
+    Save, 10,
+    NamedBlock, 10,
+    ForEach, 2,
+    Qualifier, 10,
+    Include, "/tmp/include.yx",
+    Switch1, 5,
+    Switch2, 3,
+    Switch3, 100,			// difference here is expected
+    Dictionary, 2,
+    Array, 2,
+    Global, 2,
+    This, 2,
+    Address, 2,
+    Indirection, 2,
+    FunctionCall1, 2,
+    Argv, 2,
+    Eval1, 2,
+    Eval2, 2,
+    Eval3, 2,
+
+    Join1, new Array {new Array {"one", "two", "three"}},
+    Join2, new Array {new Array {"one", "two", "three"}},
+};
+
+Function function;
+Object   interpreted;
+Object   compiled;
+Object   args;
+String   request;
+String   pattern;
+double   starttime;
+Array    different[0, ...];
+Array    elapsed[2];
+int      n;
+int      m;
+int      pause = (argc <= 1 || argv[1] !== "-p");
+
+for (n = 0; n < FunctionCalls@sizeof; n += 2) {
+    function = FunctionCalls[n];
+    args = FunctionCalls[n+1];
+    if (args != NULL && !(args instanceof Array))
+	args = new Array {args};
+    printf("=========== Testing %O ==========\n", function);
+    starttime = time();
+    interpreted = args ? function(unroll(args)) : function();
+    elapsed[0] = time() - starttime;
+    VM.compiler.compileFunction(function);
+    starttime = time();
+    compiled = args ? function(unroll(args)) : function();
+    elapsed[1] = time() - starttime;
+
+    printf("         COMPILED=%O\n", compiled);
+    printf("      INTERPRETED=%O\n", interpreted);
+    printf("         FUNCTION=%O\n", function);
+    for (m = 0; m < args@sizeof; m++)
+	printf("            argv[%d]=%O\n", m+1, args[m]);
+    if (elapsed[0] >= 0.5)
+	printf("    ELASPED TIMES=(%.7f, %.7f)\n", elapsed[0], elapsed[1]);
+    printf("\n");
+    if (toString(compiled) !== toString(interpreted))
+	different[different@sizeof] = toString(function);
+    if (pause) {
+	//
+	// Repeating tests doesn't make sense because once the function is
+	// compiled it won't be interpreted again, but looking for functions
+	// we haven't run yet is legit.
+	//
+	printf("Hit return to continue: ");
+	if ((request = readLine(stdin)) != NULL) {
+	    pattern = trim(request) + "(";
+	    for (m = n + 2; m < FunctionCalls@sizeof; m += 2) {
+		if (startsWith(toString(FunctionCalls[m]), pattern)) { 
+		    n = m - 2;
+		    break;
+		}
+	    }
+	} else break;
+    }
+}
+
+if (different@sizeof > 0) {
+    printf("=======================================================\n");
+    printf("Found mismatches in the following functions (see NOTE):\n");
+    printf("=======================================================\n");
+    for (ptr in different)
+	printf("    %O\n", ptr[0]);
+    printf("\nNOTE: first and second Switch3 calls will be different.\n");
+}
+
+exit(0);
+

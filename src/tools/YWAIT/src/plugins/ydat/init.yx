@@ -1,0 +1,1712 @@
+//
+// Initializers used when the table builder constructs most of the objects
+// that are defined in the config file. DEFAULT_SUPPORT and KEYEVENT_SUPPORT
+// are used by most, if not all, object initializers.
+//
+
+Dictionary DEFAULT_SUPPORT = {
+    Dictionary children;
+    String     menulabel = NULL;
+    int        lasthighlight = -1;
+    int        frozen = FALSE;
+    int        isplot = FALSE;
+    int        istag = FALSE;
+    int        isstack = FALSE;
+    int        issweepfilter = FALSE;
+
+    SetVisible(int state) {
+	int n;
+
+	this.visible = state;
+	for (n = 0; n < children@sizeof; n++) {
+	    if (children[n].menulabel == NULL)
+		children[n].SetVisible(state);
+	}
+    }
+
+    Freeze() {
+	int n;
+
+	frozen = TRUE;
+	for (n = 0; n < children@sizeof; n++)
+	    children[n].frozen = TRUE;
+    }
+
+    Thaw() {
+	int n;
+
+	frozen = FALSE;
+	for (n = 0; n < children@sizeof; n++)
+	    children[n].frozen = FALSE;
+    }
+};
+
+Dictionary KEYEVENT_SUPPORT = {
+    keyPressed(KeyEvent e) {
+	int dy;
+	int dx;
+
+	//
+	// The ^F support is a recent addition that we may be able toss
+	// if we use shortcuts - we will investigate later.
+	//
+
+	switch (e.keycode) {
+	    case KeyCode.VK_DOWN:
+		dy = (defined("vbar") && vbar != NULL) ? vbar.unitincrement : 0;
+		break;
+
+	    case KeyCode.VK_UP:
+		dy = (defined("vbar") && vbar != NULL) ? -vbar.unitincrement : 0;
+		break;
+
+	    case KeyCode.VK_LEFT:
+		dx = (defined("hbar") && hbar != NULL) ? hbar.unitincrement : 0;
+		break;
+
+	    case KeyCode.VK_RIGHT:
+		dx = (defined("hbar") && hbar != NULL) ? -hbar.unitincrement : 0;
+		break;
+
+	    case KeyCode.VK_F:
+		if (e.modifiersdown&CTRL_DOWN_MASK || (ISMAC && e.modifiersdown&META_DOWN_MASK)) {
+		    if (defined("ToggleFind", root))
+			root.ToggleFind();
+		}
+		break;
+
+	    case KeyCode.VK_G:
+		if (e.modifiersdown&CTRL_DOWN_MASK || (ISMAC && e.modifiersdown&META_DOWN_MASK)) {
+		    if (defined("FindNext", root))
+			root.FindNext();
+		}
+
+	    default:
+		if (defined("KeyPressed", root))
+		    root.KeyPressed(e);
+		break;
+	}
+
+	if (dy != 0) {
+	    vbar.value += dy;
+	    postEvent(
+		new AdjustmentEvent {
+		    String id = "adjustmentValueChanged";
+		    double value = vbar.value;
+		},
+		vbar
+	    );
+	}
+
+	if (dx != 0) {
+	    hbar.value += dx;
+	    postEvent(
+		new AdjustmentEvent {
+		    String id = "adjustmentValueChanged";
+		    double value = hbar.value;
+		},
+		hbar
+	    );
+	}
+    }
+
+    keyTyped(KeyEvent e) {
+	//
+	// This is only for Rick. He likes typing 'q' in any screen to
+	// quit and 'w' in any screen to dump info to a predefined temp
+	// file. He has control by defining a function named KeyTyped in
+	// his config files.
+	//
+	if (defined("KeyTyped")) {
+	    if (KeyTyped instanceof Function) {
+		if (KeyTyped@length == 1)
+		    KeyTyped(e.keychar);
+		else KeyTyped(e.keychar, this.root);
+	    }
+	}
+    }
+};
+
+Dictionary AXIS_SUPPORT = {
+    Dictionary subordinates;
+    Object     owner;
+    int        axismodel = 0;		// for backward compatibility
+
+    mouseWheelMoved(Event e) {
+	Dictionary plotends;
+	double     delta;
+	Array      ends;
+	Array      slider;
+	int        rotation;
+	int        slidermode;
+
+	if ((e.modifiers&BUTTON_MASK) == 0) {
+	    if ((ends = axisends) != NULL && (slider = sliderends) != NULL && axislimits != NULL) {
+		if (ends[1] > ends[0]) {
+		    rotation = e.wheelrotation;
+		    plotends = new Dictionary {
+			Array xaxis = NULL;
+			Array yaxis = NULL;
+		    };
+		    if (orientation == HORIZONTAL) {
+			//
+			// Undoubtedly can do better when slider is empty, but
+			// in that case we may want to expand how the low level
+			// Java code interprets slidermode - later.
+			//
+			if (rotation > 0) {
+			    if (ends[0] < slider[0] || ends[1] > slider[1])
+				slidermode = 0;
+			    else slidermode = 1;
+			} else slidermode = 0;
+			plotends.xaxis = getZoomEnds(rotation, e.coordinates.x);
+		    } else {
+			//
+			// Confusing and undoubtedly needs some work - later.
+			//
+			if (rotation > 0) {
+			    if (ends[0] < slider[0] || ends[1] > slider[1]) {
+				if (anchor != CENTER) {
+				    if (slider[1] >= ends[1])
+					slidermode = 2;
+				    else slidermode = 0;
+				} else slidermode = 0;
+			    } else slidermode = 2;
+			} else slidermode = 0;
+			plotends.yaxis = getZoomEnds(rotation, e.coordinates.y);
+		    }
+		    plot.ZoomTo(plotends, slidermode);
+		}
+	    }
+	}
+    }
+
+    Reset() {
+	axisends = NULL;
+    }
+
+    ZoomToSlider(int tight) {
+	Dictionary ends[] = {"xaxis", NULL, "yaxis", NULL};
+	Dictionary dict;
+	Array      currentends = sliderends;
+	Array      dataends;
+	Array      plots;
+	Array      bounds;
+	int        count;
+	int        n;
+
+	//
+	// Lots of duplicated code that undoubtedly could be eliminated.
+	// We'll look at it later.
+	//
+
+	plots = subordinates.xaxis;
+	if ((count = plots@sizeof) > 0) {
+	    bounds = NULL;
+	    if (tight) {
+		for (n = 0; n < count; n++) {
+		    if ((dict = plots[n].dataends) != NULL) {
+			if (bounds != NULL) {
+			    dataends = dict.xaxis;
+			    if (dataends[0] < bounds[0])
+				bounds[0] = dataends[0];
+			    if (dataends[1] > bounds[1])
+				bounds[1] = dataends[1];
+			} else bounds = dict.xaxis;
+		    }
+		}
+	    }
+	    ends.xaxis = (bounds@sizeof > 1 && bounds[0] < bounds[1]) ? bounds : currentends;
+	    ends.yaxis = NULL;
+	    for (n = 0; n < count; n++)
+		plots[n].ZoomTo(ends, 2);
+	}
+
+	plots = subordinates.yaxis;
+	if ((count = plots@sizeof) > 0) {
+	    bounds = NULL;
+	    if (tight) {
+		for (n = 0; n < count; n++) {
+		    if ((dict = plots[n].dataends) != NULL) {
+			if (plots[n].keeptall)
+			    dict.yaxis = currentends;
+			if (bounds != NULL) {
+			    dataends = dict.yaxis;
+			    if (dataends[0] < bounds[0])
+				bounds[0] = dataends[0];
+			    if (dataends[1] > bounds[1])
+				bounds[1] = dataends[1];
+			} else bounds = dict.yaxis;
+		    }
+		}
+	    }
+	    ends.xaxis = NULL;
+	    ends.yaxis = (bounds@sizeof > 1 && bounds[0] < bounds[1]) ? bounds : currentends;
+	    for (n = 0; n < count; n++)
+		plots[n].ZoomTo(ends, 2);
+	}
+    }
+};
+
+Dictionary DATATABLE_SUPPORT = {
+    String droptextsuffix = DROPTEXTSUFFIX;
+    int    droptextflags = DROPTEXTFLAGS;
+
+    afterLoad(int count) {
+	if (defined("AfterLoad", root))
+	    root.AfterLoad();
+	if (defined("LOAD", callbacks)) {
+	    *callbacks.LOAD.target = callbacks.LOAD.Formatter(selected);
+	    if (callbacks.LOAD.Callback != NULL)
+		callbacks.LOAD.Callback(this);
+	}
+    }
+
+    invocationAction(InvocationEvent e) {
+	Object  table = this;
+	int     idx;
+	int     len;
+	int     off;
+	int     i;
+	int     j;
+
+	//
+	// A generic invocationAction() event handler that can be used
+	// by the JTable component. It uses the spare "etc" field in
+	// JTable to store sort column info across invocations.
+	//
+	// Currently omitted the YWAIT code that flashes the grid, but
+	// it's easy to restore if you want.
+	//
+
+	save table.root.cursor = Cursor.WAIT_CURSOR;
+
+	if (e == NULL) {
+	    if (table.etc != NULL && table.etc@sizeof > 0) {
+		table.action(TABLE_SORT, table.etc + off);
+	    }
+	} else if (e.valuesColumn >= 0) {
+	    if ((e.modifiers&CTRL_MASK) == 0) {
+		table.etc = new Array[0,...] {};
+		len = 0;
+	    } else {
+		e.modifiers &= ~CTRL_MASK;
+		if (table.etc == NULL)
+		    table.etc = new Array[0,...] {};
+		len = table.etc@length;
+	    }
+
+	    if (e.modifiers == BUTTON1_MASK) {
+		if (len == 0 && table.action(GET_COLUMN_FIELD, e.valuesColumn, "state") > 0)
+		    idx = 0;
+		else idx = 1 + e.valuesColumn;
+	    } else {
+		if (len == 0 && table.action(GET_COLUMN_FIELD, e.valuesColumn, "state") < 0)
+		    idx = 0;
+		else idx = -(1 + e.valuesColumn);
+	    }
+	    for (i=0; i<len; i++) {
+		if (idx == table.etc[i]) {
+		    for (j=i; j>0; j--)
+			table.etc[j] = table.etc[j-1];
+		    table.etc[0] = 0;
+		    idx = 0;
+		    break;
+		} else if (-idx == table.etc[i]) {
+		    table.etc[i] = idx;
+		    idx = 0;
+		    break;
+		}
+	    }
+	    for (off=0; off<len; off++) {
+		if (table.etc[off] != 0)
+		    break;
+	    }
+	    if (idx != 0) {
+		table.etc[len] = idx;
+		len++;
+	    }
+
+	    if (len == off) {
+		table.action(TABLE_SORT, NULL);
+		table.etc = new Array[0,...] {};
+	    } else table.action(TABLE_SORT, table.etc + off);
+
+	    if ((len - off) < 2)
+		table.action(MAKE_CELL_VISIBLE, 0, e.viewColumn, TRUE);
+
+	    if (defined("dfltcellcolors", table)) {
+		if (len == off) {
+		    table.cellcolors = table.dfltcellcolors;
+		} else {
+		    Array  values;
+		    Array  cols;
+		    Array  etc;
+
+		    cols = new Array[len-off];
+		    etc = (table.etc + off);
+		    //
+		    // Need to convert columns to the view model because
+		    // that's what the TABLE_JOIN operation (below) will
+		    // expect.
+		    //
+		    for (i = 0; i < cols@length; i++) {
+			cols[i] = table.action(GET_COLUMN_VIEW_INDEX, abs(etc[i]) - 1);
+		    }
+		    table.cellcolors = getArrayBands(
+			table.action(TABLE_JOIN, cols, TRUE, TRUE, 1),
+			unroll(table.dfltcellcolors)
+		    );
+		}
+	    }
+	}
+    }
+};
+
+Dictionary GRAPH_SUPPORT = {
+    Object hbar;
+    Object vbar;
+    String droptextsuffix = DROPTEXTSUFFIX;
+    Color  sweepcolor = COLORS.sweepcolor;
+    Color  zoomincolor = COLORS.zoomincolor;
+    Color  zoomoutcolor = COLORS.zoomoutcolor;
+    Color  dragcolor = COLORS.dragcolor;
+    int    droptextflags = DROPTEXTFLAGS;
+    int    fillmodel = NONE;
+    int    state = -1;
+    int    zoomdirection = 1;
+    int    attachededgeselection = FALSE;	// for backward compatibility
+    int    edgecount = -1;		// for backward compatibility
+    int    nodecount = -1;		// for backward compatibility
+    int    activefieldcount = -1;	// for backward compatibility
+
+    afterLoad(int count) {
+	if (defined("AfterLoad", root))
+	    root.AfterLoad();
+	if (defined("LOAD", callbacks)) {
+	    *callbacks.LOAD.target = callbacks.LOAD.Formatter(selected);
+	    if (callbacks.LOAD.Callback != NULL)
+		callbacks.LOAD.Callback(this);
+	}
+    }
+
+    afterSweep(int operation) {
+	if (operation == OP_ZOOM) {
+	    if (defined("SyncZoomScale", root))
+		root.SyncZoomScale();
+	}
+    }
+
+    mouseWheelMoved(Event e) {
+	if (defined("MouseWheelMoved", root))
+	    root.MouseWheelMoved(e);
+    }
+
+    syncViewport(int count) {
+	Object viewport;
+	Object extent;
+	int    minimum;
+	int    maximum;
+	int    value;
+	int    visibleamount;
+
+	if (count == synccount) {
+	    viewport = this.viewport;
+	    extent = this.extent;
+	    if (count == synccount) {
+		if (extent.width > 0 && extent.height > 0) {
+		    if (vbar != NULL) {
+			minimum = 0;
+			maximum = extent.height;
+			visibleamount = viewport.height;
+			value = viewport.y;
+
+			vbar.scrollable = this;
+			vbar.step = 1;
+			vbar.unitincrement = 72/9;
+			vbar.blockincrement = .75*visibleamount;
+			vbar.setValues(value, visibleamount, minimum, maximum);
+		    }
+		    if (hbar != NULL) {
+			minimum = 0;
+			maximum = extent.width;
+			visibleamount = viewport.width;
+			value = viewport.x;
+
+			hbar.scrollable = this;
+			hbar.step = 1;
+			hbar.unitincrement = 72/9;
+			hbar.blockincrement = .75*visibleamount;
+			hbar.setValues(value, visibleamount, minimum, maximum);
+		    }
+		}
+	    }
+	}
+    }
+};
+
+Dictionary HISTOGRAM_SUPPORT = {
+    Object hbar;
+    Object vbar;
+    String droptextsuffix = DROPTEXTSUFFIX;
+    int    droptextflags = DROPTEXTFLAGS;
+    int    stacked;			// for backward compatibility
+    int    activefieldcount = -1;	// for backward compatibility
+
+    afterLoad(int count) {
+	if (defined("AfterLoad", root))
+	    root.AfterLoad();
+	if (defined("LOAD", callbacks)) {
+	    *callbacks.LOAD.target = callbacks.LOAD.Formatter(selected);
+	    if (callbacks.LOAD.Callback != NULL)
+		callbacks.LOAD.Callback(this);
+	}
+    }
+
+    mouseWheelMoved(Event e) {
+	if (defined("mouseWheelMoved", vbar))
+	    vbar.mouseWheelMoved(e);
+    }
+
+    syncViewport(int count) {
+	Object viewport;
+	Object extent;
+	Object cell;
+	int    minimum;
+	int    maximum;
+	int    value;
+	int    visibleamount;
+
+	if (count == synccount) {
+	    viewport = this.viewport;
+	    extent = this.extent;
+	    cell = this.cellsize;
+	    if (count == synccount) {
+		if (extent.width > 0 && extent.height > 0) {
+		    if (vbar != NULL) {
+			minimum = 0;
+			maximum = (extent.height + viewport.height)/cell.height - 1;
+			visibleamount = viewport.height/cell.height;
+			value = viewport.y/cell.height + .5;
+
+			vbar.scrollable = this;
+			vbar.step = cell.height;
+			vbar.unitincrement = 1;
+			vbar.blockincrement = visibleamount - 1;
+			vbar.setValues(value, visibleamount, minimum, maximum);
+		    }
+		    if (hbar != NULL) {
+			minimum = 0;
+			maximum = hbar.span*cell.width;
+			visibleamount = viewport.width;
+			value = viewport.x;
+
+			hbar.scrollable = this;
+			hbar.step = cell.width;
+			hbar.unitincrement = cell.width;
+			hbar.blockincrement = visibleamount - cell.width;
+			hbar.setValues(value, visibleamount, minimum, maximum);
+		    }
+		}
+	    }
+	}
+    }
+};
+
+Dictionary PLOT_SUPPORT = {
+    Dictionary lastzoom = NULL;
+    Object     owner;
+    String     droptextsuffix = DROPTEXTSUFFIX;
+    Array      bucketinfo = (BUCKETWIDTH > 0) ? new Array {BUCKETORIGIN, BUCKETWIDTH} : NULL;
+    Array      bucketwidthslider = (BUCKETWIDTHSLIDER@sizeof == 3) ? BUCKETWIDTHSLIDER : NULL;
+    int        autozoom = AUTOZOOM;
+    int        droptextflags = DROPTEXTFLAGS;
+    int        isplot = TRUE;
+    int        istag = FALSE;
+    int        isstack = FALSE;
+
+    afterLoad(int count, int reload) {
+	if (count > 0) {
+	    if (lastzoom != NULL)
+		plotends = lastzoom;
+	    else lastzoom = plotends;
+	} else lastzoom = NULL;
+	if (defined("LOAD", callbacks) && !reload) {
+	    *callbacks.LOAD.target = callbacks.LOAD.Formatter(this);
+	    if (callbacks.LOAD.Callback != NULL)
+		callbacks.LOAD.Callback(this);
+	}
+	if (defined("ADJUST", callbacks)) {
+	    if (callbacks.ADJUST.Callback != NULL)
+		callbacks.ADJUST.Callback(this, plotends);
+	}
+    }
+
+    mouseWheelMoved(Event e) {
+	int shifted = e.modifiers&SHIFT_MASK;
+
+	if ((PLOT_ZOOMMODEL == HORIZONTAL && !shifted) || (PLOT_ZOOMMODEL == VERTICAL && shifted)) {
+	    if (defined("mouseWheelMoved", xaxis))
+		xaxis.mouseWheelMoved(e);
+	    else if (defined("xaxis", owner) && defined("mouseWheelMoved", owner.xaxis))
+		owner.xaxis.mouseWheelMoved(e);
+	} else if ((PLOT_ZOOMMODEL == VERTICAL && !shifted) || (PLOT_ZOOMMODEL == HORIZONTAL && shifted)) {
+	    if (defined("mouseWheelMoved", yaxis))
+		yaxis.mouseWheelMoved(e);
+	    else if (defined("yaxis", owner) && defined("mouseWheelMoved", owner.yaxis))
+		owner.yaxis.mouseWheelMoved(e);
+	}
+    }
+
+    AutoZoom(Object axis) {
+	if (autozoom) {
+	    if (AUTOZOOMMODEL == 0) {
+		if (axis != NULL)
+		    axis.ZoomToSlider(TRUE);
+	    } else if (defined("ZoomToData", root))
+		root.ZoomToData();
+	}
+    }
+
+    Reset() {
+	lastzoom = NULL;
+	if (defined("Reset", root))
+	    root.Reset();
+    }
+
+    SetAutozoom(int value) {
+	if (autozoom != value) {
+	    autozoom = value;
+	    if (autozoom && plotends != NULL) {
+		if (xaxis != NULL)
+		    xaxis.ZoomToSlider(TRUE);
+		if (yaxis != NULL)
+		    yaxis.ZoomToSlider(TRUE);
+	    }
+	}
+    }
+
+    ZoomTo(Dictionary ends, int slidermode) {
+	int n;
+
+	Freeze();
+	if (ends != NULL) {
+	    setPlotEnds(ends, slidermode);
+	    for (n = 0; n < children@sizeof; n++) {
+		if (children[n].istag || children[n].isplot)
+		    children[n].ZoomTo(ends, slidermode);
+	    }
+	    lastzoom = plotends;
+	}
+	if (defined("ADJUST", callbacks)) {
+	    if (callbacks.ADJUST.Callback != NULL)
+		callbacks.ADJUST.Callback(this, ends);
+	}
+	Thaw();
+    }
+
+    ZoomToData() {
+	if (xaxis != NULL)
+	    xaxis.ZoomToSlider(TRUE);
+	if (yaxis != NULL)
+	    yaxis.ZoomToSlider(TRUE);
+    }
+
+    ZoomToLoaded() {
+	ZoomTo(loadedends, 1);
+    }
+
+    SetConnect(int value) {
+	connect = value;
+    }
+
+    SetHidePoints(int value) {
+	hidepoints = value;
+    }
+
+    SetKeeptall(int value) {
+	keeptall = value;
+    }
+
+    SetPlotStyle(Object value) {
+	plotstyle = value;
+    }
+
+    SetTimeshading(int value) {
+	timeshading = value;
+    }
+};
+
+Dictionary STACK_SUPPORT = {
+    Dictionary lastzoom = NULL;
+    Object     owner;
+    String     droptextsuffix = DROPTEXTSUFFIX;
+    Array      bucketinfo = NULL;
+    Array      bucketwidthslider = NULL;
+    int        autozoom = AUTOZOOM;
+    int        droptextflags = DROPTEXTFLAGS;
+    int        isplot = TRUE;
+    int        istag = FALSE;
+    int        isstack = TRUE;
+
+    afterLoad(int count) {
+	if (count > 0) {
+	    if (lastzoom != NULL)
+		plotends = lastzoom;
+	    else lastzoom = plotends;
+	} else lastzoom = NULL;
+	if (defined("LOAD", callbacks)) {
+	    *callbacks.LOAD.target = callbacks.LOAD.Formatter(this);
+	    if (callbacks.LOAD.Callback != NULL)
+		callbacks.LOAD.Callback(this);
+	}
+	if (defined("ADJUST", callbacks)) {
+	    if (callbacks.ADJUST.Callback != NULL)
+		callbacks.ADJUST.Callback(this, plotends);
+	}
+    }
+
+    mouseWheelMoved(Event e) {
+	int shifted = e.modifiers&SHIFT_MASK;
+
+	if ((STACK_ZOOMMODEL == HORIZONTAL && !shifted) || (STACK_ZOOMMODEL == VERTICAL && shifted)) {
+	    if (defined("mouseWheelMoved", xaxis))
+		xaxis.mouseWheelMoved(e);
+	    else if (defined("xaxis", owner) && defined("mouseWheelMoved", owner.xaxis))
+		owner.xaxis.mouseWheelMoved(e);
+	} else if ((STACK_ZOOMMODEL == VERTICAL && !shifted) || (STACK_ZOOMMODEL == HORIZONTAL && shifted)) {
+	    if (defined("mouseWheelMoved", yaxis))
+		yaxis.mouseWheelMoved(e);
+	    else if (defined("yaxis", owner) && defined("mouseWheelMoved", owner.yaxis))
+		owner.yaxis.mouseWheelMoved(e);
+	}
+    }
+
+    AutoZoom(Object axis) {
+	if (autozoom) {
+	    if (AUTOZOOMMODEL == 0) {
+		if (axis != NULL)
+		    axis.ZoomToSlider(TRUE);
+	    } else if (defined("ZoomToData", root))
+		root.ZoomToData();
+	}
+    }
+
+    Reset() {
+	lastzoom = NULL;
+	if (defined("Reset", root))
+	    root.Reset();
+    }
+
+    SetAutozoom(int value) {
+	if (autozoom != value) {
+	    autozoom = value;
+	    if (autozoom && plotends != NULL) {
+		if (xaxis != NULL)
+		    xaxis.ZoomToSlider(TRUE);
+		if (yaxis != NULL)
+		    yaxis.ZoomToSlider(TRUE);
+	    }
+	}
+    }
+
+    ZoomTo(Dictionary ends, int slidermode) {
+	int n;
+
+	Freeze();
+	if (ends != NULL) {
+	    setPlotEnds(ends, slidermode);
+	    for (n = 0; n < children@sizeof; n++) {
+		if (children[n].istag)
+		    children[n].ZoomTo(ends, slidermode);
+	    }
+	    lastzoom = plotends;
+	}
+	if (defined("ADJUST", callbacks)) {
+	    if (callbacks.ADJUST.Callback != NULL)
+		callbacks.ADJUST.Callback(this, ends);
+	}
+	Thaw();
+    }
+
+    ZoomToData() {
+	if (xaxis != NULL)
+	    xaxis.ZoomToSlider(TRUE);
+	if (yaxis != NULL)
+	    yaxis.ZoomToSlider(TRUE);
+    }
+
+    ZoomToLoaded() {
+	ZoomTo(loadedends, 1);
+    }
+
+    SetConnect(int value) {
+	connect = value;
+    }
+
+    SetHidePoints(int value) {
+	hidepoints = value;
+    }
+
+    SetKeeptall(int value) {
+	keeptall = value;
+    }
+
+    SetPlotStyle(Object value) {
+	plotstyle = value;
+    }
+
+    SetTimeshading(int value) {
+	timeshading = value;
+    }
+};
+
+Dictionary SWEEPFILTER_SUPPORT = {
+    int issweepfilter = TRUE;
+
+    Function dragEnter = EVENT_HANDLERS.DragEnter;
+    Function drop = EVENT_HANDLERS.Drop;
+};
+
+Dictionary TAG_SUPPORT = {
+    Dictionary lastzoom = NULL;
+    Object     owner;
+    String     droptextsuffix = DROPTEXTSUFFIX;
+    Array      bucketinfo = NULL;
+    Array      bucketwidthslider = NULL;
+    int        droptextflags = DROPTEXTFLAGS;
+    int        gentype = -1;
+    int        isplot = FALSE;
+    int        istag = TRUE;
+    int        isstack = FALSE;
+
+    afterLoad(int count) {
+	Dictionary ends;
+
+	if (count > 0) {
+	    if (lastzoom == NULL) {
+		lastzoom = plotends;
+		if (defined("plotends", owner)) {
+		    if (owner.plotends != NULL)
+			lastzoom.xaxis = owner.plotends.xaxis;
+		}
+		plotends = lastzoom;
+	    } else plotends = lastzoom;
+	    if (gentype == 2)
+		lastzoom.yaxis = new Array {0, 1};
+	}
+	if (defined("LOAD", callbacks)) {
+	    *callbacks.LOAD.target = callbacks.LOAD.Formatter(this);
+	    if (callbacks.LOAD.Callback != NULL)
+		callbacks.LOAD.Callback(this);
+	}
+	if (gentype == 2) {
+	    ends = plotends;
+	    ends.yaxis = new Array {0, 1};
+	    plotends = ends;
+	}
+	if (defined("ADJUST", callbacks)) {
+	    if (callbacks.ADJUST.Callback != NULL)
+		callbacks.ADJUST.Callback(this, plotends);
+	}
+    }
+
+    mouseWheelMoved(Event e) {
+	//
+	// Tags currently always zoom horizonally, which seems convenient
+	// and reasonable because that's how our xaxis behaves. Disabling
+	// zooming in tags shift is down is another possibility, but only
+	// if our xaxis behaves the same way.
+	//
+
+	if (defined("mouseWheelMoved", xaxis))
+	    xaxis.mouseWheelMoved(e);
+	else if (defined("xaxis", owner) && defined("mouseWheelMoved", owner.xaxis))
+	    owner.xaxis.mouseWheelMoved(e);
+    }
+
+    AutoZoom(Object axis) {
+	if (autozoom) {
+	    if (AUTOZOOMMODEL == 0) {
+		if (axis != NULL)
+		    axis.ZoomToSlider(TRUE);
+	    } else if (defined("ZoomToData", root))
+		root.ZoomToData();
+	}
+    }
+
+    Reset() {
+	lastzoom = NULL;
+    }
+
+    ZoomTo(Dictionary ends, int slidermode) {
+	Freeze();
+	if (ends != NULL) {
+	    if (ends.xaxis != NULL && lastzoom != NULL) {
+		lastzoom.xaxis = ends.xaxis;
+		setPlotEnds(lastzoom, 0);
+	    }
+	}
+
+	if (defined("ADJUST", callbacks)) {
+	    if (callbacks.ADJUST.Callback != NULL)
+		callbacks.ADJUST.Callback(this, ends);
+	}
+	Thaw();
+    }
+
+    SetPlotStyle(Object value) {
+	//
+	// Preserve the style but allow bucketing - if requested.
+	//
+
+	value[0] = plotstyle[0];
+	plotstyle = value;
+    }
+
+    ZoomToData() {}
+    ZoomToLoaded() {}
+    SetAutozoom(int value) {}
+    SetConnect(int value) {}
+    SetHidePoints(int value) {}
+    SetKeeptall(int value) {}
+    SetTimeshading(int value) {}
+};
+
+//
+// A Dictionary containing the initializers that are used when table.yx
+// builds the objects defined in the various config file tables. Names
+// assigned to the initializers usually match the names of the config
+// file table that uses it - just a convention that's not required or
+// used anywhere.
+//
+
+Dictionary INITIALIZERS = {
+    Dictionary AXES = {
+	Object transferhandler = NULL;
+	double linewidth = LINEWIDTH;
+	double axiswidth = AXISWIDTH;
+	Color  slidercolor = COLORS.slidercolor;
+	int    model = 0;	// force original axisends behavior
+	int    state = -1;
+
+	//
+	// Data modules older than 6.0 need definitions for ipad and
+	// insets, even if they're all zeros, otherwise the code in
+	// table.yx that builds insets will end up using NULL.
+	// 
+
+	Insets insets;
+	Insets ipad;
+
+	//
+	// Required for autozoom, which means the details must be duplicated by
+	// the version in CALLBACKS.
+	//
+
+	itemStateChanged(ItemEvent e) {
+	    if (e.item instanceof Array) {
+		if (!e.state && plot != NULL)
+		    plot.AutoZoom(this);
+	    }
+	}
+
+	Dictionary SUPPORT[] = {unroll(DEFAULT_SUPPORT), unroll(AXIS_SUPPORT), unroll(KEYEVENT_SUPPORT)};
+
+	Dictionary CALLBACKS = {
+	    Dictionary callbacks;
+
+	    itemStateChanged(ItemEvent e) {
+		if (e.item instanceof Array) {
+		    if (e.state) {
+			if (defined("SETSTART", callbacks)) {
+			    *callbacks.SETSTART.target = callbacks.SETSTART.Formatter(e.item[0], e.item[1]);
+			    if (callbacks.SETSTART.Callback != NULL)
+				callbacks.SETSTART.Callback(this);
+			}
+			if (defined("SETEND", callbacks)) {
+			    *callbacks.SETEND.target = callbacks.SETEND.Formatter(e.item[1], e.item[0]);
+			    if (callbacks.SETEND.Callback != NULL)
+				callbacks.SETEND.Callback(this);
+			}
+		    } else if (plot != NULL)
+			plot.AutoZoom(this);
+		}
+	    }
+
+	    mousePressed(MouseEvent e) {
+		if (defined("SELECT", callbacks)) {
+		    *callbacks.SELECT.target = callbacks.SELECT.Formatter(e.coordinates.x);
+		    if (callbacks.SELECT.Callback != NULL)
+			callbacks.SELECT.Callback(this);
+		}
+	    }
+
+	    mouseDragged(MouseEvent e) {
+		if (defined("SELECT", callbacks)) {
+		    *callbacks.SELECT.target = callbacks.SELECT.Formatter(e.coordinates.x);
+		    if (callbacks.SELECT.Callback != NULL)
+			callbacks.SELECT.Callback(this);
+		}
+	    }
+
+	    mouseReleased(MouseEvent e) {
+		if (defined("SELECT", callbacks)) {
+		    *callbacks.SELECT.target = "";
+		    if (callbacks.SELECT.Callback != NULL)
+			callbacks.SELECT.Callback(this);
+		}
+	    }
+
+	    componentHidden(ComponentEvent e) {
+		if (defined("HIDDEN", callbacks)) {
+		    *callbacks.HIDDEN.target = callbacks.HIDDEN.Formatter(this);
+		    if (callbacks.HIDDEN.Callback != NULL)
+			callbacks.HIDDEN.Callback(this);
+		}
+	    }
+
+	    componentShown(ComponentEvent e) {
+		if (defined("SHOWN", callbacks)) {
+		    *callbacks.SHOWN.target = callbacks.SHOWN.Formatter(this);
+		    if (callbacks.SHOWN.Callback != NULL)
+			callbacks.SHOWN.Callback(this);
+		}
+	    }
+	};
+    };
+
+    Dictionary DATATABLES = {
+	Palette palette = NULL;		// means colors will come from records
+	Object  transferhandler = NULL;
+	String  inputfilter = TABLESEPARATOR;
+	Array   operations = OPERATIONS.DATATABLE;
+	Color   background = COLORS.background;
+	Color   foreground = COLORS.foreground;
+	Color   emptycolor = COLORS.emptycolor;
+	Color   highlightcolor = COLORS.highlightcolor;
+	Font    font = FONTS.medium_text;
+	int     anchor = RIGHT;
+
+	Dictionary SUPPORT[] = {unroll(DEFAULT_SUPPORT), unroll(DATATABLE_SUPPORT), unroll(KEYEVENT_SUPPORT)};
+
+        Dictionary CALLBACKS = {
+	    Dictionary callbacks;
+
+	    itemStateChanged(ItemEvent e) {
+		if (defined("SELECT", callbacks)) {
+		    *callbacks.SELECT.target = callbacks.SELECT.Formatter(selected);
+		    if (callbacks.SELECT.Callback != NULL)
+			callbacks.SELECT.Callback(this);
+		}
+	    }
+
+	    afterPressed(String key, Event event) {
+		if (defined("PRESSED", callbacks)) {
+		    *callbacks.PRESSED.target = callbacks.PRESSED.Formatter(key);
+		    if (callbacks.PRESSED.Callback != NULL)
+			callbacks.PRESSED.Callback(this, key, event);
+		}
+	    }
+
+	    afterUpdate(int count) {
+		if (defined("UPDATE", callbacks)) {
+		    *callbacks.UPDATE.target = callbacks.UPDATE.Formatter(selected);
+		    if (callbacks.UPDATE.Callback != NULL)
+			callbacks.UPDATE.Callback(this);
+		}
+	    }
+
+	    componentHidden(ComponentEvent e) {
+		if (defined("HIDDEN", callbacks)) {
+		    *callbacks.HIDDEN.target = callbacks.HIDDEN.Formatter(this);
+		    if (callbacks.HIDDEN.Callback != NULL)
+			callbacks.HIDDEN.Callback(this);
+		}
+	    }
+
+	    componentShown(ComponentEvent e) {
+		if (defined("SHOWN", callbacks)) {
+		    *callbacks.SHOWN.target = callbacks.SHOWN.Formatter(this);
+		    if (callbacks.SHOWN.Callback != NULL)
+			callbacks.SHOWN.Callback(this);
+		}
+	    }
+	};
+    };
+
+    Dictionary GRAPHS = {
+	Palette palette = NULL;
+	Object  transferhandler = NULL;
+	Array   operations = OPERATIONS.GRAPH;
+	Color   background = COLORS.background;
+	Color   foreground = COLORS.foreground;
+	Color   emptycolor = COLORS.emptycolor;
+	Color   highlightcolor = COLORS.highlightcolor;
+	Color   othercolor = COLORS.othercolor;
+	Font    font = FONTS.large_graph;
+	int     selectflags = DATA_GRAPH_NODE | DATA_GRAPH_EDGE;
+	int     graphmode = OP_SELECT;
+	int     edgeflags = 0x00;
+	int     nodeflags = 0x00;
+	int     labelflags = LABEL_HIDEEDGE;
+	int     tipenabled = GRAPH_TIPENABLED;
+	int     tipflags = GRAPH_TIPFLAGS;
+	int     tiplockmodel = GRAPH_TIPLOCKMODEL;
+
+	//
+	// Data modules older than 6.0 need definitions for ipad and
+	// insets, even if they're all zeros, otherwise the code in
+	// table.yx that builds insets will end up using NULL.
+	// 
+
+	Insets insets;
+	Insets ipad;
+
+	Dictionary SUPPORT[] = {unroll(DEFAULT_SUPPORT), unroll(GRAPH_SUPPORT), unroll(KEYEVENT_SUPPORT)};
+
+        Dictionary CALLBACKS = {
+	    Dictionary callbacks;
+
+	    itemStateChanged(ItemEvent e) {
+		if (defined("SELECT", callbacks)) {
+		    *callbacks.SELECT.target = callbacks.SELECT.Formatter(selected);
+		    if (callbacks.SELECT.Callback != NULL)
+			callbacks.SELECT.Callback(e);
+		}
+	    }
+
+	    afterPressed(String key, Event event) {
+		if (defined("PRESSED", callbacks)) {
+		    *callbacks.PRESSED.target = callbacks.PRESSED.Formatter(key);
+		    if (callbacks.PRESSED.Callback != NULL)
+			callbacks.PRESSED.Callback(this, key, event);
+		}
+	    }
+
+	    afterTypedText(String text, double x, double y, double width, int justification) {
+		if (defined("TYPEDTEXT", callbacks)) {
+		    *callbacks.TYPEDTEXT.target = callbacks.TYPEDTEXT.Formatter(text);
+		    if (callbacks.TYPEDTEXT.Callback != NULL)
+			callbacks.TYPEDTEXT.Callback(this, text, x, y, width, justification);
+		}
+	    }
+
+	    afterUpdate(int count) {
+		if (defined("UPDATE", callbacks)) {
+		    *callbacks.UPDATE.target = callbacks.UPDATE.Formatter(selected);
+		    if (callbacks.UPDATE.Callback != NULL)
+			callbacks.UPDATE.Callback(this);
+		}
+	    }
+
+	    componentHidden(ComponentEvent e) {
+		if (defined("HIDDEN", callbacks)) {
+		    *callbacks.HIDDEN.target = callbacks.HIDDEN.Formatter(this);
+		    if (callbacks.HIDDEN.Callback != NULL)
+			callbacks.HIDDEN.Callback(this);
+		}
+	    }
+
+	    componentShown(ComponentEvent e) {
+		if (defined("SHOWN", callbacks)) {
+		    *callbacks.SHOWN.target = callbacks.SHOWN.Formatter(this);
+		    if (callbacks.SHOWN.Callback != NULL)
+			callbacks.SHOWN.Callback(this);
+		}
+	    }
+	};
+    };
+
+    Dictionary HISTOGRAMS = {
+	Palette palette = PALETTES.data;
+	Object  transferhandler = NULL;
+	double  barspace = BARSPACE;
+	Array   operations = OPERATIONS.HISTOGRAM;
+	Color   background = COLORS.background;
+	Color   foreground = COLORS.foreground;
+	Color   emptycolor = COLORS.emptycolor;
+	Color   highlightcolor = COLORS.highlightcolor;
+	Color   othercolor = COLORS.othercolor;
+	Font    font = FONTS.medium_text;
+	int     alignment = RIGHT;
+	int     anchor = RIGHT;
+	int     labelflags = LABEL_SHOWCOUNT|LABEL_SHOWDIVERSITY;
+
+	Dictionary SUPPORT[] = {unroll(DEFAULT_SUPPORT), unroll(HISTOGRAM_SUPPORT), unroll(KEYEVENT_SUPPORT)};
+
+        Dictionary CALLBACKS = {
+	    Dictionary callbacks;
+
+	    itemStateChanged(ItemEvent e) {
+		if (defined("SELECT", callbacks)) {
+		    *callbacks.SELECT.target = callbacks.SELECT.Formatter(selected);
+		    if (callbacks.SELECT.Callback != NULL)
+			callbacks.SELECT.Callback(this);
+		}
+	    }
+
+	    afterPressed(String key, Event event) {
+		if (defined("PRESSED", callbacks)) {
+		    *callbacks.PRESSED.target = callbacks.PRESSED.Formatter(key);
+		    if (callbacks.PRESSED.Callback != NULL)
+			callbacks.PRESSED.Callback(this, key, event);
+		}
+	    }
+
+	    afterUpdate(int count) {
+		if (defined("UPDATE", callbacks)) {
+		    *callbacks.UPDATE.target = callbacks.UPDATE.Formatter(selected);
+		    if (callbacks.UPDATE.Callback != NULL)
+			callbacks.UPDATE.Callback(this);
+		}
+	    }
+
+	    componentHidden(ComponentEvent e) {
+		if (defined("HIDDEN", callbacks)) {
+		    *callbacks.HIDDEN.target = callbacks.HIDDEN.Formatter(this);
+		    if (callbacks.HIDDEN.Callback != NULL)
+			callbacks.HIDDEN.Callback(this);
+		}
+	    }
+
+	    componentShown(ComponentEvent e) {
+		if (defined("SHOWN", callbacks)) {
+		    *callbacks.SHOWN.target = callbacks.SHOWN.Formatter(this);
+		    if (callbacks.SHOWN.Callback != NULL)
+			callbacks.SHOWN.Callback(this);
+		}
+	    }
+	};
+    };
+
+    Dictionary LABELS = {
+	Insets insets = {
+	    double top = 1;
+	    double bottom = 1;
+	    double left = 1;
+	    double right = 1;
+	};
+
+	Dictionary SUPPORT[] = {unroll(DEFAULT_SUPPORT), unroll(KEYEVENT_SUPPORT)};
+	Dictionary CALLBACKS = NULL;
+    };
+
+    Dictionary PANELS = {
+	Object primary = NULL;
+	Color  background = COLORS.background;
+	Color  foreground = COLORS.foreground;
+	Font   font = FONTS.medium_text;
+
+	Dictionary SUPPORT = DEFAULT_SUPPORT;
+	Dictionary CALLBACKS = NULL;
+    };
+
+    Dictionary PLOTS = {
+	Object plotstyle = PLOTSTYLE;
+	Object transferhandler = NULL;
+	Object unixtime = NULL;		// obscure Yoix bug (I think) means this is required
+	double axiswidth = AXISWIDTH;
+	double connectwidth = LINEWIDTH;
+	double linewidth = LINEWIDTH;
+	Color  connectcolor = COLORS.connectcolor;
+	Color  offpeakcolor = COLORS.offpeakcolor;
+	Color  sweepcolor = COLORS.sweepcolor;
+	int    connect = PLOTCONNECT;
+	int    model = 1;		// locks low end of yaxis
+	int    plotstyleflags = PLOTSTYLEFLAGS;
+	int    stacked = FALSE;
+	int    state = -1;
+	int    symmetric = FALSE;
+	int    timeshading = TIMESHADING;
+	int    tipenabled = PLOT_TIPENABLED;
+	int    tipflags = PLOT_TIPFLAGS;
+	int    tiplockmodel = PLOT_TIPLOCKMODEL;
+
+	//
+	// Data modules older than 6.0 need definitions for ipad and
+	// insets, even if they're all zeros, otherwise the code in
+	// table.yx that builds insets will end up using NULL.
+	// 
+
+	Insets insets;
+	Insets ipad;
+
+	Dictionary SUPPORT[] = {unroll(DEFAULT_SUPPORT), unroll(PLOT_SUPPORT), unroll(KEYEVENT_SUPPORT)};
+
+	Dictionary CALLBACKS = {
+	    Dictionary callbacks = NULL;
+	    Callable   formatter = NULL;
+	    Pointer    dragtarget = NULL;
+	    String     dragtype = NULL;
+	    Array      draglabels = NULL;
+	    Point      dragstart = NULL;
+	    int        dragmode = 0;
+
+	    mousePressed(MouseEvent e) {
+		if (e.pressed == 1) {
+		    if (defined("SWEEP", callbacks) || defined("POINT", callbacks)) {
+			if (e.modifiers&BUTTON1_MASK)
+			    dragtype = defined("SWEEP", callbacks) ? "SWEEP" : "POINT";
+			else dragtype = defined("POINT", callbacks) ? "POINT" : "SWEEP";
+			formatter = callbacks[dragtype].Formatter;
+			dragtarget = callbacks[dragtype].target;
+			dragmode = (dragtype === "SWEEP") ? 2 : 1;
+			dragstart = e.coordinates;
+			draglabels = formatter(e.coordinates.x, e.coordinates.y);
+			if (dragmode == 2)
+			    *dragtarget = draglabels[0] + " to " + draglabels[0] + ", " + draglabels[1] + " to " + draglabels[1];
+			else *dragtarget = draglabels[0] + ", " + draglabels[1];
+		    }
+		}
+	    }
+
+	    mouseDragged(MouseEvent e) {
+		String str;
+		Array  labels;
+
+		if (dragstart != NULL) {
+		    labels = formatter(e.coordinates.x, e.coordinates.y);
+		    if (dragmode == 2) {
+			if (dragstart.x <= e.coordinates.x)
+			    str = draglabels[0] + " to " + labels[0] + ", ";
+			else str = labels[0] + " to " + draglabels[0] + ", ";
+			if (dragstart.y <= e.coordinates.y)
+			    str += draglabels[1] + " to " + labels[1];
+			else str += labels[1] + " to " + draglabels[1];
+			*dragtarget = str;
+		    } else *dragtarget = labels[0] + ", " + labels[1];
+		}
+	    }
+
+	    mouseReleased(MouseEvent e) {
+		if (e.pressed == 0) {
+		    if (dragtarget != NULL)
+			*dragtarget = "";
+		    dragtarget = NULL;
+		    dragstart = NULL;
+		    draglabels = NULL;
+		    formatter = NULL;
+		}
+	    }
+
+	    afterUpdate(int count) {
+		if (defined("UPDATE", callbacks)) {
+		    *callbacks.UPDATE.target = callbacks.UPDATE.Formatter(this);
+		    if (callbacks.UPDATE.Callback != NULL)
+			callbacks.UPDATE.Callback(this);
+		}
+	    }
+
+	    componentHidden(ComponentEvent e) {
+		if (defined("HIDDEN", callbacks)) {
+		    *callbacks.HIDDEN.target = callbacks.HIDDEN.Formatter(this);
+		    if (callbacks.HIDDEN.Callback != NULL)
+			callbacks.HIDDEN.Callback(this);
+		}
+	    }
+
+	    componentResized(ComponentEvent e) {
+		if (defined("ADJUST", callbacks)) {
+		    if (callbacks.ADJUST.Callback != NULL)
+			callbacks.ADJUST.Callback(this, plotends);
+		}
+	    }
+
+	    componentShown(ComponentEvent e) {
+		if (defined("SHOWN", callbacks)) {
+		    *callbacks.SHOWN.target = callbacks.SHOWN.Formatter(this);
+		    if (callbacks.SHOWN.Callback != NULL)
+			callbacks.SHOWN.Callback(this);
+		}
+	    }
+	};
+    };
+
+    Dictionary SPLITPANES = {
+	Object primary = NULL;
+	Color  background = COLORS.background;
+	Color  foreground = COLORS.foreground;
+	Font   font = FONTS.medium_text;
+	int    onetouchexpandable = TRUE;
+
+	Dictionary SUPPORT = DEFAULT_SUPPORT;
+	Dictionary CALLBACKS = NULL;
+    };
+
+    Dictionary STACKS = {
+	Object plotstyle = STACKSTYLE;
+	Object transferhandler = NULL;
+	Object unixtime = NULL;		// obscure Yoix bug (I think) means this is required
+	double axiswidth = AXISWIDTH;
+	double connectwidth = LINEWIDTH;
+	double linewidth = LINEWIDTH;
+	Color  connectcolor = COLORS.connectcolor;
+	Color  offpeakcolor = COLORS.offpeakcolor;
+	Color  sweepcolor = COLORS.sweepcolor;
+	int    connect = STACKCONNECT;
+	int    model = 1;		// locks low end of yaxis
+	int    plotstyleflags = STYLE_ENABLE_STACKS;
+	int    stacked = TRUE;
+	int    state = -1;
+	int    symmetric = FALSE;
+	int    timeshading = TIMESHADING;
+	int    tipenabled = PLOT_TIPENABLED;
+	int    tipflags = PLOT_TIPFLAGS;
+	int    tiplockmodel = PLOT_TIPLOCKMODEL;
+
+	//
+	// Data modules older than 6.0 need definitions for ipad and
+	// insets, even if they're all zeros, otherwise the code in
+	// table.yx that builds insets will end up using NULL.
+	// 
+
+	Insets insets;
+	Insets ipad;
+
+	Dictionary SUPPORT[] = {unroll(DEFAULT_SUPPORT), unroll(STACK_SUPPORT), unroll(KEYEVENT_SUPPORT)};
+
+	Dictionary CALLBACKS = {
+	    Dictionary callbacks = NULL;
+	    Callable   formatter = NULL;
+	    Pointer    dragtarget = NULL;
+	    String     dragtype = NULL;
+	    Array      draglabels = NULL;
+	    Point      dragstart = NULL;
+	    int        dragmode = 0;
+
+	    mousePressed(MouseEvent e) {
+		if (e.pressed == 1) {
+		    if (defined("SWEEP", callbacks) || defined("POINT", callbacks)) {
+			if (e.modifiers&BUTTON1_MASK)
+			    dragtype = defined("SWEEP", callbacks) ? "SWEEP" : "POINT";
+			else dragtype = defined("POINT", callbacks) ? "POINT" : "SWEEP";
+			formatter = callbacks[dragtype].Formatter;
+			dragtarget = callbacks[dragtype].target;
+			dragmode = (dragtype === "SWEEP") ? 2 : 1;
+			dragstart = e.coordinates;
+			draglabels = formatter(e.coordinates.x, e.coordinates.y);
+			if (dragmode == 2)
+			    *dragtarget = draglabels[0] + " to " + draglabels[0] + ", " + draglabels[1] + " to " + draglabels[1];
+			else *dragtarget = draglabels[0] + ", " + draglabels[1];
+		    }
+		}
+	    }
+
+	    mouseDragged(MouseEvent e) {
+		String str;
+		Array  labels;
+
+		if (dragstart != NULL) {
+		    labels = formatter(e.coordinates.x, e.coordinates.y);
+		    if (dragmode == 2) {
+			if (dragstart.x <= e.coordinates.x)
+			    str = draglabels[0] + " to " + labels[0] + ", ";
+			else str = labels[0] + " to " + draglabels[0] + ", ";
+			if (dragstart.y <= e.coordinates.y)
+			    str += draglabels[1] + " to " + labels[1];
+			else str += labels[1] + " to " + draglabels[1];
+			*dragtarget = str;
+		    } else *dragtarget = labels[0] + ", " + labels[1];
+		}
+	    }
+
+	    mouseReleased(MouseEvent e) {
+		if (e.pressed == 0) {
+		    if (dragtarget != NULL)
+			*dragtarget = "";
+		    dragtarget = NULL;
+		    dragstart = NULL;
+		    draglabels = NULL;
+		    formatter = NULL;
+		}
+	    }
+
+	    afterUpdate(int count) {
+		if (defined("UPDATE", callbacks)) {
+		    *callbacks.UPDATE.target = callbacks.UPDATE.Formatter(this);
+		    if (callbacks.UPDATE.Callback != NULL)
+			callbacks.UPDATE.Callback(this);
+		}
+	    }
+
+	    componentHidden(ComponentEvent e) {
+		if (defined("HIDDEN", callbacks)) {
+		    *callbacks.HIDDEN.target = callbacks.HIDDEN.Formatter(this);
+		    if (callbacks.HIDDEN.Callback != NULL)
+			callbacks.HIDDEN.Callback(this);
+		}
+	    }
+
+	    componentResized(ComponentEvent e) {
+		if (defined("ADJUST", callbacks)) {
+		    if (callbacks.ADJUST.Callback != NULL)
+			callbacks.ADJUST.Callback(this, plotends);
+		}
+	    }
+
+	    componentShown(ComponentEvent e) {
+		if (defined("SHOWN", callbacks)) {
+		    *callbacks.SHOWN.target = callbacks.SHOWN.Formatter(this);
+		    if (callbacks.SHOWN.Callback != NULL)
+			callbacks.SHOWN.Callback(this);
+		}
+	    }
+	};
+    };
+
+    Dictionary SWEEPGRAPHS = {
+	Palette palette = NULL;
+	Object  transferhandler = NULL;
+	Array   operations = OPERATIONS.GRAPH;
+	Color   background = COLORS.background;
+	Color   foreground = COLORS.foreground;
+	Color   emptycolor = COLORS.emptycolor;
+	Color   highlightcolor = COLORS.highlightcolor;
+	Color   othercolor = COLORS.othercolor;
+	Font    font = FONTS.large_graph;
+	int     autoshow = AUTOSHOW;
+	int     selectflags = DATA_GRAPH_NODE | DATA_GRAPH_EDGE;
+	int     graphmode = OP_SELECT;
+	int     edgeflags = 0x00;
+	int     nodeflags = 0x00;
+	int     labelflags = LABEL_HIDEEDGE|LABEL_PICKCOLORNODE;
+	int     tipenabled = GRAPH_TIPENABLED;
+	int     tipflags = TIP_OVER_NODES|TIP_OVER_EDGES;
+	int     tiplockmodel = GRAPH_TIPLOCKMODEL;
+
+	//
+	// Data modules older than 6.0 need definitions for ipad and
+	// insets, even if they're all zeros, otherwise the code in
+	// table.yx that builds insets will end up using NULL.
+	// 
+
+	Insets insets;
+	Insets ipad;
+
+	Dictionary SUPPORT[] = {unroll(DEFAULT_SUPPORT), unroll(GRAPH_SUPPORT), unroll(SWEEPFILTER_SUPPORT), unroll(KEYEVENT_SUPPORT)};
+
+        Dictionary CALLBACKS = {
+	    Dictionary callbacks;
+
+	    itemStateChanged(ItemEvent e) {
+		if (defined("SELECT", callbacks)) {
+		    *callbacks.SELECT.target = callbacks.SELECT.Formatter(selected);
+		    if (callbacks.SELECT.Callback != NULL)
+			callbacks.SELECT.Callback(e);
+		}
+	    }
+
+	    afterPressed(String key, Event event) {
+		if (defined("PRESSED", callbacks)) {
+		    *callbacks.PRESSED.target = callbacks.PRESSED.Formatter(key);
+		    if (callbacks.PRESSED.Callback != NULL)
+			callbacks.PRESSED.Callback(this, key, event);
+		}
+	    }
+
+	    afterTypedText(String text, double x, double y, double width, int justification) {
+		if (defined("TYPEDTEXT", callbacks)) {
+		    *callbacks.TYPEDTEXT.target = callbacks.TYPEDTEXT.Formatter(text);
+		    if (callbacks.TYPEDTEXT.Callback != NULL)
+			callbacks.TYPEDTEXT.Callback(this, text, x, y, width, justification);
+		}
+	    }
+
+	    afterUpdate(int count) {
+		if (defined("UPDATE", callbacks)) {
+		    *callbacks.UPDATE.target = callbacks.UPDATE.Formatter(selected);
+		    if (callbacks.UPDATE.Callback != NULL)
+			callbacks.UPDATE.Callback(this);
+		}
+	    }
+
+	    componentHidden(ComponentEvent e) {
+		if (defined("HIDDEN", callbacks)) {
+		    *callbacks.HIDDEN.target = callbacks.HIDDEN.Formatter(this);
+		    if (callbacks.HIDDEN.Callback != NULL)
+			callbacks.HIDDEN.Callback(this);
+		}
+	    }
+
+	    componentShown(ComponentEvent e) {
+		if (defined("SHOWN", callbacks)) {
+		    *callbacks.SHOWN.target = callbacks.SHOWN.Formatter(this);
+		    if (callbacks.SHOWN.Callback != NULL)
+			callbacks.SHOWN.Callback(this);
+		}
+	    }
+	};
+    };
+
+    Dictionary SWEEPHISTOGRAMS = {
+	Palette palette = NULL;		
+	Object  transferhandler = NULL;
+	Array   operations = OPERATIONS.HISTOGRAM;
+	Color   background = COLORS.background;
+	Color   foreground = COLORS.foreground;
+	Color   emptycolor = COLORS.emptycolor;
+	Color   highlightcolor = COLORS.highlightcolor;
+	Font    font = FONTS.medium_monospace;
+	int     anchor = LEFT;
+	int     autoshow = AUTOSHOW;
+	int     barspace = 0.4*72.0;
+
+	Dictionary SUPPORT[] = {unroll(DEFAULT_SUPPORT), unroll(HISTOGRAM_SUPPORT), unroll(SWEEPFILTER_SUPPORT), unroll(KEYEVENT_SUPPORT)};
+
+        Dictionary CALLBACKS = {
+	    Dictionary callbacks;
+
+	    afterPressed(String key, Event event) {
+		if (defined("PRESSED", callbacks)) {
+		    *callbacks.PRESSED.target = callbacks.PRESSED.Formatter(key);
+		    if (callbacks.PRESSED.Callback != NULL)
+			callbacks.PRESSED.Callback(this, key, event);
+		}
+	    }
+
+	    componentHidden(ComponentEvent e) {
+		if (defined("HIDDEN", callbacks)) {
+		    *callbacks.HIDDEN.target = callbacks.HIDDEN.Formatter(this);
+		    if (callbacks.HIDDEN.Callback != NULL)
+			callbacks.HIDDEN.Callback(this);
+		}
+	    }
+
+	    componentShown(ComponentEvent e) {
+		if (defined("SHOWN", callbacks)) {
+		    *callbacks.SHOWN.target = callbacks.SHOWN.Formatter(this);
+		    if (callbacks.SHOWN.Callback != NULL)
+			callbacks.SHOWN.Callback(this);
+		}
+	    }
+	};
+    };
+
+    Dictionary SWEEPTABLES = {
+	Palette palette = NULL;		
+	Object  transferhandler = NULL;
+	String  inputfilter = TABLESEPARATOR;
+	Array   operations = OPERATIONS.DATATABLE;
+	Color   background = COLORS.background;
+	Color   foreground = COLORS.foreground;
+	Color   emptycolor = COLORS.emptycolor;
+	Color   highlightcolor = COLORS.highlightcolor;
+	Font    font = FONTS.medium_monospace;
+	int     anchor = LEFT;
+	int     autoshow = AUTOSHOW;
+
+	Dictionary SUPPORT[] = {unroll(DEFAULT_SUPPORT), unroll(DATATABLE_SUPPORT), unroll(SWEEPFILTER_SUPPORT), unroll(KEYEVENT_SUPPORT)};
+
+        Dictionary CALLBACKS = {
+	    Dictionary callbacks;
+
+	    afterPressed(String key, Event event) {
+		if (defined("PRESSED", callbacks)) {
+		    *callbacks.PRESSED.target = callbacks.PRESSED.Formatter(key);
+		    if (callbacks.PRESSED.Callback != NULL)
+			callbacks.PRESSED.Callback(this, key, event);
+		}
+	    }
+
+	    componentHidden(ComponentEvent e) {
+		if (defined("HIDDEN", callbacks)) {
+		    *callbacks.HIDDEN.target = callbacks.HIDDEN.Formatter(this);
+		    if (callbacks.HIDDEN.Callback != NULL)
+			callbacks.HIDDEN.Callback(this);
+		}
+	    }
+
+	    componentShown(ComponentEvent e) {
+		if (defined("SHOWN", callbacks)) {
+		    *callbacks.SHOWN.target = callbacks.SHOWN.Formatter(this);
+		    if (callbacks.SHOWN.Callback != NULL)
+			callbacks.SHOWN.Callback(this);
+		}
+	    }
+	};
+    };
+
+    Dictionary TAGS = {
+	Palette palette = NULL;		
+	Object  transferhandler = NULL;
+	Object  plotstyle = STYLE_BARS;
+	double  axiswidth = AXISWIDTH;
+	double  linewidth = LINEWIDTH;
+	Color   background = COLORS.background;
+	Color   foreground = COLORS.foreground;
+	Font    font = FONTS.small_text;
+	int     anchor = CENTER;
+	int     stacked = FALSE;
+	int     state = -1;
+	int     symmetric = TRUE;
+	int     tipenabled = FALSE;
+	int     tipflags = 0;
+	int     tiplockmodel = NONE;
+
+	//
+	// Tried preferredsize, but it didn't behave consistently when the
+	// tag started out invisible. Suspect it's a problem in our Java
+	// code - we will loook into it later on.
+	//
+	Dimension size = {
+	    double height = font.height + 2;
+	};
+
+	//
+	// Data modules older than 6.0 need definitions for ipad and
+	// insets, even if they're all zeros, otherwise the code in
+	// table.yx that builds insets will end up using NULL.
+	// 
+
+	Insets ipad;
+
+	Insets insets = {
+	    double top = 2;
+	    double bottom = 2;
+	    double left = axiswidth;
+	    double right = axiswidth;
+	};
+
+	Insets border = {
+	    double left = axiswidth;
+	    double right = axiswidth;
+	};
+
+	Dictionary SUPPORT[] = {unroll(DEFAULT_SUPPORT), unroll(TAG_SUPPORT), unroll(KEYEVENT_SUPPORT)};
+
+	Dictionary CALLBACKS = {
+	    afterUpdate(int count) {
+		if (defined("UPDATE", callbacks)) {
+		    *callbacks.UPDATE.target = callbacks.UPDATE.Formatter(this);
+		    if (callbacks.UPDATE.Callback != NULL)
+			callbacks.UPDATE.Callback(this);
+		}
+	    }
+
+	    componentHidden(ComponentEvent e) {
+		if (defined("HIDDEN", callbacks)) {
+		    *callbacks.HIDDEN.target = callbacks.HIDDEN.Formatter(this);
+		    if (callbacks.HIDDEN.Callback != NULL)
+			callbacks.HIDDEN.Callback(this);
+		}
+	    }
+
+	    componentResized(ComponentEvent e) {
+		if (defined("ADJUST", callbacks)) {
+		    if (callbacks.ADJUST.Callback != NULL)
+			callbacks.ADJUST.Callback(this, plotends);
+		}
+	    }
+
+	    componentShown(ComponentEvent e) {
+		if (defined("SHOWN", callbacks)) {
+		    *callbacks.SHOWN.target = callbacks.SHOWN.Formatter(this);
+		    if (callbacks.SHOWN.Callback != NULL)
+			callbacks.SHOWN.Callback(this);
+		}
+	    }
+	};
+    };
+};
+

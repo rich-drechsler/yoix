@@ -1,0 +1,23 @@
+<BODY BGCOLOR=#FFFFFF>
+<TABLE VSPACE=24 HSPACE=24><TR><TD BGCOLOR=#BBF1DE>
+&nbsp;
+<CENTER>
+<H1>Help about <I>Clipboard</></H1>
+</CENTER>
+&nbsp;
+</TD></TR><TR><TD>&nbsp;
+<P>
+The clipboard, which is available through the
+<BLOCKQUOTE>
+<B>Show =&gt; Clipboard</B>
+</BLOCKQUOTE>
+menu item, provides an editable scratch area that supports drag and drop
+operations and provides copy and paste access to the system clipboard
+using Crtl-C and Crtl-V (or also Meta-C and Meta-V on a Mac system).
+<P>
+The clipboard also provides a print option for saving the information
+assembled in the clipboard.
+<P></TD></TR><TR><TD BGCOLOR=#BBF1DE ALIGN=RIGHT>
+<A HREF="!main_help"><I>Back to Main Page</I></A>
+</TD></TR></TABLE></BODY>
+

@@ -1,0 +1,49 @@
+//
+// Image example that uses version 1.1.0 features.
+//
+
+import yoix.*.*;
+
+Image img = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+    int    type = TYPE_RGB_ALPHA;
+
+    paint() {
+	Matrix mtx;
+
+	graphics {          // "named block"
+	    gsave();
+	    sethsbcolor(.8, .5, .7);
+	    moveto(9, 9);
+	    rlineto(36, 0);
+	    rlineto(0, 18);
+	    closepath();
+	    fill(.5);
+	    grestore();
+	}
+	this.transform(mtx.rotate(30));
+    }
+};
+
+JFrame f = {
+    Color background = Color.yellow;
+
+    Insets border = {
+	int left = 72/8;
+	int top = 72/8;
+	int right = 72/8;
+	int bottom = 72/8;
+    };
+
+    paint(Rectangle rect) {
+	graphics {
+	    gsave();
+	    rectclip(rect);
+	    drawImage(this, img, 72, 72);
+	    grestore();
+	}
+    }
+};
+
+f.visible = TRUE;
+

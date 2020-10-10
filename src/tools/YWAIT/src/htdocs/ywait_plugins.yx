@@ -1,0 +1,114 @@
+//
+// Plugin support that's often used to run special Yoix data visualization
+// software that's provided by a custom module, but it can also be used to
+// manage external processes that are kicked off on the client machine.
+// 
+
+import yoix.*.*;
+
+GetPlugin(String path) = RunCommand(NULL, "GETPLUGINFILE", path)[0];
+
+Dictionary PluginDirectory = {
+    //
+    // A growable dictionary, something like the one uses to manage
+    // screens, but this one is for special plugins (e.g., data Yoix
+    // visualization).
+    //
+    Dictionary plugintest_1 = {
+	String   path = "ydat.yx";
+	Array    argv[] = {"-ctest_1", "-mswing", "+e", "-G", GetPlugin};
+	Function Runner;
+	int      saverunner = TRUE;
+    };
+
+    Dictionary plugintest_2 = {
+	String   path = "ydat.yx";
+	Array    argv[] = {"-ctest_2", "-mswing", "+e", "-G", GetPlugin};
+	Function Runner;
+	int      saverunner = TRUE;
+    };
+
+    Dictionary plugintest_3 = {
+	//
+	// An example of a plugin that kicks off an external Process that's
+	// returned to the original caller (i.e., the screen that called
+	// RunPlugin()).
+	//
+	Runner(Object parent, ...) {
+	    Process p;
+
+	    p.command = "xclock";
+	    p.alive = TRUE;
+	    return(p);
+	}
+    };
+};
+
+ExecutePlugin(String name, ...) {
+    Dictionary dict;
+    String     plugin;
+    Array      args;
+
+    if (defined(name, PluginDirectory)) {
+	if ((dict = PluginDirectory[name]) != NULL) {
+	    if (!defined("argv", dict) || (args = dict.argv) == NULL)
+		args = new Array[0];
+	    if (defined("path", dict) && dict.path != NULL) {
+		plugin = GetPlugin(dict.path);
+		if (plugin@sizeof > 0)
+		    execute(plugin, name, unroll(args), unroll(&name+1));
+	    }
+	}
+    }
+}
+
+LoadPlugin(String name) {
+    Dictionary dict;
+    Stream     stream;
+    String     plugin;
+    Array      data;
+    Array      args;
+
+    if (defined(name, PluginDirectory)) {
+	if ((dict = PluginDirectory[name]) != NULL && dict.Runner == NULL) {
+	    if (!defined("argv", dict) || (args = dict.argv) == NULL)
+		args = new Array[0];
+	    if (SessionID != NULL) {
+		if (defined("path", dict) && dict.path != NULL) {
+		    plugin = GetPlugin(dict.path);
+		    if (plugin@sizeof > 0)
+			dict.Runner = execute(plugin, name, unroll(args));
+		}
+	    }
+	}
+    }
+    return(dict);
+}
+
+ResetPlugins() {
+    Dictionary dict;
+    int        n;
+
+    for (n = 0; n < PluginDirectory@sizeof; n++) {
+	if ((dict = PluginDirectory[n]) != NULL) {
+	    if (defined("path", dict) && dict.path != NULL)
+		dict.Runner = NULL;
+	}
+    }
+}
+
+RunPlugin(String name, Object screen, Object parent, ...) {
+    Dictionary dict;
+    Object     result;
+
+    if (screen != NULL)
+	save screen.cursor = Cursor.WAIT_CURSOR;
+
+    if ((dict = LoadPlugin(name)) != NULL && dict.Runner != NULL) {
+	result = dict.Runner(parent, unroll(&parent + 1));
+	if (defined("saverunner", dict) && !dict.saverunner)
+	    dict.Runner = NULL;
+    }
+    return(result);
+}
+

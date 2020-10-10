@@ -1,0 +1,16 @@
+import yoix.*.*;
+
+Proc(int c0, int c1) {
+    printf("c0=%c, c1=%c\n", c0, c1);
+    rmoveto(0, 18);     // small vertical move
+}
+
+JFrame f = {
+    paint(Rectangle r) {
+	graphics.moveto(100, 100);
+	graphics.kshow(Proc, "abcd");
+    }
+};
+
+f.visible = TRUE;
+

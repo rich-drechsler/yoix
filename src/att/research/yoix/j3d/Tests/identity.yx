@@ -1,0 +1,18 @@
+import yoix.j3d.*;
+
+Transform3D t = {
+    double sx = 2;
+    double sy = 3;
+    double shyx = 5.0;
+
+    initializer() {
+	//
+	// This turns the transform back into the identity and shows
+	// that an initialize funtion, if defined, is pretty much the
+	// last thing that happens when a Transform3D is built.
+	//
+	setToIdentity();
+    }
+};
+
+yoix.stdio.printf("t=%O\n", t);

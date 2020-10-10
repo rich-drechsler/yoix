@@ -1,0 +1,46 @@
+Random r = { double seed = 115; };
+
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+stdout.nextline = "reset";
+r.seed = 115;
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+stdout.nextline = "reset";
+r.seed = 115;
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+
+stdout.nextline = "secure";
+r.secure = 1;
+r.seed = 115;
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+stdout.nextline = "reset";
+r.seed = 115;
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+Array a = r.seed;
+r.seed = a;
+stdout.nextline = "reset";
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+yoix.stdio.printf("r=%d\n", r.int);
+

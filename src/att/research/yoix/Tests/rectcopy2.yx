@@ -1,0 +1,51 @@
+//
+// copyArea in some implementations of Java can't handle transformed areas,
+// so don't be concerned if this example doesn't quite work. Also notice
+// that we rotate the coordinate system a bit each time paint() is called,
+// so resizing the screen will make everything rotate, but moving a window
+// across the screen doesn't - do you understand why?
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    Array layout = {
+	new JCanvas {
+	    String text = "hello, world";
+	    Color  background = Color.black;
+
+	    Graphics graphics = {
+		String font = "Helvetica-bold-12";
+		Color  foreground = Color.yellow;
+	    };
+
+	    paint(clip) {
+		double x;
+		double y;
+
+		x = size.width - stringWidth(this, text) - 72;
+		y = size.height - graphics.font.descent - 72;
+
+		graphics {
+		    foreground = new Array {Color.red, 72, 0, Color.green, 300, 300, true};
+		    clippath();
+		    fill();
+		    rotate(2);
+		    gsave();
+		    translate(200, 200);
+		    rotate(30);
+		    setrgbcolor(0, 0, 1);
+		    drawRect(this, 0, 0, 72, 36);
+		    setrgbcolor(0, 0, 1);
+		    drawString(this, "ABC", 36, 18);
+		    rectcopy(0, 0, 72, 36, 72 + 1, 36 + 1);
+		    grestore();
+		}
+	    }
+	},
+    };
+};
+
+f.visible = TRUE;
+sleep(10);
+exit(0);

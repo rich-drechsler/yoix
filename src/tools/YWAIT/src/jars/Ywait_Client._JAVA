@@ -1,0 +1,1292 @@
+/*
+ *  This software may only be used by you under license from AT&T Corp.
+ *  ("AT&T").  A copy of AT&T's Source Code Agreement is available at
+ *  AT&T's Internet website having the URL:
+ *
+ *    <http://www.research.att.com/sw/tools/yoix/license/source.html>
+ *
+ *  If you received this software without first entering into a license
+ *  with AT&T, you have an infringing copy of this software and cannot
+ *  use it without violating AT&T's intellectual property rights.
+ */
+
+import java.awt.*;
+import java.io.*;
+import java.lang.reflect.*;
+import java.net.*;
+import java.text.*;
+import java.util.*;
+import javax.net.ssl.*;
+import javax.swing.*;
+
+import java.security.*;
+import java.security.cert.*;
+
+public abstract
+class Ywait_Client
+
+{
+
+    //
+    // This is a new YWAIT client program that relies on servers to find the
+    // application's jar file and startup script. The servers contacted are
+    // the CGI scripts listed in the setupscripts[] array or the one supplied
+    // on the command line using the "-Xserver:" option. Server selection is
+    // handled by collectCandidateScripts() and communications with servers
+    // is handled by sendQuery(), so those are particularly important methods
+    // if you're interested in the low level details.
+    //
+    // Valid command lines, which normally are hardcoded in the application
+    // shell scripts or bat files, look something like:
+    //
+    //     java -jar Application.jar [options]
+    //     java -jar Application.jar [options] token
+    //     java -jar Application.jar [options] jar-url script-url
+    //
+    // In the first case a dialog is shown that lets the user enter a token
+    // that in the second example is supplied as the last argument command
+    // line argument. The token itself is an arbitrary string that's handed
+    // to the CGI scripts that we call, and those CGI scripts are free to
+    // use it any way they see fit. The last example shows how you can skip
+    // the servers - just supply the URLs for the jar file and Yoix startup
+    // script on the command line.
+    //
+    // NOTE - old implementations of the "wrapper" class included a method
+    // that set javax.net.ssl.trustStore to a file under the lib directory
+    // in yoix.home. It was used by a production application that we wrote
+    // a long time ago and we doubt it's still needed. We decided that the
+    // mechanism was unnecessary so we omitted it in this class, at least
+    // for now - our YwaitHostNameVerifier class can be customized (if you
+    // want) to handle unexpected hostname verification issues. We suspect
+    // that hostname verification issues can't really be solved using the
+    // YwaitHostNameVerifier class because they can also happen when we're
+    // using a URLClassLoader to load a jar file. Bottom line is that the
+    // YwaitHostNameVerifier class probably should be removed - later.
+    //
+    // NOTE - the caching code seems to work but should we be using a hash
+    // (e.g., a SHA-1 MessageDigest) to validate cached jar files?? Suspect
+    // the capability should be included before caching is used by any real
+    // production application.
+    // 
+
+    private static String  acronym_uplow = "<_ACRONYM_UPLOW_DQ_>";
+    private static String  acronym_lower = "<_ACRONYM_LOWER_DQ_>";
+
+    private static String  program = acronym_uplow;
+    private static String  version = "1.0";	// client software version
+    private static String  argv[];		// argument strings
+    private static int     argc = 0;		// argv[argc-1] == last arg
+    private static int     argn = 0;		// argv[argn] == next arg
+
+    //
+    // A few system properties that are currently defined in initialize().
+    //
+
+    private static String  osname;
+    private static String  username;
+    private static String  userhome;
+    private static String  yoixhome;
+
+    //
+    // We use our own options processing class that was borrowed from the
+    // Yoix source code because the Yoix classes haven't been loaded when
+    // we handle our command line options. The recognized options should,
+    // at the very least, match the options accepted by the method that we
+    // eventually invoke (via reflection in run()).
+    //
+
+    private static YwaitOption  options = new YwaitOption();
+    private static String       optletters = "b:d:fgm:s:D:OT:VX:";
+
+    //
+    // The method that run() tries to invoke is
+    //
+    //     mainclass.mainmethod(String argv[])
+    //
+    // and since mainclass is assumed to reside on a server somewhere we
+    // use a URLClassLoader to try to load it and reflection to invoke the
+    // mainmethod. Both values can be overridden by server commands.
+    // 
+
+    private static String  mainclass = "att.research.yoix.YoixMain";
+    private static String  mainmethod = "main";
+
+    //
+    // We use an ArrayList to collect the options and arguments that we're
+    // going to hand to mainclass.mainmethod() when it's finally called.
+    //
+
+    private static ArrayList  arglist = new ArrayList();
+
+    //
+    // These are the hardcoded CGI scripts that are called when we want help
+    // selecting the jar file and startup script. Entries in the table must
+    // be arranged in a way that agrees with collectCandidateScripts(). The
+    // first entry in a "group" is a string that's used to match the token
+    // that we send to the server. Strings that follow (up to a null entry)
+    // are the URLs of the CGI scripts in the "group". Another "group" with
+    // its own token matching string and URL list starts right after a null
+    // entry. If the token doesn't match any of the "groups" then all URLs
+    // listed in setupscripts[] (after duplicates are discarded) are tried
+    // in the order they appear in the array.
+    //
+    // NOTE - white space in the first entry in a "group" is allowed and in
+    // that case we match the token against each of the strings we get when
+    // we split that entry into multiple white space separated strings.
+    //
+
+    private static String  setupscripts[] = {
+	"<_ACRONYM_LOWER_DQ_>",
+	    "<_SERVER_BASEURL_DQ_>/<_SERVER_SCRIPTALIAS_DQ_>/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_setup.cgi",
+	    "<_SERVER_BASEURL_DQ_>/<_SERVER_SCRIPTALIAS_DQ_>demo/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_setup.cgi",
+	    "<_SERVER_BASEURL_DQ_>/<_SERVER_SCRIPTALIAS_DQ_>dev/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_setup.cgi",
+	    null,
+    };
+
+    //
+    // Responses that we get back from the server are stored in a HashMap
+    // and if we decide the server gave us everything we need that HashMap
+    // is assigned to application.
+    //
+
+    private static HashMap  application = null;
+
+    //
+    // Use the -Xdebug option to enable debugging and -Xdebugheader to dump
+    // a few fields in the reponse header whenever we contact a new server.
+    // The server sometimes asks us to cache jar files, but we only do it
+    // if caching, which can changed using -Xcache and -Xnocache, is true.
+    //
+
+    private static boolean  debug = false;
+    private static boolean  debugheader = false;
+    private static boolean  caching = true;
+    private static long     starttime;
+
+    //
+    // If any of the CGI scripts that we try to call use https we might be
+    // forced to deal with a certificate that wasn't signed by an official
+    // certificate authority. The Yoix interpreter that we call might also
+    // have to deal with them (perhaps from different servers), but there's
+    // a class (i.e., YoixTrustManager) that usually handles them and does
+    // a good job handling questionable certificates. However there's also
+    // a command line option, namely --acceptcertificates, that tells the
+    // Yoix interterpreter to accept all certificates and occasionally the
+    // option is useful.
+    //
+    // So the bottom line is that there are two places (this class and the
+    // interpreter) that deal with certificates and there's a chance that
+    // we may want individual control over their behavior. You control the
+    // certificate behavior of this class by setting acceptcertificates to
+    // true or false, which can also be done using the +Xacceptcertificates
+    // or -Xacceptcertificates options. By default we decided to set it to
+    // true because the Yoix interpreter will usually still get a chance to
+    // warn you about questionable certificates, but feel free to change it
+    // to false if you want.
+    //
+    // The way the Yoix interpreter handles certificates can be controlled
+    // by the server-side CGI scripts that we call. When they include
+    //
+    //     "$JAROPTION = --acceptcertificates"
+    //
+    // in the keyword/value pairs they send to us the Yoix interpreter that
+    // we start will accept all certificates without storing any of them on
+    // the client.
+    //
+    // NOTE - if you want more control over which certificates are accepted
+    // you can modify the YwaitX509TrustManager.checkServerTrusted() method
+    // before you build your final version of the client jar file.
+    // 
+
+    private static boolean  acceptcertificates = true;
+
+    //
+    // These can be used to restrict URLs that we accept.
+    //
+
+    private static String  HTTP_PROTOCOL[] = {"http", "https"};
+    private static String  FILE_PROTOCOL[] = {"file"};
+
+    //
+    // These are the keyword strings that we must use when we communicate
+    // with the CGI scripts.
+    //
+
+    private static final String  CACHEJAR = "CACHEJAR";
+    private static final String  DEBUG = "DEBUG";
+    private static final String  ERROR = "ERROR";
+    private static final String  GOODBYE = "GOODBYE";
+    private static final String  HELLO = "HELLO";
+    private static final String  JAR = "JAR";
+    private static final String  JAROPTION = "JAROPTION";
+    private static final String  MAINCLASS = "MAINCLASS";
+    private static final String  MAINMETHOD = "MAINMETHOD";
+    private static final String  MESSAGE = "MESSAGE";
+    private static final String  OSNAME = "OSNAME";
+    private static final String  PROGRAM = "PROGRAM";
+    private static final String  QUIT = "QUIT";
+    private static final String  SCRIPT = "SCRIPT";
+    private static final String  SCRIPTOPTION = "SCRIPTOPTION";
+    private static final String  TOKEN = "TOKEN";
+    private static final String  USERHOME = "USERHOME";
+    private static final String  USERNAME = "USERNAME";
+    private static final String  VERSION = "VERSION";
+    private static final String  WARNING = "WARNING";
+    private static final String  YOIXHOME = "YOIXHOME";
+
+    //
+    // An array, borrowed from the Yoix source code, that's used to convert
+    // hexed messages to Java strings.
+    //
+
+    static final int  HEXDIGITS[] = {
+	-1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1,
+	 0,  1,  2,  3,  4,  5,  6,  7,
+	 8,  9, -1, -1, -1, -1, -1, -1,
+	-1, 10, 11, 12, 13, 14, 15, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1,
+	-1, 10, 11, 12, 13, 14, 15, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1,
+    };
+
+    ///////////////////////////////////
+    //
+    // Ywait_Client Methods
+    //
+    ///////////////////////////////////
+
+    public static void
+    main(String args[]) {
+
+	argv = args;
+	argc = args.length;
+	argn = 0;
+
+	initialize();
+	options();
+	certificates();
+	arguments();
+	run();
+    }
+
+    ///////////////////////////////////
+    //
+    // Private Methods
+    //
+    ///////////////////////////////////
+
+    private static void
+    arguments() {
+
+	String  arg;
+	URL     scripturl;
+	URL     jarurl;
+
+	if (argn < argc) {
+	    arg = argv[argn++];
+	    if ((jarurl = getURL(arg)) != null) {
+		if (argn < argc) {
+		    if ((scripturl = getURL(argv[argn++])) != null) {
+			application = new HashMap();
+			application.put(JAR, new URL[] {jarurl});
+			application.put(SCRIPT, new URL[] {scripturl});
+			application.put(MAINCLASS, mainclass);
+			application.put(MAINMETHOD, mainmethod);
+		    } else error("The command line must include a jar file and startup script URL");
+		} else error("The command line must include a jar file and startup script URL");
+	    } else {
+		if (arg.length() == 0 || arg.charAt(0) == '-' || arg.charAt(0) == '+') {
+		    argn--;
+		    application = sendQuery(getUserInput());
+		} else application = sendQuery(arg);
+	    }
+	} else application = sendQuery(getUserInput());
+    }
+
+
+    private static void
+    certificates() {
+
+	TrustManagerFactory  tmf;
+	TrustManager         tms[];
+	SSLContext           sslctxt;
+	int                  n;
+
+	if (acceptcertificates) {
+	    try {
+		tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+		tmf.init((KeyStore)null);
+		tms = tmf.getTrustManagers();
+
+		for (n = 0; n < tms.length; n++) {
+		    if (tms[n] instanceof X509TrustManager) {
+			tms[n] = new YwaitX509TrustManager();
+			break;
+		    }
+		}
+		sslctxt = SSLContext.getInstance("SSL");
+		sslctxt.init(null, tms, new java.security.SecureRandom());
+		HttpsURLConnection.setDefaultSSLSocketFactory(sslctxt.getSocketFactory());
+	    }
+	    catch(Exception e) {
+		debug("EXCEPTION", e.getMessage());
+	    }
+	}
+    }
+
+
+    private static String[]
+    collectCandidateScripts(String token) {
+
+	StringTokenizer  tok;
+	HashMap          collected;
+	String           scripts[];
+	String           tmp[];
+	String           script;
+	int              length;
+	int              next;
+	int              n;
+
+	collected = new HashMap();
+	length = setupscripts.length;
+	scripts = new String[length];
+	next = 0;
+
+	for (n = 0; n < length; n++) {
+	    tok = new StringTokenizer(setupscripts[n++], " \t\n");
+	    while (tok.hasMoreTokens()) {
+		if (tok.nextToken().equals(token)) {
+		    collected.clear();
+		    next = 0;
+		    for (; n < length && setupscripts[n] != null; n++) {
+			script = setupscripts[n];
+			if (collected.containsKey(script) == false) {
+			    scripts[next++] = script;
+			    collected.put(script, Boolean.TRUE);
+			}
+		    }
+		    if (next > 0) {
+			n = length;		// stops outer loop
+			break;
+		    }
+		}
+	    }
+	    for (; n < length && setupscripts[n] != null; n++) {
+		script = setupscripts[n];
+		if (collected.containsKey(script) == false) {
+		    scripts[next++] = script;
+		    collected.put(script, Boolean.TRUE);
+		}
+	    }
+	}
+
+	if (next > 0) {
+	    if (next < length) {	// should always be true
+		tmp = new String[next];
+		System.arraycopy(scripts, 0, tmp, 0, next);
+		scripts = tmp;
+	    }
+	} else scripts = null;
+
+	return(scripts);
+    }
+
+
+    private static File
+    createTempFile(String directory) {
+
+	FileOutputStream  ostream = null;
+	File              tmp = null;
+
+	//
+	// We actually create the temp file because File.canWrite() doesn't
+	// work properly on Windows, so the value we return can be used as
+	// a reliable indication of whether files can really be created in
+	// directory.
+	//
+
+	try {
+	    tmp = File.createTempFile(JAR, null, new File(directory));
+	    tmp.deleteOnExit();
+	    ostream = new FileOutputStream(tmp);
+	    ostream.close();
+	}
+	catch (IOException e) {
+	    if (ostream != null) {
+		try {
+		    ostream.close();
+		}
+		catch (IOException ex) {}
+	    }
+	}
+
+	return(tmp != null && tmp.canRead() ? tmp : null);
+    }
+
+
+    private static void
+    debug(String prefix, String message) {
+
+	DateFormat  date;
+	String      elapsed;
+	long        now;
+	int         count;
+
+	if (debug) {
+	    date = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.DEFAULT);
+	    now = System.currentTimeMillis();
+	    elapsed = Double.toString((now - starttime)/1000.0);
+	    for (count = elapsed.length() - elapsed.indexOf('.'); count <= 3; count++)
+		elapsed += "0";
+	    System.err.print("[");
+	    System.err.print(date.format(new Date(now)));
+	    System.err.print("][");
+	    System.err.print(elapsed);
+	    System.err.print("] ");
+	    if (prefix != null)
+		System.err.print(prefix + ": ");
+	    System.err.println(message);
+	}
+    }
+
+
+    private static URL
+    downloadJarFile(String jarname, String localcache) {
+
+	FileOutputStream  ostream;
+	InputStream       istream;
+	byte              block[];
+	File              jarfile;
+	File              tmp;
+	URL               urls[];
+	URL               url = null;
+	int               count;
+	int               n;
+
+	if (application != null) {
+	    if ((tmp = createTempFile(localcache)) != null) {
+		jarfile = new File(localcache + File.separator + jarname);
+		block = new byte[65536];
+		urls = (URL[])application.get(JAR);
+		for (n = 0; n < urls.length; n++) {
+		    ostream = null;
+		    istream = null;
+		    try {
+			debug("DOWNLOAD", urls[n].toExternalForm());
+			istream = urls[n].openConnection().getInputStream();
+			ostream = new FileOutputStream(tmp);
+			while ((count = istream.read(block)) >= 0)
+			    ostream.write(block, 0, count);
+			istream.close();
+			ostream.close();
+			if (tmp.renameTo(jarfile)) {
+			    debug("CACHED", jarfile.toString());
+			    try {
+				url = jarfile.toURL();
+			    }
+			    catch(MalformedURLException e) {}
+			}
+			break;
+		    }
+		    catch(Exception e) {}
+		    finally {
+			try {
+			    if (ostream != null)
+				ostream.close();
+			}
+			catch(IOException e) {}
+			try {
+			    if (istream != null)
+				istream.close();
+			}
+			catch(IOException e) {}
+		    }
+		}
+	    }
+	}
+
+	return(url);
+    }
+
+
+    private static void
+    dumpData() {
+
+	ArrayList  directories;
+	String     path;
+	int        n;
+
+	System.err.println("----------------");
+	System.err.println("Client Data Dump");
+	System.err.println("----------------");
+	System.err.println("    Client Version: " + version);
+	System.err.println("        Main Class: " + mainclass);
+	System.err.println("       Main Method: " + mainmethod);
+	System.err.println();
+	System.err.println("    CGI Script Table:");
+	for (n = 0; n < setupscripts.length; n++) {
+	    System.err.println("        " + setupscripts[n++]);
+	    for (; n < setupscripts.length; n++) {
+		if (setupscripts[n] != null)
+		    System.err.println("            " + setupscripts[n]);
+		else break;
+	    }
+	}
+	System.err.println();
+	System.err.println("   Cache Directories:");
+	if ((directories = pickCacheDirectories(false)) != null) {
+	    for (n = 0; n < directories.size(); n++) {
+		if ((path = (String)directories.get(n)) != null)
+		    System.err.println("            " + path);
+	    }
+	}
+	System.err.println("================");
+    }
+
+
+    private static void
+    dumpResponseHeader(URLConnection connection) {
+
+	//
+	// Dumps a few response header fields, but only if debugheader is
+	// true and we're debugging.
+	//
+
+	if (debugheader) {
+	    debug("HEADERFIELD", "Content-Type=" + connection.getContentType());
+	    debug("HEADERFIELD", "Content-Encoding=" + connection.getContentEncoding());
+	    debug("HEADERFIELD", "Content-Length=" + connection.getContentLength());
+	}
+    }
+
+
+    private static void
+    error(String message) {
+
+	showMessage(message, JOptionPane.ERROR_MESSAGE);
+	quit(1);
+    }
+
+
+    private static URL
+    getCachedJar() {
+
+	ArrayList  localcaches;
+	String     cachedjar;
+	String     localcache;
+	File       jarfile;
+	URL        url = null;
+	int        n;
+
+	//
+	// Looks through all local cache directories for a jar file that's
+	// been downloaded. If the jar file isn't found it goes the list of
+	// directories again until it successfully downloads the jar file
+	// into one of them or runs out of cache directories.
+	//
+
+	if (application != null) {
+	    if ((cachedjar = (String)application.get(CACHEJAR)) != null) {
+		if ((localcaches = pickCacheDirectories(true)) != null) {
+		    for (n = 0; n < localcaches.size(); n++) {
+			if ((localcache = (String)localcaches.get(n)) != null) {
+			    jarfile = new File(localcache + File.separator + cachedjar);
+			    if (jarfile.canRead()) {
+				debug("CACHED", jarfile.toString());
+				try {
+				    url = jarfile.toURL();
+				}
+				catch(MalformedURLException e) {}
+				break;
+			    }
+			}
+		    }
+		    if (url == null) {
+			for (n = 0; n < localcaches.size(); n++) {
+			    if ((localcache = (String)localcaches.get(n)) != null) {
+				if ((url = downloadJarFile(cachedjar, localcache)) != null)
+				   break;
+			    }
+			}
+		    }
+		}
+	    }
+	}
+
+	return(url);
+    }
+
+
+    private static URL
+    getURL(String spec) {
+
+	return(getURL(spec, null));
+    }
+
+
+    private static URL
+    getURL(String spec, String protocols[]) {
+
+ 	String  protocol;
+	URL     url = null;
+	int     n;
+
+	try {
+	    if (protocols != null && spec != null) {
+		for (n = 0; n < protocols.length; n++) {
+		    if (spec.startsWith(protocols[n] + ":")) {
+			url = new URL(spec);
+			break;
+		    }
+		}
+	    } else url = new URL(spec);
+	}
+	catch(IOException e) {}
+
+	return(url);
+    }
+
+
+    private static String
+    getUserInput() {
+
+	String  input = null;
+	String  message;
+
+	try {
+	    debug("PROMPT", "for system identification");
+	    message = "Enter one or more words that identify the system you want to use:";
+	    input = JOptionPane.showInputDialog(null, message, program, JOptionPane.OK_CANCEL_OPTION);
+	}
+	catch(HeadlessException e) {}
+
+	if (input == null || input.trim().length() == 0)
+	    quit(0);
+
+	return(input);
+    }
+
+
+    private static String
+    hexToAscii(String str) {
+
+	String  value = null;
+	byte    bytes[];
+	char    ch;
+	int     length;
+	int     digit;
+	int     m;
+	int     n;
+
+	//
+	// A method that's used to recover messages from the hexed strings
+	// that the server sends us. It was borrowed from the Yoix source
+	// code.
+	//
+
+	if (str != null) {
+	    if ((length = str.length()) > 0) {
+		bytes = new byte[(length + 1)/2];
+		for (m = 0, n = 0; n < length; n++) {
+		    if ((ch = str.charAt(n)) < HEXDIGITS.length) {
+			if ((digit = HEXDIGITS[ch]) >= 0) {
+			    if (m%2 == 0)
+				bytes[m/2] = (byte)(digit << 4);
+			    else bytes[m/2] |= (byte)digit;
+			    m++;
+			}
+		    }
+		}
+		try {
+		    value = new String(bytes, 0, (m + 1)/2, "ISO-8859-1");
+		}
+		catch(UnsupportedEncodingException e) {
+		    value = new String(bytes, 0, (m + 1)/2);
+		}
+	    } else value = "";
+	}
+	return(value);
+    }
+
+
+    private static void
+    initialize() {
+
+	starttime = System.currentTimeMillis();
+	osname = System.getProperty("os.name");
+	username = System.getProperty("user.name");
+	userhome = System.getProperty("user.home");
+	yoixhome = System.getProperty("yoix.home");
+    }
+
+
+    private static void
+    options() {
+
+	int  ch;
+
+	//
+	// We recognize and collect options that are supposed to be passed
+	// to the Yoix interepter.
+	// 
+
+	while ((ch = options.getopt(argv, optletters)) != -1) {
+	    switch (ch) {
+		case 'b':
+		case 'd':
+		case 'm':
+		case 's':
+		case 'D':
+		case 'T':
+		    arglist.add("" + options.optchar + (char)ch + options.optarg);
+		    break;
+
+		case 'f':
+		case 'g':
+		case 'O':
+		case 'V':
+		    arglist.add("" + options.optchar + (char)ch);
+		    break;
+
+		case 'X':
+		    if (options.optarg.startsWith("user:")) {
+			if (options.optarg.length() > 5)
+			    username = options.optarg.substring(5);
+		    } else if (options.optarg.startsWith("server:")) {
+			if (options.optarg.length() > 7)
+			    setupscripts = new String[] {"", options.optarg.substring(7), null};
+		    } else if (options.optarg.startsWith("version")) {
+			if (options.optchar == '+')
+			    System.err.print("YWAIT Client Version ");
+			System.out.println(version);
+			quit(0);
+		    } else if (options.optarg.equals("acceptcertificates"))
+			acceptcertificates = (options.optchar == '+');
+		    else if (options.optarg.equals("cache"))
+			caching = true;
+		    else if (options.optarg.equals("nocache"))
+			caching = false;
+		    else if (options.optarg.equals("debug"))
+			debug = true;
+		    else if (options.optarg.equals("debugheader"))
+			debugheader = true;
+		    else if (options.optarg.equals("dump"))
+			dumpData();
+		    break;
+
+		case '?':
+		    error(options.opterror);
+		    break;
+
+		default:
+		    error("Missing case for option -" + (char)ch);
+		    break;
+	    }
+	}
+
+	argn += options.optind;
+    }
+
+
+    private static ArrayList
+    pickCacheDirectories(boolean prune) {
+
+	ArrayList  paths;
+	String     path;
+	String     sep;
+	File       file;
+	int        n;
+
+	//
+	// Our selection of potential cache directories may need some work.
+	// For example, is our "Windows" list reasonable and are there any
+	// Mac conventions that we should use?
+	//
+
+	paths = new ArrayList();
+
+	if (caching) {
+	    if ((path = System.getProperty("ywait." + acronym_lower + ".cache")) == null) {
+		sep = File.separator;
+		if (yoixhome != null)
+		    paths.add(yoixhome + sep + "cache");
+		if (userhome != null) {
+		    paths.add(userhome + sep + program + sep + "cache");
+		    if (osname != null) {
+			if (osname.startsWith("Windows")) {
+			    paths.add(userhome + sep + "Application Data" + sep + program + sep + "cache");
+			    paths.add(userhome + sep + "AppData" + sep + program + sep + "cache");
+			} else paths.add(userhome + sep + "." + program + sep + "cache");
+		    }
+		}
+	    } else paths.add(path);
+	    if (prune) {
+		for (n = 0; n < paths.size(); n++) {
+		    if ((path = (String)paths.get(n)) != null) {
+			file = new File(path);
+			if (file.isDirectory() == false)
+			    paths.set(n, null);
+		    }
+		}
+	    }
+	}
+
+	return(paths.size() > 0 ? paths : null);
+    }
+
+
+    private static URLClassLoader
+    pickCachedJar() {
+
+	URLClassLoader  loader = null;
+	String          classname;
+	URL             url;
+
+	if (application != null) {
+	    if ((url = getCachedJar()) != null)  {
+		try {
+		    classname = (String)application.get(MAINCLASS);
+		    debug("LOADERURLS", url.toExternalForm());
+		    loader = new URLClassLoader(new URL[] {url});
+		    debug("LOADCLASS", classname);
+		    loader.loadClass(classname);
+		    debug("LOADED", classname);
+		}
+		catch(Exception e) {
+		    loader = null;
+		}
+	    }
+	}
+
+	return(loader);
+    }
+
+
+    private static URLClassLoader
+    pickJar() {
+
+	URLClassLoader  loader = null;
+	String          classname;
+	String          message;
+	URL             urls[];
+	int             n;
+
+	//
+	// It's safe to assume that there's a JAR entry with at least one
+	// URL when application isn't null.
+	//
+
+	if (application != null) {
+	    if ((loader = pickCachedJar()) == null) {
+		urls = (URL[])application.get(JAR);
+		classname = (String)application.get(MAINCLASS);
+		try {
+		    message = "";
+		    for (n = 0; n < urls.length; n++) {
+			if (n > 0)
+			    message += ", ";
+			message += urls[n].toExternalForm();
+		    }
+		    debug("LOADERURLS", message);
+		    loader = new URLClassLoader(urls);
+		    debug("LOADCLASS", classname);
+		    loader.loadClass(classname);
+		    debug("LOADED", classname);
+		}
+		catch(Exception e) {
+		    loader = null;
+		    message = "Can't load the required class named " +  classname + " using URLs:\n\n";
+		    for (n = 0; n < urls.length; n++)
+			message += "        " + urls[n].toExternalForm() + "\n";
+		    message += "\n";
+		    message += "Contact an administrator for more help.";
+		    error(message);
+		}
+	    }
+	}
+
+	return(loader);
+    }
+
+
+    private static String
+    pickScript() {
+
+	String  script = null;
+	String  message;
+	URL     urls[];
+	int     n;
+
+	//
+	// It's safe to assume that there's a SCRIPT entry with at least one
+	// URL when application isn't null.
+	//
+
+	if (application != null) {
+	    urls = (URL[])application.get(SCRIPT);
+	    for (n = 0; n < urls.length && script == null; n++) {
+		try {
+		    urls[n].openStream().close();
+		    System.setProperty("yoix.preferred.server", urls[n].getHost());
+		    script = urls[n].toExternalForm();
+		}
+		catch(IOException e) {}
+	    }
+	    if (script == null) {
+		message = "Can't open any of the script URLs in the list:\n\n";
+		for (n = 0; n < urls.length; n++)
+		    message += "        " + urls[n].toExternalForm() + "\n";
+		message += "\n";
+		message += "Contact an administrator for more help.";
+		error(message);
+	    }
+	}
+
+	return(script);
+    }
+
+
+    private static void
+    quit(int status) {
+
+	debug("QUIT", "status=" + status);
+	System.exit(status);
+    }
+
+
+    private static void
+    run() {
+
+	URLClassLoader loader;
+	ArrayList      list;
+	Method         method;
+	String         args[];
+	String         script;
+	String         classname;
+	String         methodname;
+	String         message;
+	Class          loaded;
+	int            n;
+
+	if (application != null) {
+	    if ((loader = pickJar()) != null) {
+		if ((script = pickScript()) != null) {
+		    if ((list = (ArrayList)application.get(JAROPTION)) != null)
+			arglist.addAll(list);
+		    arglist.add(script);
+		    if ((list = (ArrayList)application.get(SCRIPTOPTION)) != null)
+			arglist.addAll(list);
+		    while (argn < argc)
+			arglist.add(argv[argn++]);
+		    args = new String[arglist.size()];
+		    for (n = 0; n < args.length; n++)
+			args[n] = (String)arglist.get(n);
+		    classname = (String)application.get(MAINCLASS);
+		    methodname = (String)application.get(MAINMETHOD);
+		    try {
+			debug("FINDCLASS", classname);
+			if (loader != null)
+			    loaded = Class.forName(classname, true, loader);
+			else loaded = Class.forName(classname);
+			method = loaded.getDeclaredMethod(methodname, new Class[] {(new String[0]).getClass()});
+			message = classname + "." + methodname;
+			for (n = 0; n < args.length; n++)
+			    message += " " + args[n];
+			debug("INVOKE", message);
+			method.invoke(null, new Object[] {args});
+		    }
+		    catch(ClassNotFoundException e) {
+			error("Can't load the required class named " +  classname);
+		    }
+		    catch(NoSuchMethodException e) {
+			error("Can't find the method named " + methodname + " in class " + classname);
+		    }
+		    catch(InvocationTargetException e) {
+			error(e.getCause().getMessage());
+		    }
+		    catch(Exception e) {
+			error(e.getMessage());
+		    }
+		}
+	    }
+	}
+    }
+
+
+    private static HashMap
+    sendQuery(String token) {
+
+	DataOutputStream  ostream;
+	BufferedReader    reader;
+	URLConnection     connection;
+	StringBuffer      buffer;
+	ArrayList         list;
+	HashMap           response;
+	boolean           firstline;
+	boolean           strict;
+	String            scripts[];
+	String            script;
+	String            line;
+	String            key;
+	String            value;
+	String            message;
+	URL               url;
+	int               received;
+	int               m;
+	int               n;
+
+	//
+	// Calls the CGI scripts that we get back collectCandidateScripts()
+	// until we get an answer that includes jar file and script URLS or
+	// we run out of scripts to try. The token argument is an arbitrary
+	// string that's handed to each CGI script, which can use it to pick
+	// the URLs that it returns to us.
+	//
+
+	response = new HashMap();
+	buffer = new StringBuffer();
+	received = 0;
+
+	if ((scripts = collectCandidateScripts(token)) != null) {
+	    for (n = 0; n < scripts.length; n++) {
+		script = scripts[n];
+		connection = null;
+		ostream = null;
+		reader = null;
+		strict = true;
+		firstline = true;
+		buffer.setLength(0);
+		response.clear();
+		response.put(MAINCLASS, mainclass);
+		response.put(MAINMETHOD, mainmethod);
+		try {
+		    debug("OPEN", script);
+		    connection = (new URL(script)).openConnection();
+		    if (connection instanceof HttpsURLConnection)
+			((HttpsURLConnection)connection).setHostnameVerifier(new YwaitHostNameVerifier());
+		    connection.setDoOutput(true);
+		    connection.setDoInput(true);
+		    connection.setUseCaches(false);
+		    ostream = new DataOutputStream(connection.getOutputStream());
+		    debug("SEND", HELLO);
+		    buffer.append(HELLO + "\n");
+		    debug("SEND", PROGRAM + "=" + program);
+		    buffer.append(PROGRAM + "=" + program + "\n");
+		    debug("SEND", VERSION + "=" + version);
+		    buffer.append(VERSION + "=" + version + "\n");
+		    if (osname != null) {
+			debug("SEND", OSNAME + "=" + osname);
+			buffer.append(OSNAME + "=" + osname + "\n");
+		    }
+		    if (username != null) {
+			debug("SEND", USERNAME + "=" + username);
+			buffer.append(USERNAME + "=" + username + "\n");
+		    }
+		    if (userhome != null) {
+			debug("SEND", USERHOME + "=" + userhome);
+			buffer.append(USERHOME + "=" + userhome + "\n");
+		    }
+		    if (yoixhome != null) {
+			debug("SEND", YOIXHOME + "=" + yoixhome);
+			buffer.append(YOIXHOME + "=" + yoixhome + "\n");
+		    }
+		    for (m = 0; m < arglist.size(); m++) {
+			debug("SEND", JAROPTION + "=" + arglist.get(m));
+			buffer.append(JAROPTION + "=" + arglist.get(m) + "\n");
+		    }
+		    debug("SEND", TOKEN + "=" + token);
+		    buffer.append(TOKEN + "=" + token + "\n");
+		    ostream.writeBytes(buffer.toString());
+		    ostream.close();
+		    reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+		    while ((line = reader.readLine()) != null) {
+			received++;
+			if (firstline)
+			    dumpResponseHeader(connection);
+			firstline = false;
+			debug("RECEIVED", line);
+			line = line.replaceFirst("^\\s*", "");
+			if (line.length() > 0) {
+			    key = line.replaceFirst("[^A-Z].*$", "");
+			    value = line.replaceFirst(key + "\\s*=\\s*", "");
+			    if (key.equals(JAR)) {
+				if ((url = getURL(value, HTTP_PROTOCOL)) != null) {
+				    if ((list = (ArrayList)response.get(JAR)) == null) {
+					list = new ArrayList();
+					response.put(JAR, list);
+				    }
+				    list.add(url);
+				    debug("ACCEPTED", value);
+				} else debug("REJECTED", value);
+			    } else if (key.equals(SCRIPT)) {
+				if ((url = getURL(value, HTTP_PROTOCOL)) != null) {
+				    if ((list = (ArrayList)response.get(SCRIPT)) == null) {
+					list = new ArrayList();
+					response.put(SCRIPT, list);
+				    }
+				    list.add(url);
+				    debug("ACCEPTED", value);
+				} else debug("REJECTED", value);
+			    } else if (key.equals(MAINCLASS)) {
+				response.put(MAINCLASS, value);
+				debug("ACCEPTED", value);
+			    } else if (key.equals(MAINMETHOD)) {
+				response.put(MAINMETHOD, value);
+				debug("ACCEPTED", value);
+			    } else if (key.equals(JAROPTION) && value.matches("[-+].+$")) {
+				if ((list = (ArrayList)response.get(JAROPTION)) == null) {
+				    list = new ArrayList();
+				    response.put(JAROPTION, list);
+				}
+				list.add(value);
+				debug("ACCEPTED", value);
+			    } else if (key.equals(SCRIPTOPTION) && value.matches("[-+].+$")) {
+				if ((list = (ArrayList)response.get(SCRIPTOPTION)) == null) {
+				    list = new ArrayList();
+				    response.put(SCRIPTOPTION, list);
+				}
+				list.add(value);
+				debug("ACCEPTED", value);
+			    } else if (key.equals(CACHEJAR)) {
+				response.put(CACHEJAR, value);
+				debug("ACCEPTED", value);
+			    } else if (key.equals(GOODBYE)) {
+				debug("ACCEPTED", value);
+				break;
+			    } else if (key.equals(QUIT)) {
+				debug("ACCEPTED", value);
+				quit(0);
+			    } else if (key.equals(MESSAGE)) {
+				debug("ACCEPTED", value);
+				showMessage(hexToAscii(value));
+			    } else if (key.equals(ERROR)) {
+				debug("ACCEPTED", value);
+				error(hexToAscii(value));
+			    } else if (key.equals(WARNING)) {
+				debug("ACCEPTED", value);
+				warning(hexToAscii(value));
+			    } else if (key.equals(DEBUG)) {
+				debug = true;
+				debug("ACCEPTED", value);
+			    } else if (key.equals(HELLO)) {
+				debug("ACCEPTED", value);
+			    } else if (strict) {
+				debug("DISCONNECT", "invalid response");
+				break;
+			    } else debug("IGNORED", line);
+			    strict = false;
+			}
+		    }
+		    reader.close();
+		    if (response.containsKey(JAR) && response.containsKey(SCRIPT))
+			break;
+		}
+		catch(IOException e) {
+		    response.clear();
+		    debug("EXCEPTION", e.getMessage());
+		}
+		finally {
+		    debug("CLOSE", script);
+		    try {
+			ostream.close();
+		    }
+		    catch(Exception e) {}
+		    try {
+			reader.close();
+		    }
+		    catch(Exception e) {}
+		}
+	    }
+
+	    if (received > 0) {
+		if (response.containsKey(JAR) && response.containsKey(SCRIPT)) {
+		    response.put(JAR, toURLArray((ArrayList)response.get(JAR)));
+		    response.put(SCRIPT, toURLArray((ArrayList)response.get(SCRIPT)));
+		} else {
+		    error(
+			"Can't find a jar file or startup script that matches your request.\n" +
+			"Contact an administrator if you need more help."
+		    );
+		    response = null;	// unnecessary - error doesn't return
+		}
+	    } else {
+		error(
+		    "Can't reach the servers needed to access the system. Contact an\n" +
+		    "administrator for more help - there may be a network problem."
+		);
+		response = null;	// unnecessary - error doesn't return
+	    }
+	} else {
+	    error(
+		"There appears to be a problem with the internal server list. Contact\n" +
+		"an administrator for more help."
+	    );
+	    response = null;		// unnecessary - error doesn't return
+	}
+
+	return(response);
+    }
+
+
+    private static void
+    showMessage(String message) {
+
+	showMessage(message, JOptionPane.INFORMATION_MESSAGE);
+    }
+
+
+    private static void
+    showMessage(String message, int type) {
+
+	String  title;
+
+	if (message != null) {
+	    if (type == JOptionPane.WARNING_MESSAGE)
+		title = program + " Warning";
+	    else if (type == JOptionPane.ERROR_MESSAGE)
+		title = program + " Error";
+	    else title = program;
+	    try {
+		JOptionPane.showMessageDialog(null, message, title, type);
+	    }
+	    catch(HeadlessException e) {
+		System.err.println(program + ": " + message);
+	    }
+	}
+    }
+
+
+    private static URL[]
+    toURLArray(ArrayList list) {
+
+	URL  urls[];
+	int  length;
+	int  n;
+
+	if (list != null) {
+	    length = list.size();
+	    urls = new URL[length];
+	    for (n = 0; n < length; n++)
+		urls[n] = (URL)list.get(n);
+	} else urls = null;
+
+	return(urls);
+    }
+
+
+    private static void
+    warning(String message) {
+
+	showMessage(message, JOptionPane.WARNING_MESSAGE);
+    }
+}
+

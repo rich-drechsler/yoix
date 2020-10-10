@@ -1,0 +1,10 @@
+import yoix.*.*;
+
+Stream stream;
+
+if (argc == 2) { 
+    if ((stream = open(argv[1], "r")) != NULL)
+	stdout.nextbuf = readStream(stream);
+    else fprintf(stderr, "ERROR: cannot open '%s'\n", argv[1]);;
+} else fprintf(stderr, "USAGE: provide an https address as the sole argument\n");
+

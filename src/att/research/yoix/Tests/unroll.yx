@@ -1,0 +1,17 @@
+//
+// Trivial unroll test...
+//
+
+import yoix.*.*;
+
+f(a1, a2, ...) {
+    fprintf(stderr, "f: args=%s\n", toString(&a2));
+    g(unroll(&a1 + 1), "now is the time", unroll(new Dictionary[5]), "for all good men");
+}
+
+g(b1, ...) {
+    fprintf(stderr, "g: args=%O\n", &b1);
+}
+
+f(1,2,3);
+

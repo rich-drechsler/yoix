@@ -1,0 +1,32 @@
+import yoix.*.*;
+
+JFrame f = {
+    FlowLayout layoutmanager = {
+        int  hgap = 10;
+        int  vgap = 72;
+    };
+
+    Array layout = {
+        new JComboBox {
+            Array items = {"one", "1", "two", NULL, "three", "3"};
+
+            itemStateChanged(e) {
+                printf("selected=%O\n", selected);
+            }
+        },
+
+        new JComboBox {
+            Array items = {" ", NULL, "Continue", NULL, "Quit", NULL};
+            int   selected = 1;
+	    ////int   edit = 1;
+
+            itemStateChanged(e) {
+                printf("selected=%O\n", selected);
+                if (strcmp(selected, "Quit") == 0)
+                    exit(0);
+            }
+        },
+    };
+};
+
+f.visible = TRUE;

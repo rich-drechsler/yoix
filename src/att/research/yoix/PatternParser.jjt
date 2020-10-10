@@ -1,0 +1,525 @@
+/*
+ *  This software may only be used by you under license from AT&T Corp.
+ *  ("AT&T").  A copy of AT&T's Source Code Agreement is available at
+ *  AT&T's Internet website having the URL:
+ *
+ *    <http://www.research.att.com/sw/tools/yoix/license/source.html>
+ *
+ *  If you received this software without first entering into a license
+ *  with AT&T, you have an infringing copy of this software and cannot
+ *  use it without violating AT&T's intellectual property rights.
+ */
+
+//
+// A simple parser that can be used to match strings against patterns
+// that can be combined by boolean operators. This is first cut that
+// was needed by a fairly large application that was built using Yoix.
+// There will be changes and additions, so this definitely isn't final.
+//
+
+options {
+    DEBUG_PARSER = false;
+    DEBUG_LOOKAHEAD = false;
+    DEBUG_TOKEN_MANAGER = false;
+    FORCE_LA_CHECK = false;
+
+    //
+    // Need our own CharStream class for better control when we switch
+    // input streams, so these are no longer optional.
+    //
+    USER_CHAR_STREAM = true;
+    JAVA_UNICODE_ESCAPE = false;
+}
+
+PARSER_BEGIN(PatternParser)
+
+package att.research.yoix;
+import java.io.*;
+import java.util.*;
+
+class PatternParser
+
+{
+
+    private static YoixParserStream  parserstream = null;
+    private static int               currentparser = YoixConstants.PARSER_PATTERN;
+
+    private static final YoixVM  VM = YoixConstants.VM;
+    private static final String  NL = YoixConstants.NL;
+    private static final String  SYNTAXERROR = YoixConstantsErrorName.SYNTAXERROR;
+
+    //
+    // Internal parser stacks - some should be more flexible!!
+    //
+
+    private static Stack  exprstack = new Stack();
+
+    //
+    // These are only for operator associativity.
+    //
+
+    private static final short  LEFT = -1;
+    private static final short  NONE = 0;
+    private static final short  RIGHT = 1;
+
+
+    private static short  operators[] = {
+     //
+     // Operator		Precedence	Associativity
+     // --------		----------	-------------
+	AND,			3,		LEFT,
+	XOR,			2,		LEFT,
+	OR,			1,		LEFT,
+
+	CONDITIONAL,		0,		LEFT,
+    };
+
+    private static short  precedence[] = new short[LASTTOKEN];
+    private static short  associativity[] = new short[LASTTOKEN];
+
+    static {
+	for (int n = 0; n < precedence.length; n++) {
+	    precedence[n] = (short)LASTTOKEN;	// higher than all operators
+	    associativity[n] = NONE;
+	}
+
+	for (int n = 0; n < operators.length; n += 3) {
+	    precedence[operators[n]] = operators[n+1];
+	    associativity[operators[n]] = operators[n+2];
+	}
+
+	operators = null;
+    }
+
+    ///////////////////////////////////
+    //
+    // Private Methods
+    //
+    ///////////////////////////////////
+
+    private static YoixObject
+    abort(String error) {
+
+	return(abort(error, null));
+    }
+
+
+    private static YoixObject
+    abort(String error, ParseException e) {
+
+	ArrayList  args = new ArrayList();
+	String     token;
+	String     expected;
+	String     sep;
+	Token      tok;
+	int        line;
+	int        column;
+	int        m;
+	int        n;
+
+	//
+	// Wanted better control over parser error messages, primarily
+	// for consistency, so this routine is now a slightly modified
+	// version of ParseException.getMessage(). Change JavaCC and
+	// you may have to do some work here as well.
+	//
+
+	if (e != null && e.currentToken != null) {
+	    line = e.currentToken.next.beginLine;
+	    column = e.currentToken.next.beginColumn;
+	    args.add("Encountered");
+	    token = "\"";
+	    sep = "";
+	    for (tok = e.currentToken.next; tok != null; tok = tok.next) {
+		if (tok.kind == 0) {
+		    token += sep + tokenImage[0];
+		    break;
+		} else token += sep + e.add_escapes(tok.image);
+		sep = " ";
+	    }
+	    token += "\"";
+	    args.add(token);
+	    args.add(NL);
+	    expected = NL + "    Parser was looking for one of the following tokens:" + NL;
+	    for (n = 0; n < e.expectedTokenSequences.length; n++) {
+		sep = "\t";
+		for (m = 0; m < e.expectedTokenSequences[n].length; m++) {
+		    expected += sep + e.tokenImage[e.expectedTokenSequences[n][m]];
+		    sep = " ";
+		}
+		if (m > 0) {
+		    if (e.expectedTokenSequences[n][m - 1] != 0)
+			expected += sep + "...";
+		    expected += NL;
+		}
+	    }
+	    args.add(expected);
+	} else {		// should be unnecessary - later
+	    if (e != null)
+		args.add(e.getMessage());
+	    line = parserstream.getBeginLine();
+	    column = parserstream.getBeginColumn();
+	}
+
+	VM.pushTag(line, column, parserstream.getName());
+	return(VM.abort(error, args, e));
+    }
+
+
+    private static void
+    arrangeBinary() {
+
+	SimpleNode  operand;
+	SimpleNode  operator;
+	SimpleNode  next;
+	int         prec1;
+	int         prec2;
+	int         type1;
+	int         type2;
+
+	//
+	// Rearranges binary expressions based on the precedence[] and
+	// associativity[] tables.
+	//
+
+	operand = (SimpleNode)jjtree.popNode();
+	operator = (SimpleNode)jjtree.popNode();
+
+	type1 = operator.type();
+	type2 = ((SimpleNode)jjtree.peekNode()).type();
+	prec1 = precedence(type1);
+	prec2 = precedence(type2);
+
+	while (prec1 > prec2 || (prec1 == prec2 && associativity(type2) == RIGHT)) {
+	    next = (SimpleNode)jjtree.popNode();
+	    if (next.type() == CONDITIONAL && false)
+		unroll(next.getChild0());
+	    else exprstack.push(next);
+	    type2 = ((SimpleNode)jjtree.peekNode()).type();
+	    prec2 = precedence(type2);
+	}
+
+	exprstack.push(operator);
+	exprstack.push(operand);
+
+	while (exprstack.size() > 0) {
+	    next = (SimpleNode)exprstack.pop();
+	    switch (next.type()) {
+		case AND:
+		case OR:
+		    jjtree.pushNode(new SimpleNode(CONDITIONAL, collectExpression()));
+		    break;
+	    }
+	    jjtree.pushNode(next);
+	}
+    }
+
+
+    private static int
+    associativity(int type) {
+
+	return((type >= 0 && type < associativity.length) ? associativity[type] : NONE);
+    }
+
+
+    private static void
+    buildConcatenation(SimpleNode node) {
+
+	switch (currentparser) {
+	    case YoixConstants.PARSER_PATTERN_AND:
+		node.setType(AND);
+		break;
+
+	    case YoixConstants.PARSER_PATTERN_OR:
+		node.setType(OR);
+		break;
+
+	    case YoixConstants.PARSER_PATTERN_XOR:
+		node.setType(XOR);
+		break;
+
+	    default:
+		abort(SYNTAXERROR);
+		break;
+	}
+    }
+
+
+    private static void
+    buildExpression(SimpleNode node, boolean exchange) {
+
+	Node  tmp;
+	int   n;
+
+	node.setType(PATTERN);
+
+	if (node.length() == 1 && node.getChild0().type() == PATTERN)
+	    node.value = ((SimpleNode)node.getChild0().clone()).value;
+
+	if (exchange) {
+	    if ((n = node.length() - 1) > 0) {
+		tmp = node.getChild(n);
+		node.jjtAddChild(node.getChild(n - 1), n);
+		node.jjtAddChild(tmp, n - 1);
+	    }
+	}
+    }
+
+
+    private static SimpleNode
+    collectExpression() {
+
+	SimpleNode  node;
+	SimpleNode  arg;
+	int         prec;
+	int         count;
+	int         n;
+
+	for (n = 1, count = 0; n > 0; n--, count++) {
+	    arg = (SimpleNode)jjtree.popNode();
+	    prec = precedence(arg.type());
+	    exprstack.push(arg);
+	    if (prec > 0 && prec < LASTTOKEN)	// it's a binary operator - ugh??
+		n += 2;
+	}
+
+	node = new SimpleNode(PATTERN, count);
+	for (n = 0; n < count; n++)
+	    node.jjtAddChild((SimpleNode)exprstack.pop(), n);
+
+	return(node);
+    }
+
+
+    private static int
+    precedence(int type) {
+
+	return((type >= 0 && type < precedence.length) ? precedence[type] : LASTTOKEN);
+    }
+
+
+    private static void
+    reset(YoixParserStream stream, int parser) {
+
+	stream.setParent(parserstream);
+	parserstream = stream;
+	currentparser = parser;
+	ReInit(parserstream);
+	exprstack.removeAllElements();
+	token_source.SwitchTo(DEFAULT);
+    }
+
+
+    private static void
+    restore() {
+
+	if (parserstream != null) {
+	    parserstream = parserstream.getParent();
+	    ReInit(parserstream);
+	}
+    }
+
+
+    private static void
+    unroll(SimpleNode node) {
+
+	int  n;
+
+	for (n = 0; n < node.value.length; n++)
+	    jjtree.pushNode((SimpleNode)node.value[n]);
+    }
+
+
+    private static void
+    unrollTop() {
+
+	unroll((SimpleNode)jjtree.popNode());
+    }
+}
+
+PARSER_END(PatternParser)
+
+//
+// These tokens are part of the language and are recognized in the input
+// stream. Grabbing surrounding white space turned out to be convenient,
+// primarily because we sometimes map white space to operators.
+//
+
+TOKEN : {
+    <LITERAL_LPAREN : ([" ", "\t"])* "(" ([" ", "\t"])*>
+  | <LITERAL_RPAREN : ([" ", "\t"])* ")" ([" ", "\t"])*>
+  | <LITERAL_NOT : ([" ", "\t"])* "!" ([" ", "\t"])*>
+  | <LITERAL_AND : ([" ", "\t"])* "&" ([" ", "\t"])*>
+  | <LITERAL_OR : ([" ", "\t"])* "|" ([" ", "\t"])*>
+  | <LITERAL_XOR : ([" ", "\t"])* "^" ([" ", "\t"])*>
+  | <LITERAL_SPACE : ([" ", "\t"])* " " ([" ", "\t"])*>
+}
+
+//
+// These tokens aren't matched because we never enter <STATE_DUMMY>, but
+// javacc assigns values to them and it's those numbers that end up in
+// our parse trees.
+//
+
+<STATE_DUMMY> TOKEN : {
+    <NOT : "!">
+  | <AND : "&">
+  | <XOR : "^">
+  | <OR : "|">
+  | <CONDITIONAL : "CONDITIONAL">
+  | <PATTERN : "PATTERN">
+}
+
+//
+// These tokens describe strings and regular expressions - there may
+// be more.
+//
+
+TOKEN : {
+    <LITERAL_REGEXP :
+	"/" (
+	    ~["/", "\\", "\n", "\r"]
+	  | "\\" ~["\r"]
+	  | "\\\r\n"
+	)+ "/"
+    >
+}
+
+TOKEN : {
+    <LITERAL_PATTERN :
+	(
+	    ~["\\", " ", "\t", "\n", "\r", "\f", "(", ")", "!", "&", "^", "|"]
+	  | "\\" ~["\r"]
+	  | "\\\r\n"
+	)+
+    >
+}
+
+//
+// We've already grabbed lots of white space - this is what's left.
+//
+
+SKIP : {"\n" | "\r" | "\f"}
+
+//
+// Everything else, so we get errors from the parser instead of the
+// token manager.
+//
+
+TOKEN : {<UNMATCHEDTOKEN : ~[]>}
+
+//
+// Last token number assigned by the parser.
+//
+
+<STATE_DUMMY> TOKEN : {<LASTTOKEN : "LASTTOKEN">}
+
+//
+// Currently the only entry point.
+//
+
+SimpleNode
+parsePattern(YoixParserStream stream, int parser) #void : {reset(stream, parser);}
+{
+    try {
+	Expression()
+	{
+	    return((SimpleNode)jjtree.popNode());
+	}
+    }
+    catch(ParseException e) {
+	return(abort(SYNTAXERROR, e));
+    }
+    catch(TokenMgrError e) {
+	return(VM.die(SYNTAXERROR));	// should never get here!!
+    }
+    finally {
+	restore();
+    }
+}
+
+//
+// Patterns
+//
+
+void
+Expression() : {}
+{
+    UnaryExpression() (LOOKAHEAD(2) (
+	BinaryOperator() UnaryExpression()
+	{
+	    arrangeBinary();
+	}
+    ))*
+    {
+	buildExpression(jjtThis, false);
+    }
+}
+
+void
+UnaryExpression() : {}
+{
+    LOOKAHEAD(HitUnaryExpression()) UnaryOperator() UnaryExpression()
+    {
+	buildExpression(jjtThis, true);
+    }
+  | PrimaryExpression()
+    {
+	unrollTop();
+    }
+}
+
+void
+PrimaryExpression() #void : {}
+{
+    <LITERAL_PATTERN>
+    {
+	jjtree.pushNode(YoixObject.newString(token.image, true, false));
+    }
+  | <LITERAL_REGEXP>
+    {
+	jjtree.pushNode(YoixObject.newRegexp(token.image));
+    }
+  | <LITERAL_LPAREN> Expression() <LITERAL_RPAREN>
+}
+
+void
+BinaryOperator() : {}
+{
+    <LITERAL_AND>
+    {
+	jjtThis.setType(AND);
+    }
+  | <LITERAL_OR>
+    {
+	jjtThis.setType(OR);
+    }
+  | <LITERAL_XOR>
+    {
+	jjtThis.setType(XOR);
+    }
+  | <LITERAL_SPACE>
+    {
+	buildConcatenation(jjtThis);
+    }
+}
+
+void
+UnaryOperator() : {}
+{
+    <LITERAL_NOT>
+    {
+	jjtThis.setType(NOT);
+    }
+}
+
+//
+// Syntactic lookahead productions.
+//
+
+void
+HitUnaryExpression() : {}
+{
+    UnaryOperator() UnaryExpression()
+}
+

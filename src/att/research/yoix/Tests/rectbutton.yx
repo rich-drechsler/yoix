@@ -1,0 +1,39 @@
+import yoix.*.*;
+
+JFrame f = {
+    Color background = Color.black;
+
+    Rectangle button = {
+	double x = 144;
+	double y = 144;
+	double width = 144;
+	double height = 72.0;
+    };
+
+    int pressed = 0;
+
+    paint(Rectangle r) {
+	graphics {        // "named block"
+	    gsave();
+	    setgray(0.8);
+	    rectbutton(button, 72/16, pressed);
+	    grestore();
+	}
+    }
+
+    mousePressed(e) {
+	if (pointInRect(e.coordinates, button)) {
+	    pressed = 1;
+	    repaint();
+	 }
+    }
+
+    mouseReleased(e) {
+	if (pressed) {
+	    pressed = 0;
+	    repaint();
+	}
+    }
+};
+
+f.visible = TRUE;

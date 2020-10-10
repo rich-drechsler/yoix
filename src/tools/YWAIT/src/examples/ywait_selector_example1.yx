@@ -1,0 +1,283 @@
+//
+// Example that shows how list selector screens can help users enter text
+// into components, like JTextFields, withour having to type.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+//
+// We've hardcoded both lists in this example, but they can be generated
+// dynamically too (e.g., by accessing the server).
+//
+
+Array medici_items = {
+    "Cardinal Giovanni",		NULL,
+    "Cardinal Leopoldo",		NULL,
+    "Cosimo I",				NULL,
+    "Cosimo II",			NULL,
+    "Cosimo III",			NULL,
+    "Cosimo Pater Patriae",		NULL,
+    "Duke Alessandro",			NULL,
+    "Ferdinando I",			NULL,
+    "Ferdinando II",			NULL,
+    "Francesco I",			NULL,
+    "Francesco di Cosimo II",		NULL,
+    "Gian Gastone",			NULL,
+    "Giovanni della Bande Nere",	NULL,
+    "Giovanni di Bicci",		NULL,
+    "Giovanni di Cosimo",		NULL,
+    "Giovanni di Pierfrancesco",	NULL,
+    "Giuliano di Lorenzo",		NULL,
+    "Lorenzo di Giovanni",		NULL,
+    "Lorenzo il Magnifico",		NULL,
+    "Piero Francesco di Lorenzo",	NULL,
+    "Piero di Cosimo",			NULL,
+    "Piero di Lorenzo",			NULL,
+    "Pietro",				NULL,
+    "Pope Clement VII",			NULL,
+    "Pope Leo X",			NULL,
+};
+
+Array artist_items = {
+    "Allori",		NULL,
+    "Bandinelli",	NULL,
+    "Botticelli",	NULL,
+    "Bronzino",		NULL,
+    "Callini",		NULL,
+    "Dolci",		NULL,
+    "Donatello",	NULL,
+    "Douven",		NULL,
+    "Ghirlandaio",	NULL,
+    "Giambologna",	NULL,
+    "Mino da Fiesole",	NULL,
+    "Pontormo",		NULL,
+    "Pourbus",		NULL,
+    "Pulzoni",		NULL,
+    "Raphael",		NULL,
+    "Strozzi",		NULL,
+    "Sustermans",	NULL,
+    "Titian",		NULL,
+    "Vasari",		NULL,
+    "Veronese",		NULL,
+    "Verrocchio",	NULL,
+};
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Dimension size = NULL;
+	String    title = Global.ACRONYM + " List Selector Example";
+	Insets    border = Global.GetLabeledScreenInsets();
+	Object    parent = Global.MainScreen;
+	Font      font = Global.GetPreferredLabelFont();
+	int       opaque = TRUE;
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = TRUE;	// TRUE means remember size and location
+	int    retainstate = TRUE; // remember size and location across sessions
+	int    reloadargs = TRUE;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	String destination = NULL;
+	String label = NULL;
+	Array  items = NULL;
+	int    multiplemode = FALSE;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    new JLabel {
+		String text = Global.ACRONYM + " List Selector Example";
+		Font   font = Global.GetPreferredHeadingFont();
+		int    alignment = CENTER;
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = HORIZONTAL;
+		int anchor = NORTH;
+	    },
+
+	    new JPanel {
+		GridBagLayout layoutmanager;
+
+		Array layout = {
+		    new JLabel {
+			String text = "Enter a Medici: ";
+			Font   font = Global.GetPreferredLabelFont();
+			int    alignment = RIGHT;
+		    },
+		    new GridBagConstraints {
+			int anchor = RIGHT;
+		    },
+		    new JTextField {
+			String tag = "$_medici";
+			Color  background = Global.GetPreferredTextBackground();
+			Color  foreground = Global.GetPreferredTextForeground();
+			int    opaque = TRUE;
+			int    columns = 30;
+		    },
+		    new GridBagConstraints {
+			int gridwidth = RELATIVE;
+			int weightx = 1;
+			int weighty = 1;
+			int fill = BOTH;
+			int anchor = LEFT;
+		    },
+		    new JButton {
+			String text = "Select...";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    Global.ShowSelectorList(
+				root,
+				"Medici Selector",
+				"$_medici",
+				"Select your favorite Medici:",
+				medici_items,
+				FALSE,
+				"screenanchor",
+				SOUTHEAST,
+				"anchorpoint",
+				this,
+				"anchorstyle",
+				SOUTHWEST
+			    );
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int anchor = LEFT;
+		    },
+
+		    new JLabel {
+			String text = "Enter some Artists: ";
+			Font   font = Global.GetPreferredLabelFont();
+			int    alignment = RIGHT;
+		    },
+		    new GridBagConstraints {
+			int fill = HORIZONTAL;
+			int anchor = RIGHT;
+		    },
+		    new JTextField {
+			String tag = "$_artist";
+			Color  background = Global.GetPreferredTextBackground();
+			Color  foreground = Global.GetPreferredTextForeground();
+			int    opaque = TRUE;
+			int    columns = 30;
+		    },
+		    new GridBagConstraints {
+			int gridwidth = RELATIVE;
+			int weightx = 1;
+			int weighty = 1;
+			int fill = BOTH;
+			int anchor = LEFT;
+		    },
+		    new JButton {
+			String text = "Select...";
+			Font    font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    Global.ShowSelectorList(
+				root,
+				"Artist Selector",
+				"$_artist",
+				"Select some Artists:",
+				artist_items,
+				TRUE,
+				"screenanchor",
+				NORTHEAST,
+				"anchorpoint",
+				this,
+				"anchorstyle",
+				NORTHWEST
+			    );
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int anchor = LEFT;
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int fill = BOTH;
+		int anchor = CENTER;
+	    },
+
+	    new JButton {
+		String text = "Dismiss";
+		Font   font = Global.GetPreferredButtonFont();
+
+		actionPerformed(e) {
+		    Global.QueueCommand(root, &root.HideScreen);
+		}
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    weighty = 1;
+		int    anchor = SOUTH;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    new JLabel {
+		String text = Global.ProprietaryLabel;
+		Font   font = Global.GetPreferredProprietaryFont();
+		int    alignment = CENTER;
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    anchor = CENTER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    components.$_help.text = "";
+	}
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);

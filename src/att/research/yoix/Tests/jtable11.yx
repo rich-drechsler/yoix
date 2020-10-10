@@ -1,0 +1,63 @@
+import yoix.*.*;
+
+JTable jt = {
+    int reorder = 1;
+    int resize = 1;
+    int scroll = VERTICAL_ALWAYS|HORIZONTAL_AS_NEEDED;
+    int scrolltolastrow = 1;
+    Color background = Color.blue;
+    Array altbackground = {
+	Color.orange,
+	Color.red,
+	Color.green,
+    };
+    Array altforeground = {
+	Color.black,
+	Color.pink,
+	Color.magenta,
+    };
+    Array cellcolors = {
+	new Array[] { Color.yellow, Color.yellow, Color.orange, Color.orange },
+	Color.red,
+    };
+    Array headers = {
+        "First Name", 
+	"Last Name",
+	"Sport",
+	"Flag",
+	"Percent",
+	"Date",
+	"Salary",
+	"# of Years",
+	"Vegetarian",
+	"Timer",
+    };
+    Array types = {
+	STRING_TYPE, STRING_TYPE, STRING_TYPE, ICON_TYPE, PERCENT_TYPE, DATE_TYPE, MONEY_TYPE, INTEGER_TYPE, BOOLEAN_TYPE, TIMER_TYPE,
+    };
+    // 0th column indicated by 1, 1st by 2, etc. (for backwards compatibility reasons)
+    Array inputfilter = {
+	"date=",  6, NULL,
+	"first=", 1, NULL,
+	"flag=",  4, NULL,
+	"last=",  2, NULL,
+	"pcnt=",  5, NULL,
+	"slry=",  7, NULL,
+	"sport=", 3, NULL,
+	"timer=",10, NULL,
+	"veg=",   9, NULL,
+	"yrs=",   8, NULL,
+    };
+    String values = "first=Mary\nlast=Walrath\nsport=Snowboarding\nflag=/home/john/junk/flag.jpg\npcnt=0.17\ndate=Fri Jun  6 11:46:58 EDT 2003\nslry=143.1234\nyrs=5\nveg=false\ntimer=1d2m\nfirst=Alison\nlast=Huml\nsport=Rowing\nflag=/home/john/junk/flag.jpg\npcnt=0.17\ndate=Fri Jun  6 11:46:58 EDT 2003\nslry=1923.321\nyrs=3\nveg=true\ntimer=23h12m\nfirst=Kathy\nlast=Walrath\nsport=Chasing toddlers\nflag=/home/john/junk/flag.jpg\npcnt=0.17\ndate=Fri Jun  6 11:46:58 EDT 2003\nslry=12.5\nyrs=2\nveg=false\ntimer=23h11m59s\nfirst=Sharon\nlast=Zakhour\nsport=Speed reading\nflag=/home/john/junk/flag.jpg\npcnt=0.17\ndate=Fri Jun  6 11:46:58 EDT 2003\nslry=-142\nyrs=20\nveg=true\ntimer=2d\nfirst=Angela\nlast=Lih\nsport=Teaching high school\nflag=/home/john/junk/flag.jpg\npcnt=0.17\ndate=Fri Jun  6 11:46:58 EDT 2003\nslry=123.123\nyrs=4\nveg=false\ntimer=5m\n";
+
+    
+};
+JFrame f = {
+    int visible = 1;
+    Dimension size = NULL;
+
+    Array layout = {
+	jt,
+	CENTER,
+    };
+};

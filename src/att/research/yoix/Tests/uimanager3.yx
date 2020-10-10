@@ -1,0 +1,14 @@
+import yoix.*.*;
+
+VM.screen.uimanager.theme = "Steel";
+xxx = VM.screen.uimanager.get("Button.margin");
+xxx.left = 36;
+VM.screen.uimanager.put("Button.margin", xxx);
+showMessageDialog(NULL, "Now is the time for all good men...");
+printf("reset count=%d\n", VM.screen.uimanager.reset());
+VM.screen.uimanager.theme = "Ocean";
+showMessageDialog(NULL, "...to come to the aid of their party.");
+VM.screen.uimanager.theme = "Steel";
+showConfirmDialog(NULL, "That's all folks...");
+VM.screen.uimanager.theme = "Ocean";
+showMessageDialog(NULL, "That's all folks...");

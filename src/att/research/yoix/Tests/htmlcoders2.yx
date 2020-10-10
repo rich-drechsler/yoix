@@ -1,0 +1,258 @@
+//
+// For this script to run properly, one needs to have
+// ISO-8859-1 encoding in effect (i.e., use --parserencoding=ISO-8859-1 option
+// when invoking the interpreter).
+//
+import yoix.*.*;
+
+String testtext = "\
+Special Symbols and Entities\n\
+\n\
+To use the upper ASCII characters in HTML documents, you need to\n\
+type decimal references or entity references.  Decimal references\n\
+have the format &#nnn; where nnn is a number that references the\n\
+character. Entity references have the format &nnn; where nnn is a\n\
+text string that references the character.\n\
+\n\
+In addition to entity and decimal references, HTML has reserved\n\
+characters that have special meanings in HTML files. For example,\n\
+HTML uses angle brackets to enclose HTML tags. If you want to use\n\
+an angle bracket in your text, you have to use a special character\n\
+or entity reference; otherwise, Netscape Navigator (or other web\n\
+browser) might misinterpret the character and display incorrect\n\
+text or even an error message.\n\
+\n\
+Special Characters\n\
+\n\
+Character and Decimal Entities\n\
+\n\
+Special Characters\n\
+\n\
+Table A. Special Characters\n\
+\n\
+Character	Decimal	Entity\n\
+\"	&#34;	&quot;\n\
+&	&#38;	&amp;\n\
+<	&#60;	&lt;\n\
+>	&#62;	&gt;\n\
+non-breaking space	&#160;	&nbsp;\n\
+\n\
+Character and Decimal Entities\n\
+\n\
+The following table lists characters and their entity and decimal\n\
+references. You must use either the entity or decimal reference if\n\
+you want to use one of these characters in your HTML files.\n\
+\n\
+Table B. Characters and their Decimal References\n\
+\n\
+Character	Decimal	Entity\n\
+¡	&#161;	&iexcl;\n\
+¢	&#162;	&cent;\n\
+£	&#163;	&pound;\n\
+¤	&#164;	&curren;\n\
+¥	&#165;	&yen;\n\
+¦	&#166;	&brvbar;\n\
+§	&#167;	&sect;\n\
+¨	&#168;	&uml;\n\
+©	&#169;	&copy;\n\
+ª	&#170;	&ordf;\n\
+«	&#171;	&laquo;\n\
+¬	&#172;	&not;\n\
+\x7f	&#173;	&shy;\n\
+®	&#174;	&reg;\n\
+¯	&#175;	&macr;\n\
+°	&#176;	&deg;\n\
+±	&#177;	&plusmn;\n\
+²	&#178;	&sup2;\n\
+³	&#179;	&sup3;\n\
+´	&#180;	&acute;\n\
+µ	&#181;	&micro;\n\
+¶	&#182;	&para;\n\
+·	&#183;	&middot;\n\
+¸	&#184;	&cedil;\n\
+¹	&#185;	&sup1;\n\
+º	&#186;	&ordm;\n\
+»	&#187;	&raquo;\n\
+¼	&#188;	&frac14;\n\
+½	&#189;	&frac12;\n\
+¾	&#190;	&frac34;\n\
+¿	&#191;	&iquest;\n\
+À	&#192;	&Agrave;\n\
+Á	&#193;	&Aacute;\n\
+Â	&#194;	&circ;\n\
+Ã	&#195;	&Atilde;\n\
+Ä	&#196;	&Auml;\n\
+Å	&#197;	&ring;\n\
+Æ	&#198;	&AElig;\n\
+Ç	&#199;	&Ccedil;\n\
+È	&#200;	&Egrave;\n\
+É	&#201;	&Eacute;\n\
+Ê	&#202;	&Ecirc;\n\
+Ë	&#203;	&Euml;\n\
+Ì	&#204;	&Igrave;\n\
+Í	&#205;	&Iacute;\n\
+Î	&#206;	&Icirc;\n\
+Ï	&#207;	&Iuml;\n\
+Ð	&#208;	&ETH;\n\
+Ñ	&#209;	&Ntilde;\n\
+Ò	&#210;	&Ograve;\n\
+Ó	&#211;	&Oacute;\n\
+Ô	&#212;	&Ocirc;\n\
+Õ	&#213;	&Otilde;\n\
+Ö	&#214;	&Ouml;\n\
+×	&#215;	&times;\n\
+Ø	&#216;	&Oslash;\n\
+Ù	&#217;	&Ugrave;\n\
+Ú	&#218;	&Uacute;\n\
+Û	&#219;	&Ucirc;\n\
+Ü	&#220;	&Uuml;\n\
+Ý	&#221;	&Yacute;\n\
+Þ	&#222;	&THORN;\n\
+ß	&#223;	&szlig;\n\
+à	&#224;	&agrave;\n\
+á	&#225;	&aacute;\n\
+â	&#226;	&acirc;\n\
+ã	&#227;	&atilde;\n\
+ä	&#228;	&auml;\n\
+å	&#229;	&aring;\n\
+æ	&#230;	&aelig;\n\
+ç	&#231;	&ccedil;\n\
+è	&#232;	&egrave;\n\
+é	&#233;	&eacute;\n\
+ê	&#234;	&ecirc;\n\
+ë	&#235;	&euml;\n\
+ì	&#236;	&igrave;\n\
+í	&#237;	&iacute;\n\
+î	&#238;	&icirc;\n\
+ï	&#239;	&iuml;\n\
+ð	&#240;	&ieth;\n\
+ñ	&#241;	&ntilde;\n\
+ò	&#242;	&ograve;\n\
+ó	&#243;	&oacute;\n\
+ô	&#244;	&ocirc;\n\
+õ	&#245;	&otilde;\n\
+ö	&#246;	&ouml;\n\
+÷	&#247;	&divide;\n\
+ø	&#248;	&oslash;\n\
+ù	&#249;	&ugrave;\n\
+ú	&#250;	&uacute;\n\
+û	&#251;	&ucirc;\n\
+ü	&#252;	&uuml;\n\
+ý	&#253;	&yacute;\n\
+þ	&#254;	&thorn;\n\
+ÿ	&#255;	&yuml;\n\
+";
+
+
+JFrame f = {
+    String title = "HTML Coder Test";
+
+    Dimension size = {
+	double height = 4*72;		// 4 inches
+	double width = VM.screen.width/2;
+    };
+
+    Point location = {
+	double x = 2*72;		// 2 inches
+	double y = 1*72;		// 1 inches
+    };
+
+    Color background = Color.gray;
+
+    Array layout = {
+	new JLabel {
+	    String font = "Helvetica-plain-14";
+	    String text = htmlDecode("HTML C&oslash;der T&eacute;st");
+	    Color  foreground = Color.red;
+	    int    alignment = CENTER;
+	}, NORTH,
+
+	new JTextArea {
+	    String tag = "$_textarea";
+	    String text = htmlEncode("Test 1: Encoding: if (n < 6 && n > 0) { str = \"hello\"; }") + "\n\n" + htmlDecode("Test 2: Decoding: &#0169; copyright symbol &amp; &#34;ampersand!&#34;") + "\n\nPress 'Test' button for complete test.";
+	    int    rows = 0;
+	    int    columns = 0;
+	    int    edit = TRUE;
+	    int    scroll = AS_NEEDED;
+	}, CENTER,
+
+	new JPanel {
+	    FlowLayout  layoutmanager = {
+		int vgap = 72/12;
+	    };
+
+	    Array layout = {
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String text = "Test";
+			    int    requestfocus = TRUE;
+
+			    actionPerformed(e) {
+				String  text; 
+				String  decoded; 
+				String  recoded; 
+				String  tested; 
+
+				text = testtext;
+				decoded = htmlDecode(text);
+				recoded = htmlEncode(decoded);
+				tested = htmlDecode(recoded);
+				if (decoded === tested)
+				    root.components.$_textarea.text = "TEST PASSED";
+				else root.components.$_textarea.text = "TEST FAILED";
+				root.components.$_textarea.text += "\n\n===== RAW TEXT =====\n\n\n";
+				root.components.$_textarea.text += text;
+				root.components.$_textarea.text += "\n\n===== DECODED TEXT =====\n\n\n";
+				root.components.$_textarea.text += decoded;
+				root.components.$_textarea.text += "\n\n===== RECODED TEXT =====\n\n\n";
+				root.components.$_textarea.text += recoded;
+				root.components.$_textarea.text += "\n\n===== DECODED RECODED TEXT =====\n\n\n";
+				root.components.$_textarea.text += tested;
+				root.components.$_textarea.caret = 0;
+			    }
+			},
+
+			new JButton {
+			    String text = "Clear";
+
+			    actionPerformed(e) {
+				root.components.$_textarea.text = "";
+			    }
+			},
+
+			new JButton {
+			    String text = "Quit";
+
+			    actionPerformed(e) {
+				exit(0);
+			    }
+			},
+		    };
+		},
+	    };
+	}, SOUTH,
+
+	//
+	// Side padding - just for looks.
+	//
+	new JCanvas {
+	    Dimension size = {
+		int width = 72/8;
+		int height = 72/8;
+	    };
+	}, EAST,
+
+	new JCanvas {
+	    Dimension size = {
+		int width = 72/8;
+		int height = 72/8;
+	    };
+	}, WEST,
+    };
+};
+
+f.visible = TRUE;
+

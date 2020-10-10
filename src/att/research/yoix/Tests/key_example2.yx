@@ -1,0 +1,41 @@
+import yoix.*.*;
+
+String bcjarfile;
+// could just use 1.4, but not just 1.5 (since it only loads properly with 1.5)
+if (startsWith(getProperty("java.version"), "1.4"))
+    bcjarfile = "Data/bcprov-jdk14-129.jar";
+else bcjarfile = "Data/bcprov-jdk15-130.jar";
+String fullpath = yoixPath(argv[0]);
+int last = lastIndexOf(fullpath, '/');
+String jarpath = substring(fullpath, 0, last+1) + bcjarfile;
+
+adjustSecurity(ADDPROVIDER, "org.bouncycastle.jce.provider.BouncyCastleProvider", jarpath);
+
+Key k = {
+    Dictionary specification = {
+	int type = ASYMMETRIC_KEY;
+	String transformation = "RSA";
+	String provider = "BC";
+    };
+};
+
+Cipher c1 = {
+    String specification = "RSA";
+    int opmode = ENCRYPT_MODE;
+    String initializer = k.keystring();
+};
+
+Cipher c2 = {
+    String specification = "RSA";
+    int opmode = DECRYPT_MODE;
+    String initializer = k.keystring(PRIVATE_KEY);
+};
+
+c1.text = "Try encrypting this text.";
+
+Array encrypted = c1.text;
+
+c2.text = encrypted;
+
+fprintf(stdout, "Encrypted text:\n%s\n\n", btoh(encrypted));
+fprintf(stdout, "Decrypted text:\n%s\n\n", c2.text);

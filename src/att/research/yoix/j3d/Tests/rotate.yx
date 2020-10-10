@@ -1,0 +1,17 @@
+//
+// All three should end up as the identity matrix.
+//
+
+import yoix.j3d.*;
+import yoix.stdio.*;
+
+Transform3D identity;
+Transform3D tx, ty, tz;
+
+tx.setToRotationX(30).rotateX(-30);
+ty.setToRotationY(30).rotateY(-30);
+tz.setToRotationZ(30).rotateZ(-30);
+
+printf("Is tx the identity transform? %s\n", identity.equals(tx) ? "yes" : "no");
+printf("Is ty the identity transform? %s\n", identity.equals(ty) ? "yes" : "no");
+printf("Is tz the identity transform? %s\n", identity.equals(tz) ? "yes" : "no");

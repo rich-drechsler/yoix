@@ -1,0 +1,496 @@
+//
+// Initialization that needs to be in before the configuration table can
+// be properly processed.
+//
+
+Dictionary MODELS[0, ...] = {
+    Dictionary DEFAULT = {
+	Dictionary ACCELERATORS = {
+	    //
+	    // Most of these names currently match internal command strings
+	    // that are associated with menu items. It's convenient but not
+	    // required and they probably shouldn't change when the command
+	    // strings change because users change them in config files. The
+	    // Select() function prepends PREFIX to every accelerator that's
+	    // defined as a string, but omits it from arrays. Currently only
+	    // should put strings in an array, but expanding what's allowed
+	    // (e.g., &PREFIX) would be easy.
+	    //
+
+	    String PREFIX = "ctrl";		// Platform dependent prefix?
+
+	    Object all_on = "A";
+	    Object all_off = "S";
+	    Object file_close = "W";
+	    Object file_copy = "C";
+	    Object file_snapshot = "shift C";
+	    Object file_print = "P";
+	    Object file_quit = "Q";
+	    Object color_data = "R";
+	    Object color_recolor = "E";
+	    Object color_show_all = "shift E";
+	    Object find = "F";
+	    Object find_next = "G";
+	    Object show_option_panel = "O";
+	    Object show_transient = "T";
+	    Object tips_dropped = "D";
+	    Object tips_enabled = {"ESCAPE"};
+	    Object tips_snap_to_bucket = "B";
+	    Object zoom_loaded = "shift Z";
+	    Object zoom_selected = "Z";
+
+	    Select(String name) {
+		Object accelerator;
+		String text;
+
+		if (defined(name, this)) {
+		    accelerator = this[name];
+		    if (accelerator instanceof String)
+			text = PREFIX + " " + accelerator;
+		    else if (accelerator instanceof Array)
+			text = strjoin(accelerator, " ");
+		}
+		return(text);
+	    }
+	};
+
+	Dictionary COLORS = {
+	    Color background = Color.black;		// for all
+	    Color foreground = Color.white;		// for all
+	    Color emptycolor = Color.gray;		// for Histogram
+	    Color othercolor = Color.lightGray;		// for Histogram
+	    Color slidercolor = Color.lightGray;	// for Axis
+	    Color connectcolor = Color.orange;		// for EventPlot
+	    Color sweepcolor = Color.green;		// for EventPlot and GraphPlot
+	    Color zoomincolor = Color.green;		// for GraphPlot
+	    Color zoomoutcolor = Color.red;		// for GraphPlot
+	    Color dragcolor = Color.blue;		// for GraphPlot
+	    Color activetext = Color.blue;
+	    Color pressedtext = Color.magenta;
+
+	    Color offpeakcolor = {			// for EventPlot
+		double red = .525;
+		double green = .525;
+		double blue = .525;
+	    };
+
+	    Color highlightcolor = {			// for Histogram
+		double red = .8;
+		double green = .8;
+		double blue = .8;
+	    };
+
+	    Color altforeground = Color.black;		// for DataTable
+	    Array altbackground = {			// for DataTable
+		yoix.xcolor.lemonchiffon,
+		yoix.xcolor.lightsalmon,
+		yoix.xcolor.greenyellow,
+	    };
+	};
+
+	Dictionary FONTS = {
+	    Font  small_text = {String name = "Dialog-bold-8";};
+	    Font  medium_text = {String name = "Dialog-bold-10";};
+	    Font  large_text = {String name = "Dialog-bold-12";};
+	    Font  small_monospace = {String name = "Monospaced-bold-8";};
+	    Font  medium_monospace = {String name = "Monospaced-bold-10";};
+	    Font  large_monospace = {String name = "Monospaced-bold-12";};
+	    Font  small_graph = {String name = "TimesRoman-plain-10";};
+	    Font  medium_graph = {String name = "TimesRoman-plain-12";};
+	    Font  large_graph = {String name = "TimesRoman-plain-14";};
+
+	    Font  button_text = {String name = "Dialog-plain-12";};
+	    Font  titledborder_text = {String name = "Dialog-plain-12";};
+	};
+
+	Dictionary ICONS = {
+	    Dictionary IconCache[5, ...];
+
+	    GetButtonDiamondIcon(...) {
+		Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+		Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+		double    shrink = (argc > 3) ? argv[3] : 0.9;
+		String    name = urlEncode("buttonDiamondIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+    
+		if (!defined(name, IconCache)) {
+		    Image image = BuildPolygonIcon(size, 4, 45, iconcolor, TRUE, shrink);
+		    image.description = name;
+		    IconCache[name] = image;
+		}
+		return(IconCache[name]);
+	    }
+
+	    GetButtonDownIcon(...) {
+		Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.20*72.0);
+		Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+		double    shrink = (argc > 3) ? argv[3] : 0.9;
+		String    name = urlEncode("buttonDownIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+
+		if (!defined(name, IconCache)) {
+		    Image image = BuildPolygonIcon(size, 3, 180, iconcolor, TRUE, shrink);
+		    image.description = name;
+		    IconCache[name] = image;
+		}
+		return(IconCache[name]);
+	    }
+
+	    GetButtonUpIcon(...) {
+		Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.20*72.0);
+		Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+		double    shrink = (argc > 3) ? argv[3] : 0.9;
+		String    name = urlEncode("buttonUpIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+
+		if (!defined(name, IconCache)) {
+		    Image image = BuildPolygonIcon(size, 3, 0, iconcolor, TRUE, shrink);
+		    image.description = name;
+		    IconCache[name] = image;
+		}
+		return(IconCache[name]);
+	    }
+
+	    GetButtonLeftIcon(...) {
+		Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+		Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+		double    shrink = (argc > 3) ? argv[3] : 0.9;
+		String    name = urlEncode("buttonLeftIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+    
+		if (!defined(name, IconCache)) {
+		    Image image = BuildPolygonIcon(size, 3, 270, iconcolor, TRUE, shrink);
+		    image.description = name;
+		    IconCache[name] = image;
+		}
+		return(IconCache[name]);
+	    }
+
+	    GetButtonRightIcon(...) {
+		Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+		Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+		double    shrink = (argc > 3) ? argv[3] : 0.9;
+		String    name = urlEncode("buttonRightIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+    
+		if (!defined(name, IconCache)) {
+		    Image image = BuildPolygonIcon(size, 3, 90, iconcolor, TRUE, shrink);
+		    image.description = name;
+		    IconCache[name] = image;
+		}
+		return(IconCache[name]);
+	    }
+
+	    BuildPolygonIcon(Object size, int sides, double degrees, Color polygoncolor, int smooth, double shrink) {
+		//
+		// Simplified version of the corresponding YWAIT, so that's where
+		// to look before adding additional capabilities to this function.
+		//
+		Image image = {
+		    Dimension size = PickIconSize(size);
+		    int       type = TYPE_RGB_ALPHA;
+
+		    Graphics graphics = {
+		    	int antialiasing = TRUE;
+		    	int linejoin = (smooth ? JOIN_ROUND : JOIN_MITER);
+		    	int linecap = (smooth ? CAP_ROUND : CAP_BUTT);
+		    };
+
+		    double shrink = min(shrink, 1.0);
+		    Color  polygoncolor = polygoncolor;
+		    double adjustment;
+		    double degrees = degrees;
+		    int    sides = sides;
+
+		    paint(Rectangle r) {
+		    	Rectangle bounds;
+		    	double    factor;
+		    	double    scaling;
+		    	double    strokewidth;
+		    	double    side;
+		    	double    dx;
+		    	double    dy;
+		    	double    angle;
+		    	int       n;
+
+		    	angle = 360.0/sides;
+		    	dx = abs(sin(angle/2));
+		    	dy = abs(cos(angle/2));
+		    	side = 2.0*dx;
+
+		    	if ((factor = min(size.width, size.height)/72.0) < 1.0) {
+			    if (factor <= .25)
+			    	factor = 0;
+		    	} else factor = min(factor, 2.0);
+		    	strokewidth = 2.0*factor*72.0/18;
+
+		    	graphics {
+			    erasedrawable(0.0);	// transparent image
+			    translate(dx, dy);
+			    moveto(0, 0);
+
+			    for (n = 0; n < sides; n++) {
+			    	translate(-side, 0);
+			    	lineto(0, 0);
+			    	rotate(angle);
+			    }
+
+			    closepath();
+			    rotatepath(degrees);
+			    translate(-dx, -dy);	// back to the original CTM
+
+			    bounds = pathbbox();
+			    adjustment = strokewidth;
+			    scaling = shrink*min((size.width - 2*adjustment)/bounds.width, (size.height - 2*adjustment)/bounds.height);
+			    path.scalepath(scaling, scaling);
+			    bounds = pathbbox();
+			    path.translatepath(size.width/2 - (bounds.x + bounds.width/2), size.height/2 - (bounds.y + bounds.height/2));
+
+			    foreground = polygoncolor;
+			    gsave();
+			    linewidth = strokewidth;
+			    strokepath();
+			    fill();
+			    grestore();
+			    fill();
+		    	}
+		    }
+		};
+
+		return(image);
+	    }
+
+	    PickIconSize(Object arg) {
+		Dimension size = NULL;
+
+		if (!(arg instanceof Dimension)) {
+		    if (arg instanceof Number) {
+			size = new Dimension {
+			    double width = arg;
+			    double height = arg;
+			};
+		    } else if (arg instanceof Font) {
+			size = new Dimension {
+			    double width = arg.height;
+			    double height = arg.height;
+			};
+		    } else {
+			size = new Dimension {
+			    double width = 72.0/3;
+			    double height = 72.0/3;
+			};
+		    }
+		} else size = arg;
+		return(size);
+	    }
+	};
+
+	Dictionary INSETS = {
+	    PickSmallButtonInsets() {
+		JButton button;
+		Insets  insets = NULL;
+
+		if (defined("insets", button)) {	// added in release 2.1.7
+		    if (strcasecmp(VM.screen.uimanager.lookandfeel, "Metal") == 0) {
+			insets = button.insets;
+			insets.top *= 0.25;
+			insets.bottom *= 0.25;
+			insets.left *= 0.25;
+			insets.right *= 0.25;
+		    }
+		}
+		return(insets);
+	    }
+	};
+
+	Dictionary PALETTES = {
+	    New(Color arg, ...) = new Palette {
+		Array colors[] = &arg;
+		int   canrank = FALSE;
+	    };
+
+	    Palette data = {
+		Array  colors[5];		// filled in based on model
+		int    model = 2;		// one of 0, 1, 2, 3, 4
+		double hue = 0.0;		// modified by models 1, 2, 3
+		double saturation = 1.0;	// modified by model 4
+		double brightness = 1.0;	// modified by model 0
+		int    canrank = FALSE;
+	    };
+
+	    Palette overlap = New(NULL, Color.yellow, Color.red);
+	    Palette color1 = New(Color.cyan);
+	    Palette color2 = New(Color.magenta);
+	    Palette color3 = New(Color.yellow);
+	    Palette color4 = New(Color.red);
+	    Palette color5 = New(Color.green);
+	    Palette color6 = New(Color.blue);
+
+	    //
+	    // A palette that we sometimes use in maps.
+	    //
+
+	    Palette map = {
+		int canrank = TRUE;
+
+		Array colors = {
+		    getRGBColor(200.0/255.0, 220.0/255.0, 240.0/255.0),
+		    getRGBColor(255.0/255.0, 255.0/255.0, 212.0/255.0),
+		    10,
+		    getRGBColor(254.0/255.0, 217.0/255.0, 142.0/255.0),
+		    30,
+		    getRGBColor(254.0/255.0, 153.0/255.0, 41.0/255.0),
+		    70,
+		    getRGBColor(217.0/255.0, 95.0/255.0, 14.0/255.0),
+		    90,
+		    getRGBColor(153.0/255.0, 52.0/255.0, 4.0/255.0),
+		    100,
+		};
+	    };
+	};
+    };
+
+    Dictionary BLACK = DEFAULT;
+
+    Dictionary WHITE = {
+	Dictionary COLORS = {
+	    Color background = Color.white;
+	    Color foreground = Color.black;
+	    Color emptycolor = Color.gray;
+	    Color othercolor = Color.lightGray;
+	    Color slidercolor = Color.lightGray;
+	    Color connectcolor = Color.orange;
+	    Color sweepcolor = Color.blue;
+	    Color zoomincolor = Color.blue;
+	    Color zoomoutcolor = Color.red;
+	    Color dragcolor = Color.blue;
+	};
+    };
+
+    Dictionary GRAY = {
+	Dictionary COLORS = {
+	    Color background = Color.gray;
+	    Color foreground = Color.white;
+	    Color emptycolor = Color.lightGray;
+	    Color othercolor = Color.darkGray;
+	    Color slidercolor = Color.lightGray;
+	    Color connectcolor = Color.orange;
+	    Color sweepcolor = Color.green;
+	    Color zoomincolor = Color.green;
+	    Color zoomoutcolor = Color.red;
+	    Color dragcolor = Color.blue;
+	    Color offpeakcolor =  Color.lightGray;
+	};
+    };
+
+    Dictionary LIGHTGRAY = {
+	Dictionary COLORS = {
+	    Color background = Color.lightGray;
+	    Color foreground = Color.black;
+	    Color emptycolor = Color.gray;
+	    Color othercolor = Color.gray;
+	    Color slidercolor = Color.gray;
+	    Color connectcolor = Color.orange;
+	    Color sweepcolor = Color.blue;
+	    Color zoomincolor = Color.blue;
+	    Color zoomoutcolor = Color.red;
+	    Color dragcolor = Color.blue;
+	};
+    };
+
+    Dictionary DEMO = {
+	Dictionary FONTS = {
+	    Font  small_text = {String name = "Dialog-bold-10";};
+	    Font  medium_text = {String name = "Dialog-bold-12";};
+	    Font  large_text = {String name = "Dialog-bold-14";};
+	    Font  small_monospace = {String name = "Monospaced-bold-10";};
+	    Font  medium_monospace = {String name = "Monospaced-bold-12";};
+	    Font  large_monospace = {String name = "Monospaced-bold-14";};
+	    Font  small_graph = {String name = "TimesRoman-plain-10";};
+	    Font  medium_graph = {String name = "TimesRoman-plain-12";};
+	    Font  large_graph = {String name = "TimesRoman-plain-14";};
+	};
+    };
+
+    Dictionary DEMOBIG = {
+	Dictionary FONTS = {
+	    Font  small_text = {String name = "Dialog-bold-12";};
+	    Font  medium_text = {String name = "Dialog-bold-14";};
+	    Font  large_text = {String name = "Dialog-bold-16";};
+	    Font  small_monospace = {String name = "Monospaced-bold-12";};
+	    Font  medium_monospace = {String name = "Monospaced-bold-14";};
+	    Font  large_monospace = {String name = "Monospaced-bold-16";};
+	    Font  small_graph = {String name = "TimesRoman-plain-12";};
+	    Font  medium_graph = {String name = "TimesRoman-plain-14";};
+	    Font  large_graph = {String name = "TimesRoman-plain-16";};
+	};
+    };
+
+    Dictionary DARKGRAY = {
+	Dictionary COLORS = {
+	    Color background = Color.darkGray;
+	    Color foreground = Color.white;
+	    Color emptycolor = Color.lightGray;
+	    Color othercolor = Color.gray;
+	    Color slidercolor = Color.lightGray;
+	    Color connectcolor = Color.orange;
+	    Color sweepcolor = Color.green;
+	    Color zoomincolor = Color.green;
+	    Color zoomoutcolor = Color.red;
+	    Color dragcolor = Color.blue;
+	    Color offpeakcolor =  Color.gray;
+	};
+    };
+
+    //
+    // Simple function that merges models - always starts with DEFAULT and
+    // doesn't complain about unrecognized requests.
+    //
+
+    Merge(String kind, Array choices) {
+	Dictionary dict[0, ...] = DEFAULT[kind];
+	Object     temp;
+	String     name;
+	int        n;
+
+	for (n = 0; n < choices@sizeof; n++) {
+	    name = choices[n];
+	    if (defined(name, this) && defined(kind, this[name]))
+		unroll(this[name][kind], dict);
+	}
+
+	//
+	// Some final tuning, mostly based on values that can be set using
+	// command line options.
+	// 
+	switch (kind) {
+	    case "COLORS":
+		if (REVERSEVIDEO) {
+		    if (defined("foreground", dict) && defined("background", dict)) {
+			temp = dict.foreground;
+			dict.foreground = dict.background;
+			dict.background = temp;
+		    }
+		}
+		break;
+
+	    case "PALETTES":
+		if (REVERSEPALETTE) {
+		    if (defined("data", dict))
+			dict.data.inverted = TRUE;
+		}
+		break;
+	}
+	return(dict);
+    }
+
+    MergeAccelerators(Object choices) = Merge("ACCELERATORS", choices instanceof String ? new Array {toUpperCase(choices)} : choices);
+    MergeColors(Object choices) = Merge("COLORS", choices instanceof String ? new Array {toUpperCase(choices)} : choices);
+    MergeFonts(Object choices) = Merge("FONTS", choices instanceof String ? new Array {toUpperCase(choices)} : choices);
+    MergeIcons(Object choices) = Merge("ICONS", choices instanceof String ? new Array {toUpperCase(choices)} : choices);
+    MergeInsets(Object choices) = Merge("INSETS", choices instanceof String ? new Array {toUpperCase(choices)} : choices);
+    MergePalettes(Object choices) = Merge("PALETTES", choices instanceof String ? new Array {toUpperCase(choices)} : choices);
+};
+
+Dictionary ACCELERATORS = MODELS.MergeAccelerators(MODEL);
+Dictionary COLORS = MODELS.MergeColors(MODEL);
+Dictionary FONTS = MODELS.MergeFonts(MODEL);
+Dictionary ICONS = MODELS.MergeIcons(MODEL);
+Dictionary INSETS = MODELS.MergeInsets(MODEL);
+Dictionary PALETTES = MODELS.MergePalettes(MODEL);
+

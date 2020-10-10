@@ -1,0 +1,80 @@
+import yoix.j3d.*;
+import yoix.*.*;
+
+VirtualUniverse universe = {
+    Color background = Color.white;
+    Image backgroundimage = NULL;
+
+    Array layout = {
+	new BranchGroup {
+	    String tag = "$_lamp";
+
+	    Point3D position = {
+		double x = 3;
+	    };
+	    Array layout = {
+		"Tests/Samples/dlamp.obj",
+	    };
+	},
+
+	new BranchGroup {
+	    Point3D position = {
+		double x = -2;
+		double z = -2;
+	    };
+	    Array layout = {
+		"Tests/Samples/dtable.obj",
+	    };
+	},
+
+	new ViewPlatform {
+	    String tag = "$_view1";
+
+	    Point3D position = {
+		double z = 10;
+	    };
+	},
+
+	new PointLight {
+	    Color color = Color.white;
+	    int   enabled = TRUE;
+	    Point3D position = {
+		double x = 0;
+		double y = 3;
+		double z = 10;
+	    };
+
+	    Vector3D direction = {
+		int z = -1;
+	    };
+	},
+    };
+};
+
+Frame f = {
+    Array layout = {
+	new Canvas3D {
+	    String tag = "$_canvas";
+
+	    ViewPlatform view = universe.tagged.$_view1;
+	    /////VirtualUniverse view = universe;
+	}, CENTER,
+    };
+};
+
+f.visible = TRUE;
+
+//
+// Just an example - using the "view" field to get to tagged in the
+// universe, but that will eventually change because "view" won't
+// always be a universe.
+//
+
+sleep(2);
+Point3D position = f.components.$_canvas.universe.tagged.$_lamp.position;
+
+for (n = 0; n < 10; n++) {
+    position.x -= .25;
+    f.components.$_canvas.universe.tagged.$_lamp.position = position;
+    sleep(.5);
+}

@@ -1,0 +1,71 @@
+import yoix.*.*;
+
+JFrame jf = {
+    String tag = "$_frame";
+    Dimension size = NULL;
+    int       visible = TRUE;
+
+    SpringLayout layoutmanager;
+    Array layout = {
+	new JLabel {
+	    String tag = "$_label";
+	    String text = "Label";
+	},
+	new JTextField {
+	    String tag = "$_field";
+	    String text = "Text field";
+	    int    columns = 10;
+	},
+
+	new SpringConstraints {
+	    String anchorcomp = "$_frame";
+	    int    anchoredge = WEST;
+	    String dependcomp = "$_label";
+	    int    dependedge = WEST;
+	    int    spring = 18;
+	},
+	new SpringConstraints {
+	    String anchorcomp = "$_frame";
+	    int    anchoredge = NORTH;
+	    String dependcomp = "$_label";
+	    int    dependedge = NORTH;
+	    //int    spring = 18;
+	    //String spring = "$_field";
+	    Array spring = { 18, 36, 72 };
+	},
+
+	new SpringConstraints {
+	    String anchorcomp = "$_label";
+	    int    anchoredge = EAST;
+	    String dependcomp = "$_field";
+	    int    dependedge = WEST;
+	    int    spring = 5;
+	},
+	new SpringConstraints {
+	    String anchorcomp = "$_frame";
+	    int    anchoredge = NORTH;
+	    String dependcomp = "$_field";
+	    int    dependedge = NORTH;
+	    //int    spring = 18;
+	    //String spring = "$_field";
+	    Array spring = { 18, 36, 72 };
+	},
+
+	new SpringConstraints {
+	    String anchorcomp = "$_field";
+	    int    anchoredge = EAST;
+	    String dependcomp = "$_frame";
+	    int    dependedge = EAST;
+	    int    spring = 18;
+	},
+	new SpringConstraints {
+	    String anchorcomp = "$_field";
+	    int    anchoredge = SOUTH;
+	    String dependcomp = "$_frame";
+	    int    dependedge = SOUTH;
+	    //int    spring = 18;
+	    String spring = "$_field";
+	    //Array spring = { 18, 36, 72 };
+	},
+    };
+};

@@ -1,0 +1,12 @@
+//
+// Simple estimate of the time needed to start the interpreter.
+// Not exact, but should be close.
+//
+// NOTE - platform dependent font scaling or magnification can
+// slow things down because UIMananger fonts need to be scaled
+// and that currently happens during startup. Use -f to disable
+// platform dependent scaling whne you run this test.
+//
+
+stdout.nextline = toString(yoix.system.time() - VM.starttime);
+exit(0);

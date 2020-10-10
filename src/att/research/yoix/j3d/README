@@ -1,0 +1,67 @@
+Here's a list of some things to implement - some are pretty easy:
+Probably going to take a short break from the Java3D stuff and work
+on our data visualization code. Easy place to restart would be to
+implement a few of the remaining Geometry classes, like Text3D and
+Raster.
+
+	Box			Should replace ColorCube?
+	SpotLight
+	OrientatedShape3D	It's supposed to be better than Billboard
+
+	SensorBeamEcho		Looks easy but is it useful??
+	SensorGnomonEcho	Looks easy but is it useful??
+
+	Light bounds		make sure its in and working
+	Light attenuation	PointLight and SpotLight - is there anything
+				in common with sound or fog sources??
+
+	Fog related stuff	Probably realively easy - use Light as a model
+	Sound related stuff	Probably harder - use Light as a model
+	Font3D/Text3D stuff	I'll do this one
+
+	SwitchGroup and LOD	Prefer SwitchGroup to Java's name (i.e., Switch)
+	Other groups??		Not convinced we need them, but take a look
+
+	More Canvas3D info	Using associated Screen3D etc.
+	More ViewPlatform info	Using associated View etc.
+
+	Capabilities		Need fine tuning based on tags and maybe also
+				on write permissions?
+				May want additional control, perhaps based on
+				a dictionary that maps field names to READ|WRITE
+
+	Appearance		Need to get access to appearance and related
+				attributes for loaded (and tagged) objects.
+				Do we want a coloringattributes field?? Seems
+				like overkill - color could go in Material as
+				unlitcolor and shademodel seems like it could
+				go in RenderingAttributes - think about it!!
+				Actually think coloringattributes might not
+				be a bad idea because it separates the two
+				fields from all the others. Means Material can
+				be shared without sharing color and shademodel.
+
+These probably are harder and can easily wait:
+
+	BodyViewPlatform	Currently doesn't fit the model that you'll find
+				in many BodyXXX classes. Definitely not a serious
+				issue but it should be cleaned up. Differences are
+				mostly in constructors and buildViewPlatform().
+
+	RenderMann support	Need to support non-standard primitives, like
+				bicubic patches, before we can even think about
+				loading .rib files. Not urgent, but would be
+				nice.
+
+Need to add code to handle (or avoid) capability exceptions. Probably
+should happne in bottom level setField(), getFielda(), and executField()
+methods. Also seems like a try/catch may be the right approach??
+
+In places (e.g., Texture, Texture2D, and TextureUnit) our capability was
+kludged just to get things working. It evenutally must to be addressed!!!!
+Third column in capabilites tables probably should take an array as an
+argument. Would an extra argument (i.e., READ or WRITE) help us fine tune
+the capabilitiy settings and if so can we just look for _READ or WRITE
+suffix in the name?? Also should we support multiple tables in a class?
+Might help TextureUnit and perhaps elsewhere.
+

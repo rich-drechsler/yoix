@@ -1,0 +1,217 @@
+//
+// This time we'll show you how to hook the components up. It's usually
+// (but not always) done by defining a tag field in some components, and
+// using root, components, and tag to access components. The tag can be
+// almost any string you want, but some consistenty helps make your code
+// more readable. We recently started using tags that being with prefix
+// "$_" and really did find that it helped. We recommend you do the same.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    String title = "Swing Frame";
+
+    Dimension size = {
+	double height = 4*72;		// 4 inches
+	double width = VM.screen.width/2;
+    };
+
+    //
+    // Notice that we used size.height to position the Frame vertically.
+    // This only works because the Frame's size field was initialized
+    // before we used it here. This is not a style we want to encourage,
+    // but it is something we wanted to demonstrate. A better approach
+    // probably would be to define a constant, say HEIGHT, that's four
+    // inches and use it to initialize the size and location fields.
+    // 
+
+    Point location = {
+	double x = 2*72;		// 2 inches
+	double y = 1*72;		// 1 inches
+    };
+
+    //
+    // This sets the Frame's background color. It's also inherited by
+    // all components (e.g., Button) that are put in the Frame that
+    // don't explicitly request their own background color.
+    //
+
+    Color background = Color.gray;
+
+    Insets border = {
+	double left = 72/8;
+	double right = 72/8;
+	double top = 72/16;
+	double bottom = 72/16;
+    };
+
+    //
+    // We didn't initialize the Frame's layoutmanager field, so we get
+    // the default, which for a Frame is BorderLayout. A BorderLayout
+    // layout manager expects to find component (e.g., a Button) and
+    // constraint (e.g., SOUTH) pairs in the layout array.
+    //
+
+    Array layout = {
+	new JLabel {
+	    String font = "Helvetica-plain-14";
+	    String text = "This Is A Centered Label";
+	    Color  foreground = Color.red;
+	    int    alignment = CENTER;
+	}, NORTH,
+
+	//
+	// Putting the JTextPane in the center means it grabs all the
+	// space that's left in the Frame. We'll show you one way to
+	// leave margins in a few steps.
+	//
+	new JTextPane {
+	    String tag = "$_textpane";
+	    Color  background = Color.lightGray;
+	    Color  foreground = Color.blue;
+	    String font = "Helvetica-plain-24";
+	    int alignment = RIGHT;
+	    int mode = 1; // 1=HTML; 0=plain; -1=RTF
+	    String text = mode == 1 ? "<p>A <center><h1><font color=green>big</font></h1></center> hello to world.</p>\n" : "A big hello to world.\n";
+	    //String text = stdin.nextbuf;
+	    int    rows = 0;
+	    int    columns = 0;
+	    int    edit = TRUE;
+	    int    scroll = AS_NEEDED;
+
+	    String oldtext; // used in event handler below
+
+	    //
+	    // Demonstrate textValueChanged event handler
+	    //
+	    textValueChanged(e) {
+		String  crnttext = subtext();
+		switch(e.type) {
+		case TEXTINSERT:
+		    fprintf(stderr, "Inserted text: '%s'\n", subtext(e.offset, e.length));
+		    //fprintf(stderr, "Inserted text: '%s'\n", substring(crnttext, e.offset, e.offset+e.length));
+		    break;
+		case TEXTREMOVE:
+		    fprintf(stderr, "Removed text: '%s'\n", substring(oldtext, e.offset, e.offset+e.length));
+		    break;
+		}
+		oldtext = crnttext;
+	    }
+
+	    mouseClicked(e) {
+		String val = null;
+		switch(alignment) {
+		case RIGHT: val = "right";
+		    break;
+		case LEFT: val = "left";
+		    break;
+		case CENTER: val = "center";
+		    break;
+		}
+		fprintf(stderr, "alignment (%d) at caret is %s\n", alignment, val);
+		fprintf(stderr, "background color at caret is %s\n", getColorName(background));
+		fprintf(stderr, "foreground color at caret is %s\n", getColorName(foreground));
+		fprintf(stderr, "font at caret is %s\n", font.name);
+		//fprintf(stderr, "Full text: '%s'\n", text);
+	    }
+	}, CENTER,
+
+	//
+	// Only way to put three Buttons at the bottom of a Frame that
+	// is using a BorderLayout layout manager is to put the Buttons
+	// in a Panel, and then put that Panel in the SOUTH. This time
+	// the Buttons go in a GridLayout Panel, but that Panel is put
+	// in a FlowLayout Panel which is then added to the SOUTH part
+	// of the Frame. The extra FlowLayout Panel won't stretch the
+	// Buttons to fill the the Frame, which is what we really want.
+	//
+	// NOTE: GridBagLayout is a powerful layout manager that makes
+	// things like this easier - we use GridBagLayout a lot.
+	//
+	new JPanel {
+	    //
+	    // Here's one way to get vertical margins around the buttons.
+	    //
+	    FlowLayout  layoutmanager = {
+		int vgap = 72/12;
+	    };
+
+	    Array layout = {
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String text = "Update";
+			    int    requestfocus = TRUE;
+
+			    actionPerformed(e) {
+				appendText(root.components.$_textpane,  yoix.util.date() + "\n");
+			    }
+			},
+
+			new JButton {
+			    String text = "Left";
+
+			    actionPerformed(e) {
+				root.components.$_textpane.alignment = LEFT;
+			    }
+			},
+
+			new JButton {
+			    String text = "Center";
+
+			    actionPerformed(e) {
+				root.components.$_textpane.alignment = CENTER;
+			    }
+			},
+
+			new JButton {
+			    String text = "Right";
+
+			    actionPerformed(e) {
+				root.components.$_textpane.alignment = RIGHT;
+			    }
+			},
+
+			new JButton {
+			    String text = "Clear";
+
+			    actionPerformed(e) {
+				if (root.components.$_textpane.mode == 1)
+				    root.components.$_textpane.text = "text <i>is</i> cleared<br>\n";
+				else root.components.$_textpane.text = "text is cleared\n";
+			    }
+			},
+
+			new JButton {
+			    String text = "Dump";
+
+			    actionPerformed(e) {
+				stdout.nextline = root.components.$_textpane.text;
+			    }
+			},
+
+			new JButton {
+			    String text = "Quit";
+
+			    actionPerformed(e) {
+				exit(0);
+			    }
+			},
+		    };
+		},
+	    };
+	}, SOUTH,
+    };
+
+    windowOpened(e) {
+	root.components.$_textpane {
+	    oldtext = subtext();
+	}
+    }
+};
+
+f.visible = TRUE;
+

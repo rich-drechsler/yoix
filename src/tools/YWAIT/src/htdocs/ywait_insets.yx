@@ -1,0 +1,127 @@
+//
+// A cache for Insets and a few simple functions that most of our screens
+// builders use when they need Insets. You don't have to use any of this,
+// but we think it's a convenient way to build and share Insets.
+//
+
+Dictionary InsetsCache[0, ...];
+
+//
+// These explicitly assume InsetsCache has been preloaded with some named
+// insets.
+//
+
+GetLabeledScreenInsets() = InsetsCache.LABELEDSCREEN;
+GetLargeShadowInsets() = InsetsCache.LARGESHADOW;
+GetLoginScreenInsets() = InsetsCache.LOGINSCREEN;
+GetSmallShadowInsets() = InsetsCache.SMALLSHADOW;
+GetTextAreaInsets() = InsetsCache.TEXTAREA;
+GetTextFieldInsets() = InsetsCache.TEXTFIELD;
+GetUnLabeledScreenInsets() = InsetsCache.UNLABELEDSCREEN;
+
+//
+// These are new and only load the cache when they're called, which won't
+// happen often. Insets were added to JButtons in Yoix version 2.1.7-beta8
+// so you will need that version to use this stuff.
+//
+
+GetNormalButtonInsets() {
+    if (!defined("NORMALBUTTON", InsetsCache)) {
+	JButton b;
+	InsetsCache.NORMALBUTTON = b.insets;
+    }
+    return(InsetsCache.NORMALBUTTON);
+}
+
+GetNarrowButtonInsets() {
+    if (!defined("NARROWBUTTON", InsetsCache)) {
+	JButton b;
+	InsetsCache.NARROWBUTTON = new Insets {
+	    double top = b.insets.top;
+	    double left = b.insets.left/4;
+	    double bottom = b.insets.top;
+	    double right = b.insets.right/4;
+	};
+    }
+    return(InsetsCache.NARROWBUTTON);
+}
+
+//
+// Calculate insets that can be used in a GridBagConstraints to align a plain
+// component, like a like a JButton, with a component contained in an etched
+// and titled border. Although our answer doesn't change, the final placement
+// of the plain component may differ by a pixel when the anchor used in the
+// GridBagConstraints is changed - we don't think it's a big deal.
+//
+
+GetEtchedAndTitledAlignmentInsets() {
+    if (!defined("ETCHEDANDTITLEDALIGNMENT", InsetsCache)) {
+	JChoice jc;		// component makes no difference
+	JPanel jp = {
+	    Border border = NewEtchedBorder("Test");
+	    Array layout = {jc};
+	};
+	JFrame jf = {
+	    Dimension size = NULL;
+	    Array layout = {jp};
+	};
+	InsetsCache.ETCHEDANDTITLEDALIGNMENT = new Insets {
+	    double top = jc.location.y;
+	    double left = 0;
+	    double bottom = jp.size.height - (jc.location.y + jc.size.height);
+	    double right = 0;
+	};
+	jf.dispose = TRUE;
+    }
+    return(InsetsCache.ETCHEDANDTITLEDALIGNMENT);
+}
+
+//
+// These are more general and can be used to build and cache arbitrary
+// insets that can be describe by four numbers or a single number and
+// a qualifier string.
+//
+
+GetInsets(double top, double bottom, double left, double right) {
+    String name = strfmt("%d:%d:%d:%d", top, bottom, left, right);
+
+    //
+    // Decided %d was good enough when we have to make up name for the
+    // cache - if you disagree just change %d to something like %.1f.
+    //
+
+    if (!defined(name, InsetsCache)) {
+	InsetsCache[name] = new Insets {
+	    final double top = top;
+	    final double bottom = bottom;
+	    final double left = left;
+	    final double right = right;
+	};
+    }
+    return(InsetsCache[name]);
+}
+
+GetQualifiedInsets(double value, String qualifier) {
+    return(GetInsets(
+	(indexOf(qualifier, 'T') >= 0) ? value : 0,
+	(indexOf(qualifier, 'B') >= 0) ? value : 0,
+	(indexOf(qualifier, 'L') >= 0) ? value : 0,
+	(indexOf(qualifier, 'R') >= 0) ? value : 0
+    ));
+}
+
+//
+// Initialize the cache with some convenient Insets that we can grab by
+// name.
+//
+
+InsetsCache {		// named block
+    Insets LABELEDSCREEN = GetInsets(72.0/16, 0, 72.0/8, 72.0/8);
+    Insets LARGESHADOW = GetQualifiedInsets(72.0/36, "TBLR");
+    Insets LOGINSCREEN = GetInsets(72.0/16, 0, 72.0/4, 72.0/4);
+    Insets SMALLSHADOW = GetQualifiedInsets(72.0/50, "TBLR");
+    Insets TEXTAREA = GetQualifiedInsets(72.0/36, "TBLR");
+    Insets TEXTFIELD = GetQualifiedInsets(72.0/50, OSNAME === "Linux" ? "TBLR" : "LR");
+    Insets UNLABELEDSCREEN = GetInsets(72.0/6, 0, 72.0/8, 72.0/8);
+};
+

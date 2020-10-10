@@ -1,0 +1,41 @@
+import yoix.*.*;
+
+Matrix digitmatrix;
+Matrix hourmatrix;
+
+hourmatrix.rotate(360/12);
+digitmatrix.translate(72, 0).rotate(90);
+
+JFrame f = {
+    Color background = Color.black;
+
+    Graphics graphics = {
+        String font = "Lucida-bold-16";
+    };
+
+    paint(Rectangle rect) {
+        Matrix mtx;
+        String digit;
+        int    n;
+
+        graphics {
+            gsave();
+            setrgbcolor(0, 1, 0);
+            translate(size.width - 144, size.height - 144);
+            rotate(-60);
+            mtx = currentmatrix();
+            for (n = 1; n <= 12; n++) {
+                digit = toString(n);
+                concat(digitmatrix);
+                moveto(-stringwidth(digit)/2, 0);
+                show(digit);
+                mtx = mtx.concatmatrix(hourmatrix);
+                setmatrix(mtx);
+            }
+            grestore();
+        }
+    }
+};
+
+f.visible = TRUE;
+

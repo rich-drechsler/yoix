@@ -1,0 +1,25 @@
+import yoix.*.*;
+
+JFrame f = {
+    paint(Rectangle r) {
+	graphics {
+	    gsave();
+	    translate(144, 144);
+	    rotate(-15);
+	    scale(2, 2);
+	    moveto(0, 0);
+	    rlineto(72, 0);
+	    rlineto(-36, 72);
+	    rlineto(-36, 0);
+	    closepath();
+	    setlinejoin(JOIN_ROUND);
+	    setlinewidth(9);
+	    scale(2, 1);
+	    stroke();
+	    grestore();
+	}
+    }
+};
+
+f.visible = TRUE;
+

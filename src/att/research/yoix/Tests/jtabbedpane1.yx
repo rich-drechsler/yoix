@@ -1,0 +1,43 @@
+import yoix.*.*;
+
+JFrame f = {
+    Array layout = {
+	new JTabbedPane {
+	    String tag = "$_pane";
+
+	    Array layout = {
+		new JPanel {
+		    String tag = "$_tab1";
+		    String title = "Switch";
+		    Color foreground = Color.red;
+		    Color background = Color.blue;
+
+		    BorderLayout layoutmanager;
+		    Array layout = {
+			new JButton {
+			    String tooltiptext = "Pick the other tab";
+			    String text = "Switch";
+
+			    actionPerformed(e) {
+				root.components.$_pane.selected = "$_tab2";
+			    }
+			}, EAST,
+		    };
+		},
+
+		new JButton {
+		    String tag = "$_tab2";
+		    String title = "Close";
+		    String text = "Close";
+
+		    actionPerformed(e) {
+			root.components.$_tab1.title += "XXX";
+			root.components.$_pane.selected = "$_tab1";
+		    }
+		},
+	    };
+	},
+    };
+};
+
+f.visible = TRUE;

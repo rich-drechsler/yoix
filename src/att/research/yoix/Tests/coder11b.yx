@@ -1,0 +1,192 @@
+//
+// This test (coder11b.yx) should be preceeded by running coder11a.yx
+//
+
+import yoix.*.*;
+
+String check = "";
+String output;
+String NL = getProperty("line.separator");
+
+int n;
+
+Array textvals = {
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+};
+
+for (n=0; n<textvals@length; n++)
+    check += textvals[n] + NL;
+
+Cipher c = {
+    String specification = "DES";
+    int opmode = DECRYPT_MODE;
+    Dictionary initializer = {
+	String key = "AF449F90307B46828DF6BB3D57D248C791F92985E9B17F5557B3F32685C85827C281908F0DACF666";
+    };
+};
+
+File f2 = {
+    int mode = READ;
+    int open = TRUE;
+    String  name = "hexzipciph_coder11.data";
+    Cipher cipher = c;
+    int filters = HEXCODER|GZIP;
+};
+
+output = f2.nextbuf;
+
+stdout.nextline = "=========== Check ===========";
+
+if (output === check)
+    stdout.nextline = "Check: de-coding succeeded.";
+else stdout.nextline = "Check: de-coding failed.";
+stdout.nextline = "==============================";
+
+stdout.nextbuf = output;
+
+unlink(f2.fullname);
+
+exit(0);

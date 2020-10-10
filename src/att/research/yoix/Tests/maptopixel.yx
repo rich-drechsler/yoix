@@ -1,0 +1,47 @@
+//
+// Creates a point from another one using maptopixel() and draws the corner
+// of a square in different colors using each of the points. You can use the
+// mouse wheel to scroll and button 1 to pan size. Notice the changes as you
+// zoom and also notice the consistency as you pan.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    Color background = Color.white;
+
+    Array layout = {
+	new JCanvas {
+	    int panandzoom = 0x000401;
+
+	    paint(rect) {
+		Point p1;
+		Point p2;
+
+		graphics {
+		    gsave();
+		    p1.x = 72;
+		    p1.y = 72;
+		    p2 = maptopixel(p1);
+		    erasedrawable();
+		    setlinewidth(0);
+		    moveto(p1);
+		    rlineto(0, 72);
+		    moveto(p1);
+		    rlineto(72, 0);
+		    setrgbcolor(1, 0, 0);
+		    stroke();
+		    moveto(p2);
+		    rlineto(0, 72);
+		    moveto(p2);
+		    rlineto(72, 0);
+		    setrgbcolor(0, 0, 1);
+		    stroke();
+		    grestore();
+		}
+	    }
+	}, CENTER,
+    };
+};
+
+f.visible = TRUE;

@@ -1,0 +1,10 @@
+To build this you currently have to point at Java's jnlp.jar file. Take a
+look at jnlp.mk for more information. Decided not to include this in the
+default Yoix jar file because the status of JNLP in various versions of
+Java isn't clear to me and I don't currently have time to investigate.
+
+---
+
+Added a few things to Module.java.test file, but didn't test much. Also not
+convinced the additions are really worth it. Eventually should take another
+look.

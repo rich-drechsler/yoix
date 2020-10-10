@@ -1,0 +1,38 @@
+//
+// Several qsort examples.
+//
+
+import yoix.*.*;
+
+//
+// No comparison function means an alphabetical sort of an Array of
+// Strings. NULL Strings end up at the end of the Array.
+//
+
+Array list = {
+    "Now is",
+    "the time",
+    new String,		// a NULL String
+    "for",
+    "all",
+    "good men"
+};
+
+printf("unsorted: %O\n", list);
+qsort(list);
+printf("sorted: %O\n", list);
+
+//
+// An example that uses a comparison function.
+//
+
+Array values = {5, 4, 1, 12, 100, -12, 76.777, 0};
+
+compare(arg1, arg2) {
+    return(arg1 < arg2 ? -1 : (arg1 > arg2 ? 1 : 0));
+}
+
+printf("unsorted: %O\n", values);
+qsort(values, compare);
+printf("sorted: %O\n", values);
+

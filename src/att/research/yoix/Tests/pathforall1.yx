@@ -1,0 +1,24 @@
+//
+// Simple pathforall() example written in the style that supplies different
+// functions for each type of path element.
+//
+
+import yoix.*.*;
+
+Path p;
+
+moveto(x, y) = printf(" moveto(%.1f, %.1f);\n", x, y);
+lineto(x, y) = printf(" lineto(%.1f, %.1f);\n", x, y);
+closepath() = printf(" closepath();\n");
+
+p.moveto(100, 200);
+p.rlineto(100, 0);
+p.rlineto(0, 200);
+p.closepath();
+
+printf("Output before CTM change:\n");
+p.pathforall(moveto, lineto, NULL, NULL, closepath);
+p.CTM.scale(2, 2);
+printf("\nOutput after CTM change:\n");
+p.pathforall(moveto, lineto, NULL, NULL, closepath);
+

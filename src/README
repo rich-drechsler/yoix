@@ -1,0 +1,238 @@
+
+                  Yoix Version 3.0.0 - Source Distribution
+                                  Oct 10 2020
+
+This is an unofficial source code release of the Yoix interpreter. It's based on
+Version 2.3.1, which was publicly released by AT&T on November 25 2011. Yoix is
+a Java based interpreter that John Mocenigo and I started working on more than 20
+years ago and we used it to build serious production applications inside AT&T. I
+retired in 2012, and as far as I know nobody has made any changes to the package
+that AT&T released as Version 2.3.1.
+
+This is old technology, and it's definitely not my goal to try to persuade anyone
+that the language has value, but recent events have convinced me that there may
+be hidden value in the work that John and I did many years ago. When I started
+looking at the 2.3.1 package earlier this year it was clear some serious cleanup
+work was in order. Makefiles got lots of attention, but along the way I fixed a
+few minor bugs, wrote some code that helped improve the zooming performance in
+the Unicode chart, addressed YChart browser related issues, added several bash
+scripts that can be used to start various applications, and tossed some of the
+unnecessary files that had been included in the 2.3.1 source package.
+
+Version number 3.0.0 was chosen to provide an obvious break between this package
+and the one that was released by AT&T in 2011. If you compared the two packages
+you'd notice lots of additions, deletions, and changes, but at this point none
+of the differences are particularly significant.
+
+                                                        Rich Drechsler
+
+-----------------
+Website Confusion
+-----------------
+
+Yoix related websites that you may see mentioned in this package, like
+
+    http://www.yoix.org
+
+and
+
+    http://www.research.att.com/sw/tools/yoix/
+
+existed in 2011, but over the years they've all disappeared. By early 2014 the
+yoix.org domain had a new owner and at some point in 2016 the server that AT&T
+Research used to distribute free software packages (e.g., graphviz, ksh, nmake,
+yoix) vanished. Fortunately the software packages that were available on that
+server were moved to AT&T's open source repository on github, so if you want
+to grab your own copy of the Yoix 2.3.1 release go to
+
+    https://github.com/att/yoix
+
+and you can download everything, including the source code, that was available
+on the old AT&T Research website.
+
+The "internet wayback machine"
+
+    https://web.archive.org/
+
+is another useful resource. As long as you pick appropriate snapshot dates you
+can take a look at the missing websites. The quality of the snapshots varies,
+but this one from March 24 2014
+
+    https://web.archive.org/web/20140324033431/http://www2.research.att.com/sw/tools/yoix/
+
+seems to have quite a few working links. You won't be able to download anything,
+but documentation is there and many of the links in the reference pages seem to
+work.
+
+------------
+Requirements
+------------
+
+You need a version of the 1.8.X JDK before you can build anything. We've tested
+Java Development Kits from Oracle and OpenJDK and both work. Older versions of
+the JDK should also work, but only if you update the definition of JAVACTARGET
+in file
+
+    make/common.mk
+
+or set the appropriate value in your environment or on the make command line.
+
+Yoix includes four different parsers (just look for files that end in .jjt) and
+a parser generator named JavaCC builds them all. We decided to include the old
+version of JavaCC that we used in 2011 in directory
+
+    javacc
+
+so you don't have to search the web for a version of JavaCC that works. Take a
+look at the file
+
+    javacc/README
+
+if you want more information about the version of JavaCC that we distribute in
+this release.
+
+The Yoix Java code is old. Much of it was written in the last century, and as
+you might expect, building all the pieces can be tricky. Right now it only works
+with JDK 1.8.X, the version of JavaCC that we've included in this package, and
+many of the settings that are currently hardcoded in common.mk. Change any part
+of the puzzle and you may find it's impossible to build the Yoix interpreter.
+
+-------------------
+Building Everything
+-------------------
+
+The Yoix source code can be found somewhere under the directory
+
+    att/research/yoix
+
+If that's what you're primarily interested in look at the README file in that
+directory and you'll find instructions for building the interpreter and testing
+any changes you make to the source code. Otherwise you can use the Makefile in
+this directory to manage the software that's included in this package. Type
+
+    make
+
+or
+
+    make all
+
+to compile everything, and when you're done
+
+    make clobber
+
+removes everything that was built from the source files. There's also a "clean"
+target that removes things, but it doesn't get rid of some generated files, like
+jar files. In practice the "clean" target isn't particularly useful.
+
+To build a "binary" package and have it installed in an existing directory, say
+/tmp/yoix-3.0.0, just type
+
+    mkdir /tmp/yoix-3.0.0
+    make INSTALLDIR=/tmp/yoix-3.0.0 install
+
+and that should do it. If the directory assigned to INSTALLDIR doesn't exist
+everything will still be built, but the INSTALLDIR directory won't be created
+and that means nothing will be installed. INSTALLDIR can be any directory you
+want and after the install finishes that directory can be moved and everything
+should still work.
+
+After a successful install you'll always find directories named "bin-linux" and
+"bin-windows" in INSTALLDIR. In the context of the last example, that means you
+end up with directories named
+
+    /tmp/yoix-3.0.0/bin-linux
+    /tmp/yoix-3.0.0/bin-windows
+
+and in each of them you'll find scripts that run some Yoix based applications on
+the named platform (i.e., Linux or Windows). Linux scripts have been thoroughly
+tested, but while I was doing this development I didn't have easy access to a
+Windows machine (or much desire to find one), so scripts in "bin-windows" have
+not been tested. Incidentally, if you're on a Mac there's a pretty good chance
+the scripts in the "bin-linux" directory will work. Simple tests of the Linux
+bash scripts that I ran on a Mac (that didn't have Java installed) all worked
+properly.
+
+An install always creates populated "bin-linux" and "bin-windows" directories
+in INSTALLDIR. Set TARGET_OSNAME to the name of an operating system on the make
+command line and you'll also end up with a directory named "bin" that contains
+the scripts, copied from "bin-linux" or "bin-windows", that should run on the
+operating system that you selected. Right now the recognized names, which are
+all case independent, are "linux", "unix", "windows", "macos", "macosx", or
+"osx", so after typing
+
+    make INSTALLDIR=/tmp/yoix-3.0.0 TARGET_OSNAME=windows install
+
+you'll find that all the scripts in "bin-windows" have been duplicated in the
+"bin" directory. Setting TARGET_OSNAME to "none" is also allowed and it's an
+explicit way to disable the creation of the "bin" directory.
+
+-------------------
+Source Directories
+-------------------
+
+    att/research/yoix
+        This is where you'll find the source for the Yoix interpreter and
+        it's usually where we end up when we work on the Yoix interpreter.
+        There's a README file in that directory that provides more details.
+        Typically what we do is
+
+                cd att/research/yoix
+
+                ###
+                ### work on Java source files ...
+                ### compile our changes and run some tests ...
+                ###
+
+                make -f yoix.mk RUNARGS='Tests/jdesktoppane.yx' run
+
+                ###
+                ### more work on Java source files ....
+                ### compile our changes and run more tests ...
+                ###
+
+        which shows how we use make to compile the interpreter (after our
+        source code changes) and then point the interpreter at a test file.
+        RUNARGS are arguments that are handed to the interpreter, so we also
+        sometimes type
+
+                make -f yoix.mk RUNARGS='-d1' run
+
+        to start an interactive session and have the Yoix interpreter dump
+        the value of all expressions that also happen to be statements. Omit
+        the -d1 and you start an interactive session that's not nearly as
+        noisy. Either way there's currently no prompting for input - just
+        start typing Yoix statements and eventually the interpreter will
+        respond.
+
+    javacc
+        This is the version of the JavaCC parser generator that's used by
+        the makefiles that build the Yoix interpreter. Take a look at
+
+            make/common.mk
+
+        to see how this version is hooked up to other makefiles or
+
+            javacc/README
+
+        if you just want more information about the version of JavaCC that
+        we decided to distribute in this release.
+
+    make
+        Any makefiles in this directory are designed to be included by most
+        of the makefiles in the source package that do the real work. In the
+        past we tried to write makefiles that worked properly with different
+        versions of make (there were lots of them), but today just targeting
+        GNU make is more sensible, so we've dropped the portability goal and
+        now assume GNU make is available on your system.
+
+    misc/yoix
+        Miscellaneous Yoix related stuff (reference pages, examples, papers)
+        from the 2.3.1 release, all stored in zip files. During an install the
+        zip files are either copied into or unzipped in a directory named yoix
+        that's created in the INSTALLDIR directory.
+
+    tools/YWAIT
+        I didn't make any changes to the stuff in this directory and there's
+        probably no reason for you to waste time trying to figure it out. It
+        may be deleted in a future release.
+

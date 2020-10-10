@@ -1,0 +1,56 @@
+import yoix.*.*;
+
+double start = time();
+double t = 46807.517824;
+
+printf("Case %2d: %25s: '%s'\n", 1, "(no arg)",
+       timerFormat(t));
+printf("Case %2d: %25s: '%s'\n", 2, "D:HH:MM:SS.FFF",
+       timerFormat("D:HH:MM:SS.FFF", t));
+printf("Case %2d: %25s: '%s'\n", 3, "D:ZH:ZM:zs.f",
+       timerFormat("D:ZH:ZM:zs.f", t));
+printf("Case %2d: %25s: '%s'\n", 4, "D:BH:BM:bs.f",
+       timerFormat("D:BH:BM:bs.f", t));
+printf("Case %2d: %25s: '%s'\n", 5, "ZD:ZH:ZM:zs.ff",
+       timerFormat("ZD:ZH:ZM:zs.ff", t));
+printf("Case %2d: %25s: '%s'\n", 6, "zD:ZH:ZM:zs.fff",
+       timerFormat("zD:ZH:ZM:zs.fff", t));
+printf("Case %2d: %25s: '%s'\n", 7, "zd:ZH:ZM:zs.zzf",
+       timerFormat("zd:ZH:ZM:zs.zzf", t));
+printf("Case %2d: %25s: '%s'\n", 8, "d:ZH:ZM:zs.f",
+       timerFormat("d:ZH:ZM:zs.f", t));
+printf("Case %2d: %25s: '%s'\n", 9, "Zd:Zh:Zm:Zs.f",
+       timerFormat("Zd:Zh:Zm:Zs.f", t));
+printf("Case %2d: %25s: '%s'\n", 10, "ns",
+       timerFormat("ns", t));
+printf("Case %2d: %25s: '%s'\n", 11, "ss",
+       timerFormat("ss", t));
+printf("Case %2d: %25s: '%s'\n", 12, "sss",
+       timerFormat("sss", t));
+printf("Case %2d: %25s: '%s'\n", 13, "nm",
+       timerFormat("nm", t));
+printf("Case %2d: %25s: '%s'\n", 14, "mm",
+       timerFormat("mm", t));
+printf("Case %2d: %25s: '%s'\n", 15, "mmm",
+       timerFormat("mmm", t));
+printf("Case %2d: %25s: '%s'\n", 16, "nd",
+       timerFormat("nd", t));
+printf("Case %2d: %25s: '%s'\n", 17, "dd",
+       timerFormat("dd", t));
+printf("Case %2d: %25s: '%s'\n", 18, "ddd",
+       timerFormat("ddd", t));
+printf("Case %2d: %25s: '%s'\n", 19, "ffff",
+       timerFormat("ffff", t));
+printf("Case %2d: %25s: '%s'\n", 20, "=>f ff fff ffff",
+       timerFormat("=>f ff fff ffff", t));
+printf("Case %2d: %25s: '%s'\n", 21, "n=>f ff fff ffff",
+       timerFormat("n=>f ff fff ffff", t));
+printf("Case %2d: %25s: '%s'\n", 22, "zzzzzzzzzf",
+       timerFormat("zzzzzzzzzf", t));
+printf("Case %2d: %25s: '%s'\n", 23, "Hz' hr 'Mz' min 'Sz' sec'",
+       timerFormat("Hz' hr 'Mz' min 'Sz' sec'", t));
+printf("\nFYI: Age of Unix: %s\n     or, roughly: %s\nor, more roughly: %s",
+	timerFormat("D'd 'Hh'h 'Mm'm 's.f's'", (ut=time())),
+	timerFormat("T't 'Dd'd 'Hh'h 'Mm'm 's.f's'", ut),
+	timerFormat("Y'y 'Tt't 'Dd'd 'Hh'h 'Mm'm 's.f's'", ut));
+printf("\nFYI: Seconds to execute this script: %s\n", timerFormat("zs.fff", time() - start));

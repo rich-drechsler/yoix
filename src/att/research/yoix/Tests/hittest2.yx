@@ -1,0 +1,29 @@
+import yoix.*.*;
+
+JFrame f = {
+    paint() {
+        graphics {
+            if (currentpoint() == NULL) {
+                translate(72, 144);
+                rotate(-45);
+                scale(.5, .5);
+                shear(0, .5);
+                moveto(72, 72);
+                rlineto(72*2, 0);
+                rlineto(0, 72*3);
+                rlineto(-72*2, 0);
+                closepath();
+            }
+            gsave();
+            fill();
+            grestore();
+         }
+    }
+
+    mousePressed(MouseEvent e) {
+        printf("hit=%d\n", graphics.infill(e.coordinates));
+    }
+};
+
+f.visible = TRUE;
+

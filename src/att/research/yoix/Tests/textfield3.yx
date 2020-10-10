@@ -1,0 +1,186 @@
+//
+// This example is here to test JTextField focus behavior. It
+// helps demonstrate some oddities that we need to look into
+// some day. Firstly, when right-mouse clicking into a text
+// field for the purposes of pasting, focus is not gained (thus
+// the use of textValueChanged to request the focus). Secondly,
+// even though focusGained is not called, the focus highlight
+// is assigned to the text field getting the paste at the time
+// that the mouse click occurs. Finally, though the click happens
+// in only one field, it registers in both.
+//
+
+import yoix.*.*;
+
+VM.screen.background = Color.gray;
+
+Frame screen = {
+    Dimension size = NULL;
+    String    font = "Helvetica-bold-12";
+    ////Color background = yoix.awt.Color.gray;
+    ////Color foreground = yoix.awt.Color.black;
+    int       initialized = FALSE;
+
+    GridBagLayout layoutmanager;
+
+    Array layout = {
+	//
+	// Padding - lower left corner
+	//
+	new Canvas {
+	    Color background = yoix.awt.Color.lightGray;
+	    Dimension size = {
+		int width = 36;
+		int height = 36;
+	    };
+	},
+
+	new GridBagConstraints {
+	    int gridx = 0;
+	    int gridy = 0;
+	},
+
+	//
+	// Input fields
+	//
+	new Panel {
+	    String tag = "$_panel";
+
+	    GridLayout layoutmanager = {
+		int rows = 0;
+		int columns = 2;
+	    };
+
+	    Array layout = {
+		new Label {
+		    String text = "Field 1";
+		    int    alignment = RIGHT;
+		},
+
+		new TextField {
+		    String tag = "$_field1";
+		    int    columns = 12;
+
+		    focusGained(e) {
+			printf("%s got the focus\n", tag);
+		    }
+
+		    focusLost(e) {
+			printf("%s lost the focus\n", tag);
+		    }
+
+		    textValueChanged(e) {
+			printf("%s changed text\n", tag);
+			requestfocus = 1;
+		    }
+
+		    itemStateChanged(e) {
+			printf("%s changed state\n", tag);
+		    }
+
+		    mousePressed(e) {
+			printf("%s pressed mouse\n", tag);
+		    }
+		},
+
+		new Label {
+		    String text = "Field 2";
+		    int    alignment = RIGHT;
+		},
+
+		new TextField {
+		    String tag = "$_field2";
+		    int    columns = 12;
+
+		    focusGained(e) {
+			printf("%s got the focus\n", tag);
+		    }
+
+		    focusLost(e) {
+			printf("%s lost the focus\n", tag);
+		    }
+
+		    textValueChanged(e) {
+			printf("%s changed text\n", tag);
+			// note: no request to show the problem
+			//requestfocus = 1;
+		    }
+
+		    itemStateChanged(e) {
+			printf("%s changed state\n", tag);
+		    }
+
+		    mousePressed(e) {
+			printf("%s pressed mouse\n", tag);
+		    }
+		},
+
+		"",
+		new JButton {
+		    String text = "Quit";
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+	    };
+	},
+
+	new GridBagConstraints {
+	    int gridx = 2;
+	    int gridy = 5;
+	    int gridwidth = 5;
+	    int anchor = CENTER;
+	    int weightx = 100;
+	    int weighty = 100;
+
+	    Insets insets = {
+		int right = 72;		// positioning kludge??
+	    };
+	},
+
+	//
+	// Padding - lower right corner
+	//
+	new Canvas {
+	    Color background = yoix.awt.Color.lightGray;
+
+	    Dimension size = {
+		int width = 36;
+		int height = 36;
+	    };
+	},
+
+	new GridBagConstraints {
+	    int gridx = 10;
+	    int gridy = 10;
+	 },
+    };
+
+    ////////////////////////////
+    //
+    // Support functions
+    //
+    ////////////////////////////
+
+    ShowScreen(Dimension size, Point location) {
+	this.size = size;
+
+	if (!initialized) {
+	    if (location == NULL) {
+		location = new Point;
+		if (parent == NULL) {
+		    location.x = (VM.screen.width - this.size.width)/2;
+		    location.y = (VM.screen.height - this.size.height)/2 - 72;
+		} else {
+		    location.x = parent.location.x + (parent.size.width - this.size.width)/2;
+		    location.y = parent.location.y + parent.size.height - 72/4;
+		}
+	    }
+	    initialized = TRUE;
+	}
+	this.location = location;
+	visible = TRUE;
+    }
+};
+
+screen.ShowScreen(NULL, NULL);

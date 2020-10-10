@@ -1,0 +1,128 @@
+//
+// A template screen that contains a single JButton that's centered in the
+// screen. Not much here, but it can be a convenient starting point.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Insets border = NULL;	// usually Global.GetLabeledScreenInsets() or Global.GetUnLabeledScreenInsets()
+	String title = Global.ACRONYM + " Template 1";
+	Font   font = Global.GetPreferredLabelFont();
+	int    opaque = TRUE;
+
+	//
+	// This is starting screen size. Setting size to NULL is special
+	// and means the individual components displayed in the screen
+	// determine the size of the screen.
+	//
+
+	Dimension size = {
+	    double width = 7.0*72;
+	    double height = 3.0*72;
+	};
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	//
+	// Every screen should define and initialize the following set
+	// of variables. Expect problems is you omit any of them.
+	//
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = TRUE;   // save screen-specific info within session
+	int    retainstate = TRUE; // save screen-class info across sessions
+	int    reloadargs = FALSE;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    //
+	    // We supplied NULL as the GridBagConstraint for the JButton.
+	    // It's convenient in this simple example, but in practice we
+	    // usually want to set a few of the GridBagConstraint fields.
+	    // The result is equivalent to
+	    //
+	    //    new GridBagConstraint
+	    //
+	    // which creates a GridBagConstraint with default values that
+	    // could also be create by the much specification:
+	    //
+	    //    new GridBagConstraint {
+	    //        int    gridx = RELATIVE;
+	    //        int    gridy = RELATIVE;
+	    //        int    gridwidth = 1;
+	    //        int    gridheight = 1;
+	    //        int    weightx = 0;
+	    //        int    weighty = 0;
+	    //        int    ipadx = 0;
+	    //        int    ipady = 0;
+	    //        Insets insets = NULL;
+	    //    }
+	    //
+	    // Experiment with the GridBagConstraint if this stuff is new to
+	    // you. Also consider trying layout managers (e.g., FlowLayout,
+	    // BorderLayout).
+	    //		
+
+	    new JButton {
+		String text = "Dismiss";
+		Font   font = Global.GetPreferredButtonFont();
+
+		actionPerformed(e) {
+		    //
+		    // We immediately hide the screen right in this example,
+		    // but more complicated screens often do
+		    //
+		    //    Global.QueueCommand(root, &root.HideScreen);
+		    //
+		    // which delays the root.HideScreen() call until it gets
+		    // to the front of the queue. Means other things that the
+		    // screen may have queued up get a chance to finish before
+		    // we disappear.
+		    //
+
+		    root.HideScreen();
+		}
+	    },
+	    NULL	// JButton's GridBagConstraint
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);
+

@@ -1,0 +1,278 @@
+import yoix.*.*;
+
+JFrame jf = {
+    String tag = "$_frame";
+    Dimension size = NULL;
+    int       visible = TRUE;
+    String    border = "SpringLayout";
+
+
+    SpringLayout layoutmanager;
+    Array layout = {
+	new JLabel {
+	    String tag = "$_label";
+	    String text = "Opener";
+	    String font = "Helvetica-bold-8";
+	},
+	new JTextField {
+	    String tag = "$_field";
+	    String text = getProperty("java.version");
+	    int columns = 0; // needed when using preferredsize
+	    Dimension preferredsize = {
+		int width = 54;  // 3/4"
+		int height = 36; // 1/2"
+	    };
+	},
+	new JButton {
+	    String tag = "$_button";
+	    String text = "OK";
+
+	    int   layoutstate = -1;
+	    Array layouts = new Array[] {
+		new Array[] {
+		    new SpringConstraints {
+			String anchorcomp = "$_frame";
+			int    anchoredge = WEST;
+			String dependcomp = "$_label";
+			int    dependedge = WEST;
+			Array  spring = { 2, 5, 10 };
+		    },
+
+		    new SpringConstraints {
+			String anchorcomp = "$_label";
+			int    anchoredge = EAST;
+			String dependcomp = "$_field";
+			int    dependedge = WEST;
+			Array  spring = { 2, 5, 10 };
+		    },
+		    new SpringConstraints {
+			String anchorcomp = "$_frame";
+			int    anchoredge = NORTH;
+			String dependcomp = "$_field";
+			int    dependedge = NORTH;
+			Array  spring = { 2, 5, 10 };
+		    },
+		    new SpringConstraints {
+			String anchorcomp = "$_field";
+			int    anchoredge = SOUTH;
+			String dependcomp = "$_frame";
+			int    dependedge = SOUTH;
+			Array  spring = { 2, 5, 10 };
+		    },
+
+		    new SpringConstraints {
+			String anchorcomp = "$_field";
+			int    anchoredge = EAST;
+			String dependcomp = "$_button";
+			int    dependedge = WEST;
+			Array  spring = { 2, 5, 10 };
+		    },
+
+		    new SpringConstraints {
+			String anchorcomp = "$_button";
+			int    anchoredge = EAST;
+			String dependcomp = "$_label_large";
+			int    dependedge = WEST;
+			Array  spring = { 2, 5, 10 };
+		    },
+		    new SpringConstraints {
+			String anchorcomp = "$_label_large";
+			int    anchoredge = EAST;
+			String dependcomp = "$_frame";
+			int    dependedge = EAST;
+			Array  spring = { 2, 5, 10 };
+		    },
+
+		    new SpringConstraints {
+			String anchorcomp = "$_field";
+			int    anchoredge = VERTICAL_CENTER;
+			String dependcomp = "$_label";
+			int    dependedge = VERTICAL_CENTER;
+			int    spring = 0;
+		    },
+		    new SpringConstraints {
+			String anchorcomp = "$_field";
+			int    anchoredge = VERTICAL_CENTER;
+			String dependcomp = "$_button";
+			int    dependedge = VERTICAL_CENTER;
+			int    spring = 0;
+		    },
+		    new SpringConstraints {
+			String anchorcomp = "$_field";
+			int    anchoredge = VERTICAL_CENTER;
+			String dependcomp = "$_label_large";
+			int    dependedge = VERTICAL_CENTER;
+			int    spring = 0;
+		    },
+		},
+		new Array[] {
+		    new SpringConstraints {
+			String anchorcomp = "$_label";
+			int    anchoredge = SOUTH;
+			String dependcomp = "$_field";
+			int    dependedge = NORTH;
+			Array  spring = { 2, 5, 10 };
+		    },
+		    new SpringConstraints {
+			String anchorcomp = "$_frame";
+			int    anchoredge = WEST;
+			String dependcomp = "$_field";
+			int    dependedge = WEST;
+			Array  spring = { 2, 5, 10 };
+		    },
+		    new SpringConstraints {
+			String anchorcomp = "$_field";
+			int    anchoredge = EAST;
+			String dependcomp = "$_frame";
+			int    dependedge = EAST;
+			Array  spring = { 2, 5, 10 };
+		    },
+
+		    new SpringConstraints {
+			String anchorcomp = "$_field";
+			int    anchoredge = SOUTH;
+			String dependcomp = "$_button";
+			int    dependedge = NORTH;
+			Array  spring = { 2, 5, 10 };
+		    },
+
+		    new SpringConstraints {
+			String anchorcomp = "$_button";
+			int    anchoredge = SOUTH;
+			String dependcomp = "$_label_large";
+			int    dependedge = NORTH;
+			Array  spring = { 2, 5, 10 };
+		    },
+		    new SpringConstraints {
+			String anchorcomp = "$_label_large";
+			int    anchoredge = SOUTH;
+			String dependcomp = "$_frame";
+			int    dependedge = SOUTH;
+			Array  spring = { 2, 5, 10 };
+		    },
+
+		    new SpringConstraints {
+			String anchorcomp = "$_field";
+			int    anchoredge = HORIZONTAL_CENTER;
+			String dependcomp = "$_label";
+			int    dependedge = HORIZONTAL_CENTER;
+			int    spring = 0;
+		    },
+		    new SpringConstraints {
+			String anchorcomp = "$_field";
+			int    anchoredge = HORIZONTAL_CENTER;
+			String dependcomp = "$_button";
+			int    dependedge = HORIZONTAL_CENTER;
+			int    spring = 0;
+		    },
+		    new SpringConstraints {
+			String anchorcomp = "$_field";
+			int    anchoredge = HORIZONTAL_CENTER;
+			String dependcomp = "$_label_large";
+			int    dependedge = HORIZONTAL_CENTER;
+			int    spring = 0;
+		    },
+		},
+	    };
+
+	    actionPerformed(e) {
+		Array newlayout;
+		int   n;
+
+		if (++layoutstate < 2) {
+		    newlayout = new Array[4 + layouts[layoutstate]@sizeof];
+		    n = 0;
+		    for (ptr in root.layout) {
+			if (*ptr instanceof SpringConstraints)
+			    continue;
+			newlayout[n++] = *ptr;
+		    }
+		    for (ptr in layouts[layoutstate])
+			newlayout[n++] = *ptr;
+		    root.layout = newlayout;
+		} else exit(0);
+		root.size = NULL;
+	    }
+	},
+	new JLabel {
+	    String tag = "$_label_large";
+	    String text = "Closer";
+	    String font = "Helvetica-bold-24";
+	},
+
+	new SpringConstraints {
+	    String anchorcomp = "$_frame";
+	    int    anchoredge = WEST;
+	    String dependcomp = "$_label";
+	    int    dependedge = WEST;
+	    Array  spring = { 2, 5, 10 };
+	},
+
+	new SpringConstraints {
+	    String anchorcomp = "$_label";
+	    int    anchoredge = EAST;
+	    String dependcomp = "$_field";
+	    int    dependedge = WEST;
+	    Array  spring = { 2, 5, 10 };
+	},
+	new SpringConstraints {
+	    String anchorcomp = "$_frame";
+	    int    anchoredge = NORTH;
+	    String dependcomp = "$_field";
+	    int    dependedge = NORTH;
+	    Array  spring = { 2, 5, 10 };
+	},
+	new SpringConstraints {
+	    String anchorcomp = "$_field";
+	    int    anchoredge = SOUTH;
+	    String dependcomp = "$_frame";
+	    int    dependedge = SOUTH;
+	    Array  spring = { 2, 5, 10 };
+	},
+
+	new SpringConstraints {
+	    String anchorcomp = "$_field";
+	    int    anchoredge = EAST;
+	    String dependcomp = "$_button";
+	    int    dependedge = WEST;
+	    Array  spring = { 2, 5, 10 };
+	},
+
+	new SpringConstraints {
+	    String anchorcomp = "$_button";
+	    int    anchoredge = EAST;
+	    String dependcomp = "$_label_large";
+	    int    dependedge = WEST;
+	    Array  spring = { 2, 5, 10 };
+	},
+	new SpringConstraints {
+	    String anchorcomp = "$_label_large";
+	    int    anchoredge = EAST;
+	    String dependcomp = "$_frame";
+	    int    dependedge = EAST;
+	    Array  spring = { 2, 5, 10 };
+	},
+
+	new SpringConstraints {
+	    String anchorcomp = "$_field";
+	    int    anchoredge = BASELINE;
+	    String dependcomp = "$_label";
+	    int    dependedge = BASELINE;
+	    int    spring = 0;
+	},
+	new SpringConstraints {
+	    String anchorcomp = "$_field";
+	    int    anchoredge = BASELINE;
+	    String dependcomp = "$_button";
+	    int    dependedge = BASELINE;
+	    int    spring = 0;
+	},
+	new SpringConstraints {
+	    String anchorcomp = "$_field";
+	    int    anchoredge = BASELINE;
+	    String dependcomp = "$_label_large";
+	    int    dependedge = BASELINE;
+	    int    spring = 0;
+	},
+    };
+};

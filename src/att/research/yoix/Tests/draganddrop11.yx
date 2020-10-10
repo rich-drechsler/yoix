@@ -1,0 +1,44 @@
+//
+// Trivial test that we occasionally use to test image dropping. You need
+// an application, like ksnapshot on Linux, that really lets you drag an
+// image out of the application!!
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    String title = "Drag and Drop Test";
+    double border = 72/12;
+
+    Array layout = {
+	new JButton {
+	    String text = "Reset";
+	    int    opaque = FALSE;
+
+	    actionPerformed(e) {
+		root.backgroundimage = NULL;
+		root.components.$_label.text = "A Label";
+	    }
+	}, SOUTH,
+
+	new JLabel {
+	    String tag = "$_label";
+	    String text = "A Label";
+	    int    opaque = FALSE;
+	}, NORTH,
+    };
+
+    dragEnter(DropTargetEvent e) {
+	return(TRUE);		// accept anything
+    }
+
+    drop(DropTargetEvent e) {
+	if (e.transferable instanceof Image)
+	    root.backgroundimage = e.transferable;
+	else if (e.transferable instanceof String)
+	    root.components.$_label.text = e.transferable;
+	return(TRUE);
+    }
+};
+
+f.visible = TRUE;

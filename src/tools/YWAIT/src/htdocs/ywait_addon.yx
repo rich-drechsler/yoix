@@ -1,0 +1,25 @@
+//
+// Several files were added to the YWAIT source, but we decided not to automatically
+// include them in all YWAIT applications. Instead identify them in the AddOns array,
+// which is defined in ywait._YX, and they will be included here. Right now this file
+// is included after ywait_custom._YX, so AddOns can be updated in ywait_custom._YX
+// and the files will be included here.
+//
+
+for (ptr in AddOns) {
+    global {
+	try {
+	    //
+	    // There's a chance one or more of the add-on files won't exist, so we
+	    // use try/catch to make sure errors are ignored.
+	    //
+	    include ServerFile(ptr[0]);
+	    loadgress.components.$_bar.value = min(
+		loadgress.components.$_bar.value + 2,
+		loadgress.components.$_bar.maximum - 2
+	    );
+	}
+	catch(e) {}
+    }
+}
+

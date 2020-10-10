@@ -1,0 +1,80 @@
+//
+// An example that shows how a frame's backgroundimage and opaque
+// fields can work together to let you color or tile the components
+// displayed in the frame that don't explicitly set their opaque
+// field to TRUE.
+//
+
+import yoix.*.*;
+
+Image logo = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+};
+
+JFrame f = {
+    Image backgroundimage = logo;
+    Color background = Color.cyan;
+    int   opaque = FALSE;
+
+    JMenuBar menubar = {
+        Menu items = {
+            "Options", new Menu {
+                "Opaque", "options_opaque", FALSE,
+            },
+        };
+    };
+
+    BorderLayout layoutmanager = {
+	double hgap = 18;
+	double vgap = 18;
+    };
+
+    Array layout = {
+	new JLabel {
+	    String text = "Opaque Test";
+	    String font = "Lucida-bold-16";
+	}, NORTH,
+
+	new JTextArea {
+	    int rows = 0;
+	    int columns = 0;
+	    int edit = TRUE;
+	}, CENTER,
+
+	new JButton {
+	    String text = "Toggle";
+	    Color  background = Color.yellow;
+	    int opaque = TRUE;
+
+	    actionPerformed(e) {
+		root.opaque = !root.opaque;
+	    }
+	}, SOUTH,
+
+	new JCanvas {
+	    Dimension preferredsize = {
+		double width = 36;
+	    };
+	}, EAST,
+
+	new JCanvas {
+	    Dimension preferredsize = {
+		double width = 36;
+	    };
+	}, WEST,
+    };
+
+    paint(rect) {
+	graphics {
+	    moveto(100, 100);
+	    rlineto(200, 0);
+	    rlineto(0, 100);
+	    closepath();
+	    setrgbcolor(1, 0, 0);
+	    fill();
+	}
+    }
+};
+
+f.visible = TRUE;
+

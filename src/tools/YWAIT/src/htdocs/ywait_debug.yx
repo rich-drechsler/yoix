@@ -1,0 +1,32 @@
+//
+// Debugging support, that you often will want to customize.
+//
+
+int DebugFlags = 0;
+
+SendDebug(String info) {
+    if (info@sizeof > 0)
+	QueueCommand(NULL, "SENDDEBUG", info);
+}
+
+SetDebug(String arg) {
+    int flags;
+
+    //
+    // This is called from PostCommand() and can be customized as you
+    // see fit. Our implementation omits the bottom three bits from the
+    // value stored in VM.debug, which means they can be used to request
+    // additional debugging actions. Be sure to check the definition of
+    // DebugThread if you make changes here.
+    //
+
+    if (arg != NULL) {
+	if ((flags = atoi(arg, 0, 0)) != DebugFlags) {
+	    DebugFlags = flags;
+	    VM.debug = (flags & 0xFFFFFFF8) | (VM.debug & 0x07);
+	    if (DebugFlags)
+		StartDebugger();
+	}
+    }
+}
+

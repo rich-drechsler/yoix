@@ -1,0 +1,167 @@
+import yoix.graph.*;
+import yoix.io.*;
+import yoix.parser.*;
+import yoix.stdio.*;
+import yoix.string.*;
+
+ParseTree t, top_node;
+String gr;
+
+if(argc == 2) {
+    File f = fopen(argv[1], "r");
+    gr = f.nextbuf;
+} else {
+    gr = "\
+<graph name=g directed=1 strict=1>\n\
+    <NODE name=node1  width=50/>\n\
+    <node name=node2 />\n\
+    <Node name=node3 />\n\
+    <edge name=edge1 tail=node1 head=node2 />\n\
+    <eDGe label=dog name=edge2 tail=node3 head=node1 />\n\
+\n\
+some random text\n\
+\n\
+\n\
+    <NODE_ATTRIBUTES color=\"red\" />\n\
+    <edge name=edge3 tail=node2 head=node3 />\n\
+    <edge name=edge4 tail=node1 head=node4 />\n\
+    <edge name=edge5 tail=node2 head=\"small green node5\" />\n\
+<!-- here's a subgraph -->\n\
+    <subgraph name=gg>\n\
+        <node name=node4 />\n\
+        <node name=\"small green node5\" height=0.5 color=green width=0.75 />\n\
+        <edge name=\"big red edge6\" tail=node2 head=node1 color=red />\n\
+        <subgraph name=ggg>\n\
+            <node name=node8 />\n\
+        </subgraph>\n\
+    </subgraph>\n\
+    <subgraph name=gggg>\n\
+        <node name=node9 />\n\
+    </subgraph>\n\
+</graph>\n\
+";
+}
+
+
+t.addtags = 1;
+t.parser = PARSER_XML;
+t.parse = gr;
+
+Array blocks = {
+    XMLConstants.BLOCK,
+    XMLConstants.NOBLOCK,
+    XMLConstants.BODY,
+    XMLConstants.CONTENT
+};
+
+Array attributes = {
+    XMLConstants.ATTRIBUTE
+};
+
+Graph g;
+
+builder(ParseTree tree, Graph parent, int edges) {
+
+    Element elem, subg;
+    String type_name, attr_name, attr_value, elem_name, head_name, tail_name;
+    ParseTree node, cntnt, attr;
+
+    while(tree.walk(node, blocks, CHILDREN)) {
+
+	if(node.type == XMLConstants.BLOCK || node.type == XMLConstants.NOBLOCK) {
+
+	    type_name = toLowerCase(node.child(1).value);
+
+	    Dictionary dict[0,...];
+
+	    attr = new ParseTree{};
+	    cntnt = new ParseTree{};
+
+	    if(!edges) {
+		if(type_name === "graph" || type_name === "subgraph") {
+		    while(node.walk(attr, attributes, CHILDREN)) {
+			attr_name = toLowerCase(attr.child(0).value);
+			if(attr_name === "name") {
+			    elem_name = attr.child(1).value;
+			} else {
+			    dict[attr_name] = attr.child(1).value;
+			}
+		    }
+
+		    if(parent == null) {
+			elem = new Graph {
+			    String name = elem_name;
+			    Dictionary attributes = dict;
+			};
+		    } else {
+			elem = new Graph {
+			    String name = elem_name;
+			    Dictionary attributes = dict;
+			    Graph parent = parent;
+			};
+		    }
+		    while(node.walk(cntnt, blocks, CHILDREN)) {
+			if(cntnt.type == XMLConstants.CONTENT) {
+			    builder(cntnt, elem, edges);
+			}
+		    }
+		} else if(!edges && type_name === "node") {
+		    while(node.walk(attr, attributes, CHILDREN)) {
+			attr_name = toLowerCase(attr.child(0).value);
+			if(attr_name === "name") {
+			    elem_name = attr.child(1).value;
+			} else {
+			    dict[attr_name] = attr.child(1).value;
+			}
+		    }
+
+		    elem = new Node {
+			String name = elem_name;
+			Dictionary attributes = dict;
+			Graph parent = parent;
+		    };
+		}
+	    } else {
+		if(type_name === "graph" || type_name === "subgraph") {
+		    subg = parent.root.element(node.child(2).child(1).value);
+		    while(node.walk(cntnt, blocks, CHILDREN)) {
+			if(cntnt.type == XMLConstants.CONTENT) {
+			    builder(cntnt, subg, edges);
+			}
+		    }
+		} else if(type_name === "edge") {
+		    while(node.walk(attr, attributes, CHILDREN)) {
+			attr_name = toLowerCase(attr.child(0).value);
+			if(attr_name === "name") {
+			    elem_name = attr.child(1).value;
+			} else if(attr_name === "head") {
+			    head_name = attr.child(1).value;
+			} else if(attr_name === "tail") {
+			    tail_name = attr.child(1).value;
+			} else {
+			    dict[attr_name] = attr.child(1).value;
+			}
+		    }
+
+		    elem = new Edge {
+			String name = elem_name;
+			Node head = parent.root.element(head_name);
+			Node tail = parent.root.element(tail_name);
+			Dictionary attributes = dict;
+			Graph parent = parent;
+		    };
+		}
+	    }
+
+	}
+    }
+
+    return(elem);
+}
+
+t.walk(top_node, blocks);
+
+g = builder(top_node, null, false);
+builder(top_node, g, true);
+
+stdout.nextline = g.text();

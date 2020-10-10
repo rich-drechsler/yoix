@@ -1,0 +1,44 @@
+#
+# Ignore class and jar files, unless told to do otherwise.
+#
+
+*.class
+*.jar
+
+#
+# Unfortunately there are a few class files that are (or were) part of the Yoix
+# package, so we don't ignore them.
+#
+
+!apple/STORAGE/**
+!jnlp/STORAGE/**
+
+#
+# These automatically generated files should always be ignored.
+#
+
+CharStream.java
+DOTParser.java
+DOTParserConstants.java
+DOTParserTokenManager.java
+DOTParserTreeConstants.java
+JJTDOTParserState.java
+JJTPatternParserState.java
+JJTXMLParserState.java
+JJTYoixParserState.java
+Node.java
+ParseException.java
+PatternParser.java
+PatternParserConstants.java
+PatternParserTokenManager.java
+PatternParserTreeConstants.java
+Token.java
+TokenMgrError.java
+XMLParser.java
+XMLParserConstants.java
+XMLParserTokenManager.java
+XMLParserTreeConstants.java
+YoixParser.java
+YoixParserConstants.java
+YoixParserTokenManager.java
+YoixParserTreeConstants.java

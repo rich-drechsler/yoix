@@ -1,0 +1,62 @@
+//
+// Pretty much the same as the last example, but illustrates the callback
+// functions named afterPan() and afterZoom() (even though they don't do
+// anything useful).
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    Array layout = {
+	new JCanvas {
+	    String tag = "$_canvas";
+	    Color  background = Color.white;
+	    //
+	    // SHIFT with button 1 pans and mouse wheel zooms.
+	    //
+	    int   panandzoom = 0x000811;
+
+	    Graphics graphics = {
+		String font = "Lucida-plain-24";
+		int    textantialiasing = TRUE;
+	    };
+
+	    afterPan(Rectangle bbox) {
+		fprintf(stderr, "afterPan: bbox=%O\n", bbox);
+	    }
+
+	    afterZoom(double scaling, Point point) {
+		fprintf(stderr, "afterZoom: scaling=%g, point=%O\n", scaling, point);
+	    }
+
+	    paint(Rectangle rect) {
+	        graphics {          // "named block"
+	            gsave();
+	            translate(72, 72);
+		    rotate(10);
+		    moveto(0, 0);
+		    show("wide");
+		    moveto(0, 36);
+		    scale(2, 1);
+		    show("wider");
+		    moveto(0, 72);
+		    scale(2, 1);
+		    show("widest");
+		    grestore();
+	        }
+	    }
+	}, CENTER,
+
+	new JButton {
+	    String text = "Reset";
+
+	    actionPerformed(e) {
+		root.components.$_canvas.graphics.initmatrix();
+		root.components.$_canvas.repaint();
+	    }
+	}, SOUTH,
+    };
+};
+
+f.visible = TRUE;
+

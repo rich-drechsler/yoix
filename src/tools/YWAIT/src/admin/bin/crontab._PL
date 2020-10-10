@@ -1,0 +1,73 @@
+#!<_PERL_PATH_> -w
+#
+# Reads your existing crontab file, adds some new entries if they're not
+# alredy included, and writes the new candidate crontab fileto stdout. The
+# monitor script doesn't currently exist, but we reference it in one place.
+# 
+
+use strict;
+use vars qw(<_PERL_GLOBAL_VARIABLES_>);
+
+$SERVERHOMEDIR="<_SERVER_HOMEDIR_DQ_>";
+$SERVERSETUP=$SERVERHOMEDIR . "/etc/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_rc.pl";
+
+if (! -r "$SERVERSETUP") {
+    print "STATUS=internalerror\n";
+    print "REASON=server+cannot+find+or+read+setup+file\n";
+    exit(1);
+}
+require $SERVERSETUP;
+
+my %crontablines;
+my $tmpfile = "/tmp/<_BETA_PREFIX_DQ_>crontab." . $$;
+my $cleanup = "$ADMINBINDIR/<_BETA_PREFIX_DQ_>cleanup.pl";
+my $monitor = "$ADMINBINDIR/<_BETA_PREFIX_DQ_>monitor.pl";	## maybe later
+
+(my $CRONTAB = <<"EOF") =~ s/^\s+//gm;
+	0,15 0 * * * $cleanup -C LOGFILES PASSWORDS
+	10 2 * * * $cleanup -C HOMES
+	20 0,6,12,18 * * * $cleanup -C TMPFILES
+	30 3,9,15,21 * * * $cleanup -C SESSIONIDS
+EOF
+
+#
+# At this point our original version just installed $CRONTAB as the new
+# crontab file, but we try to remove duplicate lines and after that we
+# just copy our answer to stdout.
+#
+
+foreach (split(/\n/, $CRONTAB)) {
+    $crontablines{$_} = "$_";
+}
+
+if (system("crontab -l >$tmpfile 2>/dev/null") == 0) {
+    if (open(TMPFILE, "<$tmpfile")) {
+	while (<TMPFILE>) {
+	    chomp;
+	    if (defined($crontablines{$_})) {
+		delete($crontablines{$_});
+	    }
+	}
+	close(TMPFILE);
+    }
+}
+
+if (open(TMPFILE, ">>$tmpfile")) {
+    foreach (keys(%crontablines)) {
+	print(TMPFILE "$crontablines{$_}\n");
+    }
+    close(TMPFILE);
+    if (open(TMPFILE, "<$tmpfile")) {
+	while (<TMPFILE>) {
+	    if ($_ !~ /^#/) {
+		print;
+	    }
+	}
+	close(TMPFILE);
+    }
+    unlink($tmpfile);
+} else {
+    print(STDERR "$0: can't open $tmpfile\n");
+    exit(1);
+}
+

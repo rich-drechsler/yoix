@@ -1,0 +1,1341 @@
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+Global.LoadByzgraf();
+
+Dictionary PLOT_FUNCTIONS = {
+    Dictionary LinePlotBasic = {
+	String label = "Line Plot (Basic)";
+	String description = @<<
+By default,
+the extent of the line plot area is determined by the maxima and minima of the data.
+Plot lines are assigned colors from a supplied color array.
+Given an array of text labels, a legend box is automatically generated.
+The desired number of major and minor tick marks can be specified.
+Tick labels are automatically generated for each major tick mark, but arbitary
+text can also be supplied.
+The plot can have a title and a separate subtitle, as can each axis.
+>>@;
+
+	int type = Global.BYZGRAF_LINEPLOT;
+	String title = "Maecenas ut Turpis";
+	Array xdata = { 1, 2, 3, 4, 5 };
+	Array ydata = {
+	    new Array { -11.2, 202.3, 313.4, 144.5, -255.5 },
+	    new Array { 0, 100, 200, 300, 400 },
+	    new Array { 90, -100, -200, -300, -400 },
+	    new Array { 50, -150, 25, -350, -450 },
+	    new Array { -50, 150, 250, 350, -45 },
+	    new Array { -100, 200, -300, 400, -300 },
+	    new Array { 100, -200, 300, 40, -50 },
+	};
+	Dictionary bounds = NULL;
+	Dictionary options = {
+	    String xlabel = "Mattis";
+	    String xsublabel = "Sed Vel Ipsum";
+	    String ylabel = "Elit";
+	    String ysublabel = "In Purus";
+	    int xmajorticks = 20;
+	    int xminorticks = 3;
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+	    int drawlines = TRUE;
+
+	    String subtitle = "In hac Habitasse Platea Dictumst";
+
+	    Array  colors = { Color.orange, Color.red, Color.green, Color.blue, Color.pink, Color.magenta, Color.cornflowerblue, Color.black };
+	    Array  legend = { "Donec eu libero", "Sit amet", "Quam egestas", "Semper", "Aenean ultricies", "Mi vitae est", "Mauris placerat", "Eleifend leo" };
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary LinePlotBounded = {
+	String label = "Line Plot (Bounded)";
+	String description = @<<
+Same plot as "Line Plot (Basic)", but with y-axis bounding  set to [-500, 500]
+rather than calculated from the data.
+>>@;
+
+	int type = Global.BYZGRAF_LINEPLOT;
+	String title = "Maecenas ut Turpis";
+	Array xdata = { 1, 2, 3, 4, 5 };
+	Array ydata = {
+	    new Array { -11.2, 202.3, 313.4, 144.5, -255.5 },
+	    new Array { 0, 100, 200, 300, 400 },
+	    new Array { 90, -100, -200, -300, -400 },
+	    new Array { 50, -150, 25, -350, -450 },
+	    new Array { -50, 150, 250, 350, -45 },
+	    new Array { -100, 200, -300, 400, -300 },
+	    new Array { 100, -200, 300, 40, -50 },
+	};
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = -500;
+		double max = 500;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Mattis";
+	    String xsublabel = "Sed Vel Ipsum";
+	    String ylabel = "Elit";
+	    String ysublabel = "In Purus";
+	    int xmajorticks = 20;
+	    int xminorticks = 3;
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+	    int drawlines = TRUE;
+
+	    String subtitle = "In hac Habitasse Platea Dictumst";
+
+	    Array  colors = { Color.orange, Color.red, Color.green, Color.blue, Color.pink, Color.magenta, Color.cornflowerblue, Color.black };
+	    Array  legend = { "Donec eu libero", "Sit amet", "Quam egestas", "Semper", "Aenean ultricies", "Mi vitae est", "Mauris placerat", "Eleifend leo" };
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary LinePlotBW = {
+	String label = "Line Plot (Bounded) - B&W";
+	String description = @<<
+Same plot as "Line Plot (Bounded)", but without color and using line styles
+to distinguish the plot lines.
+>>@;
+
+	int type = Global.BYZGRAF_LINEPLOT;
+	String title = "Maecenas ut Turpis";
+	Array xdata = { 1, 2, 3, 4, 5 };
+	Array ydata = {
+	    new Array { -11.2, 202.3, 313.4, 144.5, -255.5 },
+	    new Array { 0, 100, 200, 300, 400 },
+	    new Array { 90, -100, -200, -300, -400 },
+	    new Array { 50, -150, 25, -350, -450 },
+	    new Array { -50, 150, 250, 350, -45 },
+	    new Array { -100, 200, -300, 400, -300 },
+	    new Array { 100, -200, 300, 40, -50 },
+	};
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = -500;
+		double max = 500;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Mattis";
+	    String xsublabel = "Sed Vel Ipsum";
+	    String ylabel = "Elit";
+	    String ysublabel = "In Purus";
+	    int xmajorticks = 20;
+	    int xminorticks = 3;
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+	    int linestyles = TRUE;
+	    int drawlines = TRUE;
+
+	    String subtitle = "In hac Habitasse Platea Dictumst";
+
+	    Array  legend = { "Donec eu libero", "Sit amet", "Quam egestas", "Semper", "Aenean ultricies", "Mi vitae est", "Mauris placerat", "Eleifend leo" };
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary LinePlotColor = {
+	String label = "Line Plot (Bounded) - Color";
+	String description = @<<
+Same plot as "Line Plot (Bounded) - B&amp;W", but using both color and line styles
+to distinguish the plot lines.
+>>@;
+
+	int type = Global.BYZGRAF_LINEPLOT;
+	String title = "Maecenas ut Turpis";
+	Array xdata = { 1, 2, 3, 4, 5 };
+	Array ydata = {
+	    new Array { -11.2, 202.3, 313.4, 144.5, -255.5 },
+	    new Array { 0, 100, 200, 300, 400 },
+	    new Array { 90, -100, -200, -300, -400 },
+	    new Array { 50, -150, 25, -350, -450 },
+	    new Array { -50, 150, 250, 350, -45 },
+	    new Array { -100, 200, -300, 400, -300 },
+	    new Array { 100, -200, 300, 40, -50 },
+	};
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = -500;
+		double max = 500;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Mattis";
+	    String xsublabel = "Sed Vel Ipsum";
+	    String ylabel = "Elit";
+	    String ysublabel = "In Purus";
+	    Array xticklabels = { "A" };
+	    int xmajorticks = 20;
+	    int xminorticks = 3;
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+	    int linestyles = TRUE;
+	    int drawlines = TRUE;
+
+	    String subtitle = "In hac Habitasse Platea Dictumst";
+
+	    Array  colors = { Color.orange, Color.red, Color.green, Color.blue, Color.pink, Color.magenta, Color.cornflowerblue, Color.black };
+	    Array  legend = { "Donec eu libero", "Sit amet", "Quam egestas", "Semper", "Aenean ultricies", "Mi vitae est", "Mauris placerat", "Eleifend leo" };
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary LinePlotLineless = {
+	String label = "Line Plot (Bounded) - Lineless";
+	String description = @<<
+Same plot as "Line Plot (Bounded) - Color", but with lines totally suppressed and
+marker symbols used to indicate the data points.
+>>@;
+
+	int type = Global.BYZGRAF_LINEPLOT;
+	String title = "Maecenas ut Turpis";
+	Array xdata = { 1, 2, 3, 4, 5 };
+	Array ydata = {
+	    new Array { -11.2, 202.3, 313.4, 144.5, -255.5 },
+	    new Array { 0, 100, 200, 300, 400 },
+	    new Array { 90, -100, -200, -300, -400 },
+	    new Array { 50, -150, 25, -350, -450 },
+	    new Array { -50, 150, 250, 350, -45 },
+	    new Array { -100, 200, -300, 400, -300 },
+	    new Array { 100, -200, 300, 40, -50 },
+	};
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = -500;
+		double max = 500;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Mattis";
+	    String xsublabel = "Sed Vel Ipsum";
+	    String ylabel = "Elit";
+	    String ysublabel = "In Purus";
+	    int xmajorticks = 20;
+	    int xminorticks = 3;
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+	    int drawlines = FALSE;
+	    int markers = TRUE;
+
+	    String subtitle = "In hac Habitasse Platea Dictumst";
+
+	    Array  colors = { Color.orange, Color.red, Color.green, Color.blue, Color.pink, Color.magenta, Color.cornflowerblue, Color.black };
+	    Array  legend = { "Donec eu libero", "Sit amet", "Quam egestas", "Semper", "Aenean ultricies", "Mi vitae est", "Mauris placerat", "Eleifend leo" };
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary LinePlotOptions = {
+	String label = "Line Plot with Options Aplenty";
+	String description = @<<
+Same data as the previous line plots, but additional capabilities available
+through the plot options are demonstrated. There include lines with markers,
+lines selectively suppressed, different tick spacing, labeling on
+the secondary x and y axes and a tick label format change. and also footer text.
+>>@;
+
+	int type = Global.BYZGRAF_LINEPLOT;
+	String title = "Maecenas ut Turpis";
+	Array xdata = { 1, 2, 3, 4, 5 };
+	Array ydata = {
+	    new Array { -11.2, 202.3, 313.4, 144.5, -255.5 },
+	    new Array { 0, 100, 200, 300, 400 },
+	    new Array { 90, -100, -200, -300, -400 },
+	    new Array { 50, -150, 25, -350, -450 },
+	    new Array { -50, 150, 250, 350, -45 },
+	    new Array { -100, 200, -300, 400, -300 },
+	    new Array { 100, -200, 300, 40, -50 },
+	};
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = -500;
+		double max = 500;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Mattis";
+	    String xsublabel = "Sed Vel Ipsum";
+	    String ylabel = "Elit";
+	    String ysublabel = "In Purus";
+	    int xmajorticks = 24;
+	    int xminorticks = 3;
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+	    int linestyles = TRUE;
+	    int markers = TRUE;
+	    Array drawlines = { 1, 1, 0, 1, 1 };
+
+	    String format = "%.3g";
+
+	    int xmajorticks2 = 10;
+	    int xminorticks2 = 3;
+	    int ymajorticks2 = 2;
+	    int yminorticks2 = 0;
+	    Array yticklabels2 = { "Low", "Medium", "High" };
+	    String xlabel2 = "Rhoncus Quis";
+	    String xsublabel2 = "Ornare Id";
+	    String ylabel2 = "Molestie";
+	    String ysublabel2 = "Lacinia Vel";
+	    int    xticktext2 = TRUE;
+	    int    yticktext2 = TRUE;
+
+	    String subtitle = "In hac Habitasse Platea Dictumst";
+
+	    String footer_left = "left";
+	    String footer_center = "center";
+	    String footer_right = "right";
+
+	    int    grid_vertical = TRUE;
+	    int    grid_horizontal = TRUE;
+
+	    Array  colors = { Color.orange, Color.red, Color.green, Color.blue, Color.pink, Color.magenta, Color.cornflowerblue, Color.black };
+	    Array  legend = { "Donec eu libero", "Sit amet", "Quam egestas", "Semper", "Aenean ultricies", "Mi vitae est", "Mauris placerat", "Eleifend leo" };
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary HistogramBasic = {
+	String label = "Histogram (Basic)";
+	String description = @<<
+A simple histogram plot with the y-axis limits determined by the data. Note that
+the second bar is not visible since it is the shortest bar and so its value set the
+lower end of the y-axis. The "Histogram (Basic) - Padded" example shows one way to
+avoid this problem.
+>>@;
+
+	int type = Global.BYZGRAF_HISTOGRAM;
+	String title = "Etiam eu Ante";
+	Array xdata = NULL;
+	Array ydata = { 50, 18, 75, 66, 80 };
+	Dictionary bounds = NULL;
+	Dictionary options = {
+	    String xlabel = "Lorem";
+	    String xsublabel = "Aliquam Adipiscing";
+	    String ylabel = "Libero";
+	    String ysublabel = "In Vitae Leo";
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+
+	    String subtitle = "Nunc tempor Diam";
+
+	    Color  colors = Color.gray;
+	    Array  xticklabels = { "Fusce", "Vivamus", "Nunc", "Nullam", "Proin" };
+	    int   xticktext = TRUE;
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary HistogramBasicPadded = {
+	String label = "Histogram (Basic) - Padded";
+	String description = @<<
+Same plot as "Histogram (Basic)", but the "plotpadratio" value was set to 0.1 rather
+than its default value of 0, which pads the each of the lower and upper ends of the
+axis rangle by 10% of the actual data range value.
+The bars are also rendered with different colors.
+>>@;
+
+	int type = Global.BYZGRAF_HISTOGRAM;
+	String title = "Etiam eu Ante";
+	Array xdata = NULL;
+	Array ydata = { 50, 18, 75, 66, 80 };
+	Dictionary bounds = NULL;
+	Dictionary options = {
+	    String xlabel = "Lorem";
+	    String xsublabel = "Aliquam Adipiscing";
+	    String ylabel = "Libero";
+	    String ysublabel = "In Vitae Leo";
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+
+	    double plotpadratio = 0.1;
+
+	    String subtitle = "Nunc tempor Diam";
+
+	    Array  colors = { Color.orange, Color.red, Color.green, Color.blue, Color.pink, Color.magenta, Color.cornflowerblue };
+	    Array  xticklabels = { "Fusce", "Vivamus", "Nunc", "Nullam", "Proin" };
+	    int   xticktext = TRUE;
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary HistogramBounded = {
+	String label = "Histogram (Bounded)";
+	String description = @<<
+Same plot as "Histogram (Basic)", but with y-axis bounding information supplied.
+>>@;
+
+	int type = Global.BYZGRAF_HISTOGRAM;
+	String title = "Etiam eu Ante";
+	Array xdata = NULL;
+	Array ydata = { 50, 18, 75, 66, 80 };
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = 0;
+		double max = 100;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Lorem";
+	    String xsublabel = "Aliquam Adipiscing";
+	    String ylabel = "Libero";
+	    String ysublabel = "In Vitae Leo";
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+
+	    String subtitle = "Nunc tempor Diam";
+
+	    Array  colors = { Color.orange, Color.red, Color.green, Color.blue, Color.pink, Color.magenta, Color.cornflowerblue };
+	    Array  xticklabels = { "Fusce", "Vivamus", "Nunc", "Nullam", "Proin" };
+	    int   xticktext = TRUE;
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary HistogramBoundedGrid = {
+	String label = "Histogram (Bounded) - Horizontal Grid";
+	String description = @<<
+Same plot as "Histogram (Bounded)", but with horizontal grid lines added.
+>>@;
+
+	int type = Global.BYZGRAF_HISTOGRAM;
+	String title = "Etiam eu Ante";
+	Array xdata = NULL;
+	Array ydata = { 50, 18, 75, 66, 80 };
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = 0;
+		double max = 100;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Lorem";
+	    String xsublabel = "Aliquam Adipiscing";
+	    String ylabel = "Libero";
+	    String ysublabel = "In Vitae Leo";
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+
+	    int    grid_horizontal = TRUE;
+
+	    String subtitle = "Nunc tempor Diam";
+
+	    Array  colors = { Color.orange, Color.red, Color.green, Color.blue, Color.pink, Color.magenta, Color.cornflowerblue };
+	    Array  xticklabels = { "Fusce", "Vivamus", "Nunc", "Nullam", "Proin" };
+	    int   xticktext = TRUE;
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary HistogramBoundedPartly = {
+	String label = "Histogram (Bounded) - Lower End Only";
+	String description = @<<
+Same plot as "Histogram (Bounded)", but with only a bound for the lower rangle of y-axis 
+provided.
+>>@;
+
+	int type = Global.BYZGRAF_HISTOGRAM;
+	String title = "Etiam eu Ante";
+	Array xdata = NULL;
+	Array ydata = { 50, 18, 75, 66, 80 };
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = 0;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Lorem";
+	    String xsublabel = "Aliquam Adipiscing";
+	    String ylabel = "Libero";
+	    String ysublabel = "In Vitae Leo";
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+
+	    String subtitle = "Nunc tempor Diam";
+
+	    Array  colors = { Color.orange, Color.red, Color.green, Color.blue, Color.pink, Color.magenta, Color.cornflowerblue };
+	    Array  xticklabels = { "Fusce", "Vivamus", "Nunc", "Nullam", "Proin" };
+	    int   xticktext = TRUE;
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary HistogramBoundedLabeled = {
+	String label = "Histogram (Bounded) - Legend";
+	String description = @<<
+Same plot as "Histogram (Bounded)", but with legend labeling rather than axis labeling of
+the bars.
+>>@;
+
+	int type = Global.BYZGRAF_HISTOGRAM;
+	String title = "Etiam eu Ante";
+	Array xdata = NULL;
+	Array ydata = { 50, 18, 75, 66, 80 };
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = 0;
+		double max = 100;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Lorem";
+	    String xsublabel = "Aliquam Adipiscing";
+	    String ylabel = "Libero";
+	    String ysublabel = "In Vitae Leo";
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+
+	    String subtitle = "Nunc tempor Diam";
+
+	    Array  colors = { Color.orange, Color.red, Color.green, Color.blue, Color.pink, Color.magenta, Color.cornflowerblue };
+	    Array  legend = { "Fusce", "Vivamus", "Nunc", "Nullam", "Proin" };
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary HistogramGrouped = {
+	String label = "Histogram (Grouped)";
+	String description = @<<
+A plot with groups of histogram bars rather than individual bars.
+>>@;
+
+	int type = Global.BYZGRAF_HISTOGRAM;
+	String title = "Etiam eu Ante";
+	Array xdata = NULL;
+	Array ydata = {
+	    new Array {
+		new Array { 12, 20, 15 }
+	    },
+	    new Array {
+		new Array { 65, 18, 50, 75 }
+	    }
+	};
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = 0;
+		double max = 100;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Lorem";
+	    String xsublabel = "Aliquam Adipiscing";
+	    String ylabel = "Libero";
+	    String ysublabel = "In Vitae Leo";
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+
+	    String subtitle = "Nunc tempor Diam";
+
+	    Array  colors = { Color.orange, Color.red, Color.green, Color.blue, Color.pink, Color.magenta, Color.cornflowerblue };
+
+	    Array xticklabels = { "Fusce", "Vivamus", "Nunc", "Nullam", "Proin" };
+	    int   xticktext = TRUE;
+
+	    Array xticklabels2 = { "Sed sollicitudin", "Velit eu magna", "Etiam sodales", "Ante id", "Nunc" };
+	    int   xticktext2 = TRUE;
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary HistogramGroupedGrid = {
+	String label = "Histogram (Grouped) - Grid";
+	String description = @<<
+Same plot as "Histogram (Grouped)", but with grid lines added.
+>>@;
+
+	int type = Global.BYZGRAF_HISTOGRAM;
+	String title = "Etiam eu Ante";
+	Array xdata = NULL;
+	Array ydata = {
+	    new Array {
+		new Array { 12, 20, 15 }
+	    },
+	    new Array {
+		new Array { 65, 18, 50, 75 }
+	    }
+	};
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = 0;
+		double max = 100;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Lorem";
+	    String xsublabel = "Aliquam Adipiscing";
+	    String ylabel = "Libero";
+	    String ysublabel = "In Vitae Leo";
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+
+	    String subtitle = "Nunc tempor Diam";
+
+	    int    grid_horizontal = TRUE;
+	    int    grid_vertical = TRUE;
+
+	    Array  colors = { Color.orange, Color.red, Color.green, Color.blue, Color.pink, Color.magenta, Color.cornflowerblue };
+
+	    Array xticklabels = { "Fusce", "Vivamus", "Nunc", "Nullam", "Proin" };
+	    int   xticktext = TRUE;
+
+	    Array xticklabels2 = { "Sed sollicitudin", "Velit eu magna", "Etiam sodales", "Ante id", "Nunc" };
+	    int   xticktext2 = TRUE;
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary HistogramStacked = {
+	String label = "Histogram (Stacked)";
+	String description = @<<
+A plot with stacked histogram bars.
+>>@;
+
+	int type = Global.BYZGRAF_HISTOGRAM;
+	String title = "Etiam eu Ante";
+	Array xdata = NULL;
+	Array ydata = {
+	    new Array {51, 12, 15 },
+	    new Array {20, 13, 14, 25 },
+	    new Array { 5, 18, 45, 27 },
+	    new Array { 8, 18, 15, 36, 12 },
+	};
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = 0;
+		double max = 100;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Lorem";
+	    String xsublabel = "Aliquam Adipiscing";
+	    String ylabel = "Libero";
+	    String ysublabel = "In Vitae Leo";
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+
+	    String subtitle = "Nunc tempor Diam";
+
+	    Array  colors = { Color.orange, Color.red, Color.green, Color.blue, Color.pink, Color.magenta, Color.cornflowerblue };
+	    Array  legend = { "Fusce", "Vivamus", "Nunc", "Nullam", "Proin" };
+
+	    Array xticklabels = { "Fringilla", "Volutpat", "Ornare", "Turpis", "Egestas" };
+	    int   xticktext = TRUE;
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary HistogramStackedGroup = {
+	String label = "Histogram (Stacked/Grouped)";
+	String description = @<<
+A plot with groups of stacked histogram bars rather than individual stacked bars.
+>>@;
+
+	int type = Global.BYZGRAF_HISTOGRAM;
+	String title = "Etiam eu Ante";
+	Array xdata = NULL;
+	Array ydata = {
+	    new Array {
+		new Array {
+		    new Array { 13, 9, 38 },
+		    new Array { 10, 20, 30, 15 },
+		    new Array { 3, 19, 12 }
+		}
+	    },
+	    new Array {
+		new Array {
+		    new Array { 5, 10, 15 },
+		    new Array { 30, 20 },
+		    new Array { 66 },
+		    new Array { 12, 24, 36 }
+		}
+	    },
+	    new Array {
+		new Array {
+		    new Array {51, 12, 15 },
+		    new Array {20, 13, 14, 25 },
+		    new Array { 5, 18, 45, 27 },
+		    new Array { 8, 18, 15, 36, 12 },
+			}
+	    },
+	};
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = 0;
+		double max = 100;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Lorem";
+	    String xsublabel = "Aliquam Adipiscing";
+	    String ylabel = "Libero";
+	    String ysublabel = "In Vitae Leo";
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+
+	    int    grid_vertical = TRUE;
+
+	    String subtitle = "Nunc tempor Diam";
+
+	    Array  colors = { Color.orange, Color.red, Color.green, Color.blue, Color.pink, Color.magenta, Color.cornflowerblue };
+	    Array  legend = { "Fusce", "Vivamus", "Nunc", "Nullam", "Proin" };
+
+	    Array xticklabels = { "Fringilla", "Volutpat", "Ornare", "Turpis", "Egestas" };
+	    int   xticktext = TRUE;
+
+	    Array xticklabels2 = { "Sed sollicitudin", "Velit eu magna", "Etiam sodales", "Ante id", "Nunc" };
+	    int   xticktext2 = TRUE;
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary HistogramOptioned = {
+	String label = "Histogram with Options Aplenty";
+	String description = @<<
+Same data as the "Histrogram (Stacked/Grouped)" plot, but additional capabilities available
+through the plot options are demonstrated. There include alternate y-axis labeling, ticks
+and values, horizontal grid lines, truncation of extended group labels and footer labels.
+>>@;
+
+	int type = Global.BYZGRAF_HISTOGRAM;
+	String title = "Etiam eu Ante";
+	Array xdata = NULL;
+	Array ydata = {
+	    new Array {
+		new Array {
+		    new Array { 13, 9, 38 },
+		    new Array { 10, 20, 30, 15 },
+		    new Array { 3, 19, 12 }
+		}
+	    },
+	    new Array {
+		new Array {
+		    new Array { 5, 10, 15 },
+		    new Array { 30, 20 },
+		    new Array { 66 },
+		    new Array { 12, 24, 36 }
+		}
+	    },
+	    new Array {
+		new Array {
+		    new Array {51, 12, 15 },
+		    new Array {20, 13, 14, 25 },
+		    new Array { 5, 18, 45, 27 },
+		    new Array { 8, 18, 15, 36, 12 }
+		}
+	    },
+	};
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = 0;
+		double max = 100;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Lorem";
+	    String xsublabel = "Aliquam Adipiscing";
+	    String ylabel = "Libero";
+	    String ysublabel = "In Vitae Leo";
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+
+	    String ylabel2 = "Rhoncus Quis";
+	    String ysublabel2 = "Ornare Id";
+	    int ymajorticks2 = 5;
+	    int yminorticks2 = 9;
+	    Array yrange2 = { 0, 10000 };
+
+	    String subtitle = "Nunc tempor Diam";
+
+	    String footer_left = "left";
+	    String footer_center = "center";
+	    String footer_right = "right";
+
+	    int    grid_horizontal = TRUE;
+	    int    grid_vertical = TRUE;
+
+	    Array  colors = { Color.orange, Color.red, Color.green, Color.blue, Color.pink, Color.magenta, Color.cornflowerblue };
+	    Array  legend = { "Fusce", "Vivamus", "Nunc", "Nullam", "Proin" };
+
+	    Array xticklabels = { "Fringilla", "Volutpat", "Ornare", "Turpis", "Egestas" };
+	    int   xticktext = TRUE;
+
+	    Array xticklabels2 = { "Sed sollicitudin", "Velit eu magna ante id nun semper sodales", "Etiam sodales", "Ante id", "Nunc" };
+	    int   xticktext2 = TRUE;
+
+	    int   yticktext2 = TRUE;
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary StatPlotBasic = {
+	String label = "Stat Plot (Basic)";
+	String description = @<<
+A basic stat plot with y-axis range information computed from the data.
+Stat plots succinctly display mean, range and outlier information or any five data
+values of interest.
+Note: with no fill color supplied at all, only mouse hits on the outline lines will register.
+>>@;
+
+	int type = Global.BYZGRAF_STATPLOT;
+	String title = "Etiam eu Ante";
+	Array xdata = NULL;
+	Array ydata = {
+	    new Array {5, 12, 15, 18, 28 },
+	    new Array {10, 13, 15, 25, 35 },
+	    new Array {10, 33, 45, 58, 80 },
+	};
+	Dictionary bounds = NULL;
+	Dictionary options = {
+	    String xlabel = "Lorem";
+	    String xsublabel = "Aliquam Adipiscing";
+	    String ylabel = "Libero";
+	    String ysublabel = "In Vitae Leo";
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+
+	    String subtitle = "Nunc tempor Diam";
+
+	    Array  xticklabels = { "Fusce", "Vivamus", "Nunc", "Nullam", "Proin" };
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary StatPlotBounded = {
+	String label = "Stat Plot (Bounded)";
+	String description = @<<
+Same plot as "Stat Plot (Basic)", but with y-axis bounds supplied and a common fill color.
+>>@;
+
+	int type = Global.BYZGRAF_STATPLOT;
+	String title = "Etiam eu Ante";
+	Array xdata = NULL;
+	Array ydata = {
+	    new Array {5, 12, 15, 18, 28 },
+	    new Array {10, 13, 15, 25, 35 },
+	    new Array {10, 33, 45, 58, 80 },
+	};
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = 0;
+		double max = 100;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Lorem";
+	    String xsublabel = "Aliquam Adipiscing";
+	    String ylabel = "Libero";
+	    String ysublabel = "In Vitae Leo";
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+
+	    String subtitle = "Nunc tempor Diam";
+
+	    Color  colors = Color.cornflowerblue;
+	    Array  xticklabels = { "Fusce", "Vivamus", "Nunc", "Nullam", "Proin" };
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary StatPlotBoundedLegend = {
+	String label = "Stat Plot (Bounded) - Legend";
+	String description = @<<
+Same plot as "Stat Plot (Bounded)", but with legend labels (and coloring) instead
+of x-axis labels.
+>>@;
+
+	int type = Global.BYZGRAF_STATPLOT;
+	String title = "Etiam eu Ante";
+	Array xdata = NULL;
+	Array ydata = {
+	    new Array {5, 12, 15, 18, 28 },
+	    new Array {10, 13, 15, 25, 35 },
+	    new Array {10, 33, 45, 58, 80 },
+	};
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = 0;
+		double max = 100;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Lorem";
+	    String xsublabel = "Aliquam Adipiscing";
+	    String ylabel = "Libero";
+	    String ysublabel = "In Vitae Leo";
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+
+	    String subtitle = "Nunc tempor Diam";
+
+	    Array  colors = { Color.orange, Color.red, Color.green, Color.blue, Color.pink, Color.magenta, Color.cornflowerblue };
+	    Array  legend = { "Fusce", "Vivamus", "Nunc", "Nullam", "Proin" };
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary StatPlotGrouped = {
+	String label = "Stat Plot (Grouped)";
+	String description = @<<
+A plot with groups or stat bars rather than individual stat bars.
+>>@;
+
+	int type = Global.BYZGRAF_STATPLOT;
+	String title = "Etiam eu Ante";
+	Array xdata = NULL;
+	Array ydata = {
+	    new Array {
+		new Array { 9, 13, 19, 38, 42 },
+		new Array { 50, 60, 70, 80, 90 },
+		new Array { 3, 12, 19, 21, 25 }
+	    },
+	    new Array {
+		new Array { 5, 10, 15, 20, 25 },
+		new Array { 20, 30, 33, 38, 43 },
+		new Array { 6, 15, 20, 28, 32 },
+		new Array { 32, 44, 56, 60, 64 }
+	    }
+	};
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = 0;
+		double max = 100;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Lorem";
+	    String xsublabel = "Aliquam Adipiscing";
+	    String ylabel = "Libero";
+	    String ysublabel = "In Vitae Leo";
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+
+	    String subtitle = "Nunc tempor Diam";
+	    Color  colors = Color.lightGray;
+
+	    int    grid_vertical = TRUE;
+
+	    Array  xticklabels = { "Fusce", "Vivamus", "Nunc", "Nullam", "Proin" };
+	    int   xticktext = TRUE;
+
+	    Array xticklabels2 = { "Sed sollicitudin", "Velit eu magna", "Etiam sodales", "Ante id", "Nunc" };
+	    int   xticktext2 = TRUE;
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+
+    Dictionary StatPlotOptions = {
+	String label = "Stat Plot with Options Aplenty";
+	String description = @<<
+Same data as the "Stat Plot (Grouped)" plot, but additional capabilities available
+through the plot options are demonstrated. There include alternate y-axis labeling, ticks
+and values, horizontal grid lines, both legend and x-axis labels and footer labels.
+>>@;
+
+	int type = Global.BYZGRAF_STATPLOT;
+	String title = "Etiam eu Ante";
+	Array xdata = NULL;
+	Array ydata = {
+	    new Array {
+		new Array { 9, 13, 19, 38, 42 },
+		new Array { 50, 60, 70, 80, 90 },
+		new Array { 3, 12, 19, 21, 25 }
+	    },
+	    new Array {
+		new Array { 5, 10, 15, 20, 25 },
+		new Array { 20, 30, 33, 38, 43 },
+		new Array { 6, 15, 20, 28, 32 },
+		new Array { 32, 44, 56, 60, 64 }
+	    }
+	};
+	Dictionary bounds = {
+	    Dictionary y = {
+		double min = 0;
+		double max = 100;
+	    };
+	};
+	Dictionary options = {
+	    String xlabel = "Lorem";
+	    String xsublabel = "Aliquam Adipiscing";
+	    String ylabel = "Libero";
+	    String ysublabel = "In Vitae Leo";
+	    int ymajorticks = 10;
+	    int yminorticks = 3;
+	    int ymajorticks2 = 4;
+	    int yminorticks2 = 0;
+	    Array yticklabels2 = { "Vehementer Discrepo", "Discrepo", "Quietus", "Congruo", "Vehementer Congruo" };
+	    int   yticktext2 = TRUE;
+
+	    String ylabel2 = "Molestie";
+	    String ysublabel2 = "Lacinia Vel";
+
+	    String subtitle = "Nunc tempor Diam";
+
+	    String footer_left = "left";
+	    String footer_center = "center";
+	    String footer_right = "right";
+
+	    int    grid_horizontal = TRUE;
+	    int    grid_vertical = TRUE;
+
+	    Array  colors = { Color.cornflowerblue, Color.lime, Color.periwinkle, Color.salmon };
+	    Array  legend = { "Fusce", "Vivamus", "Nunc", "Nullam", "Proin" };
+
+	    Array xticklabels = { "Fringilla", "Volutpat", "Ornare", "Turpis", "Egestas" };
+	    int   xticktext = TRUE;
+
+	    Array xticklabels2 = { "Sed sollicitudin", "Velit eu magna", "Etiam sodales", "Ante id", "Nunc" };
+	    int   xticktext2 = TRUE;
+	};
+
+	Point location = NULL;
+	String panetext = NULL;
+    };
+};
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Dimension size = NULL;
+	Object    parent = Global.MainScreen;
+	Font      font = Global.GetPreferredLabelFont();
+	int       opaque = TRUE;
+
+	String    title = Global.ACRONYM + ": Byzgraf Example";
+	int       border = 18;
+
+	Array     comboitems = NULL;
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+        String screenname = name;
+        String screentitle = NULL;
+        Object anchorpoint = NULL;
+        Color  screencolor = NULL;
+        int    anchorstyle = AUTOMATIC;
+        int    screenanchor = CENTER;
+        int    initialized = FALSE;
+        int    disposeonclose = TRUE;
+        int    savestate = TRUE;        // TRUE means remember size and location
+	int    retainstate = TRUE; // remember size and location across sessions
+        int    reloadargs = TRUE;
+
+        ////////////////////////////
+        //
+        // Screen Layout
+        //
+        ////////////////////////////
+
+        GridBagLayout layoutmanager;
+
+        Array layout = {
+	    "Select a BYZGRAF example:",
+	    Global.NewJChoice("$_combobox", NULL, NULL, new Dictionary {
+		itemStateChanged(e) {
+		    Object plotframe;
+
+		    if (e.state) {
+			if (defined(selected, PLOT_FUNCTIONS)) {
+			    Dictionary dict = PLOT_FUNCTIONS[selected];
+			    root.components.$_desc_label.text = strfmt("Description of %s:", dict.label);
+			    root.components.$_desc.text = dict.panetext;
+			    root.components.$_desc.caret = 0;
+			    if ((plotframe = Global.GetCachedScreen(selected)) != NULL) {
+				toFront(plotframe);
+				toFront(root);
+			    }
+			} else if (startsWith(selected, "all")) {
+			    root.components.$_desc_label.text = "";
+			    root.components.$_desc.text = "Choose this option to display " + selected + " at once.";
+			}
+		    }
+		}
+
+		mouseWheelMoved(e) {
+		    int index;
+
+		    index = indexOfObject(this.mappings, this.selected);
+		    if (e.wheelrotation < 0) {
+			if (--index >= 0)
+			    this.selected = index;
+		    } else {
+     	    		if (++index < this.mappings@length)
+			    this.selected = index;
+		    }
+		}
+	    }),
+	    LEFT,
+	    REMAINDER,
+	    18.0,
+	    Global.NewJLabel("$_desc_label", "Description:"),
+	    REMAINDER,
+	    Global.NewJTextPane("$_desc", NULL, 0, 0, AS_NEEDED, new Dictionary {
+		int edit = FALSE;
+		int mode = 1; // HTML
+		Dimension preferredsize = {
+		    int width = 4 * 72;
+		    int height = 2 * 72;
+		};
+	    }),
+	    BOTH,
+	    REMAINDER,
+	    8.0,
+	    new JPanel {
+		Array layout = {
+		    Global.NewJButton("$_dbut", "Display", new Dictionary {
+			actionPerformed(e) {
+			    root.DisplayPlot(root.components.$_combobox.selected);
+			}
+		    }),
+		    Global.NewJButton("$_dmis", "Dismiss", new Dictionary {
+			actionPerformed(e) {
+			    root.HideScreen();
+			}
+		    }),
+		};
+	    },
+	    NONE,
+	    CENTER,
+	    REMAINDER,
+        };
+
+        ////////////////////////////
+        //
+        // Screen Functions
+        //
+        ////////////////////////////
+
+
+	InitializeScreen() {
+	    String addendum = @<<
+		<P>
+		The plot will adjust its size as the plot window is resized.
+		The menubar provides options to save the plot as a JPEG or PNG formatted file.
+			       >>@;
+
+	    String preamble = @<<
+		<P>
+		The following lists the options and datasets used to draw this particular plot:
+		<BR><PRE>
+			       >>@;
+
+
+	    comboitems = new Array[0,...];
+	    for (ptr in PLOT_FUNCTIONS) {
+		comboitems[comboitems@sizeof] = (*ptr).label;
+		comboitems[comboitems@sizeof] = (*ptr)@nameof;
+	    }
+	    comboitems[comboitems@sizeof] = "All Sample Business Graphs";
+	    comboitems[comboitems@sizeof] = "all sample business graphs";
+
+	    comboitems[comboitems@sizeof] = "All Sample Line Plots";
+	    comboitems[comboitems@sizeof] = "all sample line plots";
+
+	    comboitems[comboitems@sizeof] = "All Sample Histograms";
+	    comboitems[comboitems@sizeof] = "all sample histograms";
+
+	    comboitems[comboitems@sizeof] = "All Sample Stat Plots";
+	    comboitems[comboitems@sizeof] = "all sample stat plots";
+
+	    qsort(comboitems, 2);
+	    int pt = 0;
+	    for (ptr in &comboitems[1] by 2) {
+		if (defined(*ptr, PLOT_FUNCTIONS)) {
+		    PLOT_FUNCTIONS[*ptr].location = new Point {
+			int x = pt;
+			int y = pt = pt + 18; // avoid OS menubar
+		    };
+		    PLOT_FUNCTIONS[*ptr].panetext = PLOT_FUNCTIONS[*ptr].description + addendum + DumpDictionary(preamble, PLOT_FUNCTIONS[*ptr].options) + "\n" + DumpData("xdata", PLOT_FUNCTIONS[*ptr]) + DumpData("ydata", PLOT_FUNCTIONS[*ptr]) + DumpBounds(PLOT_FUNCTIONS[*ptr]);
+		}
+	    }
+
+	    components.$_combobox.items = comboitems;
+	    components.$_combobox.selected = NULL;
+	}
+
+	SetScreenSize(Dimension sz) {
+	    size = NULL;
+	}
+
+	SetScreenLocation(Point loc) {
+	    if (loc == NULL)
+		location = new Point {
+		    int x = VM.screen.width - size.width;
+		    int y = 18;
+		};
+	    else location = loc;
+	}
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	DisplayPlot(String plotname) {
+	    Dictionary dict = NULL;
+	    Object plotframe = NULL;
+
+	    if (plotname != NULL) {
+		if (defined(plotname, PLOT_FUNCTIONS)) {
+		    dict = PLOT_FUNCTIONS[plotname];
+		    plotframe = Global.GetAndShowScreen(plotname, "byzgraf_plot", "parent", root, "title", Global.ACRONYM + " " + dict.label, "location", dict.location, "plotdict", dict);
+		    root.components.$_combobox.selected = NULL;
+		} else if (startsWith(plotname, "all")) {
+		    int type = 0;
+		    root.components.$_combobox.selected = NULL;
+		    if (plotname =~ "line")
+			type = Global.BYZGRAF_LINEPLOT;
+		    else if (plotname =~ "histogram")
+			type = Global.BYZGRAF_HISTOGRAM;
+		    else if (plotname =~ "stat")
+			type = Global.BYZGRAF_STATPLOT;
+		    // go through combobox to get the correct ordering
+		    for (ptr in &comboitems[1] by 2) {
+			if (defined(*ptr, PLOT_FUNCTIONS)) {
+			    dict = PLOT_FUNCTIONS[*ptr];
+			    if (type == 0 || type == dict.type) {
+				plotframe = Global.GetAndShowScreen(*ptr, "byzgraf_plot", "parent", root, "title", Global.ACRONYM + " " + dict.label, "location", dict.location, "plotdict", dict);
+			    }
+			}
+		    }
+		} 
+	    }
+	}
+
+	DumpArray(Array arr, int indent) {
+	    Array text[0,...];
+	    String prefix = "";
+	    int    n;
+
+	    for (n = 0; n < indent; n++)
+		prefix += "    ";
+
+	    for (ptr in arr) {
+		if (*ptr instanceof String)
+		    text[text@sizeof] = strfmt("%s\"%s\",", prefix, *ptr);
+		else if (*ptr instanceof Number)
+		    text[text@sizeof] = strfmt("%s%g,", prefix, *ptr);
+		else if (*ptr instanceof Color)
+		    text[text@sizeof] = strfmt("%sColor.%s,", prefix, getColorName(*ptr));
+		else if (*ptr instanceof Array)
+		    text[text@sizeof] = strfmt("%snew Array {\n%s\n%s},", prefix, DumpArray(*ptr, indent+1), prefix);
+	    }
+
+	    text[text@sizeof] = "";
+
+	    return(strjoin(text, "\n"));
+	}
+
+	DumpBounds(Dictionary dict) {
+	    Dictionary bounds = dict.bounds;
+	    Array      text[0,...];
+
+	    if (bounds != NULL) {
+		text[0] = "    Dictionary bounds = {";
+		for (ptr in bounds) {
+		    text[text@sizeof] = strfmt("        Dictionary %s = {", (*ptr)@nameof);
+		    for (ptr2 in *ptr) {
+			text[text@sizeof] = strfmt("            %s %s = %g;", (*ptr2)@typename, (*ptr2)@nameof, *ptr2);
+		    }
+		    text[text@sizeof] = "        };";
+		}
+		text[text@sizeof] = "    };";
+
+		text[text@sizeof] = "";
+	    }
+
+	    return(strjoin(text, "\n"));
+	}
+
+	DumpData(String name, Dictionary dict) {
+	    return(dict[name] == NULL ? "" : strfmt("    Array %s = {\n%s\n    };\n", name, DumpArray(dict[name], 2)));
+	}
+
+	DumpDictionary(String preamble, Dictionary dict) {
+	    Array   names = getDictionaryNames(dict, TRUE); // we want the items in sort order
+	    Array   text[0,...];
+	    String  prefix = "";
+	    int     indent = 1;
+	    int     n;
+
+	    text[text@sizeof] = preamble;
+
+	    for (n = 0; n < indent; n++)
+		prefix += "    ";
+
+	    for (ptr in names) {
+		if (dict[*ptr] instanceof String)
+		    text[text@sizeof] = strfmt("%sString %s = \"%s\";", prefix, *ptr, dict[*ptr]);
+		else if (dict[*ptr] instanceof Number)
+		    text[text@sizeof] = strfmt("%s%s %s = %g;", prefix, (dict[*ptr])@typename, *ptr, dict[*ptr]);
+		else if (dict[*ptr] instanceof Color)
+		    text[text@sizeof] = strfmt("%sColor %s = Color.%s;", prefix, *ptr, getColorName(dict[*ptr]));
+		else if (dict[*ptr] instanceof Array) {
+		    text[text@sizeof] = strfmt("%sArray %s = {\n%s\n%s};", prefix, *ptr, DumpArray(dict[*ptr], indent + 1), prefix);
+		} else abort(strfmt("unknown type: %s for %s\n", (dict[*ptr])@typename, *ptr));
+	    }
+
+	    text[text@sizeof] = "";
+
+	    return(strjoin(text, "\n"));
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);

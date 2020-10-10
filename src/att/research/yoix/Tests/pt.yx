@@ -1,0 +1,26 @@
+import yoix.*.*;
+
+JWindow jw = {
+    Dimension size = NULL;
+    int visible = TRUE;
+    Point location = { int x = 72; int y = 72; };
+    Array layout = {
+	new JLabel {
+	    String tag = "$_pos";
+	    String text = "Press here and drag mouse";
+	    String font = "Monospaced-plain-14";
+	    Point base;
+	    mousePressed(e) {
+		base = getLocationOnScreen(this);
+	    }
+	    mouseDragged(e) {
+		text = strfmt("Position: %4g x %4g", (base.x+e.location.x)/VM.screen.pixelwidth, (base.y+e.location.y)/VM.screen.pixelheight);
+	    }
+	    mouseReleased(e) {
+		text = "Press here and drag mouse";
+	    }
+	},
+    };
+};
+
+

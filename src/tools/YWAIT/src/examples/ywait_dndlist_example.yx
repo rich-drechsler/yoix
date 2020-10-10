@@ -1,0 +1,210 @@
+//
+// Example that shows how list selector screens can help users enter text
+// into components, like JTextFields, withour having to type.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+Image image1 = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+
+    Dimension size = {
+        int  height = 36;
+        int  width = 72;
+    };
+};
+
+Image image2 = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+
+    Dimension size = {
+        int  height = 1.25*36;
+        int  width = 1.25*72;
+    };
+};
+
+Image image3 = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+
+    Dimension size = {
+        int  height = 1.5*36;
+        int  width = 1.5*72;
+    };
+};
+
+Array VisibleItems = {
+    "Row One", "001",
+    "Row Three", "003",
+    "Row Four", "004",
+    "Row Five", "005",
+    "Row Six", "006",
+    "Row Seven", "007",
+    "Row Eight", "008",
+    "Row Eleven", "011",
+    "Row Twelve", "012",
+    "Row Thirteen", "013",
+    "Row Fourteen", "014",
+    "Row Fifteen", "015",
+    "Row Seventeen", "016",
+    image1, "101",
+    image2, "102",
+    image3, "103",
+    "Row Nineteen", "019",
+};
+
+
+Array VisibleToolTips = {
+    "<html><b>row 1<br>another line</b></html>",
+    "this is row 3 tip",
+    "4",
+    "five",
+    "Row Six",
+    "Seven",
+    "8",
+    "eleven",
+    "Row Twelve",
+    NULL,
+    "fourteen",
+    "",
+    NULL,
+    "Image 1",
+    "Image 2",
+    "Image 3",
+    "Tip for the last row",
+};
+
+Array HiddenItems = {
+    "Row Two", "002",
+    "Row Nine", "009",
+    "Row Ten", "010",
+    "Row Sixteen", "016",
+    "Row Eighteen", "018",
+};
+
+Array HiddenToolTips = {
+    "2",
+    "Tip for row 9",
+    "10",
+    "16",
+    "Row Eighteen",
+};
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	String title = Global.ACRONYM + " DND List Example";
+	Insets border = Global.GetLabeledScreenInsets();
+	Object parent = Global.MainScreen;
+	Font   font = Global.GetPreferredLabelFont();
+	int    opaque = TRUE;
+
+	Dimension size = {
+	    double width = 6.0*72;
+	    double height = 2.5*72;
+	};
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = TRUE;	// TRUE means remember size and location
+	int    retainstate = TRUE; // remember size and location across sessions
+	int    reloadargs = TRUE;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	Thread autoscroller = Global.NewDnDScroller();
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager = {
+	    double vgap = 72.0/16;
+	    int    columns = 1;
+	};
+
+	Array layout = {
+	    new JPanel {
+		GridLayout layoutmanager;
+		Array layout = {
+		    new JPanel {
+			EtchedBorder border = {
+			    String title = "Visible";
+			};
+
+			BorderLayout layoutmanager;
+			    Array layout = {
+				Global.NewDnDList("$_visible_columns", VisibleItems, 10, NULL, "autoscroller", autoscroller, "tooltips", VisibleToolTips),
+				CENTER,
+			    };
+			},
+
+		    new JPanel {
+			EtchedBorder border = {
+			    String title = "Hidden";
+			};
+
+			BorderLayout layoutmanager;
+			Array layout = {
+			    Global.NewDnDList("$_hidden_columns", HiddenItems, 10, NULL, "autoscroller", autoscroller, "tooltips", HiddenToolTips),
+
+			    CENTER,
+			};
+		    },
+		};
+	    },
+	    BOTH,
+
+	    new JButton {
+		String text = "Dismiss";
+		Font   font = Global.GetPreferredButtonFont();
+
+		actionPerformed(e) {
+		    Global.QueueCommand(root, &root.HideScreen);
+		}
+	    },
+	    NONE, CENTER,
+
+	    new JLabel {
+		String text = Global.ProprietaryLabel;
+		Font   font = Global.GetPreferredProprietaryFont();
+		int    alignment = CENTER;
+	    },
+	    NONE, CENTER,
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+     };
+
+    return(screen);
+}
+
+return(Builder);

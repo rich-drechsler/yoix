@@ -1,0 +1,84 @@
+//
+// Another simple xormode example.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    int doublebuffered = FALSE;
+
+    Dimension size = {
+	double width = .75*VM.screen.width;
+	double height = .75*VM.screen.height;
+    };
+
+    Array layout = {
+	new JCanvas {
+	    Color background = Color.black;
+
+	    Graphics graphics = {
+		Color foreground = Color.green;
+		Color background = background;
+	    };
+
+	    double radius;
+	    Point  center;
+	    Array  edges[20];
+	    int    initialized = FALSE;
+
+	    Initialize() {
+		int n;
+		int count;
+
+		if (!initialized) {
+		    center.x = size.width/2;
+		    center.y = size.height/2;
+		    radius = min(.75*size.width/2, .75*size.height/2);
+		    for (n = 0, count = edges@sizeof; n < count; n++) {
+			edges[n] = new Point {
+			    double x = center.x + radius*cos(2*PI*n/count);
+			    double y = center.y + radius*sin(2*PI*n/count);
+			};
+		    }
+		}
+		initialized = TRUE;
+	    }
+
+	    DrawEdges() {
+		int n;
+
+		graphics {
+		    for (n = 0; n < edges@sizeof; n++) {
+			moveto(center);
+			lineto(edges[n]);
+		    }
+		    stroke();
+		}
+	    }
+
+	    paint(clip) {
+		Initialize();
+		DrawEdges();
+	    }
+
+	    mousePressed(e) {
+		graphics.xormode = TRUE;
+		DrawEdges();
+		center = e.coordinates;
+		DrawEdges();
+		graphics.xormode = FALSE;
+	    }
+
+	    mouseDragged(e) {
+		graphics.xormode = TRUE;
+		DrawEdges();
+		center = e.coordinates;
+		DrawEdges();
+		graphics.xormode = FALSE;
+	    }
+	},
+    };
+};
+
+f.visible = TRUE;
+

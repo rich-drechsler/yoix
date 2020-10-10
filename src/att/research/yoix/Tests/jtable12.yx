@@ -1,0 +1,57 @@
+import yoix.*.*;
+
+JTable jt = {
+    int reorder = 1;
+    int resize = 1;
+    int scroll = VERTICAL_ALWAYS|HORIZONTAL_AS_NEEDED;
+    int scrolltolastrow = 1;
+    Color background = Color.blue;
+
+    int multiplemode = MULTIPLE_INTERVAL_SELECTION;
+    
+    Array altbackground = {
+	Color.orange,
+	Color.red,
+	Color.green,
+    };
+    Array altforeground = {
+	Color.black,
+	Color.pink,
+	Color.magenta,
+    };
+    Array cellcolors = {
+	new Array[] { Color.yellow, Color.yellow, Color.orange, Color.orange },
+	Color.red,
+    };
+    Array headers = {
+        "First Name", 
+	"Last Name",
+	"Sport",
+	"Flag",
+	"Percent",
+	"Date",
+	"Salary",
+	"# of Years",
+	"Vegetarian",
+	"Timer",
+    };
+    Array types = {
+	STRING_TYPE, STRING_TYPE, STRING_TYPE, ICON_TYPE, PERCENT_TYPE, DATE_TYPE, MONEY_TYPE, INTEGER_TYPE, BOOLEAN_TYPE, TIMER_TYPE,
+    };
+    String inputfilter = "+++";
+    String values = "Mary+++Walrath+++Snowboarding+++/home/john/junk/flag.jpg+++0.17+++Fri Jun  6 11:46:58 EDT 2003+++143.1234+++5+++false+++1d2m\nAlison+++Huml+++Rowing+++/home/john/junk/flag.jpg+++0.17+++Fri Jun  6 11:46:58 EDT 2003+++1923.321+++3+++true+++23h12m\nKathy+++Walrath+++Chasing toddlers+++/home/john/junk/flag.jpg+++0.17+++Fri Jun  6 11:46:58 EDT 2003+++12.5+++2+++false+++23h11m59s\nSharon+++Zakhour+++Speed reading+++/home/john/junk/flag.jpg+++0.17+++Fri Jun  6 11:46:58 EDT 2003+++-142+++20+++true+++2d\nAngela+++Lih+++Teaching high school+++/home/john/junk/flag.jpg+++0.17+++Fri Jun  6 11:46:58 EDT 2003+++123.123+++4+++false+++5m\n";
+
+    
+};
+
+jt.action(CELL_SELECTION, TRUE);
+
+JFrame f = {
+    int visible = 1;
+    Dimension size = NULL;
+
+    Array layout = {
+	jt,
+	CENTER,
+    };
+};

@@ -1,0 +1,39 @@
+import yoix.*.*;
+
+Font TEXT = {
+    String name = "Lucida-plain-30";
+};
+
+Font SUP = TEXT.translatefont(0, -TEXT.ascent).scalefont(.5);
+Font SUB = TEXT.translatefont(0, TEXT.descent).scalefont(4, .5);
+
+JFrame f = {
+    Color background = Color.white;
+
+    Graphics graphics = {
+	int textantialiasing = TRUE;
+    };
+
+    paint(Rectangle rect) {
+	graphics {
+	    gsave();
+	    rectclip(rect);
+	    moveto(36, 144);
+	    setfont(TEXT);
+	    show("E = mc");
+	    setfont(SUP);
+	    show("2");
+	    moveto(36, 216);
+	    setfont(TEXT);
+	    show("Water = H");
+	    setfont(SUB);
+	    show("2");
+	    setfont(TEXT);
+	    show("O");
+	    grestore();
+	}
+    }
+};
+
+f.visible = TRUE;
+

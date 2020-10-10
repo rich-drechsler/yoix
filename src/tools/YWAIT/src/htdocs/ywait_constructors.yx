@@ -1,0 +1,2756 @@
+//
+// Functions that can sometimes be used to build Swing components, but
+// they're definitely not designed to handle everything and screen are
+// not required to use them.
+//
+
+NewBevelBorder(...) {
+    Dictionary initializer;
+    Object     insets;
+    Object     font = GetPreferredTitledBorderFont();
+    Object     ptr;
+    Color      foreground = GetPreferredForeground();
+
+    initializer = new Dictionary[2, ...] {
+	String title = NULL;
+	Object font = font;
+    };
+
+    for (ptr = &argv[1]; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Number || *ptr instanceof Insets) {
+	    if (initializer.title != NULL && *ptr instanceof Number) {
+		insets = new Insets {
+		    double top = max(0, *ptr - (font.ascent - font.descent)/2.0);
+		    double left = *ptr;
+		    double bottom = *ptr;
+		    double right = *ptr;
+		};
+	    } else insets = *ptr;
+	    initializer.child = new EmptyBorder {
+		Object insets = insets;
+	    };
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+    return(new BevelBorder initializer);
+}
+
+NewDataVisualizationButton(String tag) {
+    Dictionary initializer;
+
+    initializer = new Dictionary {
+	String tag = tag;
+	String tooltiptext = "Visualize Data";
+	Insets border = GetSmallShadowInsets();
+	Color  foreground = GetPreferredForeground();
+	Image  backgroundimage = GetDataVizIcon(72.0/4);
+	int    backgroundhints = SCALE_NONE;
+
+	Dimension minimumsize = {
+	    double width = backgroundimage.size.width + border.left + border.right;
+	    double height = backgroundimage.size.height + border.top + border.bottom;
+	};
+
+	actionPerformed(e) {
+	    root.VisualizeData();
+	}
+    };
+    return(new JCanvas initializer);
+}
+
+NewDragAndDropButton(String tag, Object tabletags, int state) {
+    Dictionary initializer;
+
+    initializer = new Dictionary {
+	String tag = tag;
+	Insets border = GetSmallShadowInsets();
+	Color  foreground = GetPreferredForeground();
+	Array  tabletags = (tabletags instanceof Array) ? tabletags : new Array {tabletags};
+	Image  backgroundimage = GetDragAndDropIcon(72.0/4);
+	int    backgroundhints = SCALE_NONE;
+	int    state = state;
+	int    sticky = TRUE;
+
+	Dimension minimumsize = {
+	    double width = backgroundimage.size.width + border.left + border.right;
+	    double height = backgroundimage.size.height + border.top + border.bottom;
+	};
+
+	actionPerformed(e) {
+	    SyncToolTipText();
+	}
+
+	SyncToolTipText() {
+	    int n;
+
+	    for (ptr in tabletags) {
+		if (*ptr instanceof String)
+		    root.components[*ptr].SetDragState(state);
+	    }
+	    tooltiptext = (state ? "Disable" : "Enable") + " table drag and drop";
+	}
+    };
+    return(new JCanvas initializer);
+}
+
+NewEtchedBorder(String title, ...) {
+    Dictionary initializer;
+    Object     insets;
+    Object     font = GetPreferredTitledBorderFont();
+    Color      foreground = GetPreferredForeground();
+    Object     ptr;
+
+    initializer = new Dictionary[2, ...] {
+	String title = title;
+	Object font = font;
+    };
+
+    for (ptr = &title + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Number || *ptr instanceof Insets) {
+	    if (initializer.title != NULL && *ptr instanceof Number) {
+		insets = new Insets {
+		    double top = max(0, *ptr - (font.ascent - font.descent)/2.0);
+		    double left = *ptr;
+		    double bottom = *ptr;
+		    double right = *ptr;
+		};
+	    } else insets = *ptr;
+	    initializer.child = new EmptyBorder {
+		Object insets = insets;
+	    };
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+    return(new EtchedBorder initializer);
+}
+
+NewFiller(...)  {
+    Dictionary initializer;
+    Object     ptr;
+
+    initializer = new Dictionary[2, ...] {
+	BorderLayout layoutmanager;
+	Array layout = { new JPanel };
+    };
+
+    for (ptr = &argv[0]; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+
+    return(new JPanel initializer);
+}
+
+NewJActiveHeadingLabel(String tag, String text, int isparent, ...) {
+    return(NewJActiveLabel(tag, text, "isparent", isparent, "font", GetPreferredHeadingFont(), unroll(&text+1)));
+}
+
+NewJActiveLabel(String tag, String text, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    //
+    // This was added long after NewJActiveHeadingLabel() and we decided not
+    // to include its explicit isparent argument.
+    // 
+
+    initializer = new Dictionary[8, ...] {
+	String tag = tag;
+	String text = text;
+	Object font = GetPreferredLabelFont();
+	Color  foreground = GetPreferredActiveColor();
+	Object isparent = NULL;
+	int    alignment = CENTER;
+	int    pressed = FALSE;
+
+	mousePressed(e) {
+	    pressed = TRUE;
+	    foreground = GetPreferredVisitedColor();
+	}
+
+	mouseReleased(e) {
+	    foreground = GetPreferredActiveColor();
+	    if (pressed) {
+		ActionPerformed(
+		    new ActionEvent {
+			String id = "actionPerformed";
+			String command = text;
+			int    modifiers = e.modifiers;
+		    }
+		);
+	    }
+	    pressed = FALSE;
+	}
+
+	CancelMousePressed() {
+	    foreground = GetPreferredActiveColor();
+	    pressed = FALSE;
+	}
+
+	ActionPerformed(e) {
+	    if (isparent instanceof int) {
+		if (isparent)
+		    toFront(root, TRUE);
+		else if (root.parent != NULL)
+		    toFront(root.parent, FALSE);
+	    }
+	}
+    };
+
+    for (ptr = &text + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+
+    if (defined("dragtext", initializer))
+	initializer.dragGestureRecognized = DragGestureRecognized;
+    return(new JLabel initializer);
+}
+
+NewJButton(String tag, String text, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    initializer = new Dictionary[3, ...] {
+	String tag = tag;
+	String text = text;
+	Object font = GetPreferredButtonFont();
+	Color  foreground = GetPreferredForeground();
+    };
+
+    for (ptr = &text + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+    return(new JButton initializer);
+}
+
+NewJButtonWithNoInsets(String tag, String text, ...) {
+    return(NewJButton(unroll(&tag), "insets", new Insets));
+}
+
+NewJButtonWithSmallInsets(String tag, String text, ...) {
+    //
+    // A convenience function that builds a JButton that uses the preferred
+    // value for "small button" insets.
+    //
+    
+    return(NewJButton(unroll(&tag), "insets", GetPreferredSmallButtonInsets()));
+}
+
+NewJCheckBox(String tag, String text, Object group, int state, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    initializer = new Dictionary[5, ...] {
+	String tag = tag;
+	String text = text;
+	Object font = GetPreferredLabelFont();
+	Object group = group;
+	Color  foreground = GetPreferredForeground();
+	int    state = state;
+    };
+
+    for (ptr = &state + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+    return(new JCheckBox initializer);
+}
+
+NewJChoice(String tag, Array items, Object selected, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    initializer = new Dictionary[11, ...] {
+	String tag = tag;
+	Object font = GetPreferredChoiceFont();
+	Object selected = selected;
+	Object transferhandler = NULL;		// required for custom drag and drop
+	Array  items = items;
+	Color  background = GetPreferredChoiceBackground();
+	Color  foreground = GetPreferredChoiceForeground();
+
+	Function mouseWheelMoved = MouseWheelMoved;
+	Function dragGestureRecognized = DragGestureRecognized;
+	Function dragEnter = DragEnter;
+	Function drop = Drop;
+    };
+
+    for (ptr = &selected + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+    return(new JChoice initializer);
+}
+
+NewJChoiceWithTitle(String tag, String title, Array items, Object selected, ...) {
+    Object comp = NewJChoice(tag, items, selected, unroll(&selected + 1));
+
+    if (title != NULL) {
+	comp = new JPanel {
+	    String tag = tag + "_panel";
+	    Border border = NewEtchedBorder(title);
+
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		comp
+	    };
+	};
+    }
+    return(comp);
+}
+
+NewJDatePanel(String tag, Object border, ...) {
+    Dictionary initializer;
+    Object     panel;
+    Object     ptr;
+
+    initializer = new Dictionary[14, ...] {
+	String tag = tag;
+	Object border = border;
+	Object font = GetPreferredLabelFont();
+	Color  foreground = GetPreferredForeground();
+	Calendar calendar = new Calendar;
+	Object minlimit = NULL;
+	Object maxlimit = NULL;
+	int    track = FALSE;
+	Object calscreen;
+	Object normalborder = NULL;
+	Object activeborder = NULL;
+	Object pressedborder = NULL;
+	double lastunixtime;
+	String lasttext;
+
+	GridBagLayout layoutmanager;
+	Array layout = {
+	    new JLabel {
+		String basetag = tag;
+		String tag = basetag + "_dow";
+		int    autotrim = TRUE;
+		Object font = GetPreferredLabelFont();
+		Color  background = GetPreferredBackground();
+		Dimension preferredsize = {
+		    double width = 2.0 * VM.screen.pixelwidth + stringWidth(font, "Www"); // account for border width
+		};
+		double border = VM.screen.pixelwidth;
+		Object saveborder;
+		int    caltype = Calendar.DAY_OF_WEEK;
+
+		Function mouseEntered = CalendarMouseEntered;
+		Function focusGained = CalendarFocusGained;
+		Function focusLost = CalendarFocusLost;
+		Function keyPressed = CalendarKeyPressed;
+		Function mouseWheelMoved = CalendarMouseWheelMoved;
+		Function mousePressed = CalendarMousePressed;
+		Function mouseReleased = CalendarMouseReleased;
+	    },
+	    " ",
+	    new JLabel {
+		String basetag = tag;
+		String tag = basetag + "_month";
+		int    autotrim = TRUE;
+		Object font = GetPreferredLabelFont();
+		Color  background = GetPreferredBackground();
+		Dimension preferredsize = {
+		    double width = 2.0 * VM.screen.pixelwidth + stringWidth(font, "Www"); // account for border width
+		};
+		double border = VM.screen.pixelwidth;
+		Object saveborder;
+		int    caltype = Calendar.MONTH;
+
+		Function mouseEntered = CalendarMouseEntered;
+		Function focusGained = CalendarFocusGained;
+		Function focusLost = CalendarFocusLost;
+		Function keyPressed = CalendarKeyPressed;
+		Function mouseWheelMoved = CalendarMouseWheelMoved;
+		Function mousePressed = CalendarMousePressed;
+		Function mouseReleased = CalendarMouseReleased;
+	    },
+	    " ",
+	    new JLabel {
+		String basetag = tag;
+		String tag = basetag + "_day";
+		int    autotrim = TRUE;
+		Object font = GetPreferredLabelFont();
+		Color  background = GetPreferredBackground();
+		Dimension preferredsize = {
+		    double width = 2.0 * VM.screen.pixelwidth + stringWidth(font, "00"); // account for border width
+		};
+		double border = VM.screen.pixelwidth;
+		Object saveborder;
+		int    caltype = Calendar.DATE;
+		int    typing = FALSE;
+
+		Function mouseEntered = CalendarMouseEntered;
+		Function focusGained = CalendarFocusGained;
+		Function focusLost = CalendarFocusLost;
+		Function keyPressed = CalendarKeyPressed;
+		Function keyTyped = CalendarKeyTyped;
+		Function mouseWheelMoved = CalendarMouseWheelMoved;
+		Function mousePressed = CalendarMousePressed;
+		Function mouseReleased = CalendarMouseReleased;
+	    },
+	    " ",
+	    new JLabel {
+		String basetag = tag;
+		String tag = basetag + "_year";
+		int    autotrim = TRUE;
+		Object font = GetPreferredLabelFont();
+		Color  background = GetPreferredBackground();
+		Dimension preferredsize = {
+		    double width = 2.0 * VM.screen.pixelwidth + stringWidth(font, "0000"); // account for border width
+		};
+		double border = VM.screen.pixelwidth;
+		Object saveborder;
+		int    caltype = Calendar.YEAR;
+		int    typing = FALSE;
+
+		Function mouseEntered = CalendarMouseEntered;
+		Function focusGained = CalendarFocusGained;
+		Function focusLost = CalendarFocusLost;
+		Function keyPressed = CalendarKeyPressed;
+		Function keyTyped = CalendarKeyTyped;
+		Function mouseWheelMoved = CalendarMouseWheelMoved;
+		Function mousePressed = CalendarMousePressed;
+		Function mouseReleased = CalendarMouseReleased;
+	    },
+	};
+
+	BlankDisplay() {
+	    root.components[tag+"_dow"].text = "";
+	    root.components[tag+"_month"].text = "";
+	    root.components[tag+"_day"].text = "";
+	    root.components[tag+"_year"].text = "";
+
+	    UpdatePerformed();
+	}
+
+	CalBack(Dictionary selection, Object fields) {
+	    calendar.set(selection.year, selection.month - 1, selection.day);
+	    ResetDisplay();
+	}
+
+	GetTimestamp(...) {
+	    return(argc == 2 ? date(argv[1], calendar.unixtime) : date("yyyy-MM-dd", calendar.unixtime));
+	}
+
+	GetUnixtime() {
+	    return(calendar.unixtime);
+	}
+
+	GetUnixtimeForShowCalendar() {
+	    //
+	    // A function that applications sometimes override.
+	    //
+	    return(calendar.unixtime); 
+	}
+
+	HideCalendar() {
+	    if (calscreen != NULL)
+		calscreen.HideScreen();
+	}
+
+	IsBlank() {
+	    return(root.components[tag+"_dow"].text@sizeof == 0);
+	}
+
+	ResetDisplay() {
+	    UpdateDisplay(Calendar.YEAR, 0);
+	}
+
+	SetCalendar(Number value, ...) {
+	    if (argc == 2)
+		calendar.unixtime = value;
+	    else if (argc >= 4 && argc <= 6)
+		calendar.set(unroll(&value));
+	    else VM.abort(BADCALL);
+	    ResetDisplay();
+	}
+
+	SetDisplayBackground(Color c) {
+	    components[tag+"_dow"].background = c;
+	    components[tag+"_month"].background = c;
+	    components[tag+"_day"].background = c;
+	    components[tag+"_year"].background = c;
+	}
+
+	ShowCalendar() {
+	    Calendar cal;
+	    Object   screen;
+	    String   name = "calendar_" + root.tag;
+
+	    if ((screen = GetCachedScreen(name)) != NULL) {
+		if (defined("cbdict", screen) && screen.cbdict != this)
+		    screen.HideScreen();
+	    }
+            
+            cal.unixtime = GetUnixtimeForShowCalendar();
+
+	    calscreen = GetAndShowScreen(
+		name, "calendar",
+		"parent", root,
+		"autodispose", TRUE,
+		"callback", "CalBack",
+		"cbdict", this,
+		"now", cal,
+		"anchorpoint", this,
+		"screenanchor", SOUTHWEST,
+		"anchorstyle", NORTHWEST
+	    );
+	}
+
+	StartTyping(String tag) {
+	    int typing = FALSE;
+
+	    if (calscreen == NULL || !calscreen.visible) {
+		if (defined("typing", root.components[tag])) {
+		    if (!root.components[tag].typing) {
+			lastunixtime = GetUnixtime();
+			lasttext = root.components[tag].text;
+			root.components[tag].text = "";
+			root.components[tag].typing = TRUE;
+		    }
+		    typing = root.components[tag].typing;
+		}
+	    }
+	    return(typing);
+	}
+
+	StopTyping(String tag) {
+	    String text;
+
+	    if (defined("typing", root.components[tag]) && root.components[tag].typing) {
+		root.components[tag].typing = FALSE;
+		text = root.components[tag].text;
+		if (text@sizeof > lasttext@sizeof)
+		    text = lasttext;
+		text = strfmt(strfmt("%%0%ds", lasttext@sizeof), text);
+		UpdateDisplay(root.components[tag].caltype, atoi(text) - atoi(lasttext));
+		if (root.components[tag].text !== text)
+		    SetCalendar(lastunixtime);
+	    }
+	}
+
+	TypedChar(String tag, String str) {
+	    String text;
+
+	    if (StartTyping(tag)) {
+		text = trim(root.components[tag].text);
+		switch (str) {
+		    case "\n":
+			StopTyping(tag);
+			break;
+
+		    case "\b":
+			if (text@sizeof > 0)
+			    root.components[tag].text = new String[text@sizeof-1] text;
+			break;
+
+		    default:
+			root.components[tag].text = text + str;
+			break;
+		}
+	    }
+	}
+
+	UpdateDisplay(int mode, int amount) {
+	    Object ref;
+	    double now = time();
+	    Array  parts;
+
+	    calendar.add(mode, amount);
+
+	    if (minlimit != NULL) {
+		if ((ref = PickUnixTime(minlimit, now)) > calendar.unixtime) {
+		    if (track && defined("SetCalendar", minlimit)) {
+			minlimit.SetCalendar(calendar.unixtime);
+			if (minlimit.calendar.unixtime > calendar.unixtime)
+			    calendar.unixtime = minlimit.calendar.unixtime;
+		    } else calendar.unixtime = ref;
+		}
+	    }
+
+	    if (maxlimit != NULL) {
+		if ((ref = PickUnixTime(maxlimit, now)) < calendar.unixtime) {
+		    if (track && defined("SetCalendar", maxlimit)) {
+			maxlimit.SetCalendar(calendar.unixtime);
+			if (maxlimit.calendar.unixtime < calendar.unixtime)
+			    calendar.unixtime = maxlimit.calendar.unixtime;
+		    } else calendar.unixtime = ref;
+		}
+	    }
+
+	    parts = strsplit(date(calendar.locale, calendar.timezone, "EEE|MMM|dd|yyyy", calendar.unixtime), "|");
+	    root.components[tag+"_dow"].text = parts[0];
+	    root.components[tag+"_month"].text = parts[1];
+	    root.components[tag+"_day"].text = parts[2];
+	    root.components[tag+"_year"].text = parts[3];
+
+	    UpdatePerformed();
+	}
+
+	UpdatePerformed() {
+	    //
+	    // A function that applications can define when they want to
+	    // be notified after every update.
+	    //
+	}
+
+    };
+
+    for (ptr = &border + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+
+    panel = new JPanel initializer;
+
+    //
+    // Users can now pass displaybackground color as an optional argument, so
+    // we handle it before the new panel is returned to the caller.
+    //
+
+    if (defined("displaybackground", panel) && panel.displaybackground instanceof Color)
+	panel.SetDisplayBackground(panel.displaybackground);
+    return(panel);
+}
+
+NewJDateTimePanel(String tag, Object border, ...) {
+    Dictionary initializer;
+    Object     panel;
+    Object     ptr;
+
+    initializer = new Dictionary[14, ...] {
+	String tag = tag;
+	Object border = border;
+	Object font = GetPreferredLabelFont();
+	Color  foreground = GetPreferredForeground();
+	Calendar calendar = new Calendar;
+	Object minlimit = NULL;
+	Object maxlimit = NULL;
+	int    track = FALSE;
+	Object calscreen;
+	Object normalborder = NULL;
+	Object activeborder = NULL;
+	Object pressedborder = NULL;
+	double lastunixtime;
+	String lasttext;
+
+	GridBagLayout layoutmanager;
+	Array layout = {
+	    new JLabel {
+		String basetag = tag;
+		String tag = basetag + "_dow";
+		int    autotrim = TRUE;
+		Object font = GetPreferredLabelFont();
+		Color  background = GetPreferredBackground();
+		Dimension preferredsize = {
+		    double width = 2.0 * VM.screen.pixelwidth + stringWidth(font, "Www"); // account for border width
+		};
+		double border = VM.screen.pixelwidth;
+		Object saveborder;
+		int    caltype = Calendar.DAY_OF_WEEK;
+
+		Function mouseEntered = CalendarMouseEntered;
+		Function focusGained = CalendarFocusGained;
+		Function focusLost = CalendarFocusLost;
+		Function keyPressed = CalendarKeyPressed;
+		Function mouseWheelMoved = CalendarMouseWheelMoved;
+		Function mousePressed = CalendarMousePressed;
+		Function mouseReleased = CalendarMouseReleased;
+	    },
+	    " ",
+	    new JLabel {
+		String basetag = tag;
+		String tag = basetag + "_month";
+		int    autotrim = TRUE;
+		Object font = GetPreferredLabelFont();
+		Color  background = GetPreferredBackground();
+		Dimension preferredsize = {
+		    double width = 2.0 * VM.screen.pixelwidth + stringWidth(font, "Www"); // account for border width
+		};
+		double border = VM.screen.pixelwidth;
+		Object saveborder;
+		int    caltype = Calendar.MONTH;
+
+		Function mouseEntered = CalendarMouseEntered;
+		Function focusGained = CalendarFocusGained;
+		Function focusLost = CalendarFocusLost;
+		Function keyPressed = CalendarKeyPressed;
+		Function mouseWheelMoved = CalendarMouseWheelMoved;
+		Function mousePressed = CalendarMousePressed;
+		Function mouseReleased = CalendarMouseReleased;
+	    },
+	    " ",
+	    new JLabel {
+		String basetag = tag;
+		String tag = basetag + "_day";
+		int    autotrim = TRUE;
+		Object font = GetPreferredLabelFont();
+		Color  background = GetPreferredBackground();
+		Dimension preferredsize = {
+		    double width = 2.0 * VM.screen.pixelwidth + stringWidth(font, "00"); // account for border width
+		};
+		double border = VM.screen.pixelwidth;
+		Object saveborder;
+		int    caltype = Calendar.DATE;
+		int    typing = FALSE;
+
+		Function mouseEntered = CalendarMouseEntered;
+		Function focusGained = CalendarFocusGained;
+		Function focusLost = CalendarFocusLost;
+		Function keyPressed = CalendarKeyPressed;
+		Function keyTyped = CalendarKeyTyped;
+		Function mouseWheelMoved = CalendarMouseWheelMoved;
+		Function mousePressed = CalendarMousePressed;
+		Function mouseReleased = CalendarMouseReleased;
+	    },
+	    " ",
+	    new JLabel {
+		String basetag = tag;
+		String tag = basetag + "_year";
+		int    autotrim = TRUE;
+		Object font = GetPreferredLabelFont();
+		Color  background = GetPreferredBackground();
+		Dimension preferredsize = {
+		    double width = 2.0 * VM.screen.pixelwidth + stringWidth(font, "0000"); // account for border width
+		};
+		double border = VM.screen.pixelwidth;
+		Object saveborder;
+		int    caltype = Calendar.YEAR;
+		int    typing = FALSE;
+
+		Function mouseEntered = CalendarMouseEntered;
+		Function focusGained = CalendarFocusGained;
+		Function focusLost = CalendarFocusLost;
+		Function keyPressed = CalendarKeyPressed;
+		Function keyTyped = CalendarKeyTyped;
+		Function mouseWheelMoved = CalendarMouseWheelMoved;
+		Function mousePressed = CalendarMousePressed;
+		Function mouseReleased = CalendarMouseReleased;
+	    },
+	    " at ",
+	    new JLabel {
+		String basetag = tag;
+		String tag = basetag + "_hour";
+		int    autotrim = TRUE;
+		Object font = GetPreferredLabelFont();
+		Color  background = GetPreferredBackground();
+		Dimension preferredsize = {
+		    double width = 2.0 * VM.screen.pixelwidth + stringWidth(font, "00"); // account for border width
+		};
+		double border = VM.screen.pixelwidth;
+		Object saveborder;
+		int    caltype = Calendar.HOUR;
+		int    typing = FALSE;
+
+		Function mouseEntered = CalendarMouseEntered;
+		Function focusGained = CalendarFocusGained;
+		Function focusLost = CalendarFocusLost;
+		Function keyPressed = CalendarKeyPressed;
+		Function keyTyped = CalendarKeyTyped;
+		Function mouseWheelMoved = CalendarMouseWheelMoved;
+		Function mousePressed = ClockMousePressed;
+		Function mouseReleased = ClockMouseReleased;
+	    },
+	    ":",
+	    new JLabel {
+		String basetag = tag;
+		String tag = basetag + "_minute";
+		int    autotrim = TRUE;
+		Object font = GetPreferredLabelFont();
+		Color  background = GetPreferredBackground();
+		Dimension preferredsize = {
+		    double width = 2.0 * VM.screen.pixelwidth + stringWidth(font, "00"); // account for border width
+		};
+		double border = VM.screen.pixelwidth;
+		Object saveborder;
+		int    caltype = Calendar.MINUTE;
+		int    typing = FALSE;
+
+		Function mouseEntered = CalendarMouseEntered;
+		Function focusGained = CalendarFocusGained;
+		Function focusLost = CalendarFocusLost;
+		Function keyPressed = CalendarKeyPressed;
+		Function keyTyped = CalendarKeyTyped;
+		Function mouseWheelMoved = CalendarMouseWheelMoved;
+		Function mousePressed = ClockMousePressed;
+		Function mouseReleased = ClockMouseReleased;
+	    },
+	    new JLabel {
+		String basetag = tag;
+		String tag = basetag + "_tz";
+		int    autotrim = TRUE;
+		Object font = GetPreferredLabelFont();
+		Color  background = GetPreferredBackground();
+		int    alignment = LEFT;
+		Dimension preferredsize = {
+		    double width = 2.0 * VM.screen.pixelwidth + stringWidth(font, "GMT+00:00"); // account for GMT+hh:mm case (unfortunate)
+		};
+	    },
+	};
+
+	BlankDisplay() {
+	    root.components[tag+"_dow"].text = "";
+	    root.components[tag+"_month"].text = "";
+	    root.components[tag+"_day"].text = "";
+	    root.components[tag+"_year"].text = "";
+	    root.components[tag+"_hour"].text = "";
+	    root.components[tag+"_minute"].text = "";
+	    root.components[tag+"_tz"].text = "";
+
+	    UpdatePerformed();
+	}
+
+	CalBack(Dictionary selection, Object fields) {
+	    calendar.set(selection.year, selection.month - 1, selection.day);
+	    ResetDisplay();
+	}
+
+	GetTimestamp(...) {
+	    return(argc == 2 ? date(argv[1], calendar.unixtime) : date("yyyy-MM-dd@HH:mm:ss", calendar.unixtime));
+	}
+
+	GetUnixtime() {
+	    return(calendar.unixtime);
+	}
+
+	GetUnixtimeForShowCalendar() {
+	    //
+	    // A function that applications sometimes override.
+	    //
+	    return(calendar.unixtime);
+        }
+
+	HideCalendar() {
+	    if (calscreen != NULL)
+		calscreen.HideScreen();
+	}
+
+	IsBlank() {
+	    return(root.components[tag+"_dow"].text@sizeof == 0);
+	}
+
+	ResetDisplay() {
+	    UpdateDisplay(Calendar.YEAR, 0);
+	}
+
+	SetCalendar(Number value, ...) {
+	    if (argc == 2)
+		calendar.unixtime = value;
+	    else if (argc >= 4 && argc <= 6)
+		calendar.set(unroll(&value));
+	    else VM.abort(BADCALL);
+	    ResetDisplay();
+	}
+
+	SetDisplayBackground(Color c) {
+	    components[tag+"_dow"].background = c;
+	    components[tag+"_month"].background = c;
+	    components[tag+"_day"].background = c;
+	    components[tag+"_year"].background = c;
+	    components[tag+"_hour"].background = c;
+	    components[tag+"_minute"].background = c;
+	    components[tag+"_tz"].background = c;
+	}
+
+	ShowCalendar() {
+	    Calendar cal;
+	    Object   screen;
+	    String   name = "calendar_" + root.tag;
+
+	    if ((screen = GetCachedScreen(name)) != NULL) {
+		if (defined("cbdict", screen) && screen.cbdict != this)
+		    screen.HideScreen();
+	    }
+
+            cal.unixtime = GetUnixtimeForShowCalendar();
+
+	    calscreen = GetAndShowScreen(
+		name, "calendar",
+		"parent", root,
+		"autodispose", TRUE,
+		"callback", "CalBack",
+		"cbdict", this,
+		"now", cal,
+		"anchorpoint", this,
+		"screenanchor", SOUTHWEST,
+		"anchorstyle", NORTHWEST
+	    );
+	}
+
+	StartTyping(String tag) {
+	    int typing = FALSE;
+
+	    if (calscreen == NULL || !calscreen.visible) {
+		if (defined("typing", root.components[tag])) {
+		    if (!root.components[tag].typing) {
+			lastunixtime = GetUnixtime();
+			lasttext = root.components[tag].text;
+			root.components[tag].text = "";
+			root.components[tag].typing = TRUE;
+		    }
+		    typing = root.components[tag].typing;
+		}
+	    }
+	    return(typing);
+	}
+
+	StopTyping(String tag) {
+	    String text;
+
+	    if (defined("typing", root.components[tag]) && root.components[tag].typing) {
+		root.components[tag].typing = FALSE;
+		text = root.components[tag].text;
+		if (text@sizeof > lasttext@sizeof)
+		    text = lasttext;
+		text = strfmt(strfmt("%%0%ds", lasttext@sizeof), text);
+		UpdateDisplay(root.components[tag].caltype, atoi(text) - atoi(lasttext));
+		if (root.components[tag].text !== text)
+		    SetCalendar(lastunixtime);
+	    }
+	}
+
+	TypedChar(String tag, String str) {
+	    String text;
+
+	    if (StartTyping(tag)) {
+		text = trim(root.components[tag].text);
+		switch (str) {
+		    case "\n":
+			StopTyping(tag);
+			break;
+
+		    case "\b":
+			if (text@sizeof > 0)
+			    root.components[tag].text = new String[text@sizeof-1] text;
+			break;
+
+		    default:
+			root.components[tag].text = text + str;
+			break;
+		}
+	    }
+	}
+
+	UpdateDisplay(int mode, int amount) {
+	    Object ref;
+	    double now = time();
+	    Array  parts;
+
+	    calendar.add(mode, amount);
+
+	    if (minlimit != NULL) {
+		if ((ref = PickUnixTime(minlimit, now)) > calendar.unixtime) {
+		    if (track && defined("SetCalendar", minlimit)) {
+			minlimit.SetCalendar(calendar.unixtime);
+			if (minlimit.calendar.unixtime > calendar.unixtime)
+			    calendar.unixtime = minlimit.calendar.unixtime;
+		    } else calendar.unixtime = ref;
+		}
+	    }
+
+	    if (maxlimit != NULL) {
+		if ((ref = PickUnixTime(maxlimit, now)) < calendar.unixtime) {
+		    if (track && defined("SetCalendar", maxlimit)) {
+			maxlimit.SetCalendar(calendar.unixtime);
+			if (maxlimit.calendar.unixtime < calendar.unixtime)
+			    calendar.unixtime = maxlimit.calendar.unixtime;
+		    } else calendar.unixtime = ref;
+		}
+	    }
+
+	    parts = strsplit(date(calendar.locale, calendar.timezone, "EEE|MMM|dd|yyyy|HH|mm|z", calendar.unixtime), "|");
+	    root.components[tag+"_dow"].text = parts[0];
+	    root.components[tag+"_month"].text = parts[1];
+	    root.components[tag+"_day"].text = parts[2];
+	    root.components[tag+"_year"].text = parts[3];
+	    root.components[tag+"_hour"].text = parts[4];
+	    root.components[tag+"_minute"].text = parts[5];
+	    root.components[tag+"_tz"].text = parts[6];
+
+	    UpdatePerformed();
+	}
+
+	UpdatePerformed() {
+	    //
+	    // A function that applications can define when they want to
+	    // be notified after every update.
+	    //
+	}
+    };
+
+    for (ptr = &border + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+
+    panel = new JPanel initializer;
+
+    //
+    // Users can now pass displaybackground color as an optional argument, so
+    // we handle it before the new panel is returned to the caller.
+    //
+
+    if (defined("displaybackground", panel) && panel.displaybackground instanceof Color)
+	panel.SetDisplayBackground(panel.displaybackground);
+    return(panel);
+}
+
+NewJHeadingLabel(String tag, String text, ...) {
+    return(NewJLabel(tag, text, "font", GetPreferredHeadingFont(), unroll(&text+1)));
+}
+
+NewJLabel(String tag, String text, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    initializer = new Dictionary[4, ...] {
+	String tag = tag;
+	String text = text;
+	Object font = GetPreferredLabelFont();
+	Color  foreground = GetPreferredForeground();
+	int    alignment = CENTER;
+    };
+
+    for (ptr = &text + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+
+    if (defined("dragtext", initializer))
+	initializer.dragGestureRecognized = DragGestureRecognized;
+    return(new JLabel initializer);
+}
+
+NewJList(String tag, Array items, int rows, Object selected, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    //
+    // Decided against multiplemode and scroll arguments, at least for
+    // the time being.
+    //
+    // NOTE - Swing handles mouseWheelMoved(), so don't add it here!!!
+    // Alse, drag and drop can work, but multiple selection mode is a
+    // real problem because pressing the mouse to start a drag changes
+    // the current selections. Really annoying and probably no really
+    // easy solution, so for now we don't support JList drag and drop.
+    //
+
+    initializer = new Dictionary[9, ...] {
+	String tag = tag;
+	Object font = GetPreferredTextFont();
+	Object selected = selected;
+	Array  items = items;
+	Color  background = GetPreferredTextBackground();
+	Color  foreground = GetPreferredTextForeground();
+	int    rows = rows;
+	int    multiplemode = TRUE;
+	int    scroll = AS_NEEDED;
+    };
+
+    for (ptr = &selected + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+    return(new JList initializer);
+}
+
+NewJProprietaryLabel(...) {
+    return(NewJLabel(NULL, ProprietaryLabel, "font", GetPreferredProprietaryFont(), "tag", (argc == 1 ? NULL : argv[1])));
+}
+
+NewJRadioButton(String tag, String text, Object group, int state, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    initializer = new Dictionary[5, ...] {
+	String tag = tag;
+	String text = text;
+	Object font = GetPreferredLabelFont();
+	Object group = group;
+	Color  foreground = GetPreferredForeground();
+	int    state = state;
+    };
+
+    for (ptr = &state + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+    return(new JRadioButton initializer);
+}
+
+NewJTabbedPane(String tag, Array layout, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    initializer = new Dictionary[2, ...] {
+	String tag = tag;
+	Array  layout = layout;
+	int    opaque = FALSE;
+    };
+
+    for (ptr = &layout + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+    return(new JTabbedPane initializer);
+}
+
+NewJTabbedPane2Screen(String tag, Array layout, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    initializer = new Dictionary[8, ...] {
+	String tag = tag;
+	Array  layout = layout;
+	int    opaque = FALSE;
+
+	JWindow window = NULL;
+	Image   capture = NULL;
+	Point   screenloc = NULL;
+
+	mousePressed(e) {
+	    capture = NULL;
+	    window = NULL;
+	    if ((e.modifiers&SHIFT_MASK) == SHIFT_MASK)
+		screenloc = getLocationOnScreen(this);
+	    else screenloc = NULL;
+	}
+
+	mouseDragged(e) {
+	    if ((e.modifiers&SHIFT_MASK) == SHIFT_MASK && screenloc != NULL) {
+		if (capture == NULL) {
+		    capture = new Image {
+			Color background = Color.lightGray;
+			Image cap = captureScreen(selected);
+			Dimension size = cap.size;
+			paint(Rectangle rect) {
+			    graphics {
+				gsave();
+				moveto(0,0);
+				showimage(cap, 0.8);
+				grestore();
+			    }
+			}
+		    };
+		    e.location.x += screenloc.x;
+		    e.location.y += screenloc.y;
+		    window = new JWindow {
+			int autodispose = 1;
+			Image backgroundimage = capture;
+			Dimension size = capture.size;
+		    };
+		    window.location = e.location;
+		    window.visible = 1;
+		} else {
+		    e.location.x += screenloc.x;
+		    e.location.y += screenloc.y;
+		    window.location = e.location;
+		}
+	    } else {
+		screenloc = NULL;
+		capture = NULL;
+		if (window != NULL) {
+		    window.visible = 0;
+		    window = NULL;
+		}
+	    }
+	}
+
+	mouseReleased(e) {
+	    Dictionary dict = NULL;
+	    Object     scr = NULL;
+	    String     builder;
+
+	    if ((e.modifiers&SHIFT_MASK) == SHIFT_MASK) {
+		if (capture != NULL && !pointInRect(e.location, location.x, location.y, size.width, size.height)) {
+		    if (defined("builder", root) && root.builder != NULL)
+			builder = root.builder;
+		    else builder = root.screenname;
+		    dict = LoadScreen(builder);
+		    if (dict != NULL && dict.Builder != NULL) {
+			try {
+			    scr = dict.Builder(builder, root.screenargs);
+			    LoadArgs(scr, root.screenargs);
+			    if (defined("screencolor", scr) && scr.screencolor != NULL)
+				scr.background = scr.screencolor;
+			    else if (defined("parent", scr) && scr.parent != NULL)
+				scr.background = scr.parent.background;
+			}
+			catch(e) {
+			    scr = NULL;
+			    return(TRUE);
+			}
+			if (scr != NULL) {
+			    Dictionary surrogate[20,...];
+			    Hashtable  skiptable = {
+				Array pairs = {
+				    "components",   NULL,
+				    "cursor",       NULL,
+				    "etc",          NULL,
+				    "focusowner",   NULL,
+				    "graphics",     NULL,
+				    "layer",        NULL,
+				    "location",     NULL,
+				    "major",        NULL,
+				    "minor",        NULL,
+				    "nextcard",     NULL,
+				    "nextfocus",    NULL,
+				    "paint",        NULL,
+				    "popup",        NULL,
+				    "preferredsize",NULL,
+				    "repaint",      NULL,
+				    "requestfocus", NULL,
+				    "root",         NULL,
+				    "showing",      NULL,
+				    "size",         NULL,
+				    "title",        NULL,
+				    "uimkey",       NULL,
+				    "validate",     NULL,
+				    "visible",      NULL,
+				};
+			    };
+			    Object pane;
+			    Regexp re = {
+				String pattern = "^[A-Z]";
+			    };
+
+			    if (defined("InitializeScreen", scr.components[selected.tag]))
+				scr.components[selected.tag].InitializeScreen();
+			    if (defined("LoadScreen", scr.components[selected.tag]))
+				scr.components[selected.tag].LoadScreen();
+
+			    pane = selected;
+			    Array tmplay = layout;
+			    for (ptr in tmplay) {
+				if (*ptr == pane) {
+				    *ptr = scr.components[selected.tag];
+				    scr.layout = NULL;
+				    break;
+				}
+			    }
+			    layout = tmplay; // reinstalls it
+			    selected = pane.tag;
+			    for (ptr in pane) {
+				if (skiptable.contains(*ptr@nameof))
+				    continue;
+				surrogate[*ptr@nameof] = pane[*ptr@nameof];
+			    }
+			    if (!defined("screentitle", pane) && defined("title", pane))
+				surrogate.screentitle = strfmt("%s: %s", ACRONYM, pane.title);
+			    String name = strfmt("%s_%s_%s", builder, pane.tag, toString(time()));
+			    e.location.x += screenloc.x;
+			    e.location.y += screenloc.y;
+			    surrogate {
+				Point screenlocation = e.location;
+				SetScreenLocation(Point l) {
+				    location = screenlocation;
+				}
+				int disposeonclose = TRUE;
+			    }
+			    root.validate = 1;
+			    QueueCommand(this, GetAndShowScreen,
+				 name, "pane2screen",
+				 "parent", defined("parent", root) && root.parent != NULL ? root.parent : root,
+				 "dictionary", surrogate
+			    );
+			    //
+			    // Seems to be needed to make sure date panels
+			    // are properly initialized. Didn't really try
+			    // to track the bad behavior down, so there may
+			    // be a better solution - later.
+			    //
+			    selected.ClearScreen();
+			}
+		    }
+		}
+	    }
+	    finally {
+		dict = NULL;
+		if (scr != NULL) {
+		    if (defined("HideScreen", scr))
+			scr.HideScreen = NULL;
+		    if (defined("windowClosed", scr))
+			scr.windowClosed = NULL;
+		    if (defined("windowClosing", scr))
+			scr.windowClosing = NULL;
+		    scr.dispose = 1;
+		    scr = NULL;
+		}
+		screenloc = NULL;
+		capture = NULL;
+		if (window != NULL) {
+		    window.visible = 0;
+		    window = NULL;
+		}
+	    }
+	}
+
+	stateChanged(e) {
+	    if (defined("StateChanged", root))
+		root.StateChanged(e);
+	}
+    };
+
+    for (ptr = &layout + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+    return(new JTabbedPane initializer);
+}
+
+NewJTable(String tag, Object inputfilter, int scroll, Object dragcolumns, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    initializer = new Dictionary[27, ...] {
+	String tag = tag;
+	Object inputfilter = inputfilter;
+	Object outputfilter = " ";
+	Object font = GetPreferredTableFont();
+	Object altfont = GetPreferredTableHeadingFont();
+	Object dragcolumns = dragcolumns;
+	Object transferhandler = NULL;		// required for custom drag and drop
+	int    scroll = scroll;
+	int    reorder = 1;
+	int    resize = 1;
+	Color  gridcolor = GetPreferredTableGridColor();
+	Color  background = GetPreferredTableBackground();
+	Color  foreground = GetPreferredTableForeground();
+
+	Array altbackground = GetPreferredTableHeaderBackgrounds();
+	Array altforeground = GetPreferredTableHeaderForegrounds();
+	Array cellcolors = GetPreferredTableCellColors();
+	Array dfltcellcolors = cellcolors;
+
+	Function TableLoader = TableLoader;
+	Function invocationAction = TableSorter;
+	Function dragGestureRecognized = TableDragGestureRecognized;
+	Function adjustmentValueChanged = AdjustmentValueChanged;
+
+	int retainstate = TRUE; 
+	int initialized = FALSE;
+
+	TableDragAdjustment(String transfertext) {
+	    if (transfertext != NULL)
+		transfertext = replace(transfertext, '\n', *inputfilter);
+	    return(transfertext);
+	}
+
+	SetScrollStatus(String range) {
+	    String fldtag = tag + "_rowinfo";
+	    if (defined(fldtag, root.components)) {
+		if (range == NULL) {
+		    if (rows == 0)
+			root.components[fldtag].text = "";
+		    else root.components[fldtag].text = strfmt("%d", rows);
+		} else root.components[fldtag].text = strfmt("[ %s ] of %d", range, rows);
+	    }
+	}
+
+	SetDragState(int state, ...) {
+	    int cellwise = TRUE;
+	    if (state < 0 || (argc > 2 && argv[2] instanceof int)) {
+		cellwise = argv[2];
+		state = -state;
+	    }
+	    dragGestureRecognized = state ? (cellwise ? DragGestureRecognized : TableDragGestureRecognized) : NULL;
+	}
+
+	mouseMoved(e) {
+	    Dictionary result;
+
+	    if (e.modifiers & CTRL_MASK) {
+		result = action(FIND_CELL_AT, e.location);
+		if (result.valuesRow >= 0 && result.valuesColumn >= 0)
+		    CopyToClipboardScreen(action(GET_FIELD, result.valuesRow, result.valuesColumn, "view"));
+	    }
+	}
+
+	// when argument is provided, it is used to reload the table data
+	SyncTableView(...) {
+	    Array  rowsel;
+	    int    row;
+
+	    //
+	    // note: of course a table load could complete change the table, so a developer
+	    // should only use this function instead of directly using TableLoader in those
+	    // instances where retaining a singlet selection is desired.
+	    //
+	    rowsel = action(GET_ROW_SELECTION);
+	    row = (rowsel@sizeof > 0) ? rowsel[0].valuesRow : -1;
+	    if (argc == 2)
+		TableLoader(argv[1] == NULL ? NULL : (argv[1] instanceof String ? argv[1] : &argv[1]));
+	    else invocationAction(NULL); // really Global.TableSorter
+	    if (row >= 0) {
+		if ((row = action(GET_ROW_VIEW_INDEX, row)) >= 0)
+		    action(SET_ROW_SELECTION, row, "on");
+	    }
+	}
+    };
+
+    //
+    // We eventually may add some error checking here.
+    //
+
+    for (ptr = &dragcolumns + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+
+    //
+    // This is a recent addition that saves the original columns array so
+    // any extra fields defined in the JTableColumns don't disappear when
+    // the JTable is created. It's definitely a kludge that we eventually
+    // may address in the Yoix interpreter's JTable Java code.
+    //
+
+    if (defined("original_columns", initializer) && defined("columns", initializer)) {
+	if (initializer.original_columns == NULL)
+	    initializer.original_columns = initializer.columns;
+    }
+
+    return(new JTable initializer);
+}
+
+NewJTableWithSearch(String basetag, Object inputfilter, int scroll, Object dragcolumns, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    Object tabletags = basetag;
+    int    cellwise = defined("cellwise", this) ? this.cellwise : TRUE;
+
+    initializer = new Dictionary[39, ...] {
+	String basetag = basetag;
+	String tag = basetag;
+	Object inputfilter = inputfilter;
+	Object outputfilter = " ";
+	Object font = GetPreferredTableFont();
+	Object altfont = GetPreferredTableHeadingFont();
+	Object dragcolumns = dragcolumns;
+	Object transferhandler = NULL;		// required for custom drag and drop
+	int    scroll = scroll;
+	int    reorder = 1;
+	int    resize = 1;
+	Color  gridcolor = GetPreferredTableGridColor();
+	Color  background = GetPreferredTableBackground();
+	Color  foreground = GetPreferredTableForeground();
+
+	Array altbackground = GetPreferredTableHeaderBackgrounds();
+	Array altforeground = GetPreferredTableHeaderForegrounds();
+	Array cellcolors = GetPreferredTableCellColors();
+	Array dfltcellcolors = cellcolors;
+
+	Function TableLoader = TableLoader;
+	Function invocationAction = TableSorter;
+	Function dragGestureRecognized = TableDragGestureRecognized;
+
+	Function GlobalAdjustmentValueChanged = AdjustmentValueChanged;
+
+	int include_hidden = FALSE;
+	int cellwise = cellwise;
+	int adjusting = FALSE; // for syncing filter
+	int initialized = FALSE;
+
+	TableDragAdjustment(String transfertext) {
+	    if (transfertext != NULL)
+		transfertext = gsubsti((inputfilter instanceof Array ? "|" : inputfilter), "[\r\n]+", transfertext);
+	    return(transfertext);
+	}
+
+	SetDragState(int state, ...) {
+	    int cellwise = TRUE;
+	    if (state < 0 || (argc > 2 && argv[2] instanceof int)) {
+		cellwise = argv[2];
+		state = -state;
+	    }
+	    dragGestureRecognized = state ? (cellwise ? DragGestureRecognized : TableDragGestureRecognized) : NULL;
+	}
+
+	SetScrollStatus(String range) {
+	    if (range == NULL) {
+		if (rows == 0)
+		    root.components[basetag + "_rowinfo"].text = "";
+		else root.components[basetag + "_rowinfo"].text = strfmt("%d", rows);
+	    } else root.components[basetag + "_rowinfo"].text = strfmt("[ %s ] of %d", range, rows);
+	}
+
+	SyncToolTipText() {
+	    root.components[basetag + "_dnd"].SyncToolTipText();
+	}
+
+	mouseMoved(e) {
+	    Dictionary result;
+
+	    if (e.modifiers & CTRL_MASK) {
+		result = action(FIND_CELL_AT, e.location);
+		if (result.valuesRow >= 0 && result.valuesColumn >= 0)
+		    CopyToClipboardScreen(
+			e.modifiers & SHIFT_MASK ?
+			GetTableRowFromColumn(this, result.valuesRow, result.valuesColumn, ((e.modifiers&ALT_MASK) != ALT_MASK))
+			:
+			action(GET_FIELD, result.valuesRow, result.valuesColumn, "view")
+		    );
+	    }
+	}
+
+	SyncSizes(JTable master, JTable slave) {
+	    double w;
+	    int v, m, n;
+
+	    if (master.size.height > master.viewport.height) {
+		if (slave.scrollmode == slave.scrollinit) {
+		    slave.scrollmode = slave.scrollvert;
+		    slave.scroll = slave.scrollvert;
+		}
+	    } else {
+		if (slave.scrollmode == slave.scrollvert) {
+		    slave.scrollmode = slave.scrollinit;
+		    slave.scroll = slave.scrollinit;
+		}
+	    }
+	    if (slave.width != master.width) {
+		slave.filtertext = master.GenFilterText(master.width, slave.inputfilter);
+		slave.text = slave.filtertext;
+	    }
+	    for (n = 0; n < master.width; n++) {
+		w = master.action(GET_COLUMN_FIELD, n, "width");
+		v = master.action(GET_COLUMN_VIEW_INDEX, n);
+		m = slave.action(GET_COLUMN_DATA_INDEX, v);
+		slave.action(SET_COLUMN_FIELD, m, "width", w);
+		slave.action(SET_COLUMN_FIELD, m, "visible", master.action(GET_COLUMN_FIELD, n, "visible"));
+	    }
+	    if (slave.negation@length != slave.width || slave.width != master.width) {
+		// could do more here (e.g., use old values were appropriate)
+		slave.negation = new Array[slave.width];
+		for (n = 0; n < slave.width; n++) {
+		    slave.negation[n] = FALSE;
+		    slave.action(SET_COLUMN_FIELD, n, "background", slave.background);
+		    slave.action(SET_COLUMN_FIELD, n, "foreground", slave.foreground);
+		    slave.action(SET_COLUMN_FIELD, n, "selectionbackground", slave.selectionbackground);
+		    slave.action(SET_COLUMN_FIELD, n, "selectionforeground", slave.selectionforeground);
+		    slave.action(SET_COLUMN_FIELD, n, "editbackground", slave.editbackground);
+		    slave.action(SET_COLUMN_FIELD, n, "editforeground", slave.editforeground);
+		}
+	    }
+	}
+
+	invocationChange(e) {
+	    switch (e.change) {
+	    case "resize":
+	        if (e.viewColumn >= 0)
+		    root.components[basetag].SyncSizes(this, root.components[basetag+"_filter"]);
+	        break;
+	    case "drag":
+	        root.components[basetag+"_filter"].action(MOVE_COLUMN, e.fromViewColumn, e.toViewColumn);
+	    break;
+	    }
+	}
+
+	adjustmentValueChanged(e) {
+
+	    if (e.orientation == HORIZONTAL) {
+		adjusting = TRUE;
+
+		if (!root.components[basetag+"_filter"].adjusting)
+		    root.components[basetag+"_filter"].origin = new Point { double x = origin.x; int y = 0; };
+		adjusting = FALSE;
+	    } else GlobalAdjustmentValueChanged(e);
+	}
+
+	componentResized(e) {
+	    root.components[basetag].SyncSizes(root.components[basetag], root.components[basetag+"_filter"]);
+	}
+
+	Filter() {
+	    Array   vizinfo;
+	    Array   colcells;
+	    Array   filters;
+	    Array   negation;
+	    Array   reflags;
+	    Regexp  re;
+	    JTable  tab = root.components[basetag];
+	    JTable  flt = root.components[basetag+"_filter"];
+	    int     m, n;
+	    int     usepat;
+	    int     flags;
+	    int     width;
+	    int     negate;
+
+	    flt.action(EDIT_STOP);
+
+	    save cursor = Cursor.WAIT_CURSOR;
+	    flags = FilterTableREFlags(root, basetag);
+
+	    reflags = (defined("reflags", flt) && flt.reflags instanceof Array) ? flt.reflags : NULL;
+
+	    filters = strsplit(flt.text, flt.outputfilter[0]);
+
+	    //
+	    // A recent addition that's really only needed when the visiblity
+	    // of columns in the table can change.
+	    //
+	    for (ptr in columns) {
+		if (!ptr[0].visible)
+		    filters[ptr@offset] = "";
+	    }
+
+	    negation = flt.negation;
+	    tab.action(ROW_VISIBILITY, 1); // would only apply to existing set if omitted
+	    vizinfo = new Array[tab.rows];
+	    for (ptr in vizinfo)
+		*ptr = 1;
+	    for (ptr in filters) {
+		*ptr = trim(*ptr);
+		usepat = (*ptr !== "");
+		if (usepat) {
+		    re = regexp(*ptr, (reflags != NULL && reflags@sizeof > ptr@offset && reflags[ptr@offset] != NULL) ? reflags[ptr@offset] : flags);
+		    negate = flt.negation[ptr@offset];
+		    colcells = linesplit(tab.action(GET_COLUMN_FIELD, ptr@offset, "text", TRUE, TRUE), TRUE);
+		    for (ptr2 in colcells) {
+			if (vizinfo[n = ptr2@offset]) {
+			    if (negate)
+				vizinfo[n] = !regexec(re, *ptr2);
+			    else vizinfo[n] = regexec(re, *ptr2);
+			}
+		    }
+		}
+	    }
+	    if (vizinfo@sizeof > 0)
+		tab.action(ROW_VISIBILITY, vizinfo, "view");
+
+	    if (defined("FilterPostProcess", tab))
+		tab.FilterPostProcess(flt); // should we queue this or leave it to the user?
+	}
+
+	ResetFilter() {
+	    Array  savedvalues = {
+	        root.components[basetag+"_filter"].text,
+	        new Array[] root.components[basetag+"_filter"].negation
+	    };
+
+	    root.components[basetag+"_filter"].action(EDIT_STOP);
+	    root.components[basetag+"_filter"].text = root.components[basetag+"_filter"].filtertext;
+	    for (ptr in root.components[basetag+"_filter"].negation) {
+		if (*ptr)
+		    root.components[basetag + "_filter"].FlipNegation(ptr@offset);
+	    }
+	    Filter();
+	    if (defined("UserResetFilter", root.components[basetag]))
+		root.components[basetag].UserResetFilter();
+
+	    return(savedvalues);
+	};
+
+	GenFilterText(int n, String sep) {
+	    Array    types[n];
+	    String   text;
+	    int      i;
+
+	    text = "";
+	    for (i = 1; i < n; i++)
+		text += sep;
+	    //
+	    // Older version did
+	    //
+	    //     return(text + "\n");
+	    //
+	    // but we changed it in a standalone project and that change
+	    // seems to behave properly. Very small chance you will have
+	    // to back this out.
+	    //
+	    return(text);
+	}
+
+	HideButtons(...) {
+	    for (ptr in argv+1) {
+		if (ptr[0] instanceof String) {
+		    switch(toUpperCase(ptr[0])) {
+			case "DND":
+			    root.components[basetag+"_dnd"].visible = FALSE;
+			    break;
+
+			case "EXPORT":
+			    root.components[basetag+"_export_label"].visible = FALSE;
+			    break;
+
+			case "FILTER":
+			    root.components[basetag+"_filter_label"].visible = FALSE;
+			    break;
+
+			case "RESET":
+			    root.components[basetag+"_reset_label"].visible = FALSE;
+			    break;
+
+			case "SEARCH":
+			    root.components[basetag+"_search_label"].visible = FALSE;
+			    break;
+		    }
+		}
+	    }
+	}
+
+	String filtertext;
+
+	// when argument is provided, it is used to reload the table data
+	SyncTableView(...) {
+	    Array  rowsel;
+	    Object panel = root.components[basetag + "_card"];
+	    int    row;
+
+	    //
+	    // note: of course a table load could complete change the table, so a developer
+	    // should only use this function instead of directly using TableLoader in those
+	    // instances where retaining a singlet selection is desired.
+	    //
+	    rowsel = action(GET_ROW_SELECTION);
+	    row = (rowsel@sizeof > 0) ? rowsel[0].valuesRow : -1;
+	    if (argc == 2)
+		TableLoader(argv[1] == NULL ? NULL : (argv[1] instanceof String ? argv[1] : &argv[1]));
+	    else {
+		if (panel.visible && panel.cardtag === (basetag + "_filter"))
+		    Filter();
+		invocationAction(NULL); // really Global.TableSorter
+	    }
+	    if (row >= 0) {
+		if ((row = action(GET_ROW_VIEW_INDEX, row)) >= 0)
+		    action(SET_ROW_SELECTION, row, "on");
+	    }
+	}
+    };
+
+    //
+    // We eventually may add some error checking here.
+    //
+
+    for (ptr = &dragcolumns + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+
+    //
+    // This is a recent addition that saves the original columns array so
+    // any extra fields defined in the JTableColumns don't disappear when
+    // the JTable is created. It's definitely a kludge that we eventually
+    // may address in the Yoix interpreter's JTable Java code.
+    //
+
+    if (defined("original_columns", initializer) && defined("columns", initializer)) {
+	if (initializer.original_columns == NULL)
+	    initializer.original_columns = initializer.columns;
+    }
+
+    JTable jt = new JTable initializer;
+
+    JPanel jp = {
+	String basetag = basetag;
+	String tag = basetag + "_base";
+	Color  foreground = GetPreferredForeground();
+
+	GridBagLayout layoutmanager = {
+	    int columns = 1;
+	};
+
+	Array layout = {
+	    jt,
+	    BOTH,
+	    new JPanel {
+		String     basetag = basetag;
+		String     tag = basetag + "_card";
+		CardLayout layoutmanager;
+		int        visible = FALSE;
+		String     cardtag = basetag + "_filter"; // default is first panel
+
+		Array layout = {
+		    new JTable {
+			String basetag = basetag;
+			String tag = basetag + "_filter";
+			int    reorder = 0;
+			int    rows = 1;
+			int    resize = 0;
+			int    scrollinit = NONE;
+			int    scrollvert = HORIZONTAL_NEVER|VERTICAL_ALWAYS;
+			int    scrollmode = scrollinit;
+			int    scroll = scrollmode;
+			int    resizemode = AUTO_RESIZE_OFF;
+			int    rowheightadjustment = -1;
+			int    edit = 1;
+			int    adjusting = FALSE; // used when syncing filter with table
+
+			Array  negation;
+			Array  reflags;
+
+			Object font = GetPreferredTableFont();
+			Color  gridcolor = GetPreferredTableGridColor();
+			Color  selectionbackground = GetPreferredTableFilterSelectionBackground();
+			Color  selectionforeground = GetPreferredTableFilterSelectionForeground();
+			Array  bfcolors = GetPreferredTableFilterCellColors();
+			Color  background = bfcolors[0];
+			Color  foreground = bfcolors[1];
+			Color  editbackground = bfcolors[0];
+			Color  editforeground = bfcolors[1];
+			int    useedithighlight = FALSE;
+
+			Object dragcolumns = NULL;
+			Object transferhandler = NULL;
+
+			int retainstate = FALSE;
+
+			String inputfilter = "\t";
+			String outputfilter = "\t";
+
+			String filtertext = jt.GenFilterText(jt.width, inputfilter);
+			String text = filtertext;
+
+			Dictionary lastcell = {
+			    int valuesColumn = -1;
+			    int valuesRow = -1;
+			};
+
+			Function dragEnter = DragEnter;
+			Function Drop = Drop;
+
+			drop(e) {
+			    int accepted;
+
+			    if (accepted = Drop(e))
+				root.components[basetag].Filter();
+			    return(accepted);
+			}
+
+			invocationEdit(e) {
+			    root.components[basetag].Filter();
+			}
+
+			adjustmentValueChanged(e) {
+
+			    if (e.orientation == HORIZONTAL) {
+				adjusting = TRUE;
+
+				if (!root.components[basetag].adjusting)
+				    root.components[basetag].origin = new Point { double x = origin.x; int y = 0; };
+				adjusting = FALSE;
+			    }
+			}
+
+			FlipNegation(int column) {
+			    Color bk, fg;
+
+			    negation[column] = !negation[column];
+			    bk = action(GET_COLUMN_FIELD, column, "editbackground");
+			    if (bk == null)
+				bk = editbackground;
+			    fg = action(GET_COLUMN_FIELD, column, "editforeground");
+			    if (fg == null)
+				fg = editforeground;
+			    action(SET_COLUMN_FIELD, column, "editbackground", fg);
+			    action(SET_COLUMN_FIELD, column, "editforeground", bk);
+			    bk = action(GET_COLUMN_FIELD, column, "background");
+			    if (bk == null)
+				bk = background;
+			    fg = action(GET_COLUMN_FIELD, column, "foreground");
+			    if (fg == null)
+				fg = foreground;
+			    action(SET_COLUMN_FIELD, column, "background", fg);
+			    action(SET_COLUMN_FIELD, column, "foreground", bk);
+			    bk = action(GET_COLUMN_FIELD, column, "selectionbackground");
+			    if (bk == null)
+				bk = selectionbackground;
+			    fg = action(GET_COLUMN_FIELD, column, "selectionforeground");
+			    if (fg == null)
+				fg = selectionforeground;
+			    action(SET_COLUMN_FIELD, column, "selectionbackground", fg);
+			    action(SET_COLUMN_FIELD, column, "selectionforeground", bk);
+			}
+
+
+			invocationEditKey(e) {
+			    if (e.keyevent == KEYRELEASED && e.keycode == KeyCode.VK_ALT) {
+				FlipNegation(e.valuesColumn);
+				root.components[basetag].Filter();
+			    }
+			}
+		    },
+		    new JPanel {
+			GridBagLayout layoutmanager;
+			String        tag = basetag + "_search";
+
+			Array layout = {
+			    NewJTextField(basetag + "_find_text", NULL, 15, new Dictionary {
+				String basetag = basetag;
+				int alignment = LEFT;
+
+				Function KeyPressed = KeyPressed;
+				Function keyTyped = NULL;		// remove KeyTyped for focus control
+
+				actionPerformed(e) {
+				    SearchTableFindText(root.components[basetag], root, basetag, text, TRUE);
+				    root.components[basetag + "_next"].requestfocus = TRUE;
+				}
+
+				keyPressed(e) {
+				    foreground = NULL;
+				    KeyPressed(e);
+				}
+			    }),
+			    new GridBagConstraints {
+				Insets insets = GetQualifiedInsets(72.0/32, "R");
+				int anchor = LEFT;
+				int weightx = 1;
+				int fill = HORIZONTAL;
+			    },
+			    new JButton {
+				String basetag = basetag;
+				String tag = basetag + "_prev";
+				Object font = GetPreferredButtonFont();
+				Image  icon = GetButtonLeftIcon(font, Color.black, 0.9);
+				String rowwise = "Find next match searching backward row-wise";
+				String colwise = "Find next match searching up column-wise";
+				String tooltiptext = rowwise;
+				Insets insets = GetPreferredSmallButtonInsets();
+
+				actionPerformed(e) {
+				    SearchTableFindText(root.components[basetag], root, basetag, root.components[basetag + "_find_text"].text, FALSE);
+				}
+			    },
+			    new GridBagConstraints {
+				int anchor = LEFT;
+			    },
+			    new JButton {
+				String basetag = basetag;
+				String tag = basetag + "_next";
+				Object font = GetPreferredButtonFont();
+				Image  icon = GetButtonRightIcon(font, Color.black, 0.9);
+				String rowwise = "Find next match searching forward row-wise";
+				String colwise = "Find next match searching down column-wise";
+				String tooltiptext = rowwise;
+				Insets insets = GetPreferredSmallButtonInsets();
+
+				actionPerformed(e) {
+				    SearchTableFindText(root.components[basetag], root, basetag, root.components[basetag + "_find_text"].text, TRUE);
+				}
+			    },
+			    new GridBagConstraints {
+				int anchor = LEFT;
+			    },
+			    new JCheckBox {
+				String basetag = basetag;
+				String tag = basetag + "_colwise";
+				String text = "Columns";
+				Object font = GetPreferredLabelFont();
+				int alignment = LEFT;
+				String tooltiptext = "Search column-wise rather than row-wise";
+
+				stateChanged(e) {
+				    if (state) {
+					root.components[basetag + "_prev"].icon = GetButtonUpIcon(root.components[basetag + "_prev"].font, Color.black, 0.9);
+					root.components[basetag + "_next"].icon = GetButtonDownIcon(root.components[basetag + "_prev"].font, Color.black, 0.9);
+					root.components[basetag + "_prev"].tooltiptext = root.components[basetag + "_prev"].colwise;
+					root.components[basetag + "_next"].tooltiptext = root.components[basetag + "_next"].colwise;
+				    } else {
+					root.components[basetag + "_prev"].icon = GetButtonLeftIcon(root.components[basetag + "_prev"].font, Color.black, 0.9);
+					root.components[basetag + "_next"].icon = GetButtonRightIcon(root.components[basetag + "_prev"].font, Color.black, 0.9);
+					root.components[basetag + "_prev"].tooltiptext = root.components[basetag + "_prev"].rowwise;
+					root.components[basetag + "_next"].tooltiptext = root.components[basetag + "_next"].rowwise;
+				    }
+				}
+			    },
+			    new GridBagConstraints {
+				int anchor = RIGHT;
+			    },
+			    new JCheckBox {
+				String basetag = basetag;
+				String tag = basetag + "_case_sensitive";
+				String text = "Case";
+				Object font = GetPreferredLabelFont();
+				int alignment = LEFT;
+				String tooltiptext = "Make searching or filtering case-sensitive";
+			    },
+			    new GridBagConstraints {
+				int anchor = RIGHT;
+			    },
+			    new JCheckBox {
+				String basetag = basetag;
+				String tag = basetag + "_glob_pattern";
+				String text = "GLOB";
+				Object font = GetPreferredLabelFont();
+				int alignment = LEFT;
+				String tooltiptext = "Use GLOB (i.e., shell) pattern for search and filter";
+
+				stateChanged(e) {
+				    if (state)
+					root.components[basetag + "_re_pattern"].state = 0;
+				}
+			    },
+			    new GridBagConstraints {
+				int gridwidth = RELATIVE;
+				int anchor = RIGHT;
+			    },
+			    new JCheckBox {
+				String basetag = basetag;
+				String tag = basetag + "_re_pattern";
+				String text = "RE";
+				Object font = GetPreferredLabelFont();
+				int alignment = LEFT;
+				String tooltiptext = "Use regular expression (i.e., grep) pattern for search and filter";
+
+				stateChanged(e) {
+				    if (state)
+					root.components[basetag + "_glob_pattern"].state = 0;
+				}
+			    },
+			    new GridBagConstraints {
+				int gridwidth = REMAINDER;
+				int anchor = RIGHT;
+			    },
+			};
+		    },
+		};
+
+		componentShown(e) {
+		    root.components[basetag].SyncSizes(root.components[basetag], root.components[basetag+"_filter"]);
+		}
+
+		SetPanel(String tag) {
+		    nextcard = root.components[cardtag = tag];
+		    if (tag === (basetag + "_filter"))
+			root.components[basetag+"_search_label"] {
+			    icon = up_norm;
+			    tooltiptext = "Show table search pane";
+			}
+		    else
+			root.components[basetag+"_filter_label"] {
+			    icon = up_norm;
+			    tooltiptext = "Show table filter pane";
+			}
+		}
+	    },
+	    HORIZONTAL,
+	    new JPanel{
+		GridBagLayout layoutmanager;
+
+		Array layout = {
+		    // seems like these commented items are not needed after
+		    // BOTTOMLEFT change below
+		    // new JLabel {},
+		    // new Dictionary {
+			// int gridx = 1;
+			// int gridy = 1;
+			// int weightx = 1;
+			// int anchor = BOTTOM;
+		    // },
+		    new JPanel {
+			GridBagLayout layoutmanager = {
+			    double hgap = 72.0/16;
+			};
+
+			Array layout = {
+			    new JLabel {
+				String basetag = basetag;
+				String tag = basetag + "_filter_label";
+				String text = "Filter";
+				Object font = GetPreferredTitledBorderFont();
+				int    alignment = LEFT;
+				Image  down_norm     = GetButtonDownIcon(font, Color.gray, 0.8);
+				Image  down_pressed  = GetButtonDownIcon(font, Color.black, 0.8);
+				Image  down_over     = GetButtonDownIcon(font, Color.sgigray96, 0.8);
+				Image  up_norm       = GetButtonUpIcon(font, Color.gray, 0.8);
+				Image  up_pressed    = GetButtonUpIcon(font, Color.black, 0.8);
+				Image  up_over       = GetButtonUpIcon(font, Color.sgigray96, 0.8);
+				Image  icon = up_norm;
+				int    pressed;
+				Point  presspoint = NULL;
+				String tooltiptext = "Show table filter pane";
+				String paneltag = basetag + "_filter";
+				String cardpanel = basetag + "_card";
+
+				Array savedvalues = NULL;
+
+				mouseEntered(e) {
+				    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+					icon = down_over;
+				    else icon = up_over;
+				}
+
+				mouseExited(e) {
+				    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+					icon = down_norm;
+				    else icon = up_norm;
+				}
+
+				mousePressed(e) {
+				    presspoint = e.location;
+				    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+					icon = down_pressed;
+				    else icon = up_pressed;
+				}
+
+				mouseDragged(e) {
+				    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+					CancelMousePressed();
+				}
+
+				mouseReleased(e) {
+				    int viz;
+				    if (presspoint != NULL) {
+					viz = !(root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag);
+					if (viz) {
+					    if (savedvalues != NULL) {
+						for (ptr in root.components[basetag+"_filter"].negation) {
+						    if (*ptr != savedvalues[1][ptr@offset]) {
+							root.components[basetag+"_filter"].FlipNegation(ptr@offset);
+						    }
+						}
+
+						root.components[basetag+"_filter"].text = savedvalues[0];
+						root.components[basetag+"_filter"].negation = savedvalues[1];
+						savedvalues = NULL;
+					    }
+					    root.components[basetag].action(EDIT_STOP);		// added on 10/13/2010
+					    root.components[cardpanel].SetPanel(paneltag);
+					    root.components[basetag].Filter();
+					} else {
+					    root.components[basetag].action(EDIT_STOP);		// added on 10/13/2010
+					    savedvalues = root.components[basetag].ResetFilter();
+					}
+					root.components[cardpanel].visible = viz; // must come before CancelMousePressed
+					tooltiptext = (viz ? "Hide" : "Show") + " table filter pane";
+					CancelMousePressed();
+				    }
+				}
+
+				CancelMousePressed() {
+				    presspoint = NULL;
+				    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+					icon = down_norm;
+				    else icon = up_norm;
+				}
+			    },
+			    LEFT,
+			    new JLabel {
+				String basetag = basetag;
+				String tag = basetag + "_search_label";
+				String text = "Search";
+				Object font = GetPreferredTitledBorderFont();
+				int    alignment = LEFT;
+				Image  down_norm     = GetButtonDownIcon(font, Color.gray, 0.8);
+				Image  down_pressed  = GetButtonDownIcon(font, Color.black, 0.8);
+				Image  down_over     = GetButtonDownIcon(font, Color.sgigray96, 0.8);
+				Image  up_norm       = GetButtonUpIcon(font, Color.gray, 0.8);
+				Image  up_pressed    = GetButtonUpIcon(font, Color.black, 0.8);
+				Image  up_over       = GetButtonUpIcon(font, Color.sgigray96, 0.8);
+				Image  icon = up_norm;
+				int    pressed;
+				Point  presspoint = NULL;
+				String tooltiptext = "Show table search pane";
+				String paneltag = basetag + "_search";
+				String cardpanel = basetag + "_card";
+
+				mouseEntered(e) {
+				    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+					icon = down_over;
+				    else icon = up_over;
+				}
+
+				mouseExited(e) {
+				    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+					icon = down_norm;
+				    else icon = up_norm;
+				}
+
+				mousePressed(e) {
+				    presspoint = e.location;
+				    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+					icon = down_pressed;
+				    else icon = up_pressed;
+				}
+
+				mouseDragged(e) {
+				    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+					CancelMousePressed();
+				}
+
+				mouseReleased(e) {
+				    int viz;
+				    if (presspoint != NULL) {
+					viz = !(root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag);
+					if (viz)
+					    root.components[cardpanel].SetPanel(paneltag);
+					else root.components[basetag + "_filter_label"].savedvalues = root.components[basetag].ResetFilter();
+					root.components[cardpanel].visible = viz; // must come before CancelMousePressed
+					tooltiptext = (viz ? "Hide" : "Show") + " table search pane";
+					CancelMousePressed();
+				    }
+				}
+
+				CancelMousePressed() {
+				    presspoint = NULL;
+				    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+					icon = down_norm;
+				    else icon = up_norm;
+				}
+			    },
+			    LEFT,
+			    new JLabel {
+				String basetag = basetag;
+				String tag = basetag + "_reset_label";
+				String text = "Reset";
+				Object font = GetPreferredTitledBorderFont();
+				int    alignment = LEFT;
+				Image  reset_norm     = GetButtonDiamondIcon(font, Color.gray, 0.8);
+				Image  reset_pressed  = GetButtonDiamondIcon(font, Color.black, 0.8);
+				Image  reset_over     = GetButtonDiamondIcon(font, Color.sgigray96, 0.8);
+				Image  icon = reset_norm;
+				int    pressed;
+				Point  presspoint = NULL;
+				String tooltiptext = "Reset the table to its original state";
+
+				mouseEntered(e) {
+				    icon = reset_over;
+				}
+
+				mouseExited(e) {
+				    icon = reset_norm;
+				}
+
+				mousePressed(e) {
+				    presspoint = e.location;
+				    icon = reset_pressed;
+				    // following needed here to get a proper reset
+				    root.components[basetag+"_filter"].action(EDIT_STOP);
+				}
+
+				mouseDragged(e) {
+				    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+					CancelMousePressed();
+				}
+
+				mouseReleased(e) {
+				    if (presspoint != NULL) {
+					SearchTableReset(root.components[basetag], root, basetag);
+					CancelMousePressed();
+				    }
+				}
+
+				CancelMousePressed() {
+				    presspoint = NULL;
+				    icon = reset_norm;
+				}
+			    },
+			    LEFT,
+			    new JLabel {
+				String basetag = basetag;
+				String tag = basetag + "_export_label";
+				String text = "Export";
+				Object font = GetPreferredTitledBorderFont();
+				int    alignment = LEFT;
+				Image  export_norm     = GetButtonDiamondIcon(font, Color.gray, 0.8);
+				Image  export_pressed  = GetButtonDiamondIcon(font, Color.black, 0.8);
+				Image  export_over     = GetButtonDiamondIcon(font, Color.sgigray96, 0.8);
+				Image  icon = export_norm;
+				int    pressed;
+				Point  presspoint = NULL;
+				String tooltiptext = "Convert table to a text format and open in a viewier";
+
+				JPopupMenu popupmenu = {
+				    Array items = {
+					new JMenuItem {
+					    String text = "Comma-Separated Values (CSV)";
+					    actionPerformed(e) {
+						Object jlabel = this.root;
+						QueueCommandOnce(
+						    jlabel.root,
+						    &GenerateTableCSV,
+						    jlabel.root.components[jlabel.basetag],
+						    jlabel.root,
+						    NULL,
+						    ProprietaryLabel,
+						    jlabel.root.components[jlabel.basetag].include_hidden
+						);
+					    }
+					},
+					new JMenuItem {
+					    String text = "Tab-Separated Values (TSV)";
+					    actionPerformed(e) {
+						Object jlabel = this.root;
+						QueueCommandOnce(
+						    jlabel.root,
+						    &GenerateTableTSV,
+						    jlabel.root.components[jlabel.basetag],
+						    jlabel.root,
+						    NULL,
+						    ProprietaryLabel,
+						    jlabel.root.components[jlabel.basetag].include_hidden
+						);
+					    }
+					},
+					new JMenuItem {
+					    String text = "Plain Text (TXT)";
+					    actionPerformed(e) {
+						Object jlabel = this.root;
+						QueueCommandOnce(
+						    jlabel.root,
+						    &GenerateTableTXT,
+						    jlabel.root.components[jlabel.basetag],
+						    jlabel.root,
+						    NULL,
+						    ProprietaryLabel,
+						    jlabel.root.components[jlabel.basetag].include_hidden
+						);
+					    }
+					},
+					new JMenuItem {
+					    String text = "HTML";
+					    actionPerformed(e) {
+						Object jlabel = this.root;
+						QueueCommandOnce(
+						    jlabel.root,
+						    &GenerateTableHTML,
+						    jlabel.root.components[jlabel.basetag],
+						    jlabel.root,
+						    NULL,
+						    ProprietaryLabel == NULL ? NULL : strfmt("<center><h2>%s</h2></center>", ProprietaryLabel),
+						    jlabel.root.components[jlabel.basetag].include_hidden
+						);
+					    }
+					},
+				    };
+				};
+
+				mouseEntered(e) {
+				    icon = export_over;
+				}
+
+				mouseExited(e) {
+				    icon = export_norm;
+				}
+
+				mousePressed(e) {
+				    presspoint = e.location;
+				    icon = export_pressed;
+				}
+
+				mouseDragged(e) {
+				    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+					CancelMousePressed();
+				}
+
+				mouseReleased(e) {
+				    if (presspoint != NULL) {
+					popupmenu.location = e.location;
+					popup = popupmenu;
+					CancelMousePressed();
+				    }
+				}
+
+				CancelMousePressed() {
+				    presspoint = NULL;
+				    icon = export_norm;
+				}
+			    },
+			    LEFT,
+			    new JLabel {
+				String basetag = basetag;
+				String tag = basetag + "_dnd";
+				Object font = GetPreferredTitledBorderFont();
+				int    alignment = LEFT;
+				Array  tabletags = (tabletags instanceof Array) ? tabletags : new Array { tabletags };
+				Image  dnd_norm     = GetButtonDiamondIcon(font, Color.gray, 0.8);
+				Image  dnd_pressed  = GetButtonDiamondIcon(font, Color.black, 0.8);
+				Image  dnd_over     = GetButtonDiamondIcon(font, Color.sgigray96, 0.8);
+				Image  icon = dnd_norm;
+				int    pressed;
+				Point  presspoint = NULL;
+				String tooltiptext = "Toggle " + (cellwise ? "cell-wise/row-wise" : "row-wise/cell-wise") + " drag and drop (DnD)";
+				String text = "DnD " + (cellwise ? "cells" : "rows");
+
+				mouseEntered(e) {
+				    icon = dnd_over;
+				}
+
+				mouseExited(e) {
+				    icon = dnd_norm;
+				}
+
+				mousePressed(e) {
+				    presspoint = e.location;
+				    icon = dnd_pressed;
+				}
+
+				mouseDragged(e) {
+				    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+					CancelMousePressed();
+				}
+
+				mouseReleased(e) {
+				    if (presspoint != NULL) {
+					if (root.components[basetag].cellwise) {
+					    root.components[basetag].cellwise = FALSE;
+					} else {
+					    root.components[basetag].cellwise = TRUE;
+					}
+					SyncToolTipText();
+					CancelMousePressed();
+				    }
+				}
+
+				CancelMousePressed() {
+				    presspoint = NULL;
+				    icon = dnd_norm;
+				}
+
+				SyncToolTipText() {
+
+				    int cellwise = root.components[basetag].cellwise;
+
+				    root.components[basetag].SetDragState(TRUE, cellwise);
+
+				    tooltiptext = "Toggle " + (cellwise ? "cell-wise/row-wise" : "row-wise/cell-wise") + " drag and drop (DnD)";
+				    text = "DnD " + (cellwise ? "cell" : "row");
+				}
+			    },
+			    LEFT,
+
+			    0.0,
+			};
+		    },
+		    new Dictionary {
+			int gridx = 1;
+			int gridy = 1;
+			int weightx = 1;
+			int anchor = BOTTOMLEFT;
+		    },
+		    // above was just (see also comment before panel above): BOTTOMLEFT,
+		    new JLabel {
+			String tag = basetag + "_rowinfo";
+			Object font = GetPreferredTitledBorderFont();
+			int    alignment = RIGHT;
+		    },
+		    BOTTOMRIGHT,
+		};
+	    },
+	    HORIZONTAL,
+	};
+    };
+    return(jp);
+}
+
+NewJTextArea(String tag, String text, int rows, int columns, int scroll, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    initializer = new Dictionary[17, ...] {
+	String tag = tag;
+	String text = text;
+	Insets insets = GetTextAreaInsets();
+	Object transferhandler = NULL;		// required for custom drag and drop
+	Color  background = GetPreferredTextBackground();
+	Color  foreground = GetPreferredTextForeground();
+	Object font = GetPreferredTextFont();
+	int    rows = rows;
+	int    columns = columns;
+	int    scroll = scroll;
+	int    textwrap = 1;
+	int    edit = TRUE;
+	int    opaque = TRUE;
+	int    caretmodel = 1;
+
+	Function keyPressed = KeyPressed;
+	Function keyTyped = KeyTyped;
+	Function dragGestureRecognized = DragGestureRecognized;
+	Function dragEnter = DragEnter;
+	Function drop = Drop;
+	Function mouseReleased = MouseReleased;
+    };
+
+    for (ptr = &scroll + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+    return(new JTextArea initializer);
+}
+
+NewJTextAreaWithTitle(String tag, String title, String text, int rows, int columns, int scroll, ...) {
+    Object comp = NewJTextArea(tag, text, rows, columns, scroll, unroll(&scroll + 1));
+
+    if (title != NULL) {
+	comp = new JPanel {
+	    String tag = tag + "_panel";
+	    Border border = NewEtchedBorder(title);
+
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		comp,
+		BOTH,
+	    };
+	};
+    }
+    return(comp);
+}
+
+NewJTextField(String tag, String text, int columns, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    initializer = new Dictionary[15, ...] {
+	String tag = tag;
+	String text = text;
+	Insets insets = GetTextFieldInsets();
+	Object transferhandler = NULL;		// required for custom drag and drop
+	Color  background = GetPreferredTextBackground();
+	Color  foreground = GetPreferredTextForeground();
+	Object font = GetPreferredTextFont();
+	int    autotrim = TRUE;
+	int    edit = TRUE;
+	int    lengthreq = 0;
+	int    columns = columns;
+	int    opaque = TRUE;
+	int    caretmodel = 1;
+
+	Function keyPressed = KeyPressed;
+	Function keyTyped = KeyTyped;
+	Function dragGestureRecognized = DragGestureRecognized;
+	Function dragEnter = DragEnter;
+	Function drop = Drop;
+	Function mouseReleased = MouseReleased;
+    };
+
+    for (ptr = &columns + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+    return(new JTextField initializer);
+}
+
+NewJTextPane(String tag, String text, int rows, int columns, int scroll, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    initializer = new Dictionary[17, ...] {
+	String tag = tag;
+	String text = text;
+	Insets insets = GetTextAreaInsets();
+	Object transferhandler = NULL;		// required for custom drag and drop
+	Color  background = GetPreferredTextBackground();
+	Color  foreground = GetPreferredTextForeground();
+	Object font = GetPreferredTextFont();
+	int    scroll = scroll;
+	//int    textwrap = 1;
+	int    edit = TRUE;
+	int    opaque = TRUE;
+	int    caretmodel = 1;
+
+	Dimension preferredsize = {
+	    double height = font.height * rows;
+	    double width = stringWidth(font, "W") * columns + VM.screen.pixelwidth; // kludge
+	};
+
+	Function keyPressed = KeyPressed;
+	Function keyTyped = KeyTyped;
+	Function dragGestureRecognized = DragGestureRecognized;
+	Function dragEnter = DragEnter;
+	Function drop = Drop;
+	Function mouseReleased = MouseReleased;
+    };
+
+    for (ptr = &scroll + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+    return(new JTextPane initializer);
+}
+
+NewLinkedLabel(...) {
+    Dictionary initializer = NULL;
+    Pointer    lptr;
+    Object     retval;
+    Object     labelfont;
+    Array      labels[0, ...];
+
+    if (argc > 1) {
+	addLabel(Dictionary initializer, Pointer ptr) {
+	    if (initializer != NULL) {
+		if (defined("dragtext", initializer))
+		    initializer.dragGestureRecognized = DragGestureRecognized;
+		*ptr++ = new JLabel initializer;
+	    }
+	    return(ptr);
+	}
+
+	lptr = labels;
+	if (*++argv instanceof Font)
+	    labelfont = *argv++;
+	else labelfont = GetPreferredLabelFont();
+	for (ptr in argv) {
+	    if (*ptr instanceof Dictionary) {
+		unroll(*ptr, initializer);
+		continue;
+	    }
+	    lptr = addLabel(initializer, lptr);
+	    if (*ptr instanceof String) {
+		initializer = new Dictionary[2,...] {
+		    String text =  *ptr;
+		    Object font = labelfont;
+		};
+	    } else if (*ptr instanceof Array) {
+		Array link = *ptr;
+		initializer = new Dictionary[10,...] {
+		    String text =  link[0];
+		    Object font = labelfont;
+		    Color  foreground = GetPreferredActiveColor();
+		    String original_text = text;
+		    Object linkinfo = link[1];
+		    Array  linkargs = &link[2];
+		    Color  pressed = NULL;
+		    Point  presspoint = NULL;
+
+		    mouseEntered(e) {
+			// maybe should handle text with <html> already in it?
+			text = "<html><u>" + original_text + "</u></html>";
+		    }
+
+		    mouseExited(e) {
+			text = original_text;
+		    }
+
+		    mousePressed(e) {
+			pressed = foreground;
+			foreground = GetPreferredPressedColor();
+			presspoint = e.location;
+		    }
+
+		    mouseDragged(e) {
+			if (pressed != NULL && distance(presspoint, e.location) >= 72.0/16)
+			    CancelMousePressed();
+		    }
+
+		    mouseReleased(e) {
+			Pointer ptr;
+
+			if (pressed != NULL) {
+			    text = original_text;
+			    foreground = GetPreferredVisitedColor();
+			    if (linkinfo instanceof String)
+				ViewURL(linkinfo);
+			    else if (linkinfo instanceof int) {
+				if (linkinfo) // true indicates parent
+				    toFront(ptr = root, TRUE);
+				else toFront(ptr = root.parent, FALSE);
+				if (
+				    linkargs != NULL
+				    && linkargs@sizeof == 2
+				    && linkargs[0] instanceof String
+				    && linkargs[1] instanceof String
+				    && defined(linkargs[0], ptr.components)
+				    && ptr.components[linkargs[0]] instanceof JTabbedPane
+				    && defined(linkargs[1], ptr.components[linkargs[0]].components)
+				    ) {
+				    ptr.components[linkargs[0]].selected = linkargs[1];
+				}
+			    } else if (*linkinfo instanceof Pointer) {
+				ptr = *linkinfo;
+				if (*ptr instanceof Callable) {
+				    if (defined(*ptr@nameof))
+					*ptr(unroll(linkargs));
+				    else if (defined(*ptr@nameof, root))
+					root[*ptr@nameof](unroll(linkargs));
+				    else if (defined(*ptr@nameof, root.variables))
+					root.variables[*ptr@nameof](unroll(linkargs));
+				    // else abort?
+				} // else abort?
+			    } // else abort?
+			}
+			pressed = NULL;
+		    }
+
+		    CancelMousePressed() {
+			text = original_text;
+			if (pressed != NULL) {
+			    foreground = pressed;
+			    pressed = NULL;
+			}
+		    }
+		};
+	    }
+	}
+	lptr = addLabel(initializer, lptr);
+    }
+
+    switch (labels@sizeof) {
+	case 0:
+	    retval = new JLabel;
+	    break;
+
+	case 1:
+	    retval = labels[0];
+	    break;
+
+	default:
+	    retval = new JPanel {
+		Array layout = labels;
+	    };
+	    break;
+    }
+    return(retval);
+}
+

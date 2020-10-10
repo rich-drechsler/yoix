@@ -1,0 +1,41 @@
+An important new Perl script that handles "setup" queries from clients plus
+two small shell scripts that serve as the YWAIT cgi scripts that handle login
+and command execution. The shell scripts get a chance to set resource limits
+before they call small C programs, which are sometimes installed setuid and
+setgid, and it's those C programs that execute the Perl scripts that do the
+real work.
+
+    ywait_exec._SH
+	Sets resource limits and then calls the installed version of
+	../bin/ywait_exec._PL to handle the real work. Using a shell
+	script here makes it easy to do other things, like redirect
+	stderr to a file, when you're debugging the Perl script. If
+	you want you can replace this script with a program written
+	in any other language, just make sure the installed version
+	of that program ends in the .cgi suffix.
+
+    ywait_login._SH
+	Sets resource limits and then calls the installed version of
+	../bin/ywait_login._PL to handle the real work. Using a shell
+	script here makes it easy to do other things, like redirect
+	stderr to a file, when you're debugging the Perl script. If
+	you want you can replace this script with a program written
+	in any other language, just make sure the installed version
+	of that program ends in the .cgi suffix.
+
+    ywait_setup._PL
+	This script handles the requests that come from the new YWAIT
+	client that's responsible for finding the application's jar
+	file and startup script. It's a script that's designed to be
+	customized, particulary by YWAIT applications that may need
+	to run separate test and production applications. The default
+	implementation works with the Java client that's installed on
+	user systems, but if you're running a production YWAIT system
+	we recommend that you take a careful look at this script. If
+	you're really curious you undoubtedly will also want to read
+	the client Java code, which can be found in the file
+
+	    ../jars/Ywait_Client._JAVA
+
+	in the YWAIT source package.
+

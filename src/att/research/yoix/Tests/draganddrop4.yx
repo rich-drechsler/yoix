@@ -1,0 +1,60 @@
+//
+// A modified version of an earlier example that shows how you can take
+// complete control of the low level drag and drop operations using your
+// own event handlers.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    String title = "Drag and Drop Test";
+    double border = 72/12;
+    Dimension size = NULL;
+
+    GridLayout layoutmanager = {
+	int rows = 2;
+    };
+
+    Array layout = {
+	new JPanel {
+	    String border = "Default drag and drop handling";
+
+	    Array layout = {
+		new JTextField {
+		    int columns = 40;
+		    int dragenabled = TRUE;
+		},
+	    };
+	},
+	new JLabel {
+	    String text = "Now is the time for all good men...";
+	    String border = "Custom drag from or drop handling";
+	    Object transferhandler = NULL;	// just in case
+	    Color  foreground = Color.blue;
+	    int    alignment = LEADING;
+
+	    dragGestureRecognized(DragGestureEvent e) {
+		e.visual = text;
+		e.anchor = SOUTH;
+		e.padding = 72/4;
+		return(text);
+	    }
+
+	    dragEnter(DropTargetEvent e) {
+		return(TRUE);		// accept anything
+	    }
+
+	    drop(DropTargetEvent e) {
+		//
+		// See what happens to the text in TextField when
+		// we return nothing or FALSE.
+		//
+		if (e.transferable instanceof String)
+		    text = e.transferable;
+		return(TRUE);
+	    }
+	},
+    };
+};
+
+f.visible = TRUE;

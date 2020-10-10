@@ -1,0 +1,19 @@
+import yoix.*.*;
+
+yoix.system.setErrorLimit(1);
+
+try {
+    int x = 12;
+    y;			// en error...
+}
+
+catch(error) {
+	printf("error=%s\n", error.name);
+////String str = 1;
+	////return(FALSE);
+	return(TRUE);	// TRUE return means it's not an error
+}
+
+printf("finished catch\n");
+exit(0);
+

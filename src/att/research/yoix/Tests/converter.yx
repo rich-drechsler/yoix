@@ -1,0 +1,620 @@
+//
+// Quick try at a Swing conversion didn't work - this needs to be
+// tracked down when we get some time.
+//
+
+import yoix.*.*;
+
+// set-up a dictionary that provides information about the
+// several conversions of interest
+
+Dictionary unitSets = {
+    Array Area = {
+	new Dictionary {
+	    String name = "Metric System";
+	    Array units = {
+		new Dictionary {
+		    String name = "Sq. Centimeters";
+		    double value = 0.0001;
+		},
+		new Dictionary {
+		    String name = "Sq. Meters";
+		    double value = 1.0;
+		},
+		new Dictionary {
+		    String name = "Sq. Kilometers";
+		    double value = 10000000.0;
+		}
+	    };
+	},
+	new Dictionary {
+	    String name = "English Measure";
+	    Array units = {
+		new Dictionary {
+		    String name = "Sq. Inches";
+		    double value = 0.0064516;
+		},
+		new Dictionary {
+		    String name = "Sq. Feet";
+		    double value = 0.09290304;
+		},
+		new Dictionary {
+		    String name = "Sq. Yards";
+		    double value = 0.83612736;
+		},
+		new Dictionary {
+		    String name = "Sq. Rods";
+		    double value = 25.290841;
+		},
+		new Dictionary {
+		    String name = "Acres";
+		    double value = 4046.85642240;
+		},
+		new Dictionary {
+		    String name = "Sq. Miles";
+		    double value = 2589988.110336;
+		}
+	    };
+	}
+    };
+    Array Capacity = {
+	new Dictionary {
+	    String name = "Metric System";
+	    Array units = {
+		new Dictionary {
+		    String name = "Milliliters";
+		    double value = 0.001;
+		},
+		new Dictionary {
+		    String name = "Liters";
+		    double value = 1.0;
+		},
+		new Dictionary {
+		    String name = "Kiloliters";
+		    double value = 1000.0;
+		}
+	    };
+	},
+	new Dictionary {
+	    String name = "British Imperial";
+	    Array units = {
+		new Dictionary {
+		    String name = "Minims";
+		    double value = 0.000059194;
+		},
+		new Dictionary {
+		    String name = "Fluidrams";
+		    double value = 0.0035516;
+		},
+		new Dictionary {
+		    String name = "Fluidounces";
+		    double value = 0.028412;
+		},
+		new Dictionary {
+		    String name = "Gills";
+		    double value = 0.142066;
+		},
+		new Dictionary {
+		    String name = "Pints";
+		    double value = 0.56826;
+		},
+		new Dictionary {
+		    String name = "Quarts";
+		    double value = 1.136;
+		},
+		new Dictionary {
+		    String name = "Gallons";
+		    double value = 4.546;
+		},
+		new Dictionary {
+		    String name = "Pecks";
+		    double value = 9.092;
+		},
+		new Dictionary {
+		    String name = "Bushels";
+		    double value = 36.368;
+		}
+	    };
+	},
+	new Dictionary {
+	    String name = "U.S. Dry Measure";
+	    Array units = {
+		new Dictionary {
+		    String name = "Pints";
+		    double value = 0.550;
+		},
+		new Dictionary {
+		    String name = "Quarts";
+		    double value = 1.101;
+		},
+		new Dictionary {
+		    String name = "Pecks";
+		    double value = 8.809;
+		},
+		new Dictionary {
+		    String name = "Bushels";
+		    double value = 35.238;
+		}
+	    };
+	},
+	new Dictionary {
+	    String name = "U.S. Liquid Measure";
+	    Array units = {
+		new Dictionary {
+		    String name = "Minims";
+		    double value = 0.000061610;
+		},
+		new Dictionary {
+		    String name = "Fluidrams";
+		    double value = 0.003696;
+		},
+		new Dictionary {
+		    String name = "Fluidounces";
+		    double value = 0.029573;
+		},
+		new Dictionary {
+		    String name = "Gills";
+		    double value = 0.118291;
+		},
+		new Dictionary {
+		    String name = "Pints";
+		    double value = 0.473;
+		}, 
+		new Dictionary {
+		    String name = "Quarts";
+		    double value = 0.946;
+		},
+		new Dictionary {
+		    String name = "Gallons";
+		    double value = 3.785;
+		}
+	    };
+	}
+    };
+    Array Length = {
+	new Dictionary {
+	    String name = "Metric System";
+	    Array units = {
+		new Dictionary {
+		    String name = "Centimeters";
+		    double value = 0.01;
+		},
+		new Dictionary {
+		    String name = "Meters";
+		    double value = 1.0;
+		},
+		new Dictionary {
+		    String name = "Kilometers";
+		    double value = 1000.0;
+		}
+	    };
+	},
+	new Dictionary {
+	    String name = "English Measure";
+	    Array units = {
+		new Dictionary {
+		    String name = "Inches";
+		    double value = 0.0254;
+		},
+		new Dictionary {
+		    String name = "Feet";
+		    double value = 0.3048;
+		},
+		new Dictionary {
+		    String name = "Yards";
+		    double value = 0.9144;
+		},
+		new Dictionary {
+		    String name = "Rods";
+		    double value = 5.029;
+		},
+		new Dictionary {
+		    String name = "Miles";
+		    double value = 1609.3440;
+		}
+	    };
+	}
+    };
+    Array Weight = {
+	new Dictionary {
+	    String name = "Metric System";
+	    Array units = {
+		new Dictionary {
+		    String name = "Milligrams";
+		    double value = 0.001;
+		},
+		new Dictionary {
+		    String name = "Grams";
+		    double value = 1.0;
+		},
+		new Dictionary {
+		    String name = "Kilograms";
+		    double value = 1000.0;
+		},
+		new Dictionary {
+		    String name = "Metric Tons";
+		    double value = 1000000.0;
+		}
+	    };
+	},
+	new Dictionary {
+	    String name = "Apothecaries";
+	    Array units = {
+		new Dictionary {
+		    String name = "Grains";
+		    double value = 0.0648;
+		},
+		new Dictionary {
+		    String name = "Scruples";
+		    double value = 1.295;
+		},
+		new Dictionary {
+		    String name = "Drams";
+		    double value = 3.887;
+		},
+		new Dictionary {
+		    String name = "Ounces";
+		    double value = 31.103;
+		},
+		new Dictionary {
+		    String name = "Pounds";
+		    double value = 373.;
+		}
+	    };
+	},
+	new Dictionary {
+	    String name = "Avoirdupois";
+	    Array units = {
+		new Dictionary {
+		    String name = "Grains";
+		    double value = 0.0648;
+		},
+		new Dictionary {
+		    String name = "Drams";
+		    double value = 1.771;
+		},
+		new Dictionary {
+		    String name = "Ounces";
+		    double value = 28.349;
+		},
+		new Dictionary {
+		    String name = "Pounds";
+		    double value = 453.;
+		},
+		new Dictionary {
+		    String name = "Tons";
+		    double value = 907000.;
+		}
+	    };
+	},
+	new Dictionary {
+	    String name = "Troy";
+	    Array units = {
+		new Dictionary {
+		    String name = "Grains";
+		    double value = 0.0648;
+		},
+		new Dictionary {
+		    String name = "Pennyweights";
+		    double value = 1.555;
+		},
+		new Dictionary {
+		    String name = "Ounces";
+		    double value = 31.103;
+		},
+		new Dictionary {
+		    String name = "Pounds";
+		    double value = 373.;
+		}
+	    };
+	}
+    };
+    Array Volume = {
+	new Dictionary {
+	    String name = "Metric System";
+	    Array units = {
+		new Dictionary {
+		    String name = "Cu. Centimeters";
+		    double value = 0.000001;
+		},
+		new Dictionary {
+		    String name = "Cu. Meters";
+		    double value = 1.0;
+		},
+		new Dictionary {
+		    String name = "Cu. Kilometers";
+		    double value = 1000000000.0;
+		}
+	    };
+	},
+	new Dictionary {
+	    String name = "English Measure";
+	    Array units = {
+		new Dictionary {
+		    String name = "Cu. Inches";
+		    double value = 0.0000163870;
+		},
+		new Dictionary {
+		    String name = "Cu. Feet";
+		    double value = 0.0283168465;
+		},
+		new Dictionary {
+		    String name = "Cu. Yards";
+		    double value = 0.7645548579;
+		},
+		new Dictionary {
+		    String name = "Cu. Rods";
+		    double value = 127.187639389;
+		},
+		new Dictionary {
+		    String name = "Cu. Miles";
+		    double value = 4168181825.440579584;
+		}
+	    };
+	}
+    };
+};
+
+double	slider_max = 1000;
+double	slider_factor = 0.01;
+double	slider_size = 100;
+
+//////////////////////////////////
+//                              //
+// no need to change below here //
+//                              //
+//////////////////////////////////
+
+// determine dictionary with largest sub-array and start frame with
+// that one since it will need the largest frame
+
+int maxsize = 0;
+int offset = 0;
+int i;
+for (i = 0; i < unitSets@length; i++) {
+    if (unitSets[i]@length > maxsize) {
+	maxsize = unitSets[i]@length;
+	offset = i;
+    }
+}
+
+String type = unitSets[offset]@nameof;
+double slider_limit = slider_max/slider_factor + slider_size;
+
+// perform the conversion and set all the displayed values
+// based on the last value set
+
+SetValues(system, value, caller) {
+    String sys = toString(system);
+    String isys;
+    String choicer;
+    String hbar;
+    double val;
+    double meters;
+    int    unit = atoi(converter.components[choicer = "choice" + sys].selected);
+    int	   i;
+
+    if (strcmp(choicer,caller) == 0) {
+	// just a units change, not a value change
+	meters = value * unitSets[type][system].units[converter.components[choicer].last_selected].value;
+    } else {
+	meters = value * unitSets[type][system].units[unit].value;
+    }
+    
+    if (meters < 0)
+	meters = 0;
+
+    for (i = 0; i < unitSets[type]@length; i++) {
+	isys = toString(i);
+	val = meters/unitSets[type][i].units[converter.components["choice"+isys].selected].value;
+
+	hbar = "hbar" + isys;
+	if (strcmp(hbar,caller) != 0) {
+	    if (val > slider_max) {
+		converter.components[hbar].maximum = (val / slider_factor) + slider_size;
+	    } else if(converter.components[hbar].maximum != slider_limit) {
+		converter.components[hbar].maximum = slider_limit;
+	    }
+	    converter.components[hbar].value = val / slider_factor;
+	}
+	converter.components["field" + toString(i)].text = strfmt("%g", val);
+    }
+}
+
+SetTypeItems() {
+    int j, k;
+
+    // creates an array of unit types for a particular measurement
+    // system that is suitable for setting up the Choice widget
+    
+    Array items = new Array[2 * unitSets@length];
+    Array ks = getDictionaryNames(unitSets, TRUE);
+
+    for (j = 0, k = 0; j < items@length; j+=2, k++) {
+	items[j] = ks[k];
+	items[j+1] = NULL;
+    }
+    return(items);
+}
+
+SetChoiceItems(i) {
+    int j, k;
+
+    // creates an array of unit types for a particular measurement
+    // system that is suitable for setting up the Choice widget
+    
+    Array items = new Array[2 * unitSets[type][i].units@length];
+
+    for (j = 0, k = 0; j < items@length; j+=2, k++) {
+	items[j] = unitSets[type][i].units[k].name;
+	items[j+1] = toString(k);
+    }
+    return(items);
+}
+
+SetPanels() {
+
+    // creates a panel for each measurement system
+
+    Array panels = new Array[unitSets[type]@length];
+    int   i;
+
+    for (i = 0; i < unitSets[type]@length; i++) {
+	panels[i] = new Panel {
+	    GridBagLayout layoutmanager;
+
+	    Array layout = {
+		new Label {
+		    String text = unitSets[type][i].name;
+		    int    alignment = CENTER;
+		},
+		new GridBagConstraints {
+		    int weightx = 1;
+		    int gridwidth = REMAINDER;
+		    int fill = HORIZONTAL;
+		},
+
+		new TextField {
+		    String tag = "field" + toString(i);
+		    String text = "0";
+		    int    columns = 15;
+		    int    system = i;
+
+		    actionPerformed(e) {
+			SetValues(system, atof(text), tag);
+		    };
+		},
+		new GridBagConstraints {
+		    int weightx = 1;
+		    int gridwidth = RELATIVE;
+		    int fill = HORIZONTAL;
+		},
+
+		new Choice {
+		    String tag = "choice" + toString(i);
+		    Array  items = SetChoiceItems(i);
+		    int    selected = 0;
+
+		    int    last_selected = selected;
+		    int    system = i;
+		    String field = "field" + toString(i);
+
+		    itemStateChanged(e) {
+			SetValues(system, atof(root.components[field].text), tag);
+			last_selected = atoi(selected);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		},
+
+		new Scrollbar {
+		    String tag = "hbar" + toString(i);
+		    int    maximum = slider_limit;
+		    int    visibleamount = slider_size;
+		    int    orientation = HORIZONTAL;
+
+		    int    system = i;
+		    double factor = slider_factor;
+
+		    adjustmentValueChanged(e) {
+			SetValues(system, factor*value, tag);
+		    }
+		},
+		new GridBagConstraints {
+		    int weightx = 1;
+		    int gridwidth = REMAINDER;
+		    int fill = HORIZONTAL;
+		},
+	    };
+	};
+    };
+    return(panels);
+}
+
+SetFrameLayout() {
+    Array layout = {
+	new Panel {
+	    String tag = "toppanel";
+
+	    GridLayout layoutmanager = {
+		int	rows = unitSets[type]@length;
+		int	columns = 0;
+		int	hgap = 5;
+		int	vgap = 5;
+	    };
+
+	    // put the generated panels in this panel
+
+	    Array layout = SetPanels();
+	},
+	new GridBagConstraints {
+	    int weightx = 1;
+	    int weighty = 1;
+	    int gridwidth = REMAINDER;
+	    int fill = BOTH;
+
+	    Insets insets = {
+		int top = 20;
+		int bottom = 10;
+		int left = 20;
+		int right = 20;
+	    };
+	},
+	new Button {
+	    String text = "Dismiss"; // change to text
+
+	    actionPerformed(e) {
+		exit(0);
+	    }
+	},
+	new GridBagConstraints {
+	    int gridwidth = RELATIVE;
+	    int anchor = LEFT;
+
+	    Insets insets = {
+		int top = 10;
+		int bottom = 20;
+		int left = 20;
+		int right = 10;
+	    };
+	},
+	new Choice {
+	    String selected = type;
+	    Array  items = SetTypeItems();
+
+	    itemStateChanged(e) {
+		type = selected;
+		converter.layout = SetFrameLayout();
+	    }
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int anchor = RIGHT;
+
+	    Insets insets = {
+		int top = 10;
+		int bottom = 20;
+		int left = 10;
+		int right = 20;
+	    };
+	},
+    };
+    return(layout);
+}
+
+// create the application frame
+
+Frame converter = {
+    Dimension size = NULL;
+    String    title = "Yoix Converter Example";
+
+    GridBagLayout layoutmanager;
+
+    Array layout = SetFrameLayout();
+};
+
+// make it visible
+
+converter.visible = TRUE;
+

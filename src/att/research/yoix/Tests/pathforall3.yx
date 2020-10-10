@@ -1,0 +1,45 @@
+//
+// Simple pathforall() example written in the style that supplies a single
+// function to handle each type of path element and also arranges to pass
+// the address of where the output is supposed to go as the optional second
+// argument in the pathforall() call.
+//
+
+import yoix.*.*;
+
+String dump;
+Path   p;
+
+Handler(int type, ...) {
+    Object ptr = argv[argc-1];
+    String str;
+
+    switch (type) {
+	case SEG_MOVETO:
+	    str = strfmt(" moveto(%.1f, %.1f);\n", argv[2], argv[3]);
+	    break;
+
+	case SEG_LINETO:
+	    str = strfmt(" lineto(%.1f, %.1f);\n", argv[2], argv[3]);
+	    break;
+
+	case SEG_CLOSE:
+	    str = strfmt(" closepath();\n");
+	    break;
+    }
+
+    *ptr = *ptr + str;
+}
+
+p.moveto(100, 200);
+p.rlineto(100, 0);
+p.rlineto(0, 200);
+p.closepath();
+
+dump += "Output before CTM change:\n";
+p.pathforall(Handler, &dump);
+p.CTM.scale(2, 2);
+dump += "\nOutput after CTM change:\n";
+p.pathforall(Handler, &dump);
+
+printf("%s", dump);

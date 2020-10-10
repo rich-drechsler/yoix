@@ -1,0 +1,346 @@
+#!<_PERL_PATH_> -w
+#
+# This script can help you test new subroutines (i.e., subs/ywait_*.pl files).
+# The informational message displayed when you execute this script should
+# explain what input is needed. You may just want to read that information now,
+# it starts on line 52.
+# Note: this script is essentially the ywait_exec._PL script with minor changes,
+# namely where the URL header is printed in ywait_exec, this script instead
+# prints the aforementioned informational message.
+#
+
+use strict;
+use vars qw(<_PERL_GLOBAL_VARIABLES_>);
+
+my $argc = 0;
+my @args;
+my @flds;
+my $runstate;
+my $serial;
+my $sessionid = "";
+my $sessionstatus;
+
+#
+# Just testing, so we don't need the URL the header. Instead, print
+# an informational message, then read the session id from stdin.
+#
+
+print <<EOF;
+
+===========================================================================
+
+You are running the $ACRONYM subroutine tester.
+Expected on stdin is:
+1. A valid session id (most easily obtained by logging into the system and
+   grabbing your own session id from the appropriate file in:
+      $ADMINDIR/sessionids
+2. The command keyword and an argument count, for example:
+      GETSCREEN 1
+3. Zero or more lines (the exact number corresponds to the argument count
+   supplied above) of hexencoded arguments as required by the script
+   being tested.
+Hexencoding is easily accomplished by the perl command:
+      unpack("H*", "text_to_be_encoded") 
+The reason for the encoding is to ensure that each argument occupies a
+single line (for example, text with embedded new-lines would otherwise
+confuse matters).
+
+===========================================================================
+
+EOF
+
+#
+# Try to read the setup file from the etc directory. Nothing much we can
+# do if it's not there, so in that case output something that the client
+# will think looks like a server header and exit.
+#
+
+$SERVERHOMEDIR = "<_SERVER_HOMEDIR_DQ_>";
+$SERVERSETUP = $SERVERHOMEDIR . "/etc/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_rc.pl";
+
+if (! -r "$SERVERSETUP" ) {
+    print "STATUS=" . unpack("H*", "internalerror") . "\n";
+    print "REASON=" . unpack("H*", "server cannot find or read setup file") . "\n";
+    exit(1);
+}
+
+require $SERVERSETUP;
+
+#
+# The startup file is in, so we can use the variables and subroutines
+# defined in that file.
+#
+
+$COMMAND = "";
+$EXITSTATUS = 1;
+$LOGFILE = $EXECLOG;
+$SESSIONID = "";
+
+$OUTFILE = "$TMPDIR/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_exec_out.$$";
+$ERRFILE = "$TMPDIR/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_exec_err.$$";
+$TMPFILE = "$TMPDIR/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_exec_tmp.$$";
+@CLEANUP_FILES = ($OUTFILE,$ERRFILE,$TMPFILE);
+
+#
+# Loaders for function files - just supply function name, fullpath is
+# derived from that (as shown) file with actual function (peer) only
+# loaded as needed. You can write your own subroutines and save them
+# in the ../subs directory and if you include them in this list then
+# you can use them when you process your own custom commands.
+#
+
+foreach $TMPTXT (qw(
+	access
+	changepassword
+	checkid
+	cleanuser
+	getfile
+	getmessages
+	getprefs
+	logout
+	saveprefs
+	sendmessage
+	serverdemo
+	welcome
+    )) {
+    eval "sub $TMPTXT {
+	require \"$SUBSDIR/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_$TMPTXT.pl\";
+	peer_$TMPTXT(\@_);
+    }";
+}
+
+#
+# First line must always be a valid session id usually obtained during
+# login. checkid reads one line from standard input, checks the session
+# id, initializes a bunch of variables using the session id (because it
+# was called with +e), and exits with a status that lets us figure out
+# what happened. The details are somewhat confusing, but they work and
+# you probably won't have to change this stuff.
+#
+
+if (defined($TMPTXT = <STDIN>)) {
+    $TMPTXT =~ s/\s+$//;
+    $sessionid = pack("H*", $TMPTXT);
+    $EXITSTATUS = checkid("+e", $sessionid);
+} else {
+    print "STATUS=" . unpack("H*", "internalerror") . "\n";
+    print "REASON=" . unpack("H*", "no input supplied") . "\n";
+    exit(1);
+}
+
+#
+# The next line is supposed to contain the name of the command and the
+# number of arguments that we should expect, one per line. If the line
+# doesn't look right we quit.
+#
+
+if (defined($_ = <STDIN>)) {
+    s/[\r\n]+$//o;
+    @flds = split(/[ \t]+/);
+    if ($#flds != 1) {
+	print "STATUS=" . unpack("H*", "internalerror") . "\n";
+	$TMPTXT = sprintf("command line contained %d instead of 2 arguments", (1+$#flds));
+	print "REASON=" . unpack("H*", $TMPTXT) . "\n";
+	exit(1);
+    }
+    $COMMAND = $flds[0];
+    $ARGCOUNT = $flds[1];
+} else {
+    print "STATUS=" . unpack("H*", "internalerror") . "\n";
+    print "REASON=" . unpack("H*", "no command supplied") . "\n";
+    exit(1);
+}
+
+#
+# If we get here we should have the command, the argument count, and we
+# should know who the user is, so initialize user dependent variables and
+# then read (and unpack) the arguments.
+#
+
+WriteLog("-d5","[$SESSIONID] (status=$EXITSTATUS)");
+WriteLog("-d2", $COMMAND, $ARGCOUNT);	# see QUITTING if you change this
+
+UserInit();
+
+while ($ARGCOUNT > $argc && defined($_ = <STDIN>)) {
+    $_ =~ s/\s+$//o;
+    $args[$argc++] = pack("H*", $_);
+}
+
+while ($ARGCOUNT > $argc) {
+    $args[$argc++] = "";
+}
+
+#
+# Process the command if the everything looks OK (i.e., $EXITSTATUS is 0),
+# otherwise checkid didn't approve and we need to examine $EXITSTATUS and
+# decide what to do based of its value. Customizing the application means
+# adding code here (and in other files) to process new commands. Most of
+# the commands that come with the default system use special subroutines
+# that are loaded from the ../subs directory and end up doing the real
+# work.
+#
+# If you follow our approach make sure you list your new subroutines in
+# the foreach loop (above) and in the Makefile located in the subs source
+# directory (assuming of course that you decide to keep the source for the
+# subroutine in that directory). An important point that may not be obvious
+# (until you take a careful look at some of our subs) is that WriteHeader()
+# is required and should always be called before real data is sent back to
+# the client, so if it's not done here then the subroutine is responsible
+# for making the WriteHeader() call.
+# 
+
+if ($EXITSTATUS == 0) {
+    if ($COMMANDSET ne "*" && !LookForPattern($COMMAND, "$COMMANDSET", ",")) {
+	$WARNINGMESSAGE = "server refused access to the request";
+	WriteHeader("-invalidaccess");
+	WriteLog("-d0", "ADMIN: invalidaccess - $COMMAND not allowed by $COMMANDSET");
+    } elsif ($COMMAND eq "CHANGEPASSWORD") {
+	$args[0] = $USER;
+	$EXITSTATUS = changepassword(@args);
+    } elsif ($COMMAND eq "GETCOMMENTS") {
+	$EXITSTATUS = getfile($COMMENTLOG);
+    } elsif ($COMMAND eq "GETHELP") {
+	$EXITSTATUS = getfile("$HELPDIR/", $acronym . "_" . $args[0] . ".txt");
+    } elsif ($COMMAND eq "GETHISTORY") {
+	$EXITSTATUS = getfile("-r", "-t", 100, "-e", 's/\s+#+.*//', $USERLOGINS);
+    } elsif ($COMMAND eq "GETMESSAGES") {
+	$EXITSTATUS = getmessages();
+    } elsif ($COMMAND eq "GETMOTD") {
+	$EXITSTATUS = getfile($MOTDFILE);
+    } elsif ($COMMAND eq "GETSCREEN") {
+	$EXITSTATUS = getfile("$SCREENSDIR/", $args[0]);
+    } elsif ($COMMAND eq "LOG") {
+	WriteLog("-c", @args);
+	WriteHeader();
+    } elsif ($COMMAND eq "PING") {	# this command is special!!!
+	WriteHeader();
+    } elsif ($COMMAND eq "GETPLUGINFILE") {
+	$EXITSTATUS = getfile("$PLUGINSDIR/", $args[0]);
+    } elsif ($COMMAND eq "GETPLUGINTESTDATA") {
+	getfile("$PLUGINSDIR/test_" . $args[0] . ".data");
+    } elsif ($COMMAND eq "QUITTING") {
+	$EXITSTATUS = logout();
+    } elsif ($COMMAND eq "SENDCOMMENT") {
+	sendmessage("-sUser Comment","-u", $USER, @args);
+    } elsif ($COMMAND eq "SENDMESSAGE") {
+	sendmessage("-u", $USER, @args);
+    } elsif ($COMMAND eq "WELCOME") {
+	$EXITSTATUS = welcome();
+    } elsif ($COMMAND eq "SERVERDEMO1") {
+	#
+	# The following is purely an illustrative example of what a response
+	# to a client request involves. The actual perl code that handles the
+	# response doesn't normally go here, but instead it's usually stored
+	# in a perl script that can be found in the ../subs directory, as is
+	# shown in the SERVERDEMO2b and SERVERDEMO3 examples. The subroutine
+	# approach is strongly recommended and means this script won't grow
+	# to a ridiculous size as it is loaded an run by perl in response to
+	# EVERY client request (after login).
+	#
+	# Every response first needs to write out a header. In the simplest
+	# case the WriteHeader() call involves no arguments, which means the
+	# default values are used.
+	#
+	WriteHeader();
+	#
+	# Arguments sent from the client end up in @args. If the information
+	# to return to the client is a single unit, then "magic separators"
+	# aren't needed and a simple print handles the job.
+	#
+	print "The server got\n\n     $args[0]\n\nas the argument that you typed.";
+    } elsif ($COMMAND eq "SERVERDEMO2a") {
+	#
+	# The following is purely an illustrative example of what a response
+	# to a client request involves. The actual perl code that handles the
+	# response doesn't normally go here, but instead it's usually stored
+	# in a perl script that can be found in the ../subs directory, as is
+	# shown in the SERVERDEMO2b and SERVERDEMO3 examples. The subroutine
+	# approach is strongly recommended and means this script won't grow
+	# to a ridiculous size as it is loaded an run by perl in response to
+	# EVERY client request (after login).
+	#
+	# Every response first needs to write out a header. In the simplest
+	# case the WriteHeader() call involves no arguments, which means the
+	# default values are used.
+	#
+	WriteHeader();
+	#
+	# Arguments sent from the client end up in @args. If the information
+	# to return to the client is a single unit, then "magic separators"
+	# aren't needed and a simple print handles the job.
+	#
+	print "The server got\n\n     $args[0]\n\nas the first argument that you typed.\nVersion A ignores the other arguments.";
+    } elsif ($COMMAND eq "SERVERDEMO2b") {
+	#
+	# The best way to handle SERVERDEMO2a is with a separate script
+	# that's installed ../subs (look for ../subs/*_serverdemo.pl). We
+	# do more in the script than you might expect, including option
+	# processing that means we can use it to handle SERVERDEMO3 below.
+	# You should take a quick look at the serverdemo script, but don't
+	# be intimidated by  the code - it's just an example and we wanted
+	# to show how you would thoroughly handle a client's request. The
+	# script approach is strongly recommended over the inline method
+	# that we used in SERVERDEMO2a, but it only works if the serverdemo
+	# script is installed in ../subs and "serverdemo" is mentioned in
+	# the list of scripts to be loaded on-demand (look for "serverdemo"
+	# near line 137 above). This on-demand loading means perl doesn't
+	# have to waste time reading and parsing script text that it won't
+	# be using in a particular invocation.
+	#
+	serverdemo(@args);
+    } elsif ($COMMAND eq "SERVERDEMO3") {
+	#
+	# This example expands on SERVERDEMO2b and shows how additional
+	# arguments (e.g., "-d" and "2") can be passed to the serverdemo
+	# script and used to control how the script handles the arguments
+	# stored in @args that came from the client. It's an example that
+	# illustrates how a script can handle related client requests.
+	#
+	serverdemo("-d", "2", @args);
+    } else {
+	#
+	# Unusual, so we probably should notify an administrator.
+	#
+	WriteHeader("-failed","REASON","Unsupported command: $COMMAND");
+	WriteLog("-d0", "ADMIN: Unsupported command: $COMMAND");
+    }
+} elsif ($EXITSTATUS == 1) {
+    eval "\$WARNINGMESSAGE = \"$MAINTENANCEMESSAGE\"";
+    $sessionstatus = "disabled";
+    WriteHeader("-$sessionstatus");
+    WriteLog("-d1", "SESSION $sessionstatus");
+} elsif ($EXITSTATUS == 2) {
+    eval "\$WARNINGMESSAGE = \"$DISABLEDMESSAGE\"";
+    $sessionstatus = "disabled";
+    $serial = $SERIAL;
+    $serial =~ s/[.].*//;
+    $runstate = $RUNSTATE;
+    $runstate =~ s/[.].*//;
+    if ($serial == $runstate) {
+	$WARNINGMESSAGE = "";
+	$sessionstatus = "expired";
+    }
+    WriteHeader("-$sessionstatus");
+    WriteLog("-d1", "SESSION $sessionstatus");
+} elsif ($EXITSTATUS == 3) {
+    eval "\$WARNINGMESSAGE = \"$REJECTEDMESSAGE\"";
+    $sessionstatus = "rejected";
+    WriteHeader("-$sessionstatus");
+    WriteLog("-d0", "ADMIN: [$sessionid] host mismatch from $REMOTE_HOST");
+} elsif ($EXITSTATUS == 4) {
+    eval "\$WARNINGMESSAGE = \"$REJECTEDMESSAGE\"";
+    $sessionstatus = "rejected";
+    WriteHeader("-$sessionstatus");
+    WriteLog("-d0", "ADMIN: [$sessionid] did not pass validation");
+} else {
+    #
+    # Very unusual - we undoubtedly should also notify an administrator.
+    #
+    WriteHeader("-disabled");
+    WriteLog("-d0", "ADMIN: Invalid sessionid [$sessionid] (status=$EXITSTATUS)");
+}
+
+WriteLog("-d3", "EXIT $COMMAND $EXITSTATUS");
+Cleanup($EXITSTATUS);
+

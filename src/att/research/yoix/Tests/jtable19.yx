@@ -1,0 +1,1668 @@
+import yoix.*.*;
+addColor();
+
+Dictionary IconCache[0, ...];
+
+GetButtonDiamondIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    double    shrink = (argc > 3) ? argv[3] : 0.9;
+    String    name = urlEncode("buttonDiamondIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+    
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 4, 45, NULL, iconcolor, NULL, TRUE, FALSE, FALSE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetButtonDownIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    double    shrink = (argc > 3) ? argv[3] : 0.9;
+    String    name = urlEncode("buttonDownIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+    
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 3, 180, NULL, iconcolor, NULL, TRUE, FALSE, FALSE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetButtonLeftIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    double    shrink = (argc > 3) ? argv[3] : 0.9;
+    String    name = urlEncode("buttonLeftIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+    
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 3, 270, NULL, iconcolor, NULL, TRUE, FALSE, FALSE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetButtonRightIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    double    shrink = (argc > 3) ? argv[3] : 0.9;
+    String    name = urlEncode("buttonRightIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+    
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 3, 90, NULL, iconcolor, NULL, TRUE, FALSE, FALSE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetButtonUpIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    double    shrink = (argc > 3) ? argv[3] : 0.9;
+    String    name = urlEncode("buttonUpIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+    
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 3, 0, NULL, iconcolor, NULL, TRUE, FALSE, FALSE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+BuildPolygonIcon(Dimension size, int sides, double degrees, String text, Color polygoncolor, Color textcolor, int smooth, int outline, int addshadow, double shrink, String font) {
+    Image image = {
+	Dimension size = size;
+	int       type = TYPE_RGB_ALPHA;
+
+	Graphics graphics = {
+	    String font = (font == NULL ? "Helvetica-bold-10" : font);
+	    int    antialiasing = TRUE;
+	    int    linejoin = (smooth ? JOIN_ROUND : JOIN_MITER);
+	    int    linecap = (smooth ? CAP_ROUND : CAP_BUTT);
+	};
+
+	String text = text;
+	double shrink = min(shrink, 1.0);
+	Color  polygoncolor = polygoncolor;
+	Color  textcolor = textcolor;
+	double adjustment;
+	double degrees = degrees;
+	int    sides = sides;
+	int    addshadow = addshadow;
+	int    smooth = smooth;
+	int    outline = outline;
+
+	paint(Rectangle r) {
+	    Rectangle textbounds;
+	    Rectangle bounds;
+	    double    factor;
+	    double    scaling;
+	    double    shadow;
+	    double    strokewidth;
+	    double    side;
+	    double    dx;
+	    double    dy;
+	    double    angle;
+	    int       n;
+
+	    angle = 360.0/sides;
+	    dx = abs(sin(angle/2));
+	    dy = abs(cos(angle/2));
+	    side = 2.0*dx;
+
+	    if ((factor = min(size.width, size.height)/72.0) < 1.0) {
+		if (factor <= .25)
+		    factor = 0;
+	    } else factor = min(factor, 2.0);
+	    if (factor == 0) {
+		addshadow = 0;
+		smooth = 0;
+		outline = 0;
+	    }
+	    shadow = factor*72.0/18;
+	    strokewidth = 2.0*shadow;
+
+	    graphics {
+		erasedrawable(0.0);	// make a transparent image
+
+		//
+		// Build a "unit" polygon with center at (0, 0) and a horizontal
+		// side along its bottom.
+		//
+
+		translate(dx, dy);
+		moveto(0, 0);
+
+		for (n = 0; n < sides; n++) {
+		    translate(-side, 0);
+		    lineto(0, 0);
+		    rotate(angle);
+		}
+
+		closepath();
+		rotatepath(degrees);
+		translate(-dx, -dy);	// should be back to the original CTM
+
+		//
+		// Scale the polygon so it fits the comfortably into the image,
+		// then translate the path so it's centered in the image.
+		//
+
+		bounds = pathbbox();
+		adjustment = 0;
+		if (addshadow && shadow > 0)
+		    adjustment += shadow;
+		adjustment += strokewidth;
+		scaling = shrink*min((size.width - 2*adjustment)/bounds.width, (size.height - 2*adjustment)/bounds.height);
+		path.scalepath(scaling, scaling);
+		bounds = pathbbox();
+		path.translatepath(size.width/2 - (bounds.x + bounds.width/2), size.height/2 - (bounds.y + bounds.height/2));
+
+		//
+		// Draw the polygon's shadow, if there's supposed to be one, and
+		// then draw the polygon.
+		//
+
+		if (addshadow && shadow > 0) {
+		    gsave();
+		    path.translatepath(shadow, shadow);
+		    setgray(.5);
+		    linewidth = strokewidth;
+		    strokepath();
+		    fill(.4);
+		    grestore();
+		}
+
+		foreground = polygoncolor;
+		gsave();
+		linewidth = strokewidth;
+		strokepath();
+		fill();
+		grestore();
+		if (outline) {
+		    gsave();
+		    linewidth = strokewidth/2;
+		    foreground = textcolor;
+		    strokepath();
+		    fill();
+		    grestore();
+		}
+		fill();
+
+		//
+		// We deal with the text string as a path that's supposed to fit
+		// comfortably into the polygon that we just drew using the same
+		// techniques that we just used for the polygon.
+		//
+
+		if (text != NULL && text@sizeof > 0) {
+		    moveto(0, 0);
+		    charpath(text);
+		    textbounds = pathbbox();
+		    scaling = 0.9*min(bounds.width/textbounds.width, .6*bounds.height/textbounds.height);
+		    path.scalepath(scaling, scaling);
+		    bounds = pathbbox();
+		    if (sides == 3)
+			path.translatepath(size.width/2 - bounds.x - bounds.width/2, size.height/2 + 1.25 * (bounds.height/2 - (bounds.height + bounds.y)));
+		    else path.translatepath(size.width/2 - bounds.x - bounds.width/2, size.height/2 + (bounds.height/2 - (bounds.height + bounds.y)));
+		    foreground = textcolor;
+
+		    if (scaling < 0.5) {
+			//
+			// This should fatten up text a bit when it's really
+			// small. Thrown in quickly, so there's undoubtedly
+			// lots of room for improvement - maybe later!!
+			//
+			gsave();
+			linewidth = .4;
+			strokepath();
+			fill();
+			grestore();
+		    }
+		    fill();
+
+		}
+	    }
+	}
+    };
+    return(image);
+}
+
+PickIconSize(Object size) {
+    if (!(size instanceof Dimension)) {
+	if (size instanceof Number) {
+	    size = new Dimension {
+		double width = size;
+		double height = size;
+	    };
+	} else if (size instanceof Font) {
+	    size = new Dimension {
+		double width = size.height;
+		double height = size.height;
+	    };
+	} else {
+	    size = new Dimension {
+		double width = 72.0/3;
+		double height = 72.0/3;
+	    };
+	}
+    }
+    return(size);
+}
+
+Dictionary InsetsCache[0, ...];
+
+GetInsets(double top, double bottom, double left, double right) {
+    String name = strfmt("%d:%d:%d:%d", top, bottom, left, right);
+
+    //
+    // Decided %d was good enough when we have to make up name for the
+    // cache - if you disagree just change %d to something like %.1f.
+    //
+
+    if (!defined(name, InsetsCache)) {
+	InsetsCache[name] = new Insets {
+	    final double top = top;
+	    final double bottom = bottom;
+	    final double left = left;
+	    final double right = right;
+	};
+    }
+    return(InsetsCache[name]);
+}
+
+GetQualifiedInsets(double value, String qualifier) {
+    return(GetInsets(
+	(indexOf(qualifier, 'T') >= 0) ? value : 0,
+	(indexOf(qualifier, 'B') >= 0) ? value : 0,
+	(indexOf(qualifier, 'L') >= 0) ? value : 0,
+	(indexOf(qualifier, 'R') >= 0) ? value : 0
+    ));
+}
+
+InsetsCache {		// named block
+    Insets TEXTFIELD = GetQualifiedInsets(72.0/50, OSNAME === "Linux" ? "TBLR" : "LR");
+};
+
+GetPreferredSmallButtonInsets() {
+    JButton button;
+    Insets  insets = NULL;
+
+    if (defined("insets", button)) {        // added in release 2.1.7
+	if (strcasecmp(VM.screen.uimanager.lookandfeel, "Metal") == 0) {
+	    insets = button.insets;
+	    insets.top *= 0.25;
+	    insets.bottom *= 0.25;
+	    insets.left *= 0.25;
+	    insets.right *= 0.25;
+	}
+    }
+    return(insets);
+}
+
+GetTextFieldInsets() = InsetsCache.TEXTFIELD;
+GetPreferredTextForeground() = Color.black;
+GetPreferredTextBackground() = Color.white;
+GetPreferredTextFont() = "Dialog-plain-12";
+GetPreferredButtonFont() = "Dialog-plain-12";
+
+
+GetPreferredTableFont() = "monospaced-plain-12";
+GetPreferredTableHeadingFont() = "Dialog-plain-14";
+GetPreferredTableGridColor() = Color.blue;
+GetPreferredTableBackground() = Color.red;
+GetPreferredTableForeground() = Color.black;
+GetPreferredTableHeaderBackgrounds() = new Array { Color.grey86, Color.sienna1, Color.seagreen1 };
+GetPreferredTableHeaderForegrounds() = new Array { Color.black, Color.black, Color.black };
+GetPreferredTableCellColors() = new Array { new Array { Color.grey86, Color.grey86 }, new Array { Color.black, Color.black } };
+GetPreferredTableFilterSelectionBackground() = Color.grey96;
+GetPreferredTableFilterSelectionForeground() = Color.black;
+GetPreferredTableFilterCellColors() = new Array { Color.grey96, Color.black };
+
+GetPreferredLabelFont() = "Dialog-plain-12";
+GetPreferredTitledBorderFont() = "Dialog-plain-12";
+
+KeyPressed(e) {
+    //
+    // Adds keyboard control over cut and paste to the Swing components
+    // supported by CopyToSystemClipboard() and CopyToSystemClipboard().
+    //
+
+    if (e.modifiersdown & CTRL_DOWN_MASK || (ISMAC && (e.modifiersdown & META_DOWN_MASK))) {
+	switch (e.keycode) {
+	    case KeyCode.VK_C:
+		CopyToSystemClipboard(this);
+		break;
+
+	    case KeyCode.VK_V:
+		if (strcasecmp(VM.screen.uimanager.lookandfeel, "Windows"))
+		    CopyFromSystemClipboard(this);
+		break;
+	}
+    }
+}
+
+KeyTyped(e) {
+    //
+    // Currently just shifts the focus to another component when the user
+    // types a newline in a JTextField.
+    //
+
+    switch (e.keychar) {
+	case '\n':
+	    if (this instanceof JTextField)
+		this.requestfocus = FALSE;
+	    break;
+    }
+}
+
+MouseReleased(e) {
+    //
+    // Adds mouse button control over cut and paste to Swing components
+    // supported by CopyToSystemClipboard() and CopyToSystemClipboard().
+    //
+
+    switch (e.modifiers) {
+	case BUTTON1_MASK:
+	    CopyToSystemClipboard(this);
+	    break;
+
+	case BUTTON2_MASK:
+	case BUTTON3_MASK:
+	    CopyFromSystemClipboard(this);
+	    break;
+    }
+}
+
+TableSorter(InvocationEvent e) {
+    JTable  table = this;
+    int     idx;
+    int     len;
+    int     off;
+    int     i;
+    int     j;
+
+    //
+    // A generic invocationAction() event handler that can be used
+    // by the JTable component. It uses the spare "etc" field in
+    // JTable to store sort column info across invocations.
+    //
+    // Java mishandles cursor changes over table headers, so we do not
+    // allow them, thus to provide some visual feedback to user that
+    // sort is in progress we also flash the gridcolor -- note: the
+    // wait cursor does show up when the cursor is off the header, but
+    // it is usually in the header during the sort
+    //
+
+    save table.root.cursor = Cursor.WAIT_CURSOR;
+    save table.gridcolor = new Color {
+	int red = 255 - table.gridcolor.red;
+	int blue = 255 - table.gridcolor.blue;
+	int green = 255 - table.gridcolor.green;
+    };
+
+    if (e == NULL) {
+	if (table.etc != NULL && table.etc@sizeof > 0) {
+	    table.action(TABLE_SORT, table.etc + off);
+	}
+    } else if (e.valuesColumn >= 0) {
+	if ((e.modifiers&CTRL_MASK) == 0) {
+	    table.etc = new Array[0,...] {};
+	    len = 0;
+	} else {
+	    e.modifiers &= ~CTRL_MASK;
+	    if (table.etc == NULL)
+		table.etc = new Array[0,...] {};
+	    len = table.etc@length;
+	}
+
+	if (e.modifiers == BUTTON1_MASK) {
+	    if (len == 0 && table.action(GET_COLUMN_FIELD, e.valuesColumn, "state") > 0)
+		idx = 0;
+	    else idx = 1 + e.valuesColumn;
+	} else {
+	    if (len == 0 && table.action(GET_COLUMN_FIELD, e.valuesColumn, "state") < 0)
+		idx = 0;
+	    else idx = -(1 + e.valuesColumn);
+	}
+	for (i=0; i<len; i++) {
+	    if (idx == table.etc[i]) {
+		for (j=i; j>0; j--)
+		    table.etc[j] = table.etc[j-1];
+		table.etc[0] = 0;
+		idx = 0;
+		break;
+	    } else if (-idx == table.etc[i]) {
+		table.etc[i] = idx;
+		idx = 0;
+		break;
+	    }
+	}
+	for (off=0; off<len; off++) {
+	    if (table.etc[off] != 0)
+		break;
+	}
+	if (idx != 0) {
+	    table.etc[len] = idx;
+	    len++;
+	}
+
+	if (len == off) {
+	    table.action(TABLE_SORT, NULL);
+	    table.etc = new Array[0,...] {};
+	} else table.action(TABLE_SORT, table.etc + off);
+
+	if ((len - off) < 2)
+	    table.action(MAKE_CELL_VISIBLE, 0, e.viewColumn, TRUE);
+	    
+
+	if (defined("dfltcellcolors", table)) {
+	    if (len == off) {
+		table.cellcolors = table.dfltcellcolors;
+	    } else {
+		Array  values;
+		Array  cols;
+		Array  etc;
+
+		cols = new Array[len-off];
+		etc = (table.etc + off);
+		//
+		// Need to convert columns to the view model because
+		// that's what the TABLE_JOIN operation (below) will
+		// expect.
+		//
+		for (i = 0; i < cols@length; i++) {
+		    cols[i] = table.action(GET_COLUMN_VIEW_INDEX, abs(etc[i]) - 1);
+		}
+		table.cellcolors = getArrayBands(
+		    table.action(TABLE_JOIN, cols, TRUE, TRUE, 1),
+		    unroll(table.dfltcellcolors)
+		);
+	    }
+	}
+    }
+}
+NewJTextField(String tag, String text, int columns, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    initializer = new Dictionary[15, ...] {
+	String tag = tag;
+	String text = text;
+	Insets insets = GetTextFieldInsets();
+	Object transferhandler = NULL;		// required for custom drag and drop
+	Color  background = GetPreferredTextBackground();
+	Color  foreground = GetPreferredTextForeground();
+	Object font = GetPreferredTextFont();
+	int    autotrim = TRUE;
+	int    edit = TRUE;
+	int    lengthreq = 0;
+	int    columns = columns;
+	int    opaque = TRUE;
+	int    caretmodel = 1;
+
+	Function keyPressed = KeyPressed;
+	Function keyTyped = KeyTyped;
+	Function mouseReleased = MouseReleased;
+    };
+
+    for (ptr = &columns + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+    return(new JTextField initializer);
+}
+
+FilterTableREFlags(Object root, String basetag) {
+
+    int flags = 0;
+
+    if (!root.components[basetag + "_case_sensitive"].state)
+	flags |= CASE_INSENSITIVE;
+
+    if (!root.components[basetag + "_re_pattern"].state) {
+	if (root.components[basetag + "_glob_pattern"].state)
+	    flags |= SHELL_PATTERN;
+	else flags |= TEXT_PATTERN;
+    }
+
+    return(flags);
+}
+
+NewJTable(String tag, Object inputfilter, int scroll, Object dragcolumns, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    initializer = new Dictionary[27, ...] {
+	String tag = tag;
+	Object inputfilter = inputfilter;
+	Object outputfilter = " ";
+	Object font = GetPreferredTableFont();
+	Object altfont = GetPreferredTableHeadingFont();
+	Object dragcolumns = dragcolumns;
+	Object transferhandler = NULL;		// required for custom drag and drop
+	int    scroll = scroll;
+	int    reorder = 1;
+	int    resize = 1;
+	Color  gridcolor = GetPreferredTableGridColor();
+	Color  background = GetPreferredTableBackground();
+	Color  foreground = GetPreferredTableForeground();
+
+	Array altbackground = GetPreferredTableHeaderBackgrounds();
+	Array altforeground = GetPreferredTableHeaderForegrounds();
+	Array cellcolors = GetPreferredTableCellColors();
+	Array dfltcellcolors = cellcolors;
+
+	Function invocationAction = TableSorter;
+
+	int retainstate = TRUE; 
+	int initialized = FALSE;
+
+	TableDragAdjustment(String transfertext) {
+	    if (transfertext != NULL)
+		transfertext = replace(transfertext, '\n', *inputfilter);
+	    return(transfertext);
+	}
+
+	SetScrollStatus(String range) {
+	    String fldtag = tag + "_rowinfo";
+	    if (defined(fldtag, root.components)) {
+		if (range == NULL) {
+		    if (rows == 0)
+			root.components[fldtag].text = "";
+		    else root.components[fldtag].text = strfmt("%d", rows);
+		} else root.components[fldtag].text = strfmt("[ %s ] of %d", range, rows);
+	    }
+	}
+
+	SetDragState(int state, ...) {
+	    int cellwise = TRUE;
+	    if (state < 0 || (argc > 2 && argv[2] instanceof int)) {
+		cellwise = argv[2];
+		state = -state;
+	    }
+	    dragGestureRecognized = state ? (cellwise ? DragGestureRecognized : TableDragGestureRecognized) : NULL;
+	}
+
+	mouseMoved(e) {
+	    Dictionary result;
+
+	    if (e.modifiers & CTRL_MASK) {
+		result = action(FIND_CELL_AT, e.location);
+		if (result.valuesRow >= 0 && result.valuesColumn >= 0)
+		    CopyToClipboardScreen(action(GET_FIELD, result.valuesRow, result.valuesColumn, "view"));
+	    }
+	}
+    };
+
+    //
+    // We eventually may add some error checking here.
+    //
+
+    for (ptr = &dragcolumns + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+    return(new JTable initializer);
+}
+
+AdjustmentValueChanged(e) {
+    String status;
+    Point  point;
+    int    firstrow;
+    int    lastrow;
+
+    //
+    // Currently only for JTables that also define a function named
+    // SetScrollStatus.
+    //
+
+    if (this instanceof JTable) {
+	if (e.orientation == VERTICAL) {
+	    if (defined("SetScrollStatus", this)) {
+		if (this.SetScrollStatus instanceof Function) {
+		    point = this.origin;
+		    if ((firstrow = this.action(FIND_CELL_AT, point).viewRow) >= 0) {
+			lastrow = min(firstrow + viewrowcount, rows);
+			if (firstrow < lastrow)
+			    firstrow++;
+			else firstrow = lastrow;
+			status = strfmt("%d - %d", firstrow, lastrow);
+		    }
+		    this.SetScrollStatus(status);
+		}
+	    }
+	}
+    }
+}
+
+NewJTableWithSearch(String basetag, Object inputfilter, int scroll, Object dragcolumns, ...) {
+    Dictionary initializer;
+    Object     ptr;
+
+    Object tabletags = basetag;
+    int    cellwise = defined("cellwise", this) ? this.cellwise : TRUE;
+
+    initializer = new Dictionary[39, ...] {
+	String basetag = basetag;
+	String tag = basetag;
+	Object inputfilter = inputfilter;
+	Object outputfilter = " ";
+	Object font = GetPreferredTableFont();
+	Object altfont = GetPreferredTableHeadingFont();
+	Object dragcolumns = dragcolumns;
+	Object transferhandler = NULL;		// required for custom drag and drop
+	int    scroll = scroll;
+	int    reorder = 1;
+	int    resize = 1;
+	Color  gridcolor = GetPreferredTableGridColor();
+	Color  background = GetPreferredTableBackground();
+	Color  foreground = GetPreferredTableForeground();
+
+	Array altbackground = GetPreferredTableHeaderBackgrounds();
+	Array altforeground = GetPreferredTableHeaderForegrounds();
+	Array cellcolors = GetPreferredTableCellColors();
+	Array dfltcellcolors = cellcolors;
+
+	Function invocationAction = TableSorter;
+
+	Function GlobalAdjustmentValueChanged = AdjustmentValueChanged;
+
+	int include_hidden = FALSE;
+	int cellwise = cellwise;
+	int adjusting = FALSE; // for syncing filter
+	int initialized = FALSE;
+
+	TableDragAdjustment(String transfertext) {
+	    if (transfertext != NULL)
+		transfertext = gsubsti((inputfilter instanceof Array ? "|" : inputfilter), "[\r\n]+", transfertext);
+	    return(transfertext);
+	}
+
+	SetDragState(int state, ...) {
+	    int cellwise = TRUE;
+	    if (state < 0 || (argc > 2 && argv[2] instanceof int)) {
+		cellwise = argv[2];
+		state = -state;
+	    }
+	    dragGestureRecognized = state ? (cellwise ? DragGestureRecognized : TableDragGestureRecognized) : NULL;
+	}
+
+	SetScrollStatus(String range) {
+	    if (range == NULL) {
+		if (rows == 0)
+		    root.components[basetag + "_rowinfo"].text = "";
+		else root.components[basetag + "_rowinfo"].text = strfmt("%d", rows);
+	    } else root.components[basetag + "_rowinfo"].text = strfmt("[ %s ] of %d", range, rows);
+	}
+
+	SyncToolTipText() {
+	    root.components[basetag + "_dnd"].SyncToolTipText();
+	}
+
+	mouseMoved(e) {
+	    Dictionary result;
+
+	    if (e.modifiers & CTRL_MASK) {
+		result = action(FIND_CELL_AT, e.location);
+		if (result.valuesRow >= 0 && result.valuesColumn >= 0)
+		    CopyToClipboardScreen(
+			e.modifiers & SHIFT_MASK ?
+			GetTableRowFromColumn(this, result.valuesRow, result.valuesColumn, ((e.modifiers&ALT_MASK) != ALT_MASK))
+			:
+			action(GET_FIELD, result.valuesRow, result.valuesColumn, "view")
+		    );
+	    }
+	}
+
+	SyncSizes(JTable master, JTable slave) {
+	    double w;
+	    int v, m, n;
+
+	    if (master.size.height > master.viewport.height) {
+		if (slave.scrollmode == slave.scrollinit) {
+		    slave.scrollmode = slave.scrollvert;
+		    slave.scroll = slave.scrollvert;
+		}
+	    } else {
+		if (slave.scrollmode == slave.scrollvert) {
+		    slave.scrollmode = slave.scrollinit;
+		    slave.scroll = slave.scrollinit;
+		}
+	    }
+	    if (slave.width != master.width) {
+		slave.filtertext = master.GenFilterText(master.width, slave.inputfilter);
+		slave.text = slave.filtertext;
+	    }
+	    for (n = 0; n < master.width; n++) {
+		w = master.action(GET_COLUMN_FIELD, n, "width");
+		v = master.action(GET_COLUMN_VIEW_INDEX, n);
+		m = slave.action(GET_COLUMN_DATA_INDEX, v);
+		slave.action(SET_COLUMN_FIELD, m, "width", w);
+		slave.action(SET_COLUMN_FIELD, m, "visible", master.action(GET_COLUMN_FIELD, n, "visible"));
+	    }
+	    if (slave.negation@length != slave.width || slave.width != master.width) {
+		// could do more here (e.g., use old values were appropriate)
+		slave.negation = new Array[slave.width];
+		for (n = 0; n < slave.width; n++) {
+		    slave.negation[n] = FALSE;
+		    slave.action(SET_COLUMN_FIELD, n, "background", slave.background);
+		    slave.action(SET_COLUMN_FIELD, n, "foreground", slave.foreground);
+		    slave.action(SET_COLUMN_FIELD, n, "selectionbackground", slave.selectionbackground);
+		    slave.action(SET_COLUMN_FIELD, n, "selectionforeground", slave.selectionforeground);
+		    slave.action(SET_COLUMN_FIELD, n, "editbackground", slave.editbackground);
+		    slave.action(SET_COLUMN_FIELD, n, "editforeground", slave.editforeground);
+		}
+	    }
+	}
+
+	invocationChange(e) {
+	    switch (e.change) {
+	    case "resize":
+	        if (e.viewColumn >= 0)
+		    root.components[basetag].SyncSizes(this, root.components[basetag+"_filter"]);
+	        break;
+	    case "drag":
+	        root.components[basetag+"_filter"].action(MOVE_COLUMN, e.fromViewColumn, e.toViewColumn);
+	    break;
+	    }
+	}
+
+	adjustmentValueChanged(e) {
+
+	    if (e.orientation == HORIZONTAL) {
+		adjusting = TRUE;
+
+		if (!root.components[basetag+"_filter"].adjusting)
+		    root.components[basetag+"_filter"].origin = new Point { double x = origin.x; int y = 0; };
+		adjusting = FALSE;
+	    } else GlobalAdjustmentValueChanged(e);
+	}
+
+	componentResized(e) {
+	    root.components[basetag].SyncSizes(root.components[basetag], root.components[basetag+"_filter"]);
+	}
+
+	Filter() {
+	    Array   vizinfo;
+	    Array   colcells;
+	    Array   filters;
+	    Array   negation;
+	    Array   reflags;
+	    Regexp  re;
+	    JTable  tab = root.components[basetag];
+	    JTable  flt = root.components[basetag+"_filter"];
+	    int     m, n;
+	    int     usepat;
+	    int     flags;
+	    int     width;
+	    int     negate;
+
+	    flt.action(EDIT_STOP);
+
+	    save cursor = Cursor.WAIT_CURSOR;
+	    flags = FilterTableREFlags(root, basetag);
+
+	    reflags = (defined("reflags", flt) && flt.reflags instanceof Array) ? flt.reflags : NULL;
+
+	    filters = strsplit(flt.text, flt.outputfilter[0]);
+	    negation = flt.negation;
+	    tab.action(ROW_VISIBILITY, 1); // would only apply to existing set if omitted
+	    vizinfo = new Array[tab.rows];
+	    for (ptr in vizinfo)
+		*ptr = 1;
+	    for (ptr in filters) {
+		*ptr = trim(*ptr);
+		usepat = (*ptr !== "");
+		if (usepat) {
+		    re = regexp(*ptr, (reflags != NULL && reflags@sizeof > ptr@offset && reflags[ptr@offset] != NULL) ? reflags[ptr@offset] : flags);
+		    negate = flt.negation[ptr@offset];
+		    colcells = linesplit(tab.action(GET_COLUMN_FIELD, ptr@offset, "text", TRUE, TRUE), TRUE);
+		    for (ptr2 in colcells) {
+			if (vizinfo[n = ptr2@offset]) {
+			    if (negate)
+				vizinfo[n] = !regexec(re, *ptr2);
+			    else vizinfo[n] = regexec(re, *ptr2);
+			}
+		    }
+		}
+	    }
+	    if (vizinfo@sizeof > 0)
+		tab.action(ROW_VISIBILITY, vizinfo, "view");
+
+	    if (defined("FilterPostProcess", tab))
+		tab.FilterPostProcess(flt); // should we queue this or leave it to the user?
+	}
+
+	ResetFilter() {
+	    Array  savedvalues = {
+	        root.components[basetag+"_filter"].text,
+	        new Array[] root.components[basetag+"_filter"].negation
+	    };
+
+	    root.components[basetag+"_filter"].action(EDIT_STOP);
+	    root.components[basetag+"_filter"].text = root.components[basetag+"_filter"].filtertext;
+	    for (ptr in root.components[basetag+"_filter"].negation) {
+		if (*ptr)
+		    root.components[basetag + "_filter"].FlipNegation(ptr@offset);
+	    }
+	    Filter();
+	    if (defined("UserResetFilter", root.components[basetag]))
+		root.components[basetag].UserResetFilter();
+
+	    return(savedvalues);
+	};
+
+	GenFilterText(int n, String sep) {
+	    Array    types[n];
+	    String   text;
+	    int      i;
+
+	    text = "";
+	    for (i = 1; i < n; i++)
+		text += sep;
+
+	    return(text);
+	}
+
+	String filtertext;
+    };
+
+    //
+    // We eventually may add some error checking here.
+    //
+
+    for (ptr = &dragcolumns + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+
+    JTable jt = new JTable initializer;
+
+    JPanel jp = {
+	GridBagLayout layoutmanager = {
+	    int columns = 1;
+	};
+
+	Array layout = {
+	    jt,
+	    BOTH,
+	    new JPanel {
+		String     basetag = basetag;
+		String     tag = basetag + "_card";
+		CardLayout layoutmanager;
+		int        visible = FALSE;
+		String     cardtag = basetag + "_filter"; // default is first panel
+
+		Array layout = {
+		    new JTable {
+			String basetag = basetag;
+			String tag = basetag + "_filter";
+			int    reorder = 0;
+			int    rows = 1;
+			int    resize = 0;
+			int    scrollinit = NONE;
+			int    scrollvert = HORIZONTAL_NEVER|VERTICAL_ALWAYS;
+			int    scrollmode = scrollinit;
+			int    scroll = scrollmode;
+			int    resizemode = AUTO_RESIZE_OFF;
+			int    rowheightadjustment = -1;
+			int    edit = 1;
+			int    adjusting = FALSE; // used when syncing filter with table
+
+			Array  negation;
+			Array  reflags;
+
+			Object font = GetPreferredTableFont();
+			Color  gridcolor = GetPreferredTableGridColor();
+			Color  selectionbackground = GetPreferredTableFilterSelectionBackground();
+			Color  selectionforeground = GetPreferredTableFilterSelectionForeground();
+			Array  bfcolors = GetPreferredTableFilterCellColors();
+			Color  background = bfcolors[0];
+			Color  foreground = bfcolors[1];
+			Color  editbackground = bfcolors[0];
+			Color  editforeground = bfcolors[1];
+			int    useedithighlight = FALSE;
+
+			Object dragcolumns = NULL;
+			Object transferhandler = NULL;
+
+			int retainstate = FALSE;
+
+			String inputfilter = "\t";
+			String outputfilter = "\t";
+
+			String filtertext = jt.GenFilterText(jt.width, inputfilter);
+			String text = filtertext;
+
+			Dictionary lastcell = {
+			    int valuesColumn = -1;
+			    int valuesRow = -1;
+			};
+
+			invocationEdit(e) {
+			    root.components[basetag].Filter();
+			}
+
+			adjustmentValueChanged(e) {
+
+			    if (e.orientation == HORIZONTAL) {
+				adjusting = TRUE;
+
+				if (!root.components[basetag].adjusting)
+				    root.components[basetag].origin = new Point { double x = origin.x; int y = 0; };
+				adjusting = FALSE;
+			    }
+			}
+
+			FlipNegation(int column) {
+			    Color bk, fg;
+
+			    negation[column] = !negation[column];
+			    bk = action(GET_COLUMN_FIELD, column, "editbackground");
+			    if (bk == null)
+				bk = editbackground;
+			    fg = action(GET_COLUMN_FIELD, column, "editforeground");
+			    if (fg == null)
+				fg = editforeground;
+			    action(SET_COLUMN_FIELD, column, "editbackground", fg);
+			    action(SET_COLUMN_FIELD, column, "editforeground", bk);
+			    bk = action(GET_COLUMN_FIELD, column, "background");
+			    if (bk == null)
+				bk = background;
+			    fg = action(GET_COLUMN_FIELD, column, "foreground");
+			    if (fg == null)
+				fg = foreground;
+			    action(SET_COLUMN_FIELD, column, "background", fg);
+			    action(SET_COLUMN_FIELD, column, "foreground", bk);
+			    bk = action(GET_COLUMN_FIELD, column, "selectionbackground");
+			    if (bk == null)
+				bk = selectionbackground;
+			    fg = action(GET_COLUMN_FIELD, column, "selectionforeground");
+			    if (fg == null)
+				fg = selectionforeground;
+			    action(SET_COLUMN_FIELD, column, "selectionbackground", fg);
+			    action(SET_COLUMN_FIELD, column, "selectionforeground", bk);
+			}
+
+
+			invocationEditKey(e) {
+			    if (e.keyevent == KEYRELEASED && e.keycode == KeyCode.VK_ALT) {
+				FlipNegation(e.valuesColumn);
+				root.components[basetag].Filter();
+			    }
+			}
+		    },
+		    new JPanel {
+			GridBagLayout layoutmanager;
+			String        tag = basetag + "_search";
+
+			Array layout = {
+			    NewJTextField(basetag + "_find_text", NULL, 15, new Dictionary {
+				String basetag = basetag;
+				int alignment = LEFT;
+
+				Function KeyPressed = KeyPressed;
+
+				actionPerformed(e) {
+				    SearchTableFindText(root.components[basetag], root, basetag, text, TRUE);
+				}
+
+				keyPressed(e) {
+				    foreground = NULL;
+				    KeyPressed(e);
+				}
+			    }),
+			    new GridBagConstraints {
+				Insets insets = GetQualifiedInsets(72.0/32, "R");
+				int anchor = LEFT;
+				int weightx = 1;
+				int fill = HORIZONTAL;
+			    },
+			    new JButton {
+				String basetag = basetag;
+				String tag = basetag + "_prev";
+				Object font = GetPreferredButtonFont();
+				Image  icon = GetButtonLeftIcon(font, Color.black, 0.9);
+				String rowwise = "Find next match searching backward row-wise";
+				String colwise = "Find next match searching up column-wise";
+				String tooltiptext = rowwise;
+				Insets insets = GetPreferredSmallButtonInsets();
+
+				actionPerformed(e) {
+				    SearchTableFindText(root.components[basetag], root, basetag, root.components[basetag + "_find_text"].text, FALSE);
+				}
+
+				mousePressed(e) {
+				    root.components[basetag + "_find_text"].foreground = NULL;
+				}
+			    },
+			    new GridBagConstraints {
+				int anchor = LEFT;
+			    },
+			    new JButton {
+				String basetag = basetag;
+				String tag = basetag + "_next";
+				Object font = GetPreferredButtonFont();
+				Image  icon = GetButtonRightIcon(font, Color.black, 0.9);
+				String rowwise = "Find next match searching forward row-wise";
+				String colwise = "Find next match searching down column-wise";
+				String tooltiptext = rowwise;
+				Insets insets = GetPreferredSmallButtonInsets();
+
+				actionPerformed(e) {
+				    SearchTableFindText(root.components[basetag], root, basetag, root.components[basetag + "_find_text"].text, TRUE);
+				}
+
+				mousePressed(e) {
+				    root.components[basetag + "_find_text"].foreground = NULL;
+				}
+			    },
+			    new GridBagConstraints {
+				int anchor = LEFT;
+			    },
+			    new JCheckBox {
+				String basetag = basetag;
+				String tag = basetag + "_colwise";
+				String text = "Columns";
+				Object font = GetPreferredLabelFont();
+				int alignment = LEFT;
+				String tooltiptext = "Search column-wise rather than row-wise";
+
+				stateChanged(e) {
+				    if (state) {
+					root.components[basetag + "_prev"].icon = GetButtonUpIcon(root.components[basetag + "_prev"].font, Color.black, 0.9);
+					root.components[basetag + "_next"].icon = GetButtonDownIcon(root.components[basetag + "_prev"].font, Color.black, 0.9);
+					root.components[basetag + "_prev"].tooltiptext = root.components[basetag + "_prev"].colwise;
+					root.components[basetag + "_next"].tooltiptext = root.components[basetag + "_next"].colwise;
+				    } else {
+					root.components[basetag + "_prev"].icon = GetButtonLeftIcon(root.components[basetag + "_prev"].font, Color.black, 0.9);
+					root.components[basetag + "_next"].icon = GetButtonRightIcon(root.components[basetag + "_prev"].font, Color.black, 0.9);
+					root.components[basetag + "_prev"].tooltiptext = root.components[basetag + "_prev"].rowwise;
+					root.components[basetag + "_next"].tooltiptext = root.components[basetag + "_next"].rowwise;
+				    }
+				}
+			    },
+			    new GridBagConstraints {
+				int anchor = RIGHT;
+			    },
+			    new JCheckBox {
+				String basetag = basetag;
+				String tag = basetag + "_case_sensitive";
+				String text = "Case";
+				Object font = GetPreferredLabelFont();
+				int alignment = LEFT;
+				String tooltiptext = "Make searching or filtering case-sensitive";
+			    },
+			    new GridBagConstraints {
+				int anchor = RIGHT;
+			    },
+			    new JCheckBox {
+				String basetag = basetag;
+				String tag = basetag + "_glob_pattern";
+				String text = "GLOB";
+				Object font = GetPreferredLabelFont();
+				int alignment = LEFT;
+				String tooltiptext = "Use GLOB (i.e., shell) pattern for search and filter";
+
+				stateChanged(e) {
+				    if (state)
+					root.components[basetag + "_re_pattern"].state = 0;
+				}
+			    },
+			    new GridBagConstraints {
+				int gridwidth = RELATIVE;
+				int anchor = RIGHT;
+			    },
+			    new JCheckBox {
+				String basetag = basetag;
+				String tag = basetag + "_re_pattern";
+				String text = "RE";
+				Object font = GetPreferredLabelFont();
+				int alignment = LEFT;
+				String tooltiptext = "Use regular expression (i.e., grep) pattern for search and filter";
+
+				stateChanged(e) {
+				    if (state)
+					root.components[basetag + "_glob_pattern"].state = 0;
+				}
+			    },
+			    new GridBagConstraints {
+				int gridwidth = REMAINDER;
+				int anchor = RIGHT;
+			    },
+			};
+		    },
+		};
+
+		componentShown(e) {
+		    root.components[basetag].SyncSizes(root.components[basetag], root.components[basetag+"_filter"]);
+		}
+
+		SetPanel(String tag) {
+		    nextcard = root.components[cardtag = tag];
+		    if (tag === (basetag + "_filter"))
+			root.components[basetag+"_search_label"] {
+			    icon = up_norm;
+			    tooltiptext = "Show table search pane";
+			}
+		    else
+			root.components[basetag+"_filter_label"] {
+			    icon = up_norm;
+			    tooltiptext = "Show table filter pane";
+			}
+		}
+	    },
+	    HORIZONTAL,
+	    new JPanel{
+		GridBagLayout layoutmanager;
+
+		Array layout = {
+		    // seems like these commented items are not needed after
+		    // BOTTOMLEFT change below
+		    // new JLabel {},
+		    // new Dictionary {
+			// int gridx = 1;
+			// int gridy = 1;
+			// int weightx = 1;
+			// int anchor = BOTTOM;
+		    // },
+		    new JPanel {
+			GridBagLayout layoutmanager;
+
+			Array layout = {
+			    new JLabel {
+				String basetag = basetag;
+				String tag = basetag + "_filter_label";
+				String text = "Filter";
+				Object font = GetPreferredTitledBorderFont();
+				int    alignment = LEFT;
+				Image  down_norm     = GetButtonDownIcon(font, Color.gray, 0.8);
+				Image  down_pressed  = GetButtonDownIcon(font, Color.black, 0.8);
+				Image  down_over     = GetButtonDownIcon(font, Color.sgigray96, 0.8);
+				Image  up_norm       = GetButtonUpIcon(font, Color.gray, 0.8);
+				Image  up_pressed    = GetButtonUpIcon(font, Color.black, 0.8);
+				Image  up_over       = GetButtonUpIcon(font, Color.sgigray96, 0.8);
+				Image  icon = up_norm;
+				int    pressed;
+				Point  presspoint = NULL;
+				String tooltiptext = "Show table filter pane";
+				String paneltag = basetag + "_filter";
+				String cardpanel = basetag + "_card";
+
+				Array savedvalues = NULL;
+
+				mouseEntered(e) {
+				    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+					icon = down_over;
+				    else icon = up_over;
+				}
+
+				mouseExited(e) {
+				    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+					icon = down_norm;
+				    else icon = up_norm;
+				}
+
+				mousePressed(e) {
+				    presspoint = e.location;
+				    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+					icon = down_pressed;
+				    else icon = up_pressed;
+				}
+
+				mouseDragged(e) {
+				    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+					CancelMousePressed();
+				}
+
+				mouseReleased(e) {
+				    int viz;
+				    if (presspoint != NULL) {
+					viz = !(root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag);
+					if (viz) {
+					    if (savedvalues != NULL) {
+						for (ptr in root.components[basetag+"_filter"].negation) {
+						    if (*ptr != savedvalues[1][ptr@offset]) {
+							root.components[basetag+"_filter"].FlipNegation(ptr@offset);
+						    }
+						}
+
+						root.components[basetag+"_filter"].text = savedvalues[0];
+						root.components[basetag+"_filter"].negation = savedvalues[1];
+						savedvalues = NULL;
+					    }
+					    root.components[cardpanel].SetPanel(paneltag);
+					    root.components[basetag].Filter();
+					} else savedvalues = root.components[basetag].ResetFilter();
+					root.components[cardpanel].visible = viz; // must come before CancelMousePressed
+					tooltiptext = (viz ? "Hide" : "Show") + " table filter pane";
+					CancelMousePressed();
+				    }
+				}
+
+				CancelMousePressed() {
+				    presspoint = NULL;
+				    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+					icon = down_norm;
+				    else icon = up_norm;
+				}
+			    },
+			    LEFT,
+			    72.0/16,
+			    new JLabel {
+				String basetag = basetag;
+				String tag = basetag + "_search_label";
+				String text = "Search";
+				Object font = GetPreferredTitledBorderFont();
+				int    alignment = LEFT;
+				Image  down_norm     = GetButtonDownIcon(font, Color.gray, 0.8);
+				Image  down_pressed  = GetButtonDownIcon(font, Color.black, 0.8);
+				Image  down_over     = GetButtonDownIcon(font, Color.sgigray96, 0.8);
+				Image  up_norm       = GetButtonUpIcon(font, Color.gray, 0.8);
+				Image  up_pressed    = GetButtonUpIcon(font, Color.black, 0.8);
+				Image  up_over       = GetButtonUpIcon(font, Color.sgigray96, 0.8);
+				Image  icon = up_norm;
+				int    pressed;
+				Point  presspoint = NULL;
+				String tooltiptext = "Show table search pane";
+				String paneltag = basetag + "_search";
+				String cardpanel = basetag + "_card";
+
+				mouseEntered(e) {
+				    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+					icon = down_over;
+				    else icon = up_over;
+				}
+
+				mouseExited(e) {
+				    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+					icon = down_norm;
+				    else icon = up_norm;
+				}
+
+				mousePressed(e) {
+				    presspoint = e.location;
+				    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+					icon = down_pressed;
+				    else icon = up_pressed;
+				}
+
+				mouseDragged(e) {
+				    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+					CancelMousePressed();
+				}
+
+				mouseReleased(e) {
+				    int viz;
+				    if (presspoint != NULL) {
+					viz = !(root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag);
+					if (viz)
+					    root.components[cardpanel].SetPanel(paneltag);
+					else root.components[basetag + "_filter_label"].savedvalues = root.components[basetag].ResetFilter();
+					root.components[cardpanel].visible = viz; // must come before CancelMousePressed
+					tooltiptext = (viz ? "Hide" : "Show") + " table search pane";
+					CancelMousePressed();
+				    }
+				}
+
+				CancelMousePressed() {
+				    presspoint = NULL;
+				    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+					icon = down_norm;
+				    else icon = up_norm;
+				}
+			    },
+			    LEFT,
+			    72.0/16,
+			    new JLabel {
+				String basetag = basetag;
+				String text = "Reset";
+				Object font = GetPreferredTitledBorderFont();
+				int    alignment = LEFT;
+				Image  reset_norm     = GetButtonDiamondIcon(font, Color.gray, 0.8);
+				Image  reset_pressed  = GetButtonDiamondIcon(font, Color.black, 0.8);
+				Image  reset_over     = GetButtonDiamondIcon(font, Color.sgigray96, 0.8);
+				Image  icon = reset_norm;
+				int    pressed;
+				Point  presspoint = NULL;
+				String tooltiptext = "Reset the table to its original state";
+
+				mouseEntered(e) {
+				    icon = reset_over;
+				}
+
+				mouseExited(e) {
+				    icon = reset_norm;
+				}
+
+				mousePressed(e) {
+				    presspoint = e.location;
+				    icon = reset_pressed;
+				    // following needed here to get a proper reset
+				    root.components[basetag+"_filter"].action(EDIT_STOP);
+				}
+
+				mouseDragged(e) {
+				    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+					CancelMousePressed();
+				}
+
+				mouseReleased(e) {
+				    if (presspoint != NULL) {
+					SearchTableReset(root.components[basetag], root, basetag);
+					CancelMousePressed();
+				    }
+				}
+
+				CancelMousePressed() {
+				    presspoint = NULL;
+				    icon = reset_norm;
+				}
+			    },
+			    LEFT,
+			    72.0/16,
+			    new JLabel {
+				String basetag = basetag;
+				String text = "Export";
+				Object font = GetPreferredTitledBorderFont();
+				int    alignment = LEFT;
+				Image  export_norm     = GetButtonDiamondIcon(font, Color.gray, 0.8);
+				Image  export_pressed  = GetButtonDiamondIcon(font, Color.black, 0.8);
+				Image  export_over     = GetButtonDiamondIcon(font, Color.sgigray96, 0.8);
+				Image  icon = export_norm;
+				int    pressed;
+				Point  presspoint = NULL;
+				String tooltiptext = "Convert table to a text format and open in a viewier";
+
+				JPopupMenu popupmenu = {
+				    Array items = {
+					new JMenuItem {
+					    String text = "Comma-Separated Values (CSV)";
+					    actionPerformed(e) {
+						Object jlabel = this.root;
+						QueueCommandOnce(
+						    jlabel.root,
+						    &GenerateTableCSV,
+						    jlabel.root.components[jlabel.basetag],
+						    jlabel.root,
+						    NULL,
+						    ProprietaryLabel,
+						    jlabel.root.components[jlabel.basetag].include_hidden
+						);
+					    }
+					},
+					new JMenuItem {
+					    String text = "Tab-Separated Values (TSV)";
+					    actionPerformed(e) {
+						Object jlabel = this.root;
+						QueueCommandOnce(
+						    jlabel.root,
+						    &GenerateTableTSV,
+						    jlabel.root.components[jlabel.basetag],
+						    jlabel.root,
+						    NULL,
+						    ProprietaryLabel,
+						    jlabel.root.components[jlabel.basetag].include_hidden
+						);
+					    }
+					},
+					new JMenuItem {
+					    String text = "Plain Text (TXT)";
+					    actionPerformed(e) {
+						Object jlabel = this.root;
+						QueueCommandOnce(
+						    jlabel.root,
+						    &GenerateTableTXT,
+						    jlabel.root.components[jlabel.basetag],
+						    jlabel.root,
+						    NULL,
+						    ProprietaryLabel,
+						    jlabel.root.components[jlabel.basetag].include_hidden
+						);
+					    }
+					},
+					new JMenuItem {
+					    String text = "HTML";
+					    actionPerformed(e) {
+						Object jlabel = this.root;
+						QueueCommandOnce(
+						    jlabel.root,
+						    &GenerateTableHTML,
+						    jlabel.root.components[jlabel.basetag],
+						    jlabel.root,
+						    NULL,
+						    ProprietaryLabel == NULL ? NULL : strfmt("<center><h2>%s</h2></center>", ProprietaryLabel),
+						    jlabel.root.components[jlabel.basetag].include_hidden
+						);
+					    }
+					},
+				    };
+				};
+
+				mouseEntered(e) {
+				    icon = export_over;
+				}
+
+				mouseExited(e) {
+				    icon = export_norm;
+				}
+
+				mousePressed(e) {
+				    presspoint = e.location;
+				    icon = export_pressed;
+				}
+
+				mouseDragged(e) {
+				    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+					CancelMousePressed();
+				}
+
+				mouseReleased(e) {
+				    if (presspoint != NULL) {
+					popupmenu.location = e.location;
+					popup = popupmenu;
+					CancelMousePressed();
+				    }
+				}
+
+				CancelMousePressed() {
+				    presspoint = NULL;
+				    icon = export_norm;
+				}
+			    },
+			    LEFT,
+			    72.0/16,
+			    new JLabel {
+				String basetag = basetag;
+				String tag = basetag + "_dnd";
+				Object font = GetPreferredTitledBorderFont();
+				int    alignment = LEFT;
+				Array  tabletags = (tabletags instanceof Array) ? tabletags : new Array { tabletags };
+				Image  dnd_norm     = GetButtonDiamondIcon(font, Color.gray, 0.8);
+				Image  dnd_pressed  = GetButtonDiamondIcon(font, Color.black, 0.8);
+				Image  dnd_over     = GetButtonDiamondIcon(font, Color.sgigray96, 0.8);
+				Image  icon = dnd_norm;
+				int    pressed;
+				Point  presspoint = NULL;
+				String tooltiptext = "Toggle " + (cellwise ? "cell-wise/row-wise" : "row-wise/cell-wise") + " drag and drop (DnD)";
+				String text = "DnD " + (cellwise ? "cells" : "rows");
+
+				mouseEntered(e) {
+				    icon = dnd_over;
+				}
+
+				mouseExited(e) {
+				    icon = dnd_norm;
+				}
+
+				mousePressed(e) {
+				    presspoint = e.location;
+				    icon = dnd_pressed;
+				}
+
+				mouseDragged(e) {
+				    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+					CancelMousePressed();
+				}
+
+				mouseReleased(e) {
+				    if (presspoint != NULL) {
+					if (root.components[basetag].cellwise) {
+					    root.components[basetag].cellwise = FALSE;
+					} else {
+					    root.components[basetag].cellwise = TRUE;
+					}
+					SyncToolTipText();
+					CancelMousePressed();
+				    }
+				}
+
+				CancelMousePressed() {
+				    presspoint = NULL;
+				    icon = dnd_norm;
+				}
+
+				SyncToolTipText() {
+
+				    int cellwise = root.components[basetag].cellwise;
+
+				    root.components[basetag].SetDragState(TRUE, cellwise);
+
+				    tooltiptext = "Toggle " + (cellwise ? "cell-wise/row-wise" : "row-wise/cell-wise") + " drag and drop (DnD)";
+				    text = "DnD " + (cellwise ? "cell" : "row");
+				}
+			    },
+			    LEFT,
+			    new JPanel {},
+			    LEFT, HORIZONTAL,
+			};
+		    },
+		    new Dictionary {
+			int gridx = 1;
+			int gridy = 1;
+			int weightx = 1;
+			int anchor = BOTTOMLEFT;
+		    },
+		    // above was just (see also comment before panel above): BOTTOMLEFT,
+		    new JLabel {
+			String tag = basetag + "_rowinfo";
+			Object font = GetPreferredTitledBorderFont();
+			int    alignment = RIGHT;
+		    },
+		    BOTTOMRIGHT,
+		};
+	    },
+	    HORIZONTAL,
+	};
+    };
+    return(jp);
+}
+
+JFrame f = {
+    int visible = 1;
+    Dimension size = NULL;
+    String title = "Test JTable Insertion under Sort";
+
+    JMenuBar menubar = {
+	Array items = {
+	    new JMenu {
+		String text = "File";
+		String accelerator = "ctrl F";
+		Array items = {
+		    new JMenuItem {
+			String text = "Reset view to data";
+			String accelerator = "ctrl R";
+			actionPerformed(e) {
+			    root.components.$_table.action(RESET_VIEW);
+			}
+		    },
+		    NULL,
+		    new JMenuItem {
+			String text = "Quit";
+			String accelerator = "ctrl Q";
+			actionPerformed(e) {
+			    exit(0);
+			}
+		    },
+		};
+	    },
+	};
+    };
+	    
+    Array layout = {
+	NewJTableWithSearch("$_table", "|", AS_NEEDED, NULL, new Dictionary {
+	    int rows = 10;
+
+	    Dimension preferredsize = { int width = 6 * 72; };
+
+	    Array columns = {
+		new JTableColumn {
+		    String header = "Number";
+		    int type = INTEGER_TYPE;
+		    int width = 1 * 72;
+		    String text = "1\n2\n3\n4\n5\n6";
+		},
+		new JTableColumn {
+		    String header = "Text Label";
+		    int type = STRING_TYPE;
+		    int width = 2 * 72;
+		    String text = "one\ntwo\nthree\nfour\nfive\nsix";
+		},
+	    };
+	}),
+	CENTER,
+	new JPanel {
+	    String tag = "$_bp1";
+	    int rw = 0; // placeholder
+	    Array layout = {
+		new JButton {
+		    String text = "Insert@1";
+		    actionPerformed(e) {
+			JTable jt = root.components.$_table;
+			int rw = ++root.components.$_bp1.rw;
+			String dt = strfmt("%d|%d inserted", rw, rw);
+			jt.action(INSERT_ROWS, dt, 1, root.components.$_sync.state);
+		    }
+		},
+		new JButton {
+		    String text = "Append@1";
+		    actionPerformed(e) {
+			JTable jt = root.components.$_table;
+			int rw = ++root.components.$_bp1.rw;
+			String dt = strfmt("%d|%d appended", rw, rw);
+			jt.action(APPEND_ROWS, dt, 1, root.components.$_sync.state);
+		    }
+		},
+		new JCheckBox {
+		    String tag = "$_sync";
+		    String text = "SyncView";
+		    int state = TRUE;
+		},
+		new JButton {
+		    String text = "Dump Values";
+		    actionPerformed(e) {
+			JTable jt = root.components.$_table;
+			fprintf(stderr, "Table data:\n%s\n", jt.text);
+			fprintf(stderr, "Table values:\n%.2O\n", jt.values);
+		    }
+		},
+	    };
+	},
+	SOUTH
+    };
+};
+f.components.$_bp1.rw = f.components.$_table.rows;

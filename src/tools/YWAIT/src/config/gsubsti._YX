@@ -1,0 +1,1166 @@
+//
+// Do not use "import yoix.*.*;" to avoid unneeded access to DISPLAY.
+//
+
+import yoix.net.*;
+import yoix.re.*;
+import yoix.stdio.*;
+import yoix.string.*;
+import yoix.system.*;
+import yoix.util.*;
+
+VM.addtags = FALSE;
+VM.create = FALSE;
+
+String line;
+int    suppress = false;
+int    use_suppression = false;
+
+// specific postprocessing functions
+
+EscapeAt() {
+    if (replacement@length > 0 && indexOf(replacement, "@") >= 0) {
+	Regexp atpat = {
+	    String pattern = "@";
+	    String replacement = "\\@";
+	    int    type = TEXT_PATTERN;
+	};
+	replacement = gvsubsti(atpat.replacement, atpat, replacement);
+    }
+}
+
+ListMatches() {
+    Array     contents;
+    Array     patterns[0,...];
+    Array     outlist[0,...];
+    Hashtable dupes;
+    Pointer   ptr;
+    Pointer   reptr;
+    Pointer   outptr;
+    String    path;
+    String    reldir;
+    String    retval = "";
+    int       idx1;
+    int       idx2;
+
+    path = yoixPath(".");
+    reldir = substi(args[0], args[1], path);
+
+    if (reldir != path && isDirectoryPath(reldir)) {
+
+	contents = directoryListing(reldir);
+
+	reptr = patterns;
+	for (ptr in &args[2]) {
+	    *reptr++ = regexp(*ptr, SINGLE_BYTE|SHELL_PATTERN);
+	}
+
+	outptr = outlist;
+	for (ptr in contents) {
+	    if (patterns@sizeof > 0) {
+		for(reptr in patterns) {
+		    if (*ptr =~ *reptr) {
+			idx1 = indexOf(*ptr, "_") + 1;
+			idx2 = lastIndexOf(*ptr, ".");
+			path = substring(*ptr, idx1, idx2);;
+			if (!dupes.contains(path)) {
+			    *outptr++ = path;
+			    dupes.put(path, path);
+			}
+		    }
+		}
+	    } else *outptr++ = *ptr;
+	}
+	qsort(outlist);
+	retval = "qw(" + strjoin(outlist, " ") + ")";
+    }
+
+    replacement = retval;
+}
+
+NoTrailingSlash() {
+
+    if (indexOf(values[0], "<_") >= 0) {
+	replacement = DoReplacement(values[0]);
+    } else replacement = values[0];
+
+    while (replacement@length > 0 && endsWith(replacement, "/"))
+	replacement = substring(replacement, 0, replacement@length - 1);
+}
+
+PerlHash() {
+    Array pairs;
+    Pointer ptr;
+
+    if (indexOf(values[0], "<_") >= 0) {
+	replacement = DoReplacement(values[0]);
+	if (indexOf(replacement, "<_") >= 0)
+	    abort("unknown substitution", replacement);
+    } else replacement = values[0];
+
+    pairs = csvsplit(replacement); 
+
+    replacement = "(\n";
+    for (ptr in pairs by 2) {
+	if (ptr@sizeof > 1)
+	    replacement += strfmt("\t%s => \"%s\",\n", *ptr, cstring(*(ptr+1)));
+    }
+    replacement += ")";
+}
+
+QuoteUnless() {
+    int doQuote = true;
+    int i;
+
+    if (indexOf(values[0], "<_") >= 0) {
+	replacement = DoReplacement(values[0]);
+	if (indexOf(replacement, "<_") >= 0)
+	    abort("unknown substitution", replacement);
+    } else replacement = values[0];
+
+    for (i=0; i<args@length; i++) {
+	if (args[i] === replacement) {
+	    doQuote = false;
+	    break;
+	}
+    }
+
+    if (doQuote)
+	replacement = "\"" + cstring(replacement) + "\"";
+}
+
+ServerTypes() {
+    if (indexOf(values[0], "<_") >= 0) {
+	replacement = DoReplacement(values[0]);
+    } else replacement = values[0];
+
+    replacement = toUpperCase(replacement);
+
+    if (
+	replacement !== "PRODUCTION"
+	&& replacement !== "DEMONSTRATION"
+	&& replacement !== "DEVELOPMENT"
+	&& replacement !== "PROTOTYPE"
+    ) {
+	replacement = "PROTOTYPE";
+    }
+}
+
+TrailingSlash() {
+    if (indexOf(values[0], "<_") >= 0) {
+	replacement = DoReplacement(values[0]);
+	if (indexOf(replacement, "<_") >= 0)
+	    abort("unknown substitution", replacement);
+    } else replacement = values[0];
+
+    if (replacement@length > 0 && !endsWith(replacement, "/"))
+	replacement += "/";
+}
+
+URLWithFullyQualifiedHostName() {
+    String hostname;
+    String host;
+    String name;
+    String addr;
+    Object url;
+    File   fp;
+    int    count;
+
+    //
+    // A recent addition that tries to compensate when getHostName() fails
+    // to return a fully qualified domain name. It's a hack that hopefully
+    // won't be needed often.
+    //
+
+    if (indexOf(values[0], "<_") >= 0) {
+	replacement = DoReplacement(values[0]);
+	if (indexOf(replacement, "<_") >= 0)
+	    abort("unknown substitution", replacement);
+    } else replacement = values[0];
+
+    if (replacement@length > 0) {
+	url = new URL {
+	    String name = replacement;
+	};
+	if ((host = url.host) != NULL) {
+	    if ((hostname = getHostName(host)) != NULL) {
+		if (indexOf(hostname, '.') < 0) {
+		    if ((fp = fopen("/etc/hosts", "r")) != NULL) {
+			while ((count = fscanf(fp, "%s", &addr)) != EOF) {
+			    if (count == 1 && host === addr) {
+				while (fscanf(fp, "%s", &name) == 1) {
+				    if (indexOf(name, ".") > 0) {
+					hostname = name;
+					break;
+				    }
+				}
+				break;
+			    }
+			    fp.nextline;
+			}
+			fclose(fp);
+		    }
+		}
+		replacement = url.protocol + "://" + hostname + url.file;
+	    }
+	}
+    }
+    if (replacement@length > 0 && !endsWith(replacement, "/"))
+	replacement += "/";
+}
+
+URLWithHostName() {
+    String hostname;
+    Object url;
+
+    if (indexOf(values[0], "<_") >= 0) {
+	replacement = DoReplacement(values[0]);
+	if (indexOf(replacement, "<_") >= 0)
+	    abort("unknown substitution", replacement);
+    } else replacement = values[0];
+
+    if (replacement@length > 0) {
+	url = new URL {
+	    String name = replacement;
+	};
+	if (url.host != NULL) {
+	    if ((hostname = getHostName(url.host)) != NULL)
+		replacement = url.protocol + "://" + hostname + url.file;
+	}
+    }
+
+    if (replacement@length > 0 && !endsWith(replacement, "/"))
+	replacement += "/";
+}
+
+UseSendMail() {
+    if (indexOf(values[0], "<_") >= 0) {
+	replacement = DoReplacement(values[0]);
+	if (indexOf(replacement, "<_") >= 0)
+	    abort("unknown substitution", replacement);
+    } else replacement = values[0];
+
+    if (startsWith(replacement,"t") || startsWith(replacement,"y") || atoi(replacement) != 0)
+	replacement = "use SendMail;";
+    else replacement = "";
+}
+
+// expression post processing routines
+
+AdjustExpressions() {
+    int i;
+
+    // we can assume that top-level is purely dictionaries
+    for (i=0; i<CONFIGURATION@length; i++)
+	AdjustExpressionsRecurse(CONFIGURATION[i]);
+}
+
+AdjustExpressionsRecurse(Dictionary dict) {
+    int i;
+
+    for (i=0; i<dict@length; i++) {
+	if (dict[i] instanceof Regexp)
+	    PrepareExpression(&dict[i]);
+	else if (dict[i] instanceof Dictionary)
+	    AdjustExpressionsRecurse(dict[i]);
+	else abort("typecheck",dict[i]@nameof);
+    }
+}
+
+PrepareExpression(Pointer re_ptr) {
+    String pat = "<_" + (*re_ptr)@nameof + "_>";
+
+    (*re_ptr).type = TEXT_PATTERN;
+    (*re_ptr).pattern = pat;
+    if (defined("DQ", *re_ptr)) {
+	(*re_ptr).DQ.type = TEXT_PATTERN;
+	(*re_ptr).DQ.pattern = substring(pat,0,pat@sizeof-1)+"DQ_>";
+    }
+    if (defined("HTML", *re_ptr)) {
+	(*re_ptr).HTML.type = TEXT_PATTERN;
+	(*re_ptr).HTML.pattern = substring(pat,0,pat@sizeof-1)+"HTML_>";
+    }
+}
+
+// substitution routines
+
+DoReplacement(String line) {
+    int i;
+
+    // we can assume that top-level is purely dictionaries
+    for (i=0; i<CONFIGURATION@length && indexOf(line, "<_") >= 0; i++)
+	line = DoReplacementRecurse(line, CONFIGURATION[i]);
+    return(line);
+}
+
+DoReplacementRecurse(String line, Dictionary dict) {
+    int i;
+
+    for (i=0; i<dict@length && indexOf(line, "<_") >= 0; i++) {
+	if (dict[i] instanceof Regexp) {
+	    line = gvsubsti(dict[i].replacement, dict[i], line);
+	    if (defined("DQ", dict[i]) && indexOf(line, "_DQ_>") >= 0)
+		line = gvsubsti(dict[i].DQ.replacement, dict[i].DQ, line);
+	    if (defined("HTML", dict[i]) && indexOf(line, "_HTML_>") >= 0)
+		line = gvsubsti(dict[i].HTML.replacement, dict[i].HTML, line);
+	} else if (dict[i] instanceof Dictionary)
+	    line = DoReplacementRecurse(line, dict[i]);
+	else abort("typecheck",dict[i]@nameof);
+    }
+    return(line);
+}
+
+SetupReplacementText() {
+    int i;
+
+    // we can assume that top-level is purely dictionaries
+    for (i=0; i<CONFIGURATION@length; i++)
+	SetupReplacementTextRecurse(CONFIGURATION[i]);
+}
+
+SetupReplacementTextRecurse(Dictionary dict) {
+    String value;
+    int    i;
+
+    for (i=0; i<dict@length; i++) {
+	if (dict[i] instanceof Regexp) {
+	    if (defined("postprocess", dict[i]))
+		dict[i].postprocess();
+	    else if (indexOf(dict[i].values[0], "<_") >= 0) {
+		value = DoReplacement(dict[i].values[0]);
+		if (indexOf(value, "<_") >= 0) {
+		    abort("unknown substitution", dict[i]@nameof, value);
+		} else {
+		    dict[i].replacement = value;
+		}
+	    } else dict[i].replacement = dict[i].values[0];
+	    if (defined("DQ", dict[i])) {
+		dict[i].DQ.replacement = cstring(dict[i].replacement);
+		if (defined("postprocess", dict[i].DQ))
+		    dict[i].DQ.postprocess();
+	    }
+	    if (defined("HTML", dict[i])) {
+		dict[i].HTML.replacement = htmlEncode(dict[i].replacement);
+		if (defined("postprocess", dict[i].HTML))
+		    dict[i].HTML.postprocess();
+	    }
+	} else if (dict[i] instanceof Dictionary)
+	    SetupReplacementTextRecurse(dict[i]);
+	else abort("typecheck",dict[i]@nameof);
+    }
+}
+
+// in each Regexp, only the "label", "replacement" and "help" fields might need
+// to be changed (unless you are adding a DQ or HTML form where there was none)
+
+Dictionary CONFIGURATION = {
+
+    Dictionary ADMINISTRATION = {
+
+	Regexp ADMIN_IDS = {
+	    String help = "A space separated list of adminstrator ids. These users will be able to access the system when standard users are excluded.";
+	    String label = "Administrator IDs";
+	    String replacement = "";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	};
+
+	Regexp DEVELORG = {
+	    String help = "The name of the organization responsible for the development of this application.";
+	    String label = "Development organization";
+	    String replacement = "<_OWNER_> <_SUBOWNER_>";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp GROUP_NAME = {
+	    String help = "Set to NULL to indicate that the group name is set at login. Set to \"default\" to indicate that the default value should be used. Supplying any other value will cause that value to be used as the group name unless the value is overridden at login.";
+	    String label = "Group name acquisition";
+	    String replacement = "default";
+
+	    Function postprocess = QuoteUnless;
+	    Array args = { "NULL" };
+
+	    Array values[] = { replacement, replacement, replacement };
+	};
+
+	Regexp JARFILE_BASENAME = {
+	    String help = "Generally, the base name of the interpreter jar file is just \"yoix\", but if the interpreter was augmented with application-specific built-ins, then an application specific jar file is needed and its base name (e.g., the lowercase application acronym) needs to be supplied. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "Base name of interpreter jar file";
+	    String replacement = "<_JARFILE_BASENAME_>";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp PATH = {
+	    String help = "PATH to be put into the perl environment when running CGI scripts.";
+	    String label = "CGI PATH";
+	    String replacement = "$BINDIR:/bin:/usr/bin:/usr/sbin:/usr/local/bin";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	};
+
+	Regexp PERL_PATH = {
+	    String help = "The full path name of the perl executable on the server. This value is used (along with a '-w' option) in the '#!' line at the top of the CGI scripts. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "Full path of the perl executable";
+	    String replacement = "<_PERL_PATH_>";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	};
+
+	Regexp PERL_LIB_LINE = {
+	    String help = "If the perl executable needs help in finding any packages the scripts require, the necessary 'use lib \"...\";' should be supplied verbatim here. By default, the scripts need Config, URI::Escape, Compress::Zlib and IO::File packages and the POSIX functions tmpnam, strftime and tzset.";
+	    String label = "Verbatim perl lib line (if needed)";
+	    String replacement = "";
+
+	    Array values[] = { replacement, replacement, replacement };
+	};
+
+	Regexp PERL_GLOBAL_VARIABLES = {
+	    String help = "A list of variables common to the perl scripts. This list is included in scripts via a \"use vars qw( <THIS_LIST> );\" statement.";
+	    String label = "List of global perl variables";
+	    String replacement = @<<
+    $SERVERDOCDIR $SERVERHOMEDIR $SERVERSETUP
+
+    $EXITSTATUS
+
+    %SIGNO @SIGNAME @KEYSET $SESSIONID $SESSIONIDFIELDS $SESSIONIDTIMER @CLEANUP_FILES
+    $RUNSTATE $ADMINISTRATORS $SERVERTYPE $ALLOWED_RELEASES $PINGTIMER
+    $CHECKHOST $DEBUGFLAGS $LOGDETAIL $DISABLEDMESSAGE
+    $MAINTENANCEMESSAGE $REJECTEDMESSAGE $UNAVAILABLEMESSAGE $TMPTXT $USERPREFS
+    $USERHOME $USERSETUP $USERLOGINS $USERMESSAGES $USERDATE
+    $COMMAND $ARGCOUNT $LOGFILE $ADMINDIR
+    $BINDIR $ETCDIR $HOMEDIR $JARSDIR $PLUGINSDIR $SCREENSDIR $SCRIPTSDIR $SUBSDIR $TMPDIR $ADMINBINDIR
+    $MESSAGEFILE_NAME $MESSAGEFILE_LIMIT $MESSAGE_LIMIT $SEPARATOR
+    $BROADCASTDIR $HELPDIR $LOGDIR $SESSIONIDDIR $BROADCASTMESSAGE
+    $BROADCASTLOG $COMMENTLOG $JARFILE $MOTDFILE $PASSWDFILE
+    $WARNINGMESSAGE $DEBUGLOG $EXECLOG $LOGINLOG $CHECKSUM $CREATETIME $EXPIRETIME
+    $USER $PASSWORD $GROUP $HOST $SERIAL $USERPID $USERFLAGS $USERPROPERTIES
+    $RELEASE $VMRELEASE $USER_TZ $COMMANDSET $FEATURESET $OSNAME $CLIENTID $REMOTE_HOST %TIMEZONES
+    $ADMIN_EMAIL $SMTP_SERVER $SMTP_PORT $USE_SENDMAIL @COMMENT_EMAIL
+    $ACRONYM $acronym $Acronym
+    $INPFILE $OUTFILE $ERRFILE $TMPFILE
+
+    %COMMANDPATHS
+
+    $SSH $DBRQST_ID $DBRQST_IP $DBRQST_CMD
+>>@;
+
+	    Array values[] = { replacement, replacement, replacement };
+	};
+
+	Regexp PERL_SUBS = {
+	    String help = "Scans the subs directory to find the names of all the subs functions and returns a list of the names. The postprocess functions will generate the list automatically. Remove it and set the replacement value if you desire a manual override.";
+	    String label = "List of perl function names in subs directory";
+	    String replacement = NULL;
+	    Function postprocess = ListMatches;
+	    Array args = { "/subs", "/bin$", "ywait_*.pl", "ywait_*._PL" };
+
+	    Array values[] = { replacement, replacement, replacement };
+	};
+
+	Regexp COMMAND_PATHS = {
+	    String help = "The CSV string of keywords and full path names of executables on the server that will then be loaded in a hash called %COMMANDPATHS for access in the perl scripts as needed. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "CSV string of keywords/executables";
+	    String replacement = "<_COMMAND_PATHS_>";
+
+	    Function postprocess = PerlHash;
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	};
+
+	Regexp USER_NAME = {
+	    String help = "Specify NULL to show the full login screen, which requests a user-id and password and triggers a server password validation request. Leave this field blank to show a login screen without a password prompt. Specify USERNAME to obtain a value from the client environment and skip the login screen unless the environment value indicates 'unknown', in which case the login screen without a password will be used. Any other value will be taken as the desired (fixed) value of the user id and the login screen is always by-passed. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "User name acquisition";
+	    String replacement = "<_USER_NAME_>";
+
+	    Function postprocess = QuoteUnless;
+	    Array args = { "NULL", "USERNAME" };
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+    };
+
+    Dictionary CONFIGURATION = {
+
+	Regexp SERVER_ALIAS = {
+	    String help = "The portion of the document URL that follows the SERVER_BASEURL and which, together, provide access to the application Yoix scripts and HTML document files. Normally this value corresponds to the 'Alias' value in the web server configuration file. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "URL portion of Alias value from the web server httpd.conf file";
+	    String replacement = "<_SERVER_ALIAS_>";
+
+	    Function postprocess = NoTrailingSlash;
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp SERVER_ALIAS_PREFIX = {
+	    String help = "A string, often equal to SERVER_ALIAS, that can be used to build URLs in the Java class that serves as the \"wrapper\" for the installer. The implicit assumption is that the 'Alias' portion of the URLS for the PROTOTYPE, PRODUCTION, DEMONSTRATION, and DEVELOPMENT systems can be easily built from this string, which is not always true.";
+	    String label = "URL portion of Alias value from the web server httpd.conf file";
+	    String replacement = "<_SERVER_ALIAS_PREFIX_>";
+
+	    Function postprocess = NoTrailingSlash;
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp SERVER_BASEURL = {
+	    String help = "A URL indicating the root path on the server where the application will reside. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "BASE of URL indicating the web server";
+	    String replacement = "<_SERVER_BASEURL_>";
+
+	    Function postprocess = NoTrailingSlash;
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp SERVER_CGIBIN = {
+	    String help = "A path to the folder where the application CGI scripts should be installed. This path should be the same as the path in the web server httpd.conf file for the ScriptAlias value used by SERVER_SCRIPTALIAS. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "Path of the installed CGI scripts on the server";
+	    String replacement = "<_SERVER_CGIBIN_>";
+
+	    Function postprocess = NoTrailingSlash;
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp SERVER_DOCDIR = {
+	    String help = "A path to the folder where the application Yoix scripts and HTML documents should be installed. This path should be the same as the path in the web server httpd.conf file for the Alias value used by SERVER_ALIAS. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "Path of the installed Yoix scripts and HTML documents on the server";
+	    String replacement = "<_SERVER_DOCDIR_>";
+
+	    Function postprocess = NoTrailingSlash;
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp SERVER_HOMEDIR = {
+	    String help = "A path to the root of the installed application directory tree where runtime files associated with the application will be stored. This folder is local on the server and will be accessed by CGI scripts called by the application. In addition, the installation process will put files into this area. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "Path of the root installed application area on the server";
+	    String replacement = "<_SERVER_HOMEDIR_>";
+
+	    Function postprocess = NoTrailingSlash;
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp SERVER_SCRIPTALIAS = {
+	    String help = "The portion of the CGI URL that follows the SERVER_BASEURL and which, together, provide access to the application CGI scripts. Normally this value corresponds to the 'ScriptAlias' value in the web server configuration file. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "URL portion of ScriptAlias value from the web server httpd.conf file";
+	    String replacement = "<_SERVER_SCRIPTALIAS_>";
+
+	    Function postprocess = NoTrailingSlash;
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp WEBSITE_URL = {
+	    String help = "A URL that we can advertise to users as the place to go for more information about the application or to find a link to the application's installer. This URL often combines SERVER_BASEURL and SERVER_ALIAS, however we try to replace the server's IP address in SERVER_BASEURL with its host name. You may need to consider calling URLWithHostName() or URLWithFullyQualifiedHostName() as a postprocessing function.";
+	    String label = "URL of the application's web site";
+	    String replacement = "<_SERVER_BASEURL_>/<_SERVER_ALIAS_>";
+
+	    Function postprocess = TrailingSlash;
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+    };
+
+    Dictionary DATABASE = {
+
+	Regexp DBRQST_ID = {
+	    String help = "Id for accessing database account on a remote system (see also DBRQST_IP and SSH_PATH).";
+	    String label = "Id for remote DB access";
+	    String replacement = "";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp DBRQST_IP = {
+	    String help = "IP address of system where remote database is found (see also DBRQST_ID and SSH_PATH).";
+	    String label = "IP address for remote DB access";
+	    String replacement = "";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp DBRQST_CMD = {
+	    String help = "Command script for running database queries. When DB is on a remote system, be sure to set DBRQST_ID, DBRQST_ID and SSH_PATH as well.";
+	    String label = "Command script for running DB queries";
+	    String replacement = "";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp SSH_PATH = {
+	    String help = "Path of secure shell command on server. Note: YWAIT assumes that ssh access is configured so that no password is required for access to the destination account (usually DBRQST_ID on DBRQST_IP).";
+	    String label = "Path of secure shell command";
+	    String replacement = "/usr/bin/ssh";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	};
+    };
+
+    Dictionary IDENTITY = {
+
+	Regexp ACRONYM = {
+	    String help = "The application acronym or short-name in uppercase characters. It will be used when referring to the application in system messages, screen titles and so on. Available to application writers via Global.ACRONYM. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "Application acronym (uppercase form)";
+	    String replacement = "<_ACRONYM_>";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp ACRONYM_LOWER = {
+	    String help = "The application acronym or short-name in lowercase characters. It will be used as a prefix (followed by an underscore) for application screen files and so on. It should not contain spaces. Available to application writers via Global.acronym. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "Application acronym (lowercase form)";
+	    String replacement = "<_ACRONYM_LOWER_>";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp ACRONYM_UPLOW = {
+	    String help = "The application acronym or short-name with leading characters in uppercase and the remainder in lowercase. Used when constructing some temporary files and so on. It should not contain spaces. Available to application writers via Global.Acronym. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "Application acronym (uplow form)";
+	    String replacement = "<_ACRONYM_UPLOW_>";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp FULLNAME = {
+	    String help = "The full name of the application. Available to application writers via Global.FullName. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "Full name of application";
+	    String replacement = "<_FULLNAME_>";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp OWNER = {
+	    String help = "The name of the owner of this application. Generally, this would be the name of the company paying your salary. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "Application owner (i.e., company name)";
+	    String replacement = "<_OWNER_>";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp SUBOWNER = {
+	    String help = "The name of the organization within <_OWNER_> that is the owner of this application. Generally, this would be the name of the organization to which you report. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "Application subowner (i.e., organization name)";
+	    String replacement = "<_SUBOWNER_>";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+    };
+
+    Dictionary LOGIN = {
+	Regexp EXTERNAL_LOGIN_URL = {
+	    String help = "In cases where login validation involves some external validator, the URL (partial or complete) for that validator should be provided here. The exact rules for what belongs in this string are implementation dependent and must be coordinated with the code that actually uses this value.";
+	    String label = "URL of external login validator";
+	    String replacement = "";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp EXTERNAL_REDIRECT_SERVER_BASEURL = {
+	    String help = "This is supposed to be the URL of the server that handles the redirect from the external validator. There may be requirements, like using a fully qualifed domain name, that mean we need our own entry, but in many cases SERVER_BASEURL may be sufficient. If SERVER_BASEURL is an IP address then it probably should be postprocessed by URLWithHostName() or URLWithFullyQualifiedHostName(), which both append a trailing slash to the replacement value. If neither of those work you may have to hardcode the URL here.";
+	    String label = "URL of the server that handles redirects from the external login validator";
+	    String replacement = "<_SERVER_BASEURL_>";
+
+	    Function postprocess = TrailingSlash;
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp LOGIN_LABEL = {
+	    String help = "The label presented for the login ID field when asking for the application login.";
+	    String label = "Login ID field label";
+	    String replacement = "Username";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp PASSWORD_LABEL = {
+	    String help = "The label presented for the password field when asking for the application login.";
+	    String label = "Login password field label";
+	    String replacement = "Password";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+    };
+
+    Dictionary MESSAGES = {
+
+	Regexp ACCESS_WARNING = {
+	    String help = "This text will appear as part of the login screen. If you allow users to bypass the login process, then they will not see this message.";
+	    String label = "Access restriction message";
+	    String replacement = "This message is defined by the gsubsti script that comes with the YWAIT source package and this screen is the only place it is displayed. If your system is supposed to be restricted you undoubtedly want a very precise legal warning about who can access the system, but if you welcome everyone you probably want a friendly greeting that might also include some contact information for new users. You are in control of this message. All you have to do to change it is update the ACCESS_WARNING replacement text that is defined in the gsubsti._YX source file and then build and install your system.";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp PROPRIETARY_LABEL = {
+	    String help = "This text will appear at the bottom of almost every system screen. Generally, it is intended to indicate the proprietary status of the system. The text should be kept rather short. It can be left blank. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "Proprietary label";
+	    String replacement = "<_PROPRIETARY_LABEL_>";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp SYSTEM_WARNING = {
+	    String help = "This text will appear when first connecting to the system when the system is NOT the production system.";
+	    String label = "Message indicating non-production system is begin accessed";
+	    String replacement = "This is not the <_ACRONYM_> production system, and none of the work you do here will affect the production system. Talk to your System Administrator if you're supposed to be doing production work, because you have connected to the wrong system.";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp WELCOME_MESSAGE = {
+	    String help = "This text will appear when first connecting to the system regardless of system type.";
+	    String label = "Welcome message displayed after login";
+	    String replacement = "";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+    };
+
+    Dictionary MISCELLANEOUS = {
+
+	Regexp ADD_CONTENT_LENGTH = {
+	    String help = "Setting this value to TRUE is how you can ask the CGI scripts to include a Content-Length field in HTTP headers that they send back to clients. This may be useful if your web server is configured to support persistent connections, particularly when you're using https.";
+	    String label = "Add a Content-Length field to HTTP headers";
+	    String replacement = "FALSE";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	};
+
+	Regexp GROUP = {
+	    String help = "During the initial contact with the system, the group name is not set. This value is used as the group name during that period of time.";
+	    String label = "Unset group name value";
+	    String replacement = "n/a";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp RENAME = {
+	    String help = "Server command that can be used to rename a file. It is assumed that the calling syntax is: command old_name new_name";
+	    String label = "Rename command";
+	    String replacement = "/bin/mv";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	};
+
+	Regexp SEPARATOR = {
+	    String help = "The argument separator used for output returned to the client from the CGI scripts.  The value should be other than a white-space character since it is generally convenient to let the last argument contain a large amount of text data which may itself contain white-space. The separtor should contain a string of characters to help ensure that it will not be inadvertantly part of the returned content.";
+	    String label = "Server output argument separator";
+	    String replacement = "+++";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+    };
+
+    Dictionary SENDMAIL = {
+
+	Regexp ADMIN_EMAIL = {
+	    String help = "E-mail address of administrator where user comment e-mail errors can be sent. Format should be: Full Name <email@company.com>. Only useful if the perl SendMail module is installed on your server since that is used to send the e-mail.";
+	    String label = "Administrator e-mail";
+	    String replacement = "";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+
+		Function postprocess = EscapeAt;
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+        Regexp COMMENT_EMAIL = {
+            String help = "Space separated list of e-mail address(es) of folks where user comments can be sent. Format should just be email@company.com for each address (space separated). Only useful if the perl SendMail module is installed on your server since that is used to send the e-mail.";
+            String label = "Comment e-mail recipients";
+            String replacement = "";
+
+            Array values[] = { replacement, replacement, replacement };
+            Regexp DQ = {
+                String replacement = cstring(replacement);
+
+                Function postprocess = EscapeAt;
+            };
+            Regexp HTML = {
+                String replacement = htmlEncode(replacement);
+            };
+        };
+
+	Regexp SMTP_PORT = {
+	    String help = "SMTP server port. Normal value is 25.";
+	    String label = "SMTP server port";
+	    String replacement = "25";
+
+	    Array values[] = { replacement, replacement, replacement };
+	};
+
+	Regexp SMTP_SERVER = {
+	    String help = "SMTP server for sending e-mail. Format should be: server.name.com. Only useful if the perl SendMail module is installed on your server since that is used to send the e-mail.";
+	    String label = "SMTP server address";
+	    String replacement = "";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+
+	Regexp USE_SENDMAIL = {
+	    String help = "Enter true if the perl SendMail module is available on the server. Enter false otherwise.";
+	    String label = "Perl SendMail Module available";
+	    String replacement = "false";
+
+	    Function postprocess = UseSendMail;
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+    };
+
+    Dictionary VERSION = {
+
+	Regexp BETA_PREFIX = {
+	    String help = "When developing a new system release that is to be made available for testing on the same webserver as a running system, this prefix is added to the application file names to avoid conflict with existing files. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "File prefix for beta versions (if any)";
+	    String replacement = "<_BETA_PREFIX_>";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+	Regexp JARFILE_RELEASE = {
+	    String help = "This is the official release number that's associated with the jar file that clients use to connect to the system. It is also what the end-user sees as the application release number. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "Jar release number";
+	    String replacement = "<_JARFILE_RELEASE_>";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+        Regexp JARFILE_RELEASE_DATE = {
+            String help = "This is the official release date that's associated with the jar file that clients use to connect to the system. It is also what the end-user sees as the application release date. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+            String label = "Jar release number";
+            String replacement = "<_JARFILE_RELEASE_DATE_>";
+
+            Array values[] = { replacement, replacement, replacement };
+            Regexp DQ = {
+                String replacement = cstring(replacement);
+            };
+            Regexp HTML = {
+                String replacement = htmlEncode(replacement);
+            };
+        };
+	Regexp SERVER_TYPE = {
+	    String help = "Indicate the type of system being generated, which can be one of PROTOTYPE, DEVELOPMENT, DEMONSTRAION or PRODUCTION. Although this value mainly determines cosmetic aspects of the system, like default background color and welcome screen messages, when used with SERVER_HOMEDIR in the variables.mk file, it allows for the easy installation of distinguishable installed snapshots of the system. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "System type (PROTOTYPE, DEVELOPMENT, DEMONSTRAION, PRODUCTION)";
+	    String replacement = "<_SERVER_TYPE_>";
+
+	    Function postprocess = ServerTypes;
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	    Regexp HTML = {
+		String replacement = htmlEncode(replacement);
+	    };
+	};
+    };
+
+    Dictionary YWAIT = {
+
+	Regexp GSUBSCRIPT_BASENAME = {
+	    String help = "Base name of the substitution script used by Yoix to replace text in the template source files. Essentially, it will contain the input from these GUI forms and be located in the src/scripts under the YWAITROOT. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "Name of Yoix text substitution script";
+	    String replacement = "<_GSUBSCRIPT_BASENAME_>";
+
+	    int hidden = true;
+
+	    Array values[] = { replacement, replacement, replacement };
+	};
+
+	Regexp JAVA_BIN = {
+	    String help = "The path of the Java binary folder on the installation machine. It is where file java, javac and jar executables can be found. The Makefile will replace the placeholder here with the value that is defined for it in the variables.mk file.";
+	    String label = "Path of Java VM";
+	    String replacement = "<_JAVA_BIN_>";
+
+	    Function postprocess = NoTrailingSlash;
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	};
+
+	Regexp YWAITROOT = {
+	    String help = "A path to the root of the application directory tree where source and 'make' files associated with the application are stored. This folder should be accessible from this client as installation process will put files into this area. If it needs to be elsewhere, it will have to be moved there manually en masse.";
+	    String label = "Path of the root application area on this client";
+	    String replacement = "";
+
+	    Function postprocess = TrailingSlash;
+
+	    Array values[] = { replacement, replacement, replacement };
+	};
+
+	Regexp YOIX_FONTOPTION = {
+	    String help = "A command line option that overrides the default font tuning done by the Yoix interpreter. The value should be -f to disable the tuning, +f to enable it, and empty to accept the interpeter's default setting.";
+	    String label = "Font tuning command line option";
+	    String replacement = "<_YOIX_FONTOPTION_>";
+
+	    Array values[] = { replacement, replacement, replacement };
+	    Regexp DQ = {
+		String replacement = cstring(replacement);
+	    };
+	};
+
+	Regexp YOIX_PATH = {
+	    String help = "The full path of the Yoix execution script on the installation machine. Yoix is used to make text substitutions in the source files during server-side installation.";
+	    String label = "Full path of Yoix execution script";
+	    String replacement = "<_SERVER_HOMEDIR_>/bin/yoix.pl";
+
+	    Array values[] = { replacement, replacement, replacement };
+	};
+    };
+};
+
+AdjustExpressions();
+//validate against replacement in a replacement recursion
+SetupReplacementText();
+    
+while ((line = stdin.nextline) != null) {
+    if (suppress) {
+	if (line === "<_SUPPRESSION_OFF_>") {
+	    suppress = false;
+	    continue;
+	}
+	if (use_suppression)
+	    continue;
+    } else if (line === "<_SUPPRESSION_ON_>") {
+	suppress = true;
+	continue;
+    }
+
+    line = DoReplacement(line);
+    stdout.nextline = line;
+}
+

@@ -1,0 +1,414 @@
+//
+// A more complicated example screen that's hooked up to the sever's
+// main Perl script (look for SERVERDEMO3 in that script). It shows how
+// you can take data out of several components, like JTextFields, send
+// that data to the server, and automatically have the server's response
+// loaded into several components, like a JTextArea and JTable.
+//
+
+import yoix.*.*;
+
+//
+// You will see the next line in every screen file, so it's important
+// that you understand what's happening here. All screen files behave
+// just like this one and define a function (named Builder()) that's
+// returned at the very end of the script. It's undoubtedly confusing
+// until you realize that every screen file is small Yoix script that's
+// designed run by the Yoix execute() builtin and it's execute() that
+// hands us arguments and lets us return the Builder() function. The
+// execute() call that handles screens comes from LoadScreen(), which
+// is defined in ywait_screens.yx, and if you look at the call you'll
+// see argv[1] is the global context of your application, which means
+// screen files have access to everything that was defined when your
+// application started. By convention we assign argv[1] to a variable
+// named Global.
+//
+
+Dictionary Global = argv[1];
+
+String FirstMessage = strfmt("\
+This screen is hooked up to %s_exec.pl, which is a Perl script that runs on your server and handles most requests that come from clients. Communications on the client side are handled by %s_server.yx, which is a Yoix script that's downloaded from the server when %s starts.\
+\n\n\
+Enter arguments in the textfields, hit the Send button and %s_exec.pl will return one string that contains the arguments and is automatically displayed right here and another string that is automatically loaded in the table.",
+Global.acronym, Global.acronym, Global.ACRONYM, Global.acronym);
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Dimension size = NULL;
+	Insets    border = Global.GetLabeledScreenInsets();
+	String    title = Global.ACRONYM + " Server Example";
+	Object    parent = Global.MainScreen;
+	Font      font = Global.GetPreferredLabelFont();
+	int       opaque = TRUE;
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	//
+	// Every screen should define and initialize the following set
+	// of variables. Expect problems is you omit any of them.
+	//
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = FALSE;	// TRUE means remember size and location
+	int    retainstate = TRUE; // remember size and location across sessions
+	int    reloadargs = FALSE;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	//
+	// We usually use GridBagLayout for the overall layout of a screen.
+	// It's the most complicated layout mananger (it will take a while
+	// before you will be comfortable with it) but it's powerful and
+	// won't leave you in a bind when you're working on a complicated
+	// screen.
+	//
+
+	GridBagLayout layoutmanager;
+	Array layout = {
+	    new JLabel {
+		String text = "Multiple Arguments - Multiple Returns";
+		Font   font = Global.GetPreferredHeadingFont();
+		int    alignment = CENTER;
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int fill = HORIZONTAL;
+		int anchor = CENTER;
+	    },
+
+	    new JTextArea {
+		String tag = "$_textarea";
+		Color  background = Global.GetPreferredTextBackground();
+		Color  foreground = Global.GetPreferredTextForeground();
+		Insets insets = Global.GetTextAreaInsets();
+		Object transferhandler = NULL;		// required for custom drag and drop
+		String text = FirstMessage;
+		int    opaque = TRUE;
+		int    rows = 0;
+		int    columns = 0;
+		int    textwrap = 1; // word-wrap
+		int    edit = FALSE;
+		int    scroll = AS_NEEDED;
+
+		Function keyPressed = Global.KeyPressed;
+		Function dragGestureRecognized = Global.DragGestureRecognized;
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = BOTH;
+	    },
+
+	    new JTable {
+		String tag = "$_table";
+		String inputfilter = "\t";
+		Color  gridcolor = Global.GetPreferredTableGridColor();
+		Color  background= Global.GetPreferredTableGridColor();
+		Font   font = Global.GetPreferredTableFont();
+		Font   altfont = Global.GetPreferredTableHeadingFont();
+		int    edit = FALSE;
+		int    reorder = TRUE;
+		int    resize = TRUE;
+		int    resizemode = AUTO_RESIZE_OFF;
+		int    scroll = AS_NEEDED;
+		int    rows = 3;
+
+		Function TableLoader = Global.TableLoader;
+		Function invocationAction = Global.TableSorter;
+
+		Array altbackground = {
+		    Color.cornsilk,
+		    Color.red,
+		    Color.green,
+		};
+
+		Array cellcolors = {
+		    new Array[] {Color.periwinkle, Color.cornflowerblue},
+		};
+
+		//
+		// This makes sure the table doesn't dominate the
+		// screen's preferred size because we probably will
+		// want to display all "find case" screens in one
+		// tabbed pane.
+		//
+
+		Dimension preferredsize = {
+		    double width = Global.PickTableColumnWidth(NULL, 60);
+		    double height = 0;
+		};
+
+		Array columns = {
+		    new JTableColumn {
+			String header = "Argument";
+			double width = Global.PickTableColumnWidth(header, 10);
+			int    alignment = RIGHT;
+			int    type = INTEGER_TYPE;
+		    },
+		    new JTableColumn {
+			String header = "Length";
+			double width = Global.PickTableColumnWidth(header, 10);
+			int    alignment = RIGHT;
+			int    type = INTEGER_TYPE;
+		    },
+		    new JTableColumn {
+			String header = "Pct of Total";
+			double width = Global.PickTableColumnWidth(header, 10);
+			int    alignment = RIGHT;
+			int    type = PERCENT_TYPE;
+		    },
+		    new JTableColumn {
+			String header = "Cumulative Pct";
+			double width = Global.PickTableColumnWidth(header, 10);
+			int    alignment = RIGHT;
+			int    type = PERCENT_TYPE;
+		    },
+		    new JTableColumn {
+			String header = "Value";
+			double width = Global.PickTableColumnWidth(header, 50);
+			int    alignment = LEFT;
+			int    altalignment = LEFT;
+			int    type = STRING_TYPE;
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    weightx = 1;
+		int    weighty = 1;
+		int    fill = BOTH;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "TB");
+	    },
+
+	    new JLabel {
+		String text = "Argument 1: ";
+		Font   font = Global.GetPreferredLabelFont();
+		int    alignment = CENTER;
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = RELATIVE;
+		int    anchor = CENTER;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    new JTextField {
+		String tag = "$_argument1";
+		Color  background = Global.GetPreferredTextBackground();
+		Color  foreground = Global.GetPreferredTextForeground();
+		Object transferhandler = NULL;		// required for custom drag and drop
+		int    opaque = TRUE;
+		int    autotrim = TRUE;
+		int    requestfocus = TRUE;
+
+		Function keyPressed = Global.KeyPressed;
+		Function keyTyped = Global.KeyTyped;
+		Function dragGestureRecognized = Global.DragGestureRecognized;
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    weightx = 1;
+		int    fill = HORIZONTAL;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    new JLabel {
+		String text = "Argument 2: ";
+		Font   font = Global.GetPreferredLabelFont();
+		int    alignment = CENTER;
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = RELATIVE;
+		int    anchor = CENTER;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    new JTextField {
+		String tag = "$_argument2";
+		Color  background = Global.GetPreferredTextBackground();
+		Color  foreground = Global.GetPreferredTextForeground();
+		Object transferhandler = NULL;		// required for custom drag and drop
+		int    opaque = TRUE;
+		int    autotrim = TRUE;
+
+		Function keyPressed = Global.KeyPressed;
+		Function keyTyped = Global.KeyTyped;
+		Function dragGestureRecognized = Global.DragGestureRecognized;
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    weightx = 1;
+		int    fill = HORIZONTAL;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    new JLabel {
+		String text = "Argument 3: ";
+		Font   font = Global.GetPreferredLabelFont();
+		int    alignment = CENTER;
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = RELATIVE;
+		int    anchor = CENTER;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    new JTextField {
+		String tag = "$_argument3";
+		Color  background = Global.GetPreferredTextBackground();
+		Color  foreground = Global.GetPreferredTextForeground();
+		Object transferhandler = NULL;		// required for custom drag and drop
+		int    opaque = TRUE;
+		int    autotrim = TRUE;
+
+		Function keyPressed = Global.KeyPressed;
+		Function keyTyped = Global.KeyTyped;
+		Function dragGestureRecognized = Global.DragGestureRecognized;
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    weightx = 1;
+		int    fill = HORIZONTAL;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    new JPanel {
+		//
+		// Use GridLayout for equal size buttons and FlowLayout if
+		// each button should size itself based on its label.
+		//
+		GridLayout layoutmanager;
+		Array layout = {
+		    new JButton {
+			String text = "Send";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    Global.QueueCommand(root, &root.UpdateScreen);
+			}
+		    },
+		    new JButton {
+			String text = "Clear";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    root.ClearScreen();
+			}
+		    },
+		    new JButton {
+			String text = "Dismiss";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    Global.QueueCommand(root, &root.HideScreen);
+			}
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    anchor = CENTER;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    new JLabel {
+		String text = Global.ProprietaryLabel;
+		Font   font = Global.GetPreferredProprietaryFont();
+		int    alignment = CENTER;
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    anchor = CENTER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    components.$_textarea.text = "";
+	    components.$_argument1.text = "";
+	    components.$_argument2.text = "";
+	    components.$_argument3.text = "";
+	}
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+
+	LoadScreen() {
+	    Dimension tablesize = components.$_table.size;
+	    tablesize.width = 6 * 72;
+	    components.$_table.size = tablesize;
+	    validate = 1;
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	UpdateScreen() {
+	    //
+	    // The QueueCommand() and RunCommand() functions are the way
+	    // screens communicate with the server. The first argument,
+	    // if it's not NULL, is used to display a wait cursor over
+	    // the screen while we communicate with the server. The next
+	    // argument is a command name that means something to the cgi
+	    // script that handles the work on the server side. Arguments
+	    // that we want to hand to the server follow the command and
+	    // they end at NULL or the last arugment in the QueueCommand()
+	    // Anything that follows the NULL describe where data that's
+	    // returned from the server is supposed to go.
+	    //
+	    // Incidentally, we could have used RunCommand() here because
+	    // we know how we got here - it was via a QueueCommand() call
+	    // that the Update button made. Event handler's almost always
+	    // should use QueueCommand(), but here either one should be
+	    // OK. RunCommand() essentially forces its way to the front
+	    // of the queue and then waits for an answer back from the
+	    // server.
+	    //
+
+	    components.$_textarea.text = "";
+	    Global.QueueCommand(			// could also use RunCommand()
+		this,
+		"SERVERDEMO3",				// server command name
+		components.$_argument1.text,
+		components.$_argument2.text,
+		components.$_argument3.text,
+		NULL,					// mark the end of the arguments
+		&components.$_textarea.text,		// where server's text answer goes
+		&components.$_table        		// where server's tabular answer goes
+	    );
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);
+

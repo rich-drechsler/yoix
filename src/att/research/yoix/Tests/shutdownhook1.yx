@@ -1,0 +1,39 @@
+import yoix.*.*;
+
+VM.create = FALSE;
+
+setErrorLimit(1);
+
+One(double time) {
+    printf("%s: with argument %d\n", argv[0], argv[1]);
+    x = 100;     // trigger an error
+    sleep(1);
+}
+
+Two(double time) {
+    printf("%s: with argument %d\n", argv[0], argv[1]);
+    exit(1);     // prevents Three from running
+    sleep(1);
+}
+
+Three(double time) {
+    printf("%s: with argument %d\n", argv[0], argv[1]);
+    sleep(1);
+}
+
+printf("Adding shutdown hook One\n");
+addShutdownHook(One, time());
+sleep(2);
+
+printf("Adding shutdown hook Two\n");
+addShutdownHook(Two, time());
+sleep(2);
+
+printf("Adding shutdown hook Three\n");
+addShutdownHook(Three, time());
+sleep(2);
+
+printf("Sleeping for a few seconds\n");
+sleep(3);
+printf("All done...\n");
+

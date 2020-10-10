@@ -1,0 +1,28 @@
+import yoix.*.*;
+
+Matrix mtx = {
+    double sx = 2;
+    double sy = .5;
+};
+
+JFrame f = {
+    paint(Rectangle rect) {
+        graphics {
+            gsave();
+            translate(72, 72);
+            scale(2, .5);
+            setrgbcolor(1, 0, 0);
+            rectfill(0, 0, 72, 72);
+            grestore();
+            gsave();
+            translate(72, 144);
+            concat(mtx);
+            setrgbcolor(0, 1, 0);
+            rectfill(0, 0, 72, 72);
+            grestore();
+        }
+    }
+};
+
+f.visible = TRUE;
+

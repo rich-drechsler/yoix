@@ -1,0 +1,235 @@
+
+                  Yoix Version 3.0.0 - Source Distribution
+                                  Oct 10 2020
+
+This is an unofficial source code release of the Yoix interpreter. It's based on
+Version 2.3.1, which was publicly released by AT&T on November 25 2011. Yoix is
+a Java based interpreter that John Mocenigo and I started working on more than 20
+years ago and we used it to build serious production applications inside AT&T. I
+retired in 2012, and as far as I know nobody has made any changes to the package
+that AT&T released as Version 2.3.1.
+
+This is old technology, and it's definitely not my goal to try to persuade anyone
+that the language has value, but recent events have convinced me that there may
+be hidden value in the work that John and I did many years ago. When I started
+looking at the 2.3.1 package earlier this year it was clear some serious cleanup
+work was in order. Makefiles got lots of attention, but along the way I fixed a
+few minor bugs, wrote some code that helped improved the zooming performance in
+the Unicode chart, addressed YChart browser related issues, added several bash
+scripts that can be used to start various applications, and tossed some of the
+unnecessary files that had been included in the 2.3.1 source package.
+
+Version number 3.0.0 was chosen to provide an obvious break between this package
+and the one that was released by AT&T in 2011. If you compared the two packages
+you'd notice lots of additions, deletions, and changes, but at this point none
+of the differences are particularly significant.
+
+                                                        Rich Drechsler
+
+-----------------
+Website Confusion
+-----------------
+
+Yoix related websites that you may see mentioned in this package, like
+
+    http://www.yoix.org
+
+and
+
+    http://www.research.att.com/sw/tools/yoix/
+
+existed in 2011, but over the years they've all disappeared. By early 2014 the
+yoix.org domain had a new owner and at some point in 2016 the server that AT&T
+Research used to distribute free software packages (e.g., graphviz, ksh, nmake,
+yoix) vanished. Fortunately the software packages that were available on that
+server were moved to AT&T's open source repository on github, so if you want
+to grab your own copy of the Yoix 2.3.1 release go to
+
+    https://github.com/att/yoix
+
+and you can download everything, including the source code, that was available
+on the old AT&T Research website.
+
+The "internet wayback machine"
+
+    https://web.archive.org/
+
+is another useful resource. As long as you pick appropriate snapshot dates you
+can take a look at the missing websites. The quality of the snapshots varies,
+but this one from March 24 2014
+
+    https://web.archive.org/web/20140324033431/http://www2.research.att.com/sw/tools/yoix/
+
+seems to have quite a few working links. You won't be able to download anything,
+but documentation is there and many of the links in the reference pages seem to
+work.
+
+------------
+Requirements
+------------
+
+You need a version of the 1.8.X JDK before you can build anything. We've tested
+Java Development Kits from Oracle and OpenJDK and both work. Older versions of
+the JDK should also work, but only if you update the definition of JAVACTARGET
+in file
+
+    ../../../make/common.mk
+
+or set the appropriate value in your environment or on the make command line.
+
+Yoix includes four different parsers (just look for files that end in .jjt) and
+a parser generator named JavaCC builds them all. We decided to include the old
+version of JavaCC that we used in 2011 in directory
+
+    ../../../javacc
+
+so you don't have to search the web for a version of JavaCC that works. Take a
+look at the file
+
+    ../../../javacc/README
+
+if you want more information about the version of JavaCC that we distribute in
+this release.
+
+The Yoix Java code is old. Much of it was written in the last century, and as
+you might expect, building all the pieces can be tricky. Right now it only works
+with JDK 1.8.X, the version of JavaCC that we've included in this package, and
+many of the settings that are currently hardcoded in common.mk. Change any part
+of the puzzle and you may find it's impossible to build the Yoix interpreter.
+
+-------------
+Building Yoix
+-------------
+
+We usually work on source files for a while and then type something like
+
+    make -f yoix.mk RUNARGS='Tests/jdesktoppane.yx' run
+
+to test our changes. RUNARGS are arguments that are handed to the Yoix interpreter
+(look in YoixMain.java for a description of command line options), so we sometimes
+also type
+
+    make -f yoix.mk RUNARGS='-d1' run
+
+when we want to start an interactive session and have the Yoix interpreter dump
+the value of all expressions that also happen to be statements. Omit the -d1 and
+you start an interactive session that's not nearly as noisy.
+
+You'll find quite a few test files in the Tests directory, but you should write
+your own if you do anything significant. Most test files were written quickly
+and weren't designed as examples of good Yoix programming, so be careful using
+them as a model for your own scripts.
+
+-----------------
+Building yoix.jar
+-----------------
+
+If you just want a jar file type
+
+    make -f yoix.mk yoix.jar
+
+or
+
+    make -f yoix.mk JAVACFLAGS=-g:none yoix.jar
+
+when you want an "optimized" version.
+
+-------------------
+Source Organization
+-------------------
+
+Our source file naming conventions may seem a bit cumbersome, but a single Java
+package seemed appropriate, so we usually tried to pick class (file) names that
+would help impose some (alphabetic) order.
+
+    XXXParser
+        The scanner and parser for XXX that's built by javacc and jjtree
+        from the source file XXXParser.jjt. Look through YoixParser.jjt
+        if you're interested in a description of the Yoix language. The
+        others (currently three) are special purpose parsers that Yoix
+        programs can access.
+
+    Yoix
+        This is an important class manages parsers (there currently are
+        four different parsers) and provides access to them and the Yoix
+        interpreter. For example, YoixMain calls Yoix.executeStream() to
+        translate and then execute the main input file.
+
+    YoixAWTXXX
+        Very low level implementations of an XXX from Java's AWT package.
+        These are support classes that usually extend XXX and are used
+        to add features to or workaround a behavior of XXX that we don't
+        like.
+
+    YoixBodyComponentXXX
+        The low level Yoix implementations of AWT and Swing components
+        all end up as instances of these classes, so this is often where
+        you look when you want to understand the Yoix implementation of
+        AWT and Swing components behave. Notice that YoixBodyComponent
+        extends YoixPointerActive.
+
+    YoixBodyXXX
+        Low level implementation of a Yoix XXX Object. For example, you
+        would look through YoixBodyArray.java to see how Yoix Arrays are
+        implemented. Some of these classes (e.g., YoixBodyStream) are big
+        and very complicated.
+
+    YoixConstantsXXX
+        Interfaces that define constants that are used in other source
+        files.
+
+    YoixInterpreter
+        This is the code that interprets parse trees built by YoixParser.
+
+    YoixMain
+        YoixMain.main() is where the interpreter starts. Comments near
+        the start of the file describe the command line options and show
+        how java can be called.
+
+    YoixModule
+        An abstract class that defines constants and low level methods
+        that are used to load Yoix modules. Every class that represents
+        a Yoix module must extend this class. YoixModule.readTable() is
+        the method that reads tables that describe Yoix modules. It's
+        not at all graceful about errors, so be careful building new
+        tables or changing an existing ones, otherwise you'll probably
+        be faced with some unpleasant debugging.
+
+    YoixModuleVM
+        This is the only module loaded when the interpreter is started,
+        so it's important and does some unusual initialization in the
+        tables that describe the module that's not duplicated in other
+        modules. This is also where you'll find the implementation of
+        reserved builtins, like execute() and unroll().
+
+    YoixModuleXXX
+        The class that represents module XXX, which is usually (but not
+        always) loaded in the yoix.xxx dictionary. The main part of each
+        module file usually is a special table that's processed by the
+        YoixModule.readTable() method.
+
+    YoixObject
+        Every object available to a Yoix script exists as one of these,
+        so interaction between a Yoix script and our Java code almost
+        always ends up using methods defined in this class.
+
+    YoixSwingJXXX
+        Very low level implementations of a JXXX from Java's Swing package.
+        These are support classes that usually extend JXXX and are used
+        to add features to or workaround a behavior of JXXX that we don't
+        like.
+
+    YoixUtilXXX
+        Very low level implementation of an XXX from Java's java.util
+        package. These are support classes that usually extend XXX and
+        are used to add features to or workaround a behavior of XXX that
+        we don't like.
+
+    YoixVMXXX
+        Classes that implement or support the Yoix virtual machine. Much
+        of this is complicated, particularly the thread and stack code,
+        and usually won't be code that you need to change or understand.
+        YoixVMError.java may be the one exception, and in that case all
+        you'll usually be interested in is the arguments that can be
+        handed to the different error methods (e.g., abort() or die()).
+

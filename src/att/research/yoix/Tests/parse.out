@@ -1,0 +1,1172 @@
+<FOLDER <#1>>
+ <XML <#2>>
+  <PROLOG <#2>>
+   <XML_DECL <#1>>
+    <VERSION 1.0>
+   <DTD <#2>>
+    <NAME graphml>
+    <EXTERNAL_ID <#1>>
+     <SYSTEM graphml+gd.dtd>
+  <BODY <#1>>
+   <BLOCK <#2>>
+    <NAME graphml>
+    <CONTENT <#27>>
+     <CHARDATA 
+ >
+     <COMMENT  node attribute of type paint with default value >
+     <CHARDATA 
+ >
+     <BLOCK <#5>>
+      <NAME key>
+      <ATTRIBUTE <#2>>
+       <NAME id>
+       <VALUE npaint>
+      <ATTRIBUTE <#2>>
+       <NAME for>
+       <VALUE node>
+      <ATTRIBUTE <#2>>
+       <NAME gd:type>
+       <VALUE paint>
+      <CONTENT <#3>>
+       <CHARDATA 
+  >
+       <NOBLOCK <#4>>
+        <NAME paint>
+        <ATTRIBUTE <#2>>
+         <NAME red>
+         <VALUE 255>
+        <ATTRIBUTE <#2>>
+         <NAME blue>
+         <VALUE 228>
+        <ATTRIBUTE <#2>>
+         <NAME green>
+         <VALUE 255>
+       <CHARDATA 
+ >
+     <CHARDATA 
+
+ >
+     <COMMENT  edge attribute of type paint with default value >
+     <CHARDATA 
+ >
+     <BLOCK <#5>>
+      <NAME key>
+      <ATTRIBUTE <#2>>
+       <NAME id>
+       <VALUE epaint>
+      <ATTRIBUTE <#2>>
+       <NAME for>
+       <VALUE edge>
+      <ATTRIBUTE <#2>>
+       <NAME gd:type>
+       <VALUE paint>
+      <CONTENT <#3>>
+       <CHARDATA 
+  >
+       <NOBLOCK <#5>>
+        <NAME paint>
+        <ATTRIBUTE <#2>>
+         <NAME red>
+         <VALUE 0>
+        <ATTRIBUTE <#2>>
+         <NAME blue>
+         <VALUE 0>
+        <ATTRIBUTE <#2>>
+         <NAME green>
+         <VALUE 0>
+        <ATTRIBUTE <#2>>
+         <NAME style>
+         <VALUE solid>
+       <CHARDATA 
+ >
+     <CHARDATA 
+
+ >
+     <COMMENT  node attribute of type point with default value >
+     <CHARDATA 
+ >
+     <BLOCK <#5>>
+      <NAME key>
+      <ATTRIBUTE <#2>>
+       <NAME id>
+       <VALUE ngeom>
+      <ATTRIBUTE <#2>>
+       <NAME for>
+       <VALUE node>
+      <ATTRIBUTE <#2>>
+       <NAME gd:type>
+       <VALUE point>
+      <CONTENT <#3>>
+       <CHARDATA 
+  >
+       <NOBLOCK <#4>>
+        <NAME point>
+        <ATTRIBUTE <#2>>
+         <NAME shape>
+         <VALUE circle>
+        <ATTRIBUTE <#2>>
+         <NAME width>
+         <VALUE 25>
+        <ATTRIBUTE <#2>>
+         <NAME height>
+         <VALUE 25>
+       <CHARDATA 
+ >
+     <CHARDATA 
+
+ >
+     <COMMENT  edge attribute of type line with default value >
+     <CHARDATA 
+ >
+     <BLOCK <#5>>
+      <NAME key>
+      <ATTRIBUTE <#2>>
+       <NAME id>
+       <VALUE egeom>
+      <ATTRIBUTE <#2>>
+       <NAME for>
+       <VALUE edge>
+      <ATTRIBUTE <#2>>
+       <NAME gd:type>
+       <VALUE line>
+      <CONTENT <#3>>
+       <CHARDATA 
+  >
+       <NOBLOCK <#3>>
+        <NAME line>
+        <ATTRIBUTE <#2>>
+         <NAME shape>
+         <VALUE poly>
+        <ATTRIBUTE <#2>>
+         <NAME width>
+         <VALUE 1>
+       <CHARDATA 
+ >
+     <CHARDATA 
+
+ >
+     <COMMENT  node attribute of type label with default value >
+     <CHARDATA 
+ >
+     <BLOCK <#5>>
+      <NAME key>
+      <ATTRIBUTE <#2>>
+       <NAME id>
+       <VALUE nlabel>
+      <ATTRIBUTE <#2>>
+       <NAME for>
+       <VALUE node>
+      <ATTRIBUTE <#2>>
+       <NAME gd:type>
+       <VALUE label>
+      <CONTENT <#3>>
+       <CHARDATA 
+  >
+       <NOBLOCK <#4>>
+        <NAME label>
+        <ATTRIBUTE <#2>>
+         <NAME font>
+         <VALUE bold>
+        <ATTRIBUTE <#2>>
+         <NAME size>
+         <VALUE 14>
+        <ATTRIBUTE <#2>>
+         <NAME text>
+         <VALUE >
+       <CHARDATA 
+ >
+     <CHARDATA 
+
+ >
+     <COMMENT  edge attribute of type label with default value >
+     <CHARDATA 
+ >
+     <BLOCK <#5>>
+      <NAME key>
+      <ATTRIBUTE <#2>>
+       <NAME id>
+       <VALUE elabel>
+      <ATTRIBUTE <#2>>
+       <NAME for>
+       <VALUE edge>
+      <ATTRIBUTE <#2>>
+       <NAME gd:type>
+       <VALUE label>
+      <CONTENT <#3>>
+       <CHARDATA 
+  >
+       <NOBLOCK <#4>>
+        <NAME label>
+        <ATTRIBUTE <#2>>
+         <NAME font>
+         <VALUE roman>
+        <ATTRIBUTE <#2>>
+         <NAME size>
+         <VALUE 12>
+        <ATTRIBUTE <#2>>
+         <NAME text>
+         <VALUE >
+       <CHARDATA 
+ >
+     <CHARDATA 
+
+ >
+     <BLOCK <#4>>
+      <NAME graph>
+      <ATTRIBUTE <#2>>
+       <NAME id>
+       <VALUE G>
+      <ATTRIBUTE <#2>>
+       <NAME edgedefault>
+       <VALUE directed>
+      <CONTENT <#39>>
+       <CHARDATA 
+  >
+       <BLOCK <#3>>
+        <NAME node>
+        <ATTRIBUTE <#2>>
+         <NAME id>
+         <VALUE v0>
+        <CONTENT <#5>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE nlabel>
+          <CONTENT <#1>>
+           <NOBLOCK <#2>>
+            <NAME label>
+            <ATTRIBUTE <#2>>
+             <NAME text>
+             <VALUE G>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE ngeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <BLOCK <#4>>
+            <NAME point>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 42>
+            <ATTRIBUTE <#2>>
+             <NAME height>
+             <VALUE 42>
+            <CONTENT <#3>>
+             <CHARDATA 
+     >
+             <NOBLOCK <#3>>
+              <NAME pos>
+              <ATTRIBUTE <#2>>
+               <NAME x>
+               <VALUE 144.66>
+              <ATTRIBUTE <#2>>
+               <NAME y>
+               <VALUE 384.978>
+             <CHARDATA 
+    >
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#3>>
+        <NAME node>
+        <ATTRIBUTE <#2>>
+         <NAME id>
+         <VALUE v1>
+        <CONTENT <#5>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE nlabel>
+          <CONTENT <#1>>
+           <NOBLOCK <#2>>
+            <NAME label>
+            <ATTRIBUTE <#2>>
+             <NAME text>
+             <VALUE G>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE ngeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <BLOCK <#4>>
+            <NAME point>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 42>
+            <ATTRIBUTE <#2>>
+             <NAME height>
+             <VALUE 42>
+            <CONTENT <#3>>
+             <CHARDATA 
+     >
+             <NOBLOCK <#3>>
+              <NAME pos>
+              <ATTRIBUTE <#2>>
+               <NAME x>
+               <VALUE 34.5195>
+              <ATTRIBUTE <#2>>
+               <NAME y>
+               <VALUE 389.895>
+             <CHARDATA 
+    >
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#3>>
+        <NAME node>
+        <ATTRIBUTE <#2>>
+         <NAME id>
+         <VALUE v2>
+        <CONTENT <#5>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE nlabel>
+          <CONTENT <#1>>
+           <NOBLOCK <#2>>
+            <NAME label>
+            <ATTRIBUTE <#2>>
+             <NAME text>
+             <VALUE G>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE ngeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <BLOCK <#4>>
+            <NAME point>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 42>
+            <ATTRIBUTE <#2>>
+             <NAME height>
+             <VALUE 42>
+            <CONTENT <#3>>
+             <CHARDATA 
+     >
+             <NOBLOCK <#3>>
+              <NAME pos>
+              <ATTRIBUTE <#2>>
+               <NAME x>
+               <VALUE 33.5361>
+              <ATTRIBUTE <#2>>
+               <NAME y>
+               <VALUE 224.684>
+             <CHARDATA 
+    >
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#3>>
+        <NAME node>
+        <ATTRIBUTE <#2>>
+         <NAME id>
+         <VALUE v3>
+        <CONTENT <#5>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE nlabel>
+          <CONTENT <#1>>
+           <NOBLOCK <#2>>
+            <NAME label>
+            <ATTRIBUTE <#2>>
+             <NAME text>
+             <VALUE G>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE ngeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <BLOCK <#4>>
+            <NAME point>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 42>
+            <ATTRIBUTE <#2>>
+             <NAME height>
+             <VALUE 42>
+            <CONTENT <#3>>
+             <CHARDATA 
+     >
+             <NOBLOCK <#3>>
+              <NAME pos>
+              <ATTRIBUTE <#2>>
+               <NAME x>
+               <VALUE 198.747>
+              <ATTRIBUTE <#2>>
+               <NAME y>
+               <VALUE 225.668>
+             <CHARDATA 
+    >
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#3>>
+        <NAME node>
+        <ATTRIBUTE <#2>>
+         <NAME id>
+         <VALUE v4>
+        <CONTENT <#5>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE nlabel>
+          <CONTENT <#1>>
+           <NOBLOCK <#2>>
+            <NAME label>
+            <ATTRIBUTE <#2>>
+             <NAME text>
+             <VALUE G>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE ngeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <BLOCK <#4>>
+            <NAME point>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 42>
+            <ATTRIBUTE <#2>>
+             <NAME height>
+             <VALUE 42>
+            <CONTENT <#3>>
+             <CHARDATA 
+     >
+             <NOBLOCK <#3>>
+              <NAME pos>
+              <ATTRIBUTE <#2>>
+               <NAME x>
+               <VALUE 199.73>
+              <ATTRIBUTE <#2>>
+               <NAME y>
+               <VALUE 306.307>
+             <CHARDATA 
+    >
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#3>>
+        <NAME node>
+        <ATTRIBUTE <#2>>
+         <NAME id>
+         <VALUE v5>
+        <CONTENT <#5>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE nlabel>
+          <CONTENT <#1>>
+           <NOBLOCK <#2>>
+            <NAME label>
+            <ATTRIBUTE <#2>>
+             <NAME text>
+             <VALUE G>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE ngeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <BLOCK <#4>>
+            <NAME point>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 42>
+            <ATTRIBUTE <#2>>
+             <NAME height>
+             <VALUE 42>
+            <CONTENT <#3>>
+             <CHARDATA 
+     >
+             <NOBLOCK <#3>>
+              <NAME pos>
+              <ATTRIBUTE <#2>>
+               <NAME x>
+               <VALUE 115.158>
+              <ATTRIBUTE <#2>>
+               <NAME y>
+               <VALUE 308.273>
+             <CHARDATA 
+    >
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#3>>
+        <NAME node>
+        <ATTRIBUTE <#2>>
+         <NAME id>
+         <VALUE v6>
+        <CONTENT <#7>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE nlabel>
+          <CONTENT <#1>>
+           <NOBLOCK <#2>>
+            <NAME label>
+            <ATTRIBUTE <#2>>
+             <NAME text>
+             <VALUE D>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE ngeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <BLOCK <#5>>
+            <NAME point>
+            <ATTRIBUTE <#2>>
+             <NAME shape>
+             <VALUE rectangle>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 32>
+            <ATTRIBUTE <#2>>
+             <NAME height>
+             <VALUE 32>
+            <CONTENT <#3>>
+             <CHARDATA 
+     >
+             <NOBLOCK <#3>>
+              <NAME pos>
+              <ATTRIBUTE <#2>>
+               <NAME x>
+               <VALUE 298.07>
+              <ATTRIBUTE <#2>>
+               <NAME y>
+               <VALUE 387.929>
+             <CHARDATA 
+    >
+           <CHARDATA 
+   >
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE npaint>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <NOBLOCK <#4>>
+            <NAME paint>
+            <ATTRIBUTE <#2>>
+             <NAME red>
+             <VALUE 12>
+            <ATTRIBUTE <#2>>
+             <NAME blue>
+             <VALUE 160>
+            <ATTRIBUTE <#2>>
+             <NAME green>
+             <VALUE 179>
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#3>>
+        <NAME node>
+        <ATTRIBUTE <#2>>
+         <NAME id>
+         <VALUE v7>
+        <CONTENT <#7>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE nlabel>
+          <CONTENT <#1>>
+           <NOBLOCK <#2>>
+            <NAME label>
+            <ATTRIBUTE <#2>>
+             <NAME text>
+             <VALUE D>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE ngeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <BLOCK <#5>>
+            <NAME point>
+            <ATTRIBUTE <#2>>
+             <NAME shape>
+             <VALUE rectangle>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 32>
+            <ATTRIBUTE <#2>>
+             <NAME height>
+             <VALUE 32>
+            <CONTENT <#3>>
+             <CHARDATA 
+     >
+             <NOBLOCK <#3>>
+              <NAME pos>
+              <ATTRIBUTE <#2>>
+               <NAME x>
+               <VALUE 291.186>
+              <ATTRIBUTE <#2>>
+               <NAME y>
+               <VALUE 229.601>
+             <CHARDATA 
+    >
+           <CHARDATA 
+   >
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE npaint>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <NOBLOCK <#4>>
+            <NAME paint>
+            <ATTRIBUTE <#2>>
+             <NAME red>
+             <VALUE 12>
+            <ATTRIBUTE <#2>>
+             <NAME blue>
+             <VALUE 160>
+            <ATTRIBUTE <#2>>
+             <NAME green>
+             <VALUE 179>
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#3>>
+        <NAME node>
+        <ATTRIBUTE <#2>>
+         <NAME id>
+         <VALUE v8>
+        <CONTENT <#7>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE nlabel>
+          <CONTENT <#1>>
+           <NOBLOCK <#2>>
+            <NAME label>
+            <ATTRIBUTE <#2>>
+             <NAME text>
+             <VALUE D>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE ngeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <BLOCK <#5>>
+            <NAME point>
+            <ATTRIBUTE <#2>>
+             <NAME shape>
+             <VALUE rectangle>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 32>
+            <ATTRIBUTE <#2>>
+             <NAME height>
+             <VALUE 32>
+            <CONTENT <#3>>
+             <CHARDATA 
+     >
+             <NOBLOCK <#3>>
+              <NAME pos>
+              <ATTRIBUTE <#2>>
+               <NAME x>
+               <VALUE 411.161>
+              <ATTRIBUTE <#2>>
+               <NAME y>
+               <VALUE 353.51>
+             <CHARDATA 
+    >
+           <CHARDATA 
+   >
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE npaint>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <NOBLOCK <#4>>
+            <NAME paint>
+            <ATTRIBUTE <#2>>
+             <NAME red>
+             <VALUE 12>
+            <ATTRIBUTE <#2>>
+             <NAME blue>
+             <VALUE 160>
+            <ATTRIBUTE <#2>>
+             <NAME green>
+             <VALUE 179>
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#3>>
+        <NAME node>
+        <ATTRIBUTE <#2>>
+         <NAME id>
+         <VALUE v9>
+        <CONTENT <#7>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE nlabel>
+          <CONTENT <#1>>
+           <NOBLOCK <#2>>
+            <NAME label>
+            <ATTRIBUTE <#2>>
+             <NAME text>
+             <VALUE D>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE ngeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <BLOCK <#5>>
+            <NAME point>
+            <ATTRIBUTE <#2>>
+             <NAME shape>
+             <VALUE rectangle>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 32>
+            <ATTRIBUTE <#2>>
+             <NAME height>
+             <VALUE 32>
+            <CONTENT <#3>>
+             <CHARDATA 
+     >
+             <NOBLOCK <#3>>
+              <NAME pos>
+              <ATTRIBUTE <#2>>
+               <NAME x>
+               <VALUE 408.211>
+              <ATTRIBUTE <#2>>
+               <NAME y>
+               <VALUE 254.186>
+             <CHARDATA 
+    >
+           <CHARDATA 
+   >
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE npaint>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <NOBLOCK <#4>>
+            <NAME paint>
+            <ATTRIBUTE <#2>>
+             <NAME red>
+             <VALUE 12>
+            <ATTRIBUTE <#2>>
+             <NAME blue>
+             <VALUE 160>
+            <ATTRIBUTE <#2>>
+             <NAME green>
+             <VALUE 179>
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#4>>
+        <NAME edge>
+        <ATTRIBUTE <#2>>
+         <NAME source>
+         <VALUE v0>
+        <ATTRIBUTE <#2>>
+         <NAME target>
+         <VALUE v1>
+        <CONTENT <#3>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE egeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <NOBLOCK <#2>>
+            <NAME line>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 3>
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#4>>
+        <NAME edge>
+        <ATTRIBUTE <#2>>
+         <NAME source>
+         <VALUE v1>
+        <ATTRIBUTE <#2>>
+         <NAME target>
+         <VALUE v2>
+        <CONTENT <#3>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE egeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <NOBLOCK <#2>>
+            <NAME line>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 3>
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#4>>
+        <NAME edge>
+        <ATTRIBUTE <#2>>
+         <NAME source>
+         <VALUE v2>
+        <ATTRIBUTE <#2>>
+         <NAME target>
+         <VALUE v3>
+        <CONTENT <#3>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE egeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <NOBLOCK <#2>>
+            <NAME line>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 3>
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#4>>
+        <NAME edge>
+        <ATTRIBUTE <#2>>
+         <NAME source>
+         <VALUE v3>
+        <ATTRIBUTE <#2>>
+         <NAME target>
+         <VALUE v4>
+        <CONTENT <#3>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE egeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <NOBLOCK <#2>>
+            <NAME line>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 3>
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#4>>
+        <NAME edge>
+        <ATTRIBUTE <#2>>
+         <NAME source>
+         <VALUE v4>
+        <ATTRIBUTE <#2>>
+         <NAME target>
+         <VALUE v5>
+        <CONTENT <#3>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE egeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <NOBLOCK <#2>>
+            <NAME line>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 3>
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#5>>
+        <NAME edge>
+        <ATTRIBUTE <#2>>
+         <NAME source>
+         <VALUE v6>
+        <ATTRIBUTE <#2>>
+         <NAME target>
+         <VALUE v7>
+        <ATTRIBUTE <#2>>
+         <NAME directed>
+         <VALUE false>
+        <CONTENT <#3>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE egeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <NOBLOCK <#2>>
+            <NAME line>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 3>
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#5>>
+        <NAME edge>
+        <ATTRIBUTE <#2>>
+         <NAME source>
+         <VALUE v6>
+        <ATTRIBUTE <#2>>
+         <NAME target>
+         <VALUE v8>
+        <ATTRIBUTE <#2>>
+         <NAME directed>
+         <VALUE false>
+        <CONTENT <#3>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE egeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <NOBLOCK <#2>>
+            <NAME line>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 3>
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#5>>
+        <NAME edge>
+        <ATTRIBUTE <#2>>
+         <NAME source>
+         <VALUE v8>
+        <ATTRIBUTE <#2>>
+         <NAME target>
+         <VALUE v9>
+        <ATTRIBUTE <#2>>
+         <NAME directed>
+         <VALUE false>
+        <CONTENT <#3>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE egeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <NOBLOCK <#2>>
+            <NAME line>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 3>
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+  >
+       <BLOCK <#5>>
+        <NAME edge>
+        <ATTRIBUTE <#2>>
+         <NAME source>
+         <VALUE v9>
+        <ATTRIBUTE <#2>>
+         <NAME target>
+         <VALUE v7>
+        <ATTRIBUTE <#2>>
+         <NAME directed>
+         <VALUE false>
+        <CONTENT <#3>>
+         <CHARDATA 
+   >
+         <BLOCK <#3>>
+          <NAME data>
+          <ATTRIBUTE <#2>>
+           <NAME key>
+           <VALUE egeom>
+          <CONTENT <#3>>
+           <CHARDATA 
+    >
+           <NOBLOCK <#2>>
+            <NAME line>
+            <ATTRIBUTE <#2>>
+             <NAME width>
+             <VALUE 3>
+           <CHARDATA 
+   >
+         <CHARDATA 
+  >
+       <CHARDATA 
+ >
+     <CHARDATA 
+>

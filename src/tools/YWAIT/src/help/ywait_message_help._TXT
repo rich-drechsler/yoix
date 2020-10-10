@@ -1,0 +1,36 @@
+<BODY BGCOLOR=#FFFFFF>
+<TABLE VSPACE=24 HSPACE=24><TR><TD BGCOLOR=#BBF1DE>
+&nbsp;
+<CENTER>
+<H1>Help about <I>Message</></H1>
+</CENTER>
+&nbsp;
+</TD></TR><TR><TD>&nbsp;
+<P>
+<B><_ACRONYM_HTML_></B> provides a way to send messages to and receive messages
+from other <B><_ACRONYM_HTML_></B> users directly without the use of e-mail.
+<P>
+To send a message, select the
+<BLOCKQUOTE>
+<B>Send =&gt; Message</B>
+</BLOCKQUOTE>
+menu item. In the window that appears, enter the <B><_ACRONYM_HTML_></B> user
+id of the recipient in the <I<To</I> field and the body of the text
+message in the large text area. Press the <B>Send</B> button, to transmit.
+<P>
+Within a few moments of the arrival of a message from another user,
+the message icon (in the lower right of the main application screen
+next to the stop sign) will become visible.  Either press the icon
+or use the menu item
+<BLOCKQUOTE>
+<B>Show =&gt; Message</B>
+</BLOCKQUOTE>
+to retieve the message.
+<P>
+Until <B>Clear</B> is pressed, the messages will remain in your message
+box.  It is a good idea to clear the messages when they are no longer needed.
+<P></TD></TR><TR><TD BGCOLOR=#BBF1DE ALIGN=RIGHT>
+<A HREF="!main_help"><I>Back to Main Page</I></A>
+</TD></TR></TABLE></BODY>
+
+

@@ -1,0 +1,52 @@
+//
+// Lots of the control over a JTabbedPane is buried in obscure UIManager
+// settings. Not a particularly flexible approach, but that's what Java
+// provides. Best way to find the properties is to look for "TabbedPane"
+// in a UIManager dump.
+//
+
+import yoix.*.*;
+
+VM.screen.uimanager.put("TabbedPane.contentOpaque", FALSE);
+
+JFrame f = {
+    Color background = Color.red;
+
+    Array layout = {
+	new JTabbedPane {
+	    Color background = Color.green;
+
+	    Array layout = {
+		new JLabel {
+		    ////Object opaque = NULL;
+		    String title = "EMPTY";
+		    String text = "EMPTY";
+		},
+
+		new JLabel {
+		    Object opaque = NULL;
+		    String title = "NULL";
+		    String text = "NULL";
+		    Color background = Color.cyan;
+		},
+
+		new JLabel {
+		    int opaque = FALSE;
+		    String title = "FALSE";
+		    String text = "FALSE";
+		    Color background = Color.magenta;
+		},
+
+		new JLabel {
+		    int opaque = TRUE;
+		    String title = "TRUE";
+		    String text = "TRUE";
+		    Color background = Color.yellow;
+		},
+	    };
+	},
+    };
+};
+
+f.visible = TRUE;
+

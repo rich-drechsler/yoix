@@ -1,0 +1,36 @@
+import yoix.*.*;
+
+JFrame f = {
+    Color background = Color.white;
+
+    Graphics graphics = {
+        int linewidth = 72/4;
+        int antialiasing = TRUE;
+    };
+
+    paint(Rectangle rect) {
+        Matrix mtx;
+        int    n;
+
+        graphics {          // "named block"
+            gsave();
+            rectclip(rect);
+            translate(size.width/2, size.height/2);
+            mtx = currentmatrix();
+            rotate(atan2(size.height, size.width)*180.0/PI);
+            scale(2, .5);
+            arc(0, 0, 1.5*72, 0, 360);
+            gsave();           // save the path
+            setrgbcolor(0, 1, 0);
+            fill(.3);
+            grestore();
+            setrgbcolor(1, 0, 0);
+            stroke(.5);
+            setmatrix(mtx);    // too late
+            grestore();
+        }
+    }
+};
+
+f.visible = TRUE;
+

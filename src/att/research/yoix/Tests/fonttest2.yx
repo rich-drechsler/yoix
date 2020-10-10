@@ -1,0 +1,37 @@
+import yoix.*.*;
+
+Font SUP0 = {
+    String name = "Lucida-plain-30";
+};
+
+Font SUP1 = SUP0.translatefont(0, -SUP0.ascent).scalefont(.5);
+Font SUP2 = SUP1.translatefont(0, -SUP1.ascent).scalefont(.5);
+
+JFrame f = {
+    Color background = Color.white;
+
+    Graphics graphics = {
+	int textantialiasing = TRUE;
+    };
+
+    paint(Rectangle rect) {
+	graphics {
+	    gsave();
+	    rectclip(rect);
+	    moveto(36, 144);
+	    setfont(SUP0);
+	    show("2");
+	    setfont(SUP1);
+	    show("3");
+	    setfont(SUP2);
+	    show("4");
+	    setfont(SUP0);
+	    show(" = ");
+	    show(toString((int)pow(2, pow(3, 4))));
+	    grestore();
+	}
+    }
+};
+
+f.visible = TRUE;
+

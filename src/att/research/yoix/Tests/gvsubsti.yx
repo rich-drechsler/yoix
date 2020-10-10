@@ -1,0 +1,15 @@
+//
+// Nothing to this, but older Yoix versions didn't handle this example
+// well.
+//
+
+import yoix.*.*;
+
+String line = "hello";
+
+Regexp re;	// pattern is not set
+
+fprintf(stderr, "starting\n");
+line = gvsubsti("bye", re, line);
+fprintf(stderr, "done\n");
+fprintf(stderr, "line: %s\n", line);

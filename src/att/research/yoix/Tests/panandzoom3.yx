@@ -1,0 +1,127 @@
+//
+// This example shows how the panandzoom flags of a JCanvas are used. The
+// first 8 bits control panning, the next 8 bits control zooming, and the
+// last 8 bits let you select mouse buttons and modifiers that restore the
+// canvas to its default state. its that reference mouse buttons mean any
+// one of the selected buttons can be used to start the operation, but only
+// if all the modifier keys selected by the appropriate modifier bits are
+// down when the button is pressed.
+//
+//	Pan control bits:
+//	    bit 0 - mouse button 1 can be used to start panning
+//	    bit 1 - mouse button 2 can be used to start panning
+//	    bit 2 - mouse button 3 can be used to start panning
+//	    bit 3 - unused
+//	    bit 4 - SHIFT key must be held to start panning
+//	    bit 5 - CTRL key must be held to start panning
+//	    bit 6 - ALT key must be held to start panning
+//	    bit 7 - pan using copyarea otherwise full repaint
+//
+//	Zoom control bits:
+//	    bit 8  - unused
+//	    bit 9  - unused
+//	    bit 10 - unused
+//	    bit 11 - enable mouse wheel zooming
+//	    bit 12 - SHIFT key must be held to start zooming
+//	    bit 13 - CTRL key must be held to start zooming
+//	    bit 14 - ATL key must be held to start zooming
+//	    bit 15 - unused
+//
+//	Reset control bits:
+//	    bit 16 - mouse button 1 can be used for reset
+//	    bit 17 - mouse button 2 can be used for reset
+//	    bit 18 - mouse button 3 can be used for reset
+//	    bit 19 - unused
+//	    bit 20 - SHIFT key must be held to trigger reset
+//	    bit 21 - CTRL key must be held to trigger reset
+//	    bit 22 - ALT key must be held to trigger reset
+//	    bit 23 - unused
+//
+// Reset control restores the default matrix for the canvas. It's sometimes
+// convenient, but isn't always appropriate (e.g., the matrix was scaled or
+// translated before the initial paint), so in many cases you'll use an event
+// handler attached to a component, like a JButton, to handle resets.
+//
+// When bit 7 is set automatic panning tries to use copyarea to update the
+// canvas, otherwise a full repaint of the canvas is always used. Only set
+// this bit if the paint() function defined in the canvas is smart and uses
+// the clipping rectangle passed as an argument to reduce its workload because
+// each copyarea usually generates two paint() calls (to refresh the two small
+// rectangles uncovered by copyarea).
+//
+// Resetting restores the default matrix for the canvas. It's occasionally
+// convenient, but isn't always the right approach (e.g., the matrix was
+// scaled or translated before the initial paint), so in many cases you'll
+// use an event handler attached to a component, like a JButton to handle,
+// resets (as we do in this example).
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    Array layout = {
+	new JCanvas {
+	    String tag = "$_canvas";
+	    Color background = Color.lightGray;
+	    //
+	    // Setting these bits means SHIFT with button 1 pans, the mouse
+	    // wheel zooms, and CTRL with button 2 resets.
+	    //
+	    int   panandzoom = 0x220811;
+
+	    paint(Rectangle rect) {
+		Object bbox;
+		graphics {
+		    gsave();
+		    sethsbcolor(0.666667, 0.5, 1.0);
+		    linewidth = 18;
+		    linejoin = yoix.graphics.JOIN_MITER;
+		    linecap = yoix.graphics.CAP_BUTT;
+		    translate(144, 144);
+		    rotate(15);
+		    scale(1, 1);
+		    moveto(0, 0);
+		    rlineto(72, -50);
+		    rlineto(-20, 72);
+		    strokepath();
+		    linewidth = 0;
+		    bbox = pathbbox();
+		    fill();
+		    newpath();
+		    foreground = Color.red;
+		    setrgbcolor(1, 0, 0);
+		    moveto(bbox.x, bbox.y);
+		    rlineto(bbox.width, 0);
+		    rlineto(0, bbox.height);
+		    rlineto(-bbox.width, 0);
+		    closepath();
+		    stroke();
+		    linewidth = 9;
+
+		    dasharray = new Array {18, 36};
+		    moveto(72, 144);
+		    rlineto(300, 0);
+		    gsave();
+		    stroke();
+		    grestore();
+		    dasharray = NULL;
+		    setrgbcolor(0, 1, 0);
+		    linewidth = 2;
+		    stroke();
+		    grestore();
+		}
+	    }
+	}, CENTER,
+	new JButton {
+	    String text = "Reset";
+
+	    actionPerformed(e) {
+		root.components.$_canvas.graphics.initmatrix();
+		root.components.$_canvas.repaint();
+	    }
+	}, SOUTH,
+    };
+};
+
+f.visible = TRUE;
+

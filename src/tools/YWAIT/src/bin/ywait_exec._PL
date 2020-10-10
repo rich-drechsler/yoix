@@ -1,0 +1,290 @@
+#!<_PERL_PATH_> -T -w
+#
+# Handles almost everything except login and the distribution of a few
+# layout files (from the htdocs directory) that may be needed before we
+# have a valid session id. Always assumes that the first line read from
+# standard input is a session id, which is why it can't handle tasks that
+# happen before a successful login. Most of the heavy lifting is handled
+# by the startup script that's loaded from the etc directory and custom
+# subroutines that are loaded (when used) from the ../subs directory. This
+# script assumes it's communicating with a client using a Yoix function
+# named PostCommand(), which is defined in ywait_server.yx. Take a look
+# at it if you want to more about the low level communications that take
+# place between clients and this script. Everything we read here comes
+# from PostCommand() and everything that we send back to the client will
+# be processed by PostCommand(). 
+#
+# This is one of the files that you will have to change as you customize
+# your application. What we often do is select a command name that will
+# identify the new task in the series of if-else statements below. We use
+# command names, like GETMOTD, that are all upper case, but that's just a
+# convention that we picked. Next add a few lines of debugging code
+#
+#	} elsif ($COMMAND eq "MYNEWCOMMAND") {
+#	    WriteHeader();
+#	    WriteLog("-d1", "MYNEWCOMMAND: arg[0]=$args[0]");	# etc...
+#	}
+#
+# to the of if-else statements (below) that try to identify the commands
+# that come in from clients. Then we often temporarily modify an existing
+# screen (most are in the lib directory) so it sends MYNEWCOMMAND when a
+# button is pressed in that screen. Just look for the QueueCommand() or
+# RunCommand() call that's associated with the button in the screen file
+# that you modified, and change the second argument in the QueueCommand()
+# or RunCommand() call to "MYNEWCOMMAND". Show the modified screen, press
+# the appropriate button, and you should see your debugging line printed
+# in the log file (admin/logs/access_log). After that you can force some
+# better arguments through to MYNEWCOMMAND and perhaps write a subroutine
+# (that goes in the ../subs directory) and actually does real work (e.g.,
+# get some data out of a database) and displays that data in a JtextArea in
+# your debugging screen or dumps it to stdout or stderr on the client using
+# fprintf(). By the time script is receiving real arguments and returning
+# real data you should be working on the real screen that your application
+# will use to handle MYNEWCOMMAND and anything else new that's associated
+# with MYNEWCOMMAND.
+# 
+
+use strict;
+use vars qw(<_PERL_GLOBAL_VARIABLES_>);
+
+my $argc = 0;
+my @args;
+my @flds;
+my $runstate;
+my $serial;
+my $sessionid = "";
+my $sessionstatus;
+
+#
+# Output the URL header before anything else!!
+#
+
+print "Content-type: text/plain\n\n";
+
+#
+# Try to read the setup file from the etc directory. Nothing much we can
+# do if it's not there, so in that case output something that the client
+# will think looks like a server header and exit.
+#
+
+$SERVERHOMEDIR = "<_SERVER_HOMEDIR_DQ_>";
+$SERVERSETUP = $SERVERHOMEDIR . "/etc/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_rc.pl";
+
+if (! -r "$SERVERSETUP" ) {
+    print "STATUS=" . unpack("H*", "internalerror") . "\n";
+    print "REASON=" . unpack("H*", "server cannot find or read setup file") . "\n";
+    exit(1);
+}
+
+require $SERVERSETUP;
+
+#
+# The startup file is in, so we can use the variables and subroutines
+# defined in that file.
+#
+
+$COMMAND = "";
+$EXITSTATUS = 1;
+$LOGFILE = $EXECLOG;
+$SESSIONID = "";
+
+$INPFILE = "$TMPDIR/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_exec_inp.$$";
+$OUTFILE = "$TMPDIR/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_exec_out.$$";
+$ERRFILE = "$TMPDIR/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_exec_err.$$";
+$TMPFILE = "$TMPDIR/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_exec_tmp.$$";
+@CLEANUP_FILES = ($INPFILE,$OUTFILE,$ERRFILE,$TMPFILE);
+
+#
+# Loaders for function files - just supply function name, fullpath is
+# derived from that (as shown) file with actual function (peer) only
+# loaded as needed. You can write your own subroutines and save them
+# in the ../subs directory and if you include them in this list then
+# you can use them when you process your own custom commands.
+#
+
+foreach $TMPTXT (<_PERL_SUBS_>) {
+    eval "sub $TMPTXT {
+	require \"$SUBSDIR/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_$TMPTXT.pl\";
+	peer_$TMPTXT(\@_);
+    }";
+}
+
+#
+# First line must always be a valid session id usually obtained during
+# login. checkid reads one line from standard input, checks the session
+# id, initializes a bunch of variables using the session id (because it
+# was called with +e), and exits with a status that lets us figure out
+# what happened. The details are somewhat confusing, but they work and
+# you probably won't have to change this stuff.
+#
+
+if (defined($TMPTXT = <STDIN>)) {
+    $TMPTXT =~ s/\s+$//;
+    $sessionid = pack("H*", $TMPTXT);
+    $EXITSTATUS = checkid("+e", $sessionid);
+} else {
+    print "STATUS=" . unpack("H*", "internalerror") . "\n";
+    print "REASON=" . unpack("H*", "no input supplied") . "\n";
+    exit(1);
+}
+
+#
+# The next line is supposed to contain the name of the command and the
+# number of arguments that we should expect, one per line. If the line
+# doesn't look right we quit.
+#
+
+if (defined($_ = <STDIN>)) {
+    s/[\r\n]+$//o;
+    @flds = split(/[ \t]+/);
+    if ($#flds != 1) {
+	print "STATUS=" . unpack("H*", "internalerror") . "\n";
+	$TMPTXT = sprintf("command line contained %d instead of 2 arguments", (1+$#flds));
+	print "REASON=" . unpack("H*", $TMPTXT) . "\n";
+	exit(1);
+    }
+    $COMMAND = $flds[0];
+    $ARGCOUNT = $flds[1];
+} else {
+    print "STATUS=" . unpack("H*", "internalerror") . "\n";
+    print "REASON=" . unpack("H*", "no command supplied") . "\n";
+    exit(1);
+}
+
+#
+# If we get here we should have the command, the argument count, and we
+# should know who the user is, so initialize user dependent variables and
+# then read (and unpack) the arguments.
+#
+
+WriteLog("-d5","[$SESSIONID] (status=$EXITSTATUS)");
+WriteLog("-d2", $COMMAND, $ARGCOUNT);	# see QUITTING if you change this
+
+UserInit();
+
+while ($ARGCOUNT > $argc && defined($_ = <STDIN>)) {
+    $_ =~ s/\s+$//o;
+    $args[$argc++] = pack("H*", $_);
+}
+
+while ($ARGCOUNT > $argc) {
+    $args[$argc++] = "";
+}
+
+#
+# Process the command if the everything looks OK (i.e., $EXITSTATUS is 0),
+# otherwise checkid didn't approve and we need to examine $EXITSTATUS and
+# decide what to do based of its value. Customizing the application means
+# adding code here (and in other files) to process new commands. Most of
+# the commands that come with the default system use special subroutines
+# that are loaded from the ../subs directory and end up doing the real
+# work.
+#
+# If you follow our approach make sure you list your new subroutines in
+# the foreach loop (above) and in the Makefile located in the subs source
+# directory (assuming of course that you decide to keep the source for the
+# subroutine in that directory). An important point that may not be obvious
+# (until you take a careful look at some of our subs) is that WriteHeader()
+# is required and should always be called before real data is sent back to
+# the client, so if it's not done here then the subroutine is responsible
+# for making the WriteHeader() call.
+# 
+
+if ($EXITSTATUS == 0) {
+    if ($COMMANDSET ne "*" && !LookForPattern($COMMAND, "$COMMANDSET", ",")) {
+	$WARNINGMESSAGE = "server refused access to the request";
+	WriteHeader("-invalidaccess");
+	WriteLog("-d0", "ADMIN: invalidaccess - $COMMAND not allowed by $COMMANDSET");
+    } elsif ($COMMAND eq "CHANGEPASSWORD") {
+	$args[0] = $USER;
+	$EXITSTATUS = changepassword(@args);
+    } elsif ($COMMAND eq "GETCOMMENTS") {
+	$EXITSTATUS = getfile($COMMENTLOG);
+    } elsif ($COMMAND eq "GETHELP") {
+	$EXITSTATUS = getfile("$HELPDIR/", "<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_" . $args[0] . ".txt");
+    } elsif ($COMMAND eq "GETHISTORY") {
+	$EXITSTATUS = getfile("-r", "-t", 100, "-e", 's/\s+#+.*//', $USERLOGINS);
+    } elsif ($COMMAND eq "GETMESSAGES") {
+	$EXITSTATUS = getmessages();
+    } elsif ($COMMAND eq "GETMOTD") {
+	$EXITSTATUS = getfile($MOTDFILE);
+    } elsif ($COMMAND eq "GETSCREEN") {
+	$EXITSTATUS = getfile("$SCREENSDIR/", $args[0]);
+    } elsif ($COMMAND eq "LOG") {
+	WriteLog("-c", @args);
+	WriteHeader();
+    } elsif ($COMMAND eq "PING") {	# this command is special!!!
+	WriteHeader();
+    } elsif ($COMMAND eq "GETPLUGINFILE") {
+	$EXITSTATUS = getfile("$PLUGINSDIR/", $args[0]);
+    } elsif ($COMMAND eq "GETPLUGINTESTDATA") {
+	getfile("$PLUGINSDIR/test_" . $args[0] . ".data");
+    } elsif ($COMMAND eq "QUITTING") {
+	$EXITSTATUS = logout();
+    } elsif ($COMMAND eq "RUNQUERY") {
+      $EXITSTATUS = runquery(@args);
+    } elsif ($COMMAND eq "SENDCOMMENT") {
+	sendmessage("-sUser Comment","-u", $USER, @args);
+    } elsif ($COMMAND eq "SENDMESSAGE") {
+	sendmessage("-u", $USER, @args);
+    } elsif ($COMMAND eq "USERFILE") {
+      $EXITSTATUS = userfile(@args);
+    } elsif ($COMMAND eq "WELCOME") {
+	$EXITSTATUS = welcome();
+    } else {
+	my $cmd = usercommand($COMMAND, @args);
+
+	if (length($cmd) > 0) {
+	    eval "\$EXITSTATUS = $cmd";
+	} else {
+	    #
+	    # Unusual, so we probably should notify an administrator.
+	    #
+	    WriteHeader("-failed","REASON","Unsupported command: $COMMAND");
+	    WriteLog("-d0", "ADMIN: Unsupported command: $COMMAND");
+	}
+    }
+} elsif ($EXITSTATUS == 1) {
+    eval "\$WARNINGMESSAGE = \"$MAINTENANCEMESSAGE\"";
+    $sessionstatus = "disabled";
+    WriteHeader("-$sessionstatus");
+    WriteLog("-d1", "SESSION $sessionstatus");
+} elsif ($EXITSTATUS == 2) {
+    eval "\$WARNINGMESSAGE = \"$DISABLEDMESSAGE\"";
+    $sessionstatus = "disabled";
+    $serial = $SERIAL;
+    $serial =~ s/[.].*//;
+    $runstate = $RUNSTATE;
+    $runstate =~ s/[.].*//;
+    if ($serial == $runstate) {
+	$WARNINGMESSAGE = "";
+	$sessionstatus = "expired";
+    }
+    WriteHeader("-$sessionstatus");
+    WriteLog("-d1", "SESSION $sessionstatus");
+} elsif ($EXITSTATUS == 3) {
+    eval "\$WARNINGMESSAGE = \"$REJECTEDMESSAGE\"";
+    $sessionstatus = "rejected";
+    WriteHeader("-$sessionstatus");
+    WriteLog("-d1", "SESSION $sessionstatus - invalid home directory");
+} elsif ($EXITSTATUS == 4) {
+    eval "\$WARNINGMESSAGE = \"$REJECTEDMESSAGE\"";
+    $sessionstatus = "rejected";
+    WriteHeader("-$sessionstatus");
+    WriteLog("-d0", "ADMIN: [$sessionid] host mismatch from $REMOTE_HOST");
+} elsif ($EXITSTATUS == 5) {
+    eval "\$WARNINGMESSAGE = \"$REJECTEDMESSAGE\"";
+    $sessionstatus = "rejected";
+    WriteHeader("-$sessionstatus");
+    WriteLog("-d0", "ADMIN: [$sessionid] did not pass validation");
+} else {
+    #
+    # Very unusual - we undoubtedly should also notify an administrator.
+    #
+    WriteHeader("-disabled");
+    WriteLog("-d0", "ADMIN: Invalid sessionid [$sessionid] (status=$EXITSTATUS)");
+}
+
+WriteLog("-d3", "EXIT $COMMAND $EXITSTATUS");
+Cleanup($EXITSTATUS);
+

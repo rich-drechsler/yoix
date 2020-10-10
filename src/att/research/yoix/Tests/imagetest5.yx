@@ -1,0 +1,70 @@
+//
+// Image example that uses version 1.1.0 features.
+//
+
+import yoix.*.*;
+
+Image img = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+    double metrics = 1.1;
+};
+
+Image img_merged = {
+    Color background = Color.black;
+    Array metrics = {0, -1, 0, 0};
+    Dimension size = {
+	double width = img.size.width;
+	double height = img.size.height;
+    };
+};
+
+JFrame f = {
+    Color background = Color.lightGray;
+
+    paint(Rectangle r) {
+	Point point;
+	int   n;
+
+	graphics {
+	    gsave();
+	    rectclip(r);
+	    recterase(r);
+	    moveto(72, 144);
+	    img_merged.source = NULL;
+	    showimage(img);
+	    point = currentpoint();
+	    showimage(img_merged);
+
+	    //
+	    // AWT version can achieve the desired effect by
+	    // calling ShowImage in this loop, but Swing is
+	    // probably using doublebuffering, so it's just
+	    // a little harder. You may want to experiment
+	    // and see what happens without invokeLater().
+	    //
+	    for (n = 0; n < 15; n++)
+		invokeLater(ShowImage, this, point, r, n);
+
+	    setrgbcolor(1, 0, 0);
+	    moveto(36, 144);
+	    lineto(300, 144);
+	    stroke();
+	    grestore();
+	}
+    }
+};
+
+ShowImage(dest, point, r, n) {
+    img_merged.convert(img, new Array{5, 3, n%5, n%3});
+    dest.graphics {
+	gsave();
+	rectclip(r);
+	moveto(point.x, point.y);
+	showimage(img_merged);
+	grestore();
+    }
+    sleep(.05);
+}
+    
+f.visible = TRUE;
+

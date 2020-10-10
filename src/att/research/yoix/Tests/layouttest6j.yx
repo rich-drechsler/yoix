@@ -1,0 +1,55 @@
+//
+// A simple test file that can be used to check the behavior of Java's
+// JScrollPane when the screen is resized. The interpreter now includes
+// code that tries to improve the default behavior when an explicit or
+// implicit JScrollPane is contained in a screen that's resized. You can
+// use the magic field named sizecontrol to change the behavior. Storing
+// zero in sizecontrol is supposed to restore Java's default behavior.
+//
+
+import yoix.*.*;
+
+JFrame screen = {
+    Dimension size = NULL;
+    String    title = "GridBagLayout Test";
+
+    GridBagLayout layoutmanager;
+
+    Array layout = {
+	new JTextArea {
+	    String text = " ";
+	    String font = "Helvetica-plain-36";
+	    int    rows = 5;
+	    int    columns = 20;
+	    /////int    scroll = AS_NEEDED;
+	    int    scroll = 0;
+	},
+	new GridBagConstraints {
+	    int gridx = 1;
+	    int gridy = 1;
+	    int weightx = 1;
+	    int weighty = 1;
+	    int fill = BOTH;
+	},
+
+	new JTextArea {
+	    Color background = Color.blue;
+	    String text = " ";
+	    String font = "Helvetica-plain-36";
+	    int    rows = 10;
+	    int    columns = 20;
+	    /////int    scroll = AS_NEEDED;
+	    int    scroll = 0;
+	},
+	new GridBagConstraints {
+	    int gridx = 1;
+	    int gridy = 2;
+	    int weightx = 1;
+	    int weighty = 1;
+	    int fill = BOTH;
+	},
+    };
+};
+
+screen.visible = TRUE;
+

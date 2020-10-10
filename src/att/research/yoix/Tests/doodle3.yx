@@ -1,0 +1,51 @@
+//
+// Uses a gray image as a background, but draws with a colored
+// version of the same image.
+//
+
+import yoix.*.*;
+
+Image img1 = {
+	String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+	int type = TYPE_RGB;
+};
+
+Image img2 = {
+	String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+	int type = TYPE_GRAY;
+};
+
+JFrame f = {
+    Image backgroundimage = img2;
+    ////int   backgroundhints = SCALE_NONE;
+
+    int connected = TRUE;
+
+    Graphics graphics = {
+	double linewidth = 18;
+	double linecap = CAP_ROUND;
+	Object foreground = img1;
+    };
+
+    mousePressed(Event e) {
+	if (e.modifiers & BUTTON2_MASK)
+	    connected = !connected;
+	if (e.modifiers & BUTTON3_MASK)
+	    graphics.erasedrawable();
+	graphics.moveto(e.coordinates.x, e.coordinates.y);
+    }
+
+    mouseDragged(Event e) {
+	double x = e.coordinates.x;
+	double y = e.coordinates.y;
+	if (connected) {
+	    graphics {
+		lineto(x, y);
+		stroke();
+		moveto(x, y);
+	    }
+	} else graphics.rectfill(x, y, 2*VM.screen.pixelwidth, 2*VM.screen.pixelheight);
+    }
+};
+
+f.visible = TRUE;

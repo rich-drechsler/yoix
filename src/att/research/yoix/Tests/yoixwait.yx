@@ -1,0 +1,220 @@
+//
+// New implementation of the Yoix logo.
+//
+
+import yoix.*.*;
+
+Font imagefont;
+Array fonts = {
+    "ClearviewATT-plain-72",
+    "Helvetica-plain-72",
+    "SanSerif-plain-72",
+};
+
+for (ptr in fonts) {
+    imagefont = new Font { String name = *ptr; };
+    if (imagefont.fontfacename === strsplit(*ptr,"-")[0])
+	break;
+}
+
+Font   tbf = VM.screen.uimanager.get("TitledBorder.font");
+double ph2 = 2.0 * VM.screen.pixelheight;
+double pw2 = 2.0 * VM.screen.pixelwidth;
+Insets tb_insets = {
+    double top = ph2 + tbf.ascent/2.0;
+    double bottom = ph2;
+    double left = pw2;
+    double right = pw2;
+};
+Insets tb2_insets = {
+    double top = ph2 + tbf.ascent/2.0 + ph2;
+    double bottom = ph2;
+    double left = pw2;
+    double right = pw2;
+};
+
+Thread spin;
+
+JWindow loading = {
+    Dimension size = NULL;
+    String border = "Loading data";
+    Color      background = Color.white;
+
+    Array layout = {
+	new JPanel {
+	    String     tag = "$_logo";
+	    Color      imgcolor = Color.black;
+	    Rectangle  textrect;
+	    Rectangle  rect;
+	    Dimension  delta;
+	    Font       regfont;
+	    double     radius;
+	    int        type = TYPE_RGB;
+	    int        offset = 0;
+	    int        limit = 12;
+	    int        spin = 30; // limit * spin = 360
+
+	    rect = stringBounds(imagefont, "\xAE", TRUE);
+	    delta = imagefont.matrix.idtransform(0, rect.y);
+	    regfont = imagefont.scalefont(0.5, 0.5).translatefont(0.0, delta.height);
+
+	    rect = stringBounds(imagefont, "Y");
+	    radius = sqrt(rect.width*rect.width + rect.height*rect.height);
+
+	    textrect = stringBounds(imagefont, "Yoix");
+	    textrect.width += radius + stringWidth(regfont, "\xAE");
+	    textrect.height = 2.0 * radius;
+
+
+	    Graphics graphics = {
+		Color foreground = imgcolor;
+		Font  font = imagefont;
+		int   textantialiasing = TRUE;
+	    };
+
+	    Dimension size = {
+		double width = textrect.width;
+		double height = textrect.height;
+	    };
+
+	    rotator(Rectangle r, int init, int limit) {
+		double alpha = 1.0;
+		double alpha2 = 0.3333;
+		double fraction = 0.75;
+		int    n;
+
+
+		kerner(int c0, int c1) {
+		    String str[1];
+		    double width;
+
+		    switch(c0) {
+		    case 'Y':
+			*str = c0;
+			width = stringBounds(font, str, TRUE).width;
+			rmoveto(-0.30*width, 0.0);
+			break;
+
+		    case 'o':
+			*str = c1;
+			width = stringBounds(font, str, TRUE).width;
+			rmoveto(-0.5*width, 0.0);
+			break;
+
+		    case 'i':
+			*str = c0;
+			width = stringBounds(font, str, TRUE).width;
+			rmoveto(-0.1 * width, 0.0);
+			break;
+		    }
+		}
+
+                graphics {
+                    gsave();
+                    erasedrawable(0.0);
+                    rectclip(r);
+		    translate(radius, radius);
+		    gsave();
+		    rotate(init*spin);
+                    for (n = 0; n < limit; n++) {
+                        moveto(0.0, 0.0);
+                        setfont(imagefont);
+                        if (n == 0) {
+			    setrgbcolor(background);
+			    show("Y", 1.0);
+			    setgray(0);
+                            alpha = alpha2;
+                        } else show("Y", alpha);
+                        alpha *= fraction;
+                        rotate(spin);
+                    } 
+                    grestore();
+		    moveto(0.0, 0.0);
+		    setfont(imagefont);
+		    kshow(kerner, "Yoix", 1.0);
+		    setfont(regfont);
+		    show("\xAE", 1.0);
+                    grestore();
+                }
+	    }
+
+	    paint(Rectangle r) {
+		rotator(r, offset, limit);
+	    }
+	},
+	CENTER,
+	new JProgressBar {
+	    String tag = "$_pbar";
+	    int indeterminate = TRUE; // easier this way, just for testing
+	    int visible = FALSE;
+	},
+	SOUTH,
+    };
+};
+
+loading.location = new Point {
+    int x = (VM.screen.width - loading.size.width) / 2.0;
+    int y = (VM.screen.height - loading.size.height) / 2.0;
+};
+
+Spinner() {
+    int     offset = 1;
+    double  sleepytime = 1.0/loading.components.$_logo.limit;
+
+    while(TRUE) {
+	loading.components.$_logo.offset = offset++;
+	loading.components.$_logo.repaint();
+	if (offset > loading.components.$_logo.limit)
+	    offset = 1;
+	sleep(sleepytime);
+    }
+}
+
+StartSpinner(...) {
+    if (argc == 2 && argv[1] instanceof String && argv[1]@sizeof > 0)
+	loading.border = argv[1];
+    else loading.border = new EmptyBorder {
+	Insets insets = tb_insets;
+	Border child = new EtchedBorder {
+	    Border child = new EmptyBorder {
+		Insets insets = tb2_insets;
+	    };
+	};
+    };
+    loading.visible = TRUE;
+    spin.queue(Spinner);
+}
+
+PauseSpinner(...) {
+    spin.interrupted = TRUE;
+    loading.components.$_logo.offset = 0;
+    loading.components.$_logo.repaint();
+    if (argc == 2 && argv[1] instanceof String && argv[1]@sizeof > 0)
+	loading.border = argv[1];
+    else loading.border = new EmptyBorder {
+	Insets insets = tb_insets;
+	Border child = new EtchedBorder {
+	    Border child = new EmptyBorder {
+		Insets insets = tb2_insets;
+	    };
+	};
+    };
+}
+
+StopSpinner() {
+    spin.alive = FALSE;
+    loading.visible = FALSE;
+}
+
+
+StartSpinner("Loading data");
+sleep(5);
+PauseSpinner("Admiring logo");
+sleep(5);
+PauseSpinner();
+sleep(5);
+loading.components.$_pbar.visible = TRUE;
+loading.size = NULL;
+StartSpinner("Starting application");
+sleep(5);
+StopSpinner();

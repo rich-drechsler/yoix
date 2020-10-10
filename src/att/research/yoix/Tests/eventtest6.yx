@@ -1,0 +1,17 @@
+import yoix.*.*;
+
+JFrame f = {
+    Array layout = {
+        new JTextArea {
+	    String text = "\n\nNow is the time\nfor all...";
+	    Color  background = Color.white;
+
+	    caretUpdate(Event e) {
+		printf("caretUpdate: e=%O\n", e);
+	    }
+	}, CENTER
+    };
+};
+
+f.visible = TRUE;
+

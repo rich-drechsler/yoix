@@ -1,0 +1,149 @@
+//
+// Drag and drop between two JLists.
+//
+
+import yoix.*.*;
+
+Array AllColumns = {
+    "Column One",
+    "Column Two",
+    "Column Three",
+    "Column Four",
+    "Column Five",
+    "Column Six",
+    "Column Seven",
+    "Column Eight",
+    "Column Nine",
+    "Column Ten",
+};
+
+final int LIST_ROWS = 10;
+
+DragGestureRecognized(e) {
+    Object transferable;
+
+    //
+    // Transfering this JList via DnD also means we should easily be able
+    // to reject drags from outsiders.
+    // 
+
+    if (selected@sizeof > 0) {
+	e.visual = selected[0];
+	transferable = this;
+    }
+    return(transferable);
+}
+
+DragEnter(DropTargetEvent e) {
+    int accepted = FALSE;
+
+    if (e.transferable instanceof JList && e.transferable != this) {
+	if (e.transferable.selected@sizeof > 0)
+	    accepted = TRUE;
+    }
+    return(accepted);
+}
+
+Drop(e) {
+    String target;
+    JList  source;
+    JList  dest;
+    Array  currentlabels;
+    Array  sourcelabels;
+    Array  destlabels;
+    int    accepted = FALSE;
+
+    dest = this;
+    source = e.transferable;
+    if (source.selected@sizeof == 1) {
+	target = source.selected[0];
+	currentlabels = source.labels;
+	sourcelabels = new Array[0, ...];
+	destlabels = new Array[0, ...];
+	for (ptr in AllColumns) {
+	    if (ptr[0] !== target && indexOfObject(currentlabels, ptr[0]) >= 0)
+		sourcelabels[sourcelabels@sizeof] = ptr[0];
+	    else destlabels[destlabels@sizeof] = ptr[0];
+	}
+	source.selected = NULL;
+	//
+	// There may be a JList bug - explicitly setting labels to NULL
+	// or an empty array doesn't seem to clear the list (as claimed
+	// in our documentation).
+	//
+	source.labels = sourcelabels@sizeof > 0 ? sourcelabels : new Array[] {""};
+	dest.labels = destlabels@sizeof > 0 ? destlabels : new Array[] {""};
+	dest.selected = target;
+	accepted = TRUE;
+    }
+    return(accepted);
+}
+
+JFrame screen = {
+    Dimension size = NULL;
+    double    border = 72.0/8;
+    String    title = "List DnD";
+    int       opaque = TRUE;
+
+    GridBagLayout layoutmanager;
+
+    Array layout = {
+	new JPanel {
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		new JPanel {
+		    EtchedBorder border = {
+			String title = "Visible";
+		    };
+
+		    BorderLayout layoutmanager;
+		    Array layout = {
+			new JList {
+			    String tag = "$_visible_columns";
+			    Array  labels = AllColumns;
+			    int    rows = LIST_ROWS;
+			    Object selected = NULL;
+			    Object transferhandler = NULL;
+int multiplemode = TRUE;
+
+			    Function dragGestureRecognized = DragGestureRecognized;
+			    Function dragEnter = DragEnter;
+			    Function drop = Drop;
+			},
+		    };
+		},
+		BOTH,
+
+		new JPanel {
+		    EtchedBorder border = {
+			String title = "Hidden";
+		    };
+
+		    BorderLayout layoutmanager;
+		    Array layout = {
+			new JList {
+			    String tag = "$_hidden_columns";
+			    int    rows = LIST_ROWS;
+			    Object selected = NULL;
+			    Object transferhandler = NULL;
+int multiplemode = TRUE;
+
+			    Function dragGestureRecognized = DragGestureRecognized;
+			    Function dragEnter = DragEnter;
+			    Function drop = Drop;
+			},
+		    };
+		},
+		BOTH,
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int weightx = 1;
+	    int weighty = 1;
+	    int fill = BOTH;
+	},
+    };
+};
+
+screen.visible = TRUE;

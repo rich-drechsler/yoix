@@ -1,0 +1,72 @@
+<HTML>
+<HEAD>
+<TITLE><_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_> Installer</TITLE>
+</HEAD>
+<BODY>
+<TABLE VSPACE=24 HSPACE=24><TR><TD BGCOLOR=#BBF1DE>
+&nbsp;
+<H1><CENTER><_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_> Installer</CENTER></H1>
+&nbsp;
+</TD></TR><TR><TD>&nbsp;
+<P>
+To simplify set-up for clients seeking to use the <_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_> application,
+we provide
+<A HREF="jars/<_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_>Installer.jar"><_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_>Installer.jar</A>,
+an executable jar file that will
+set-up all the necessary components to run <_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_> with the
+exception of Java itself (see below for more information about Java).
+<P>
+<_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_> needs a relatively recent version of Java, so make sure you have
+one that meets our
+<A HREF="#recommendations">recommendations</A>
+before you start the installer.
+If you don't know anything about Java on your system try typing
+<P>
+<BLOCKQUOTE><TT>
+java -version
+</TT></BLOCKQUOTE>
+and you should get some useful information.
+Free Java downloads for PCs (and several other platforms) are available from
+<A HREF="http://java.sun.com/downloads/">Sun</A>.
+Look under J2SE and start by choosing one of the JRE packages.
+<P>
+<A NAME="recommendations">
+We've had good luck with Java 1.5.0, which is officially called JRE 5.0,
+and it's now the version that we strongly recommend.
+<_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_> works with Java 1.4.2, but drag-and-drop can misbehave
+and the look-and-feel of the <_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_> screens just feels old.
+Unfortunately we no longer support 1.3.1, which is a very old release,
+so you may have problems using this software if you're on an SGI Unix machine.
+<P>
+Once Java is installed on your system click on
+<A HREF="jars/<_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_>Installer.jar"><_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_>Installer.jar</A>
+and your browser may know how to start the installer
+(it works on Windows, Unix, and Mac OS X systems).
+If your browser can't handle an executable jar file copy <_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_>Installer.jar
+to your system, execute it using something like
+<P>
+<BLOCKQUOTE><TT>
+java -jar <_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_>Installer.jar
+</TT></BLOCKQUOTE>
+and a program that will install <_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_> (in directory C:\<_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_> on PCs)
+should start running.
+After the installation run
+<P>
+<BLOCKQUOTE><TT>
+C:\<_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_>\bin\<_BETA_PREFIX_HTML_><_ACRONYM_LOWER_HTML_>
+</TT></BLOCKQUOTE>
+and you should end up connecting to the official <_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_> server.
+<P>
+<HR COLOR=#BBF1DE SIZE=7>
+<P>
+For more information about the Yoix language and its interpreter, visit:
+<BLOCKQUOTE>
+<A HREF="http://www.research.att.com/sw/tools/yoix/">
+http://www.research.att.com/sw/tools/yoix/
+</A>
+</BLOCKQUOTE>
+<P>
+<HR COLOR=#BBF1DE SIZE=7>
+</TD></TR></TABLE>
+</BODY>
+</HTML>

@@ -1,0 +1,316 @@
+//
+// Parse tree example that currently does not completely
+// work because many of the pretty printing functions referenced
+// are not implemented (I believe the expressions is "left as an
+// exercise for the reader." Parts are also convoluted for testing
+// purposes, still it has some educational value.
+//
+
+import yoix.parser.*;
+import yoix.parser.YoixConstants.*;
+import yoix.stdio.*;
+import yoix.string.*;
+
+Print(node) {
+	int n;
+
+	for (n = 0; n < node.length; n++)
+	    Statement(node.child(n), 0);
+}
+
+Expression(node) {
+	Object child;
+	String left;
+	String right;
+	int    op;
+	int    n;
+
+	if (node.length > 0) {
+	    for (n = 0; n < node.length; n++) {
+		child = node.child(n);
+		switch (op = child.type) {
+		    case ARRAY:
+		    case DICTIONARY:
+			abort("unimplemented");
+			break;
+
+		    case CONDITIONAL:
+			abort("unimplemented");
+			break;
+
+		    case EXPRESSION:
+			Expression(child);
+			push("(" + pop() + ")");
+			break;
+
+		    case FUNCTION:
+			abort("unimplemented");
+			break;
+
+		    case LVALUE:
+			Lvalue(child);
+			break;
+
+		    case NUMBER:
+		    case POINTER:
+			push(toString(child.value));
+			break;
+
+		    case ATTRIBUTE:
+			abort("unimplemented");
+			break;
+
+		    case UPLUS:
+		    case UMINUS:
+		    case COMPLEMENT:
+		    case NOT:
+			push(tokenImage(op) + pop());
+			break;
+
+		    case POSTDECREMENT:
+		    case POSTINCREMENT:
+			push(pop() + tokenImage(op));
+			break;
+
+		    case PREINCREMENT:
+		    case PREDECREMENT:
+			push(tokenImage(op) + pop());
+			break;
+
+		    case PLUS:
+		    case MINUS:
+		    case MUL:
+		    case DIV:
+		    case MOD:
+		    case LEFTSHIFT:
+		    case RIGHTSHIFT:
+		    case AND:
+		    case OR:
+		    case XOR:
+		    case PLUSEQ:
+		    case MINUSEQ:
+		    case MULEQ:
+		    case DIVEQ:
+		    case MODEQ:
+		    case LEFTSHIFTEQ:
+		    case RIGHTSHIFTEQ:
+		    case ANDEQ:
+		    case OREQ:
+		    case XOREQ:
+		    case LT:
+		    case GT:
+		    case LE:
+		    case GE:
+		    case EQ:
+		    case NE:
+		    case LOGICALXOR:
+		    case ASSIGN:
+		    case COMMA:
+			right = pop();
+			left = pop();
+			push(left + tokenImage(op) + right);
+			break;
+
+		    default:
+			fprintf(stderr,"op=%d\n", op);
+			abort("unimplemented");
+			break;
+		}
+	    }
+	}
+}
+
+Statement(node, level) {
+    String indent = makeIndent(level);
+
+    if (node != NULL) {
+	switch (node.type) {
+	    case BREAK:
+		printf(indent + "break;\n");
+		break;
+
+	    case CASE:
+	    case DEFAULT_:
+	    case EMPTY:
+		break;
+
+	    case CONTINUE:
+		printf(indent + "continue;\n");
+		break;
+
+	    case COMPOUND:
+		Compound(node, indent);
+		break;
+
+	    case DECLARATION:
+		statementDeclaration(node);
+		break;
+
+	    case DO:
+		statementDo(node);
+		break;
+
+	    case EOF:
+		break;
+
+	    case EXPRESSION:
+		Expression(node.child(0));
+		printf("%s;\n", pop());
+		break;
+
+	    case FOR:
+		statementFor(node);
+		break;
+
+	    case FUNCTION:
+		statementFunction(node);
+		break;
+
+	    case IF:
+		statementIf(node);
+		break;
+
+	    case IMPORT:
+		statementImport(node);
+		break;
+
+	    case RETURN:
+		statementReturn(node);
+		break;
+
+	    case SAVE:
+		statementSave(node);
+		break;
+
+	    case STATEMENT:
+		Compound(node, level);
+		break;
+
+	    case SWITCH:
+		statementSwitch(node);
+		break;
+
+	    case TAGGED:
+		statementTag(node);
+		break;
+
+	    case TRY:
+		statementTry(node);
+		break;
+
+	    case TYPEDEF:
+		statementTypedef(node);
+		break;
+
+	    case WHILE:
+		statementWhile(node);
+		break;
+
+	    default:
+		if (node.type != yoix.parser.EOF)
+		     abort("unimplemented");
+		break;
+	}
+    }
+}
+
+Compound(node, level) {
+	int length;
+	int n;
+
+	//
+	// Compound statements assume local variable info is stored
+	// in the entry. It's initially a count.
+	//
+
+	length = node.length;
+	if (node.type == COMPOUND)	// skip last entry
+	    length -= 1;
+
+	printf("{\n");
+	for (n = 0; n < length; n++)
+	    Statement(node.child(n), level + 1);
+	printf(makeIndent(level) + "}\n");
+}
+
+//
+// Simple stack support - only for expressions.
+//
+
+Array stack[20, ...];
+int   stacktop = 0;
+
+push(obj) {
+	stack[stacktop++] = obj;
+}
+
+pop() {
+	return(stack[--stacktop]);
+}
+
+makeIndent(level) {
+	String indent[level];
+	int    n;
+
+	for (n = 0; n < level; n++)
+		indent[n] = '\t';
+	return(indent);
+}
+
+//
+// For testing...
+//
+
+ParseTree program;
+
+program.parse = "continue; break; {continue; break; continue;} continue;";
+Print(program);
+
+//program.parse = "(1 + 12)*45/3;";
+//program.parse = "(test + 12)*45/3;";
+//program.parse = "(\"test\" + 12)*45/3;";
+program.parse = "((1+((((2 * 3))))+4));";
+
+printf("\nInput: %s\n", program.parse);
+printf("Output: ");
+Print(program);
+printf("Parse Tree:\n%s\n", program.tree);
+
+ParseTree node;
+
+indentation(int depth) {
+    String indent = "";
+
+    while(depth-- > 0)
+	indent += "\t";
+
+    return(indent);
+}
+
+while(program.walk(node)) {
+    // checking length is the best way to check for children, we
+    // use node.child(0) here for testing purposes
+    fprintf(stderr, "%s<%s %d:%d%s>\n",
+	indentation(node.depth),
+	tokenImage(node.type, PARSER_YOIX),
+	node.depth,
+	node.position,
+	(
+	    (node.length > 0 || node.value) ?
+	    (
+		node.child(0) ?
+		(" children: "+toString(node.length)) :
+		(" value: " + toString(node.value))
+		) :
+	    ""
+	)
+    );
+}
+
+while (program.walk(node)) {
+	if (node.parent != NULL)
+		printf("parent=<%s>\n", tokenImage(node.parent.type, PARSER_YOIX));
+}
+
+exit(0);
+

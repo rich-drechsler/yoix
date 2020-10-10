@@ -1,0 +1,211 @@
+import yoix.*.*;
+
+int failures = 0;
+int testcnt = 0;
+String testname;
+
+testing(name) {
+    testcnt++;
+    testname = name;
+}
+
+failure(...) {
+    failures++;
+    if(argc == 1) {
+	fprintf(stderr, "FAILURE: %s (test #%d/%s)\n", testname, testcnt, argv[0]); 
+    } else {
+	fprintf(stderr, "FAILURE: %s (test #%d)\n", testname, testcnt); 
+    }
+}
+
+wrapup() {
+    if(failures == 0) {
+	fprintf(stderr, "%s: OK: Completed all %d tests successfully (%d failures)\n", global.argv[0], testcnt, failures);
+    } else {
+	fprintf(stderr, "%s: NG: Completed %d tests with %d failures\n", global.argv[0], testcnt, failures);
+    }
+    exit(failures);
+}
+
+
+Vector v;
+String five = "five";
+int    i = 5;
+
+testing("lastvalue");
+v.lastvalue = five;
+if(v.lastvalue != five) {
+    failure();
+}
+
+testing("firstvalue");
+v.firstvalue = i;
+if(v.firstvalue != i) {
+    failure();
+}
+
+testing("values");
+Array vals = v.values;
+if(vals@length != 2 || vals[0] != v.firstvalue || vals[1] != v.lastvalue) {
+    failure();
+}
+
+testing("insert/size/get (reading)");
+v.insert(1, "seven");
+if(v.size != 3 || v.get(0) != vals[0] || v.get(2) != vals[1] || v.get(1) !== "seven") {
+    failure();
+}
+
+testing("put (writing)");
+v.put(1, "six");
+if(v.size != 3 || v.get(0) != vals[0] || v.get(2) != vals[1] || v.get(1) !== "six") {
+    failure();
+}
+
+testing("insert (again)");
+Array a1 = { "hey", "ho",  "away", "we go" };
+for (i=0; i < a1@sizeof; i++)
+    v.insert(i+1, a1[i]);
+if(v.size != 3 + a1@length) {
+    failure("a");
+} else {
+    int i;
+    for(i=0; i<a1@length; i++) {
+	if(v.get(1+i) != a1[i]) {
+	    failure("b");
+	    break;
+	}
+    }
+}
+
+testing("find");
+if(v.find(a1[2]) != 3) {
+    failure();
+}
+
+testing("removeValue");
+v.removeValue("hey");
+if(v.size != 2 + a1@length) {
+    failure("a");
+} else {
+    int i, j;
+    for(i=0, j=1; i<a1@length; i++) {
+	if(a1[i] === "hey") {
+	    j = 0;
+	    continue;
+	}
+	if(v.get(i+j) != a1[i]) {
+	    failure("b");
+	    break;
+	}
+    }
+}
+
+testing("find (again)");
+if(v.find(a1[2]) != 2) {
+    failure();
+}
+
+testing("find last");
+int idx = v.find(a1[2], TRUE);
+if(idx != 2) {
+    failure();
+}
+
+v.lastvalue = a1[2];
+testing("find last (again)");
+if(v.find(a1[2], TRUE) != v.size - 1) {
+    failure();
+}
+
+testing("find (yet again)");
+if(v.find(a1[2]) != idx) {
+    failure();
+}
+
+v.firstvalue = a1[2];
+testing("find (last time)");
+if(v.find(a1[2]) != 0) {
+    failure();
+}
+
+testing("remove");
+v.remove(v.find("away"));
+if(v.find(a1[2]) != idx) {
+    failure();
+}
+
+testing("remove(again)");
+v.remove(v.find("away", TRUE));
+if(v.find(a1[2], FALSE) != idx) {
+    failure();
+}
+
+int sz = v.size;
+testing("trimming");
+v.size = -1;
+if(v.size != sz) {
+    failure();
+}
+
+testing("cloning");
+Vector cv = v.clone;
+if(sz != cv.size) {
+    failure("a");
+} else {
+    int i;
+
+    vals = v.values;
+    for(i=0; i<sz; i++) {
+	if( v.get(i) != cv.get(i)) {
+	    failure("b");
+	    break;
+	}
+    }
+}
+
+
+testing("removing all");
+cv.size = 0;
+if(cv.size != 0) {
+    failure();
+}
+
+Array aa = new Array { 12, 10, 5, 7 };
+
+testing("values (writing)");
+cv.values = aa;
+if(cv.size != aa@length) {
+    failure("a");
+} else {
+    int i;
+
+    for(i=0; i<aa@length; i++) {
+	if(cv.get(i) != aa[i]) {
+	    failure("b");
+	    break;
+	}
+    }
+}
+
+testing("initialization");
+
+Vector nn = {
+    Array values = aa;
+};
+
+if(nn.size != aa@length) {
+    failure("a");
+} else {
+    int i;
+
+    for(i=0; i<aa@length; i++) {
+	if(nn.get(i) != aa[i]) {
+	    failure("b");
+	    break;
+	}
+    }
+}
+
+wrapup();
+

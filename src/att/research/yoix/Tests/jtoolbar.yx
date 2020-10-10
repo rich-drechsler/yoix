@@ -1,0 +1,52 @@
+import yoix.*.*;
+
+JFrame f = {
+    Array layout = {
+	new JToolBar {
+	    String tag = "$_bar";
+	    Color  background = Color.green;
+	    int    floatable = TRUE;
+
+	    Array layout = {
+		new Dimension {
+		    double height = 72;
+		},
+		new JButton {
+		    String text = "Close";
+		    String tooltiptext = "Hide for a few seconds";
+
+		    actionPerformed(e) {
+			root.visible = FALSE;
+			sleep(3);
+			root.visible = TRUE;
+		    }
+		},
+		72/18,
+		new JButton {
+		    String text = "Toggle";
+		    String tooltiptext = "Change floatable state";
+
+		    actionPerformed(e) {
+			root.ToggleFloatable();
+		    }
+		},
+		2*72,
+		new JButton {
+		    String text = "Dismiss";
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+	    };
+	}, NORTH,
+    };
+
+    ToggleFloatable() {
+	int state = components.$_bar.floatable;
+
+	components.$_bar.floatable = !state;
+    }
+};
+
+f.visible = TRUE;

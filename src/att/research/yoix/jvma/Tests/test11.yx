@@ -1,0 +1,33 @@
+import yoix.*.*;
+import yoix.module.att.research.yoix.jvma.JVMTestModule.*;
+
+//
+// An intentional error
+//
+
+assembleClass(@<<
+    public abstract class ZZZ {
+	extern static java.io.PrintStream java.lang.System.out
+	extern void java.io.PrintStream.println(java.lang.String)
+	extern void java.io.PrintStream.println(int)
+
+	private static int total = 123334;
+
+	public static void main(java.lang.String[] args) {
+	    push java.lang.System.out
+	    push "Hello, world"
+	    invoke java.io.PrintStream.println(java.lang.String)
+	    push 1000.5
+	    push 12345.8
+	    sub
+	    store total
+	    push java.lang.System.out
+	    push total
+	    invoke java.io.PrintStream.println(int)
+	}
+    }
+>>@);
+
+fprintf(stderr, "%s", dumpClassFile());
+writeClassFile("/tmp/xxx");
+

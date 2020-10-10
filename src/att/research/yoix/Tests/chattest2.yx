@@ -1,0 +1,174 @@
+//
+// Simple two-party chat program. One argument (i.e., argc == 2) means
+// we're supposed to be a simple server that accepts a connection from
+// a single client. Two arguments means we're the client that's trying
+// to connect to the system and port named by argv[1] and argv[2]. To
+// test on your local machine start the server using something like,
+//
+//	yoix chattest2.yx 6789
+//
+// and then have the client connect to the server using
+//
+//	yoix chattest2.yx localhost 6789
+//
+// and two simple chat screens should pop up.
+//
+
+import yoix.*.*;
+
+JFrame chatscreen = {
+    GridBagLayout layoutmanager;
+    String        title = "YOIX-CHAT";
+
+    Dimension size = {
+	int width = yoix.math.min(10.5*72, VM.screen.width - 18);
+	int height = yoix.math.min(5*72, VM.screen.height - 18);
+    };
+
+    Array layout = {
+	new JLabel {
+	    String tag = "$_connectedto";
+	    String text = "Unconnected";
+	    String font = "Helvetica-bold-14";
+	    Color  foreground = Color.blue;
+	    int    alignment = CENTER;
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+
+	    Insets insets = {
+		double top = 72.0/8;
+		double bottom = 72.0/8;
+	    };
+	},
+
+	new JSplitPane {
+	    String dividerlocation = "50";
+int onetouchexpandable = TRUE;
+	    int    orientation = VERTICAL;
+
+	    Array layout = {
+		new JTextTerm {
+		    String tag = "$_received";
+		    String prompt = "> ";
+		    Color  background = Color.white;
+		    Color  bordercolor = Color.red;
+		    int    insets = 6;
+		    int    border = 3;
+		    int    state = TRUE;
+		    int    edit = FALSE;
+		},
+		new JTextTerm {
+		    String tag = "$_sent";
+		    String prompt = ">> ";
+		    Color  background = Color.white;
+		    Color  bordercolor = Color.green;
+		    int    insets = 6;
+		    int    border = 3;
+		    int    state = TRUE;
+		    int    rows = 5;
+
+		    afterNewline(text) {
+			socket.output.nextline = text;
+		    }
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int weightx = 100;
+	    int weighty = 100;
+	    int fill = BOTH;
+
+	    Insets insets = {
+		double left = 72.0/4;
+		double right = 72.0/4;
+	    };
+	},
+
+	new JPanel {
+	    GridLayout layoutmanager;
+
+	    Array layout = {
+		new JButton {
+		    String text = "Clear";
+
+		    actionPerformed(e) {
+			root.components.$_received.text = NULL;
+			root.components.$_sent.text = NULL;
+		    }
+		},
+		new JButton {
+		    String text = "Dismiss";
+
+		    actionPerformed(e) {
+			root.Quit();
+		    }
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+
+	    Insets insets = {
+		double top = 72.0/8;
+		double bottom = 72.0/8;
+	    };
+	},
+    };
+
+    windowClosing(e) {
+	Quit();
+    }
+
+    Quit() {
+	outputthread.alive = FALSE;
+	exit(0);
+    }
+};
+
+//
+// Socket specific stuff...
+//
+
+ServerSocket server;
+Socket       socket;
+
+if (argc == 2) {	// we're the server
+    server.localport = atoi(argv[1]);
+    stdout.nextline = "Waiting for connection on port " + argv[1];
+    socket = server.accept();
+} else if (argc == 3) {
+    socket.remoteaddress = argv[1];
+    socket.remoteport = atoi(argv[2]);
+    socket.alive = TRUE;
+    //
+    // This is just for testing, so we put the client screen
+    // in the lower left corner - for now anyway.
+    //
+    chatscreen.location = new Point {
+	int x = VM.screen.width - chatscreen.size.width;
+	int y = VM.screen.height - chatscreen.size.height;
+    };
+} else {
+    fprintf(stderr, "syntax: [host] port\n");
+    exit(1);
+}
+
+chatscreen.components.$_connectedto.text = "Connected To: " + socket.remotename;
+chatscreen.visible = TRUE;
+
+Thread outputthread = {
+    run() {
+	String line;
+
+	while ((line = socket.input.nextline) != NULL) {
+	    appendText(chatscreen.components.$_received, line + "\n");
+	    appendText(chatscreen.components.$_received, chatscreen.components.$_received.prompt);
+	}
+	exit(0);
+    }
+};
+
+outputthread.run();
+

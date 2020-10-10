@@ -1,0 +1,36 @@
+import yoix.swing.*;
+
+JFrame f = {
+    Dimension size = NULL;
+
+    Array layout = {
+	new JButton {
+	    String text = "Quit";
+
+	    EmptyBorder border = {
+		int insets = 9;
+
+		EtchedBorder child = {
+		    String title = "Button";
+		    int    raised = TRUE;
+
+		    EmptyBorder child = {
+			int insets = 9;
+			BevelBorder child = {
+			    int raised = TRUE;
+			    EmptyBorder child = {
+				int insets = 9;
+			    };
+			};
+		    };
+		};
+	    };
+
+	    actionPerformed(e) {
+		exit(0);
+	    }
+	},
+    };
+};
+
+f.visible = TRUE;

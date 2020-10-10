@@ -1,0 +1,42 @@
+//
+// Mostly an example that shows how pathforall works.
+//
+
+import yoix.*.*;
+
+moveto(x, y) = printf("moveto(%g, %g);\n", x, y);
+lineto(x, y) = printf("lineto(%g, %g);\n", x, y);
+quadto(x0, y0, x1, y1) = printf("quadto(%g, %g, %g, %g);\n", x0, y0, x1, y1);
+curveto(x0, y0, x1, y1, x2, y2) = printf("curveto(%g, %g, %g, %g, %g, %g);\n", x0, y0, x1, y1, x2, y2);
+closepath() = printf("closepath();\n");
+
+JCanvas c = {
+    Color background = Color.red;
+};
+
+JFrame f = {
+    Dimension size = {
+	double width = 600;
+	double height = 300;
+    };
+    Array layout = {c};
+};
+
+f.visible = TRUE;
+
+sleep(1);
+c.graphics {
+    moveto(100, 100);
+    rlineto(200, 0);
+    rlineto(0, 100);
+    closepath();
+    clip();
+    setrgbcolor(0, 1, 0);
+    fill();
+
+    clippath();
+    printf("path=%O\n", path.elements);
+    printf("c.size=%O\n", c.size);
+    pathforall(global.moveto, global.lineto, global.quadto, global.curveto, global.closepath);
+}
+

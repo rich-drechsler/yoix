@@ -1,0 +1,48 @@
+//
+// Simple example that builds a file browser using a JFileChooser.
+//
+
+import yoix.*.*;
+
+JDialog browser = {
+    Dimension size = NULL;
+    String    title = "File Browser Example";
+    int       initialized = FALSE;
+    int       modal = TRUE;
+
+    Array layout = {
+	new JFileChooser {
+	    String tag = "$_chooser";
+	    int    mode = LOAD;
+	    int    multiplemode = TRUE;
+	    int    fileselectionmode = 1;
+
+	    actionPerformed(e) {
+		root.SetVisible(FALSE);
+	    }
+	},
+    };
+
+    SelectedFile() {
+	return(components.$_chooser.file);
+    }   
+
+    SetVisible(int state) {
+	Point location;
+
+	if (!initialized) {
+	    initialized = TRUE;
+	    location.x = (VM.screen.width - this.size.width)/2;
+	    location.y = (VM.screen.height - this.size.height)/2 - 72.0;
+	    this.location = location;
+	}
+	this.visible = state;
+    }
+};
+
+browser.SetVisible(TRUE);
+Object files = browser.SelectedFile();
+int plural = (files instanceof Array && files@sizeof > 1);
+printf("The file%s you selected %s: %s\n", (plural?"s":""),
+       (plural?"are":"is"), strjoin(files, ", "));
+

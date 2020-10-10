@@ -1,0 +1,187 @@
+//
+// A simple test screen that's probably hooked up to test plugins, but it
+// can be changed to do whatever you want. Useful because it shows how to
+// use Global.RunPlugin() and how to manage an active plugin.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+String PLUGINTESTER_MESSAGE = "\
+This is a special screen that is used for quick plugin testing.\n\
+If your server supports plugins and your cgi script handles the\n\
+GETPLUGINTESTDATA command then hitting the Test button\n\
+should run a plugin test.\
+";
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Dimension size = NULL;
+	Insets    border = Global.GetUnLabeledScreenInsets();
+	String    title = Global.ACRONYM + " Plugin Test";
+	Font      font = Global.GetPreferredLabelFont();
+	int       opaque = TRUE;
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = TRUE;   // save screen-specific info within session
+	int    retainstate = TRUE; // save screen-class info across sessions
+	int    reloadargs = TRUE;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	String addonmessage = NULL;
+	String command = "GETPLUGINTESTDATA";
+	String command_arg = "1";
+	String pluginprefix = "plugintest_";
+	Object plugin = NULL;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    Global.NewJTextArea("$_message", PLUGINTESTER_MESSAGE, 0, 0, AS_NEEDED, "textwrap", 0, "edit", FALSE),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = BOTH;
+	    },
+
+	    new JPanel {
+		GridLayout layoutmanager;
+		Array layout = {
+		    new JButton {
+			String text = "Test";
+			Font   font = Global.GetPreferredButtonFont();
+			int    requestfocus = TRUE;
+
+			actionPerformed(e) {
+			    Global.QueueCommandOnce(root, &root.RunPlugin);
+			}
+		    },
+		    new JButton {
+			String text = "Dismiss";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    Global.AltQueueCommand(root, &root.HideScreen);
+			}
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    Global.NewJProprietaryLabel(),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	windowClosing(e) {
+	    Global.AltQueueCommand(root, &root.HideScreen);
+	}
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    components.$_textarea.text = "";
+	}
+
+	HideScreen() {
+	    if (plugin != NULL) {
+		if (defined("Dispose", plugin))
+		    plugin.Dispose();
+		if (plugin instanceof Process) {
+		    if (plugin.persistent == FALSE)
+			plugin.alive = FALSE;
+		}
+		plugin = NULL;
+            }
+	    Global.HideScreen(this);
+	}
+
+	SetScreenSize(Dimension sz) {
+	    if (addonmessage@sizeof > 0)
+		appendText(components.$_message, addonmessage);
+	    Global.SetScreenSize(this, NULL);
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	IsPluginStopped() {
+	    int stopped = TRUE;
+
+	    if (plugin != NULL) {
+		if (plugin instanceof Process)
+		    stopped = !plugin.alive;
+		else if (defined("dispose", plugin))
+		    stopped = plugin.dispose;
+	    }
+	    return(stopped);
+	}
+
+	RunPlugin() {
+	    String text = NULL;
+
+	    if (IsPluginStopped()) {
+		//
+		// Check prevents starting it again while there's one
+		// associated with this screen that's still running.
+		//
+		Global.RunCommand(root, command, command_arg, NULL, &text);
+		plugin = Global.RunPlugin(pluginprefix + command_arg, root, root, text);
+	    }
+	}
+
+	SetText(String text) {
+	    components.$_textarea.text = text;
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);

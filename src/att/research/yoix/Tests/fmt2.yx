@@ -1,0 +1,6 @@
+import yoix.*.*;
+
+str = "Constructs_a_string_buffer_so_that_it_represents_the_same_sequence_of_characters_as_the_string_argument;_in_other_words,_the_initial_contents_of_the_string_buffer_is_a_copy_of_the_argument_string._The_initial_capacity_of_the_string_buffer_is_16_plus_the_length_of_the_string_argument.";
+
+printf("A=========\n%s\n", str);
+printf("B=========\n%s\n", fmt(str, new Array[] { 50, 50, 1 }));

@@ -1,0 +1,32 @@
+<BODY BGCOLOR=#FFFFFF>
+<TABLE VSPACE=24 HSPACE=24><TR><TD BGCOLOR=#BBF1DE>
+&nbsp;
+<CENTER>
+<H1>Help about <I>Printing</></H1>
+</CENTER>
+&nbsp;
+</TD></TR><TR><TD>&nbsp;
+<P>
+When <B><_ACRONYM_HTML_></B> offers a 'Print' option, it accomplishes the
+printing in an indirect manner.  It stores the material to be printed
+in a temporary file of an appropriate type (e.g., text, html or a
+spreadsheet format) and asks the operating system to start up the
+appropriate viewer program (e.g., a text editor, a web browser or
+Microsoft Excel). On Microsoft or Apple platform the particular
+viewer that is started depends on the file type configuration set-up
+by the user (e.g., .htm -> web browser), while on Linux machines a
+web browser is used as a general tool for handling the job. <B><_ACRONYM_HTML_></B>
+attempts to guess the most appropriate platform-specific viewer
+command, but users can supply a specific choice my means of the
+<B>PREFERENCES:GENERAL:VIEWER</B> entry.
+<P>
+The reason for this indirect approach is that targeting data to be
+printed to the most appropriate viewer tool provides more versatile
+and sophisticated printing options than <B><_ACRONYM_HTML_></B> could hope to
+provide by re-inventing the wheel. Moreover, since these viewers
+are starting from raw data rather than a formatted print file (e.g,
+a PDF file), this indirect approach also gives users the option of
+saving the source data.
+<P></TD></TR><TR><TD BGCOLOR=#BBF1DE ALIGN=RIGHT>
+<A HREF="!main_help"><I>Back to Main Page</I></A>
+</TD></TR></TABLE></BODY>

@@ -1,0 +1,58 @@
+import yoix.*.*;
+
+Option option;
+int    ch;
+
+Array args = {
+    "getopt_test",
+    "-x12.3",
+    "-x", "12.3",
+    "-Pprintf",
+    "-P",
+    "-Q", qsort,
+"--help=poiuy",
+"--qwert",
+"xxx",
+"-?",
+"-bc",
+/////    "arg1",
+/////    "arg2",
+};
+
+Array words[] = {"help::", "qwert:", "poiuy"};
+
+while ((ch = getopt(option, args, "a:bcx:y:P::Q:?", words)) != -1) {
+    switch (ch) {
+        case 'a':
+        case 'x':
+        case 'y':
+            printf("ch=%c, optarg=%O\n", ch, option.optarg);
+            break;
+
+        case 'b':
+        case 'c':
+            printf("ch=%c\n", ch);
+            break;
+
+	case 'P':
+	    if (option.optarg != NULL)
+		printf("ch=%c, optarg=%O\n", ch, option.optarg);
+	    break;
+
+	case 'Q':
+            printf("ch=%c, optarg=%O\n", ch, option.optarg);
+	    break;
+
+        case '?':
+printf("ch=%c, option=%O\n", ch, option);
+            ////fprintf(stderr, "Error: %s\n", option.opterror);
+            break;
+
+	default:
+	    printf("ch=%c, option=%O\n", ch, option);
+	    break;
+    }
+}
+
+printf("Remaining arguments: %O\n", args + option.optind);
+

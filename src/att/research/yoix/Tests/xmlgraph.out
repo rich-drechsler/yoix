@@ -1,0 +1,24 @@
+<graph name=g directed=1 strict=1 color=white label=example>
+    <node_attributes color=blue />
+    <node name=node_0000 color=red />
+    <node name=node_0001 />
+    <node name=node_0002 color=green />
+    <node name=node_0003 />
+    <node name=node_0004 color=orange />
+    <edge name=edge_0003_0000 tail=node_0003 head=node_0000 color=yellow />
+    <edge name=edge_0000_0002 tail=node_0000 head=node_0002 color=green />
+    <edge name=edge_0002_0000 tail=node_0002 head=node_0000 color=red />
+    <edge name=edge_0001_0002 tail=node_0001 head=node_0002 color=blue />
+    <edge name=edge_0004_0000 tail=node_0004 head=node_0000 color=red />
+    <edge name=edge_0001_0004 tail=node_0001 head=node_0004 color=blue />
+</graph>
+
+First try 'grey':
+edge_0001_0004 is blue
+edge_0004_0000 is red
+edge_0000_0002 is green
+edge_0002_0000 is red
+Second try 'red':
+edge_0001_0004 is blue
+edge_0004_0000 is red
+Found red... stopping.

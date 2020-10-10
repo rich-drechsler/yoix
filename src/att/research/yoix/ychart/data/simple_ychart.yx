@@ -1,0 +1,116 @@
+//
+// The command line used to run this file should look something like
+//
+//	yoix ychart.yx [options] demo1_ychart.yx
+//
+// where options are parsed by the Options() function (define in ychart.yx)
+// and ychart.yx and demo1_ychart.yx should be pathnames or URLs that point to
+// ychart.yx and this file.
+//
+
+SetFrameTitle("Yoix\x00ae YChart: Simple Demo");
+
+Dictionary ChartData = {
+    AfterPressed(Dictionary cell) {
+	fprintf(stderr, "Cell at (%d, %d) %s selected\n", cell.row, cell.column, IsCellSelected(cell) ? "is" : "is not");
+    }
+
+    GetCellBackground(Dictionary cell, Dictionary dict) {
+	Color color = CellColors.TAN;
+
+	if (defined("command", dict)) {
+	    switch (dict.command) {
+		case "red":
+		    color = CellColors.RED;
+		    break;
+
+		case "blue":
+		    color = CellColors.BLUE;
+		    break;
+
+		case "stripes":
+		    color = cell.column%2 ?
+			CellColors.GREEN : CellColors.CYAN;
+		    break;
+	    }
+	}
+	return(color);
+    }
+
+    GetCellLabelGenerators() {
+	Array generators;
+
+	generators = new Array {
+	    new Dictionary {
+		Font font = GetSmallCellFont();
+		int  baseline = TOP;
+
+		Array layout = {
+		    new Dictionary {
+			int alignment = LEFT;
+			GetText(Dictionary cell) = "Top";
+		    },
+		};
+	    },
+	    new Dictionary {
+		Font font = GetSmallCellFont();
+		int  baseline = BOTTOM;
+
+		Array layout = {
+		    new Dictionary {
+			int alignment = RIGHT;
+			GetText(Dictionary cell) = "Bottom";
+		    },
+		};
+	    },
+	    new Dictionary {
+		Font font = GetLargeCellFont();
+		int  baseline = CENTER;
+
+		Array layout = {
+		    new Dictionary {
+			int alignment = CENTER;
+			GetText(Dictionary cell) = strfmt("%d:%d", cell.row, cell.column);
+			GetMinimumSize() = GetNormalCellFont().stringbounds("00:00");
+		    },
+		};
+	    },
+	};
+	return(generators);
+    }
+
+    GetColorMenuData() {
+	Array data = NULL;
+
+	data = new Array {
+	    new Dictionary {
+		String text = "Red Color";
+		String command = "red";
+	    },
+	    new Dictionary {
+		String text = "Blue Color";
+		String command = "blue";
+	    },
+	    NULL,
+	    new Dictionary {
+		String text = "Stripes";
+		String command = "stripes";
+		int    state = TRUE;
+	    },
+	};
+	return(data);
+    }
+
+    LoadChart() {
+	int r;
+	int c;
+
+	rows = 20;
+	columns = 20;
+	chartcells = new Array[rows*columns];
+
+	for (r = 0; r < rows; r++)
+	    for (c = max(0,r-1); c < min(r+2,columns); c++)
+		NewChartCell(NULL, r, c, 1, 1, NULL, NULL);
+    }
+};

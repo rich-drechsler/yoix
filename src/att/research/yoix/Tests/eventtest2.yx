@@ -1,0 +1,50 @@
+//
+// Example that sends PaintEvents to a frame.
+//
+
+import yoix.*.*;
+
+double factor = 1.0;
+
+JFrame f = {
+    Color background = Color.white;
+    int   visible = TRUE;
+
+    paint(Rectangle rect) {
+	graphics {
+	    gsave();
+	    rectclip(rect);
+	    moveto(72, 72);
+	    rlineto(288, 0);
+	    rlineto(0, 144);
+	    rlineto(-288, 0);
+	    setrgbcolor(1.0 - factor, factor, 0);
+	    fill();
+	    grestore();
+	    setrgbcolor(0, 0, 0);
+	    rectstroke(rect);
+	}
+    }
+};
+
+int visible = TRUE;
+
+PaintEvent pe = {
+    String id = "paint";
+    Rectangle updaterect = {
+	double x = 72;
+	double y = 72;
+	double width = 288;
+	double height = 72;
+    };
+};
+
+while (pe.updaterect.width > 18) {
+    sleep(.5);
+    factor *= .8;
+    pe.updaterect.width = 288*factor;
+    postEvent(pe, f);
+}
+
+sleep(5);
+exit(0);

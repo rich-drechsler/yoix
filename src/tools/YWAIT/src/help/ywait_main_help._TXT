@@ -1,0 +1,38 @@
+<BODY BGCOLOR=#FFFFFF>
+<TABLE VSPACE=24 HSPACE=24><TR><TD BGCOLOR=#BBF1DE>
+&nbsp;
+<CENTER>
+<H1>Introduction to <_BETA_PREFIX_HTML_><_ACRONYM_HTML_></H1>
+</CENTER>
+&nbsp;
+</TD></TR><TR><TD>&nbsp;
+<P>
+<B><_BETA_PREFIX_HTML_><_ACRONYM_HTML_></B> is a Yoix&reg; application.
+<A HREF='<_WEBSITE_URL_HTML_><_BETA_PREFIX_HTML_>index.html'><_WEBSITE_URL_HTML_><_BETA_PREFIX_HTML_>index.html</A> is
+the home page for <B><_BETA_PREFIX_HTML_><_ACRONYM_HTML_></B>.
+Place other generally helpful information about <B><_BETA_PREFIX_HTML_><_ACRONYM_HTML_></B> here.
+<P></TD></TR><TR><TD BGCOLOR=#BBF1DE>
+<CENTER>
+&nbsp;
+<H2>Additional Topics</H2>
+&nbsp;
+</CENTER>
+</TD></TR><TR><TD>&nbsp;
+<UL>
+<LI>
+<A HREF='!clipboard_help'>The Clipboard Scratch Pad</A>
+<LI>
+<A HREF='!comment_help'>Contacting an Administrator</A>
+<LI>
+<A HREF='!message_help'>Contacting a User</A>
+<LI>
+<A HREF='!preferences_help'>Editing Preferences</A>
+<LI>
+<A HREF='!printing_help'>The Print Option</A>
+<!--
+-->
+</OL>
+<P></TD></TR><TR><TD BGCOLOR=#BBF1DE ALIGN=RIGHT>
+&nbsp;
+</TD></TR></TABLE></BODY>
+

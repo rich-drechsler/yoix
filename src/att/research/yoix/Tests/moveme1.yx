@@ -1,0 +1,89 @@
+//
+// Ancient test (converted to Swing) that uses scroll bars to position
+// a JWindow.
+//
+
+import yoix.*.*;
+
+JWindow screen = {
+    String title = "Move Me";
+
+    Dimension size = {
+	double width = 5*72;
+	double height = 3*72;
+    };
+
+    Array layout = {
+	new JTextArea {
+	    int columns = 80;
+	    int rows = 10;
+	    int scroll = VERTICAL;
+	    int edit = TRUE;
+
+	    mousePressed(e) {
+		fprintf(stderr, "mousePressed: e=%O\n", e);
+	    }
+	},
+    };
+};
+
+JScrollbar sb1 = {
+    int orientation = HORIZONTAL;
+    int visibleamount = 100*screen.size.width/VM.screen.width;
+    int maximum = 100;
+
+    adjustmentValueChanged(e) {
+	Point p;
+
+	p.x = VM.screen.width*(sb1.value/100.0);
+	p.y = VM.screen.height*(sb2.value/100.0);
+	screen.location = p;
+    }
+};
+
+JScrollbar sb2 = {
+    int orientation = VERTICAL;
+    int visibleamount = 100*screen.size.height/VM.screen.height;
+    int maximum = 100;
+
+    adjustmentValueChanged(e) {
+	Point p;
+
+	p.x = VM.screen.width*(sb1.value/100.0);
+	p.y = VM.screen.height*(sb2.value/100.0);
+	screen.location = p;
+    }
+};
+
+JWindow horizontal = {
+    Dimension size = {
+	double width = VM.screen.width - 1*72;
+	double height = 1*72;
+    };
+
+    Point location = {
+	double x = 0;
+	double y = VM.screen.height - size.height;
+    };
+
+    Array layout = {sb1};
+};
+
+JWindow vertical = {
+    Dimension size = {
+	double width = 1*72;
+	double height = VM.screen.height - 1*72;
+    };
+
+    Point location = {
+	double	x = VM.screen.width - size.width;
+	double	y = 0;
+    };
+
+    Array layout = {sb2};
+};
+
+horizontal.visible = TRUE;
+vertical.visible = TRUE;
+screen.visible = TRUE;
+

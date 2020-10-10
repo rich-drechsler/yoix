@@ -1,0 +1,88 @@
+//
+// Pretty simple script that builds the ".update" and ".validate"
+// files assuming you're running the jar file that's supposed to
+// update the one users are using. The ".validate" file should be
+// carefully checked - the regular expressions that are generated
+// are intentionally restrictive and you may want to change them.
+//
+// Type something like,
+//
+//	java -jar yoix.jar build_update.yx
+//
+// and you will end up with yoix.validate and yoix.update files in
+// the same directory as yoix.jar and they'll replace the existing
+// yoix.validate and yoix.update files, so be careful!!
+//
+
+import yoix.*.*;
+
+Dictionary info;
+Dictionary entries;
+String     input;
+String     output;
+String     classpath;
+String     path;
+String     prefix;
+String     name;
+String     version;
+File       fp_in;
+File       fp_update;
+File       fp_validate;
+int        encode = FALSE;
+int        n;
+int        m;
+
+if ((classpath = getProperty("java.class.path")) != NULL) {
+    if (indexOf(classpath, PATHSEPARATOR) < 0) {
+	if (endsWith(classpath, ".jar")) {
+	    info = stat(classpath);
+	    if (info.exists && info.isfile) {
+		path = localPath(info.yoixpath);
+		if ((fp_in = fopen(path, "r")) != NULL) {
+		    if ((entries = getZipEntries(path)) != NULL) {
+			input = readStream(fp_in);
+			output = encode ? urlEncode(input, TRUE) : input;
+			prefix = substring(path, 0, path@sizeof - 4);
+
+			//
+			// Builds the ".update" file
+			//
+			if ((fp_update = fopen(prefix + ".update", "w")) != NULL) {
+			    fprintf(fp_update, "CHECKSUM=%s\n", chkstr(crc32(input)));
+			    fprintf(fp_update, "BYTES=%d\n", input@length);
+			    fprintf(fp_update, "FILESIZE=%d\n", output@length);
+			    fprintf(fp_update, "\n");
+			    write(fp_update, output);
+			    fclose(fp_update);
+			}
+
+			//
+			// Builds the ".validate" file
+			//
+			if ((fp_validate = fopen(prefix + ".validate", "w")) != NULL) {
+			    for (n = 0; n < entries@sizeof; n++) {
+				if (endsWith(entries[n].name, "Module.class")) {
+				    name = substring(entries[n].name, 0, entries[n].name@length - 6);
+				    name = replace(name, '/', '.');
+				    if ((version = getModuleVersion(name)) != NULL) {
+					fprintf(fp_validate, "%s ", name);
+					for (m = 0; m < version@length; m++) {
+					    if (m == 0)
+						fputc('^', fp_validate);
+					    if (version[m] == '.')
+						fputc('\\', fp_validate);
+					    fputc(version[m], fp_validate);
+					}
+					fprintf(fp_validate, "$\n");
+				    }
+				}
+			    }
+			    fclose(fp_validate);
+			}
+		    }
+		}
+            }
+        }
+    }
+}
+

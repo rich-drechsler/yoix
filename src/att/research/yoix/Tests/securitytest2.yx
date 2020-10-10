@@ -1,0 +1,37 @@
+//
+// This really is a check to make sure multiple threads don't interfere
+// with each other during security checks.
+//
+
+import yoix.*.*;
+
+SecurityManager sm = {
+    checkRead(name) {
+	printf("checkRead: name=%s\n", name);
+	sleep(10);
+	return(FALSE);
+    }
+};
+
+setSecurityManager(sm);
+
+Thread thread1 = {
+    run(...) {
+	printf("Try to read /tmp/xxx\n");
+	fopen("/tmp/xxx", "r");
+	printf("Open of /tmp/xxx was allowed\n");
+    }
+};
+
+Thread thread2 = {
+    run(...) {
+	printf("Try to read /tmp/yyy\n");
+	fopen("/tmp/yyy", "r");
+	printf("Open of /tmp/yyy was allowed\n");
+    }
+};
+
+thread1.run();
+sleep(2);
+thread2.run();
+

@@ -1,0 +1,109 @@
+import yoix.*.*;
+
+Color   pixel;
+Color   bkgd;
+Image   image;
+Stream  input;
+int     type;
+int     width;
+int     height;
+int     rows;
+int     cols;
+int     red;
+int     green;
+int     blue;
+int     flag;
+int     compressed = FALSE;
+
+Option option;
+int    ch;
+
+while ((ch = option.getopt(global.argv, "c")) != -1) {
+    switch (ch) {
+        case 'c':
+	    compressed = TRUE;
+            break;
+
+        case '?':
+            fprintf(stderr, "Error: %s\n", option.opterror);
+	    fprintf(stderr, "USAGE: %s [-c] image_file_path > hexed_image.txt\n", argv[0]);
+	    exit(1);
+    }
+}
+
+
+if (argc != (option.optind + 1)) {
+    fprintf(stderr, "ERROR: missing argument\n");
+    fprintf(stderr, "USAGE: %s hexed_image.txt\n", argv[0]);
+    exit(1);
+}
+
+input = compressed ?
+    new File {
+	int mode = READ;
+	int filters = GZIP|HEXCODER;
+	String name = argv[option.optind];
+	int open = 1;
+    } :
+    new File {
+	int mode = READ;
+	String name = argv[option.optind];
+	int open = 1;
+    };
+
+if (input == NULL) {
+    fprintf(stderr, "ERROR: supplied argument (%s) is not a readable source\n", argv[1]);
+    exit(2);
+}
+
+if (fscanf(input, "%d %d %d %d %d %02X%02X%02X%02X\n", &width, &height, &cols, &rows, &type, &flag, &red, &green, &blue) != 9) {
+    fprintf(stderr, "ERROR: supplied argument (%s) does not appear to be a valid hexed image\n", argv[1]);
+    exit(2);
+}
+
+image = new Image {
+    int       type = type;
+    Color     background = (flag ? new Color{ int red = red; int green = green; int blue = blue; } : NULL);
+    Dimension size = {
+	int width = width;
+	int height = height;
+    };
+};
+
+if (type == TYPE_RGBA)
+    bkgd = image.background;
+else bkgd = NULL;
+
+for (row = 0; row < rows; row++) {
+    for (col = 0; col < cols; col++) {
+	if (fscanf(input, "%02X%02X%02X", &red, &green, &blue) != 3) {
+	    fprintf(stderr, "ERROR: missing pixel at (%d, %d)\n", col, row);
+	    exit(2);
+	}
+	pixel = new Color {
+	    int red = red;
+	    int green = green;
+	    int blue = blue;
+	};
+	if (bkgd == NULL || pixel !== bkgd)
+	    image.setpixel(col, row, pixel);
+    }
+}
+
+JCanvas c = {
+    Color background = Color.red;
+    Image backgroundimage = image;
+    int   backgroundhints = SCALE_NONE;
+
+    Insets border = {
+	int left = 72/8;
+	int top = 72/8;
+	int right = 72/8;
+	int bottom = 72/8;
+    };
+};
+
+JFrame f = {
+    int visible = 1;
+    Array layout = {c};
+};

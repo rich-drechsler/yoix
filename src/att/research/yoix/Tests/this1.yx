@@ -1,0 +1,26 @@
+//
+// Illustrates the new behavior of "this" that Xinyu requested.
+//
+
+import yoix.stdio.*;
+
+int a = 1;
+{
+    int a = 10;
+    {
+        int a = 100;
+        int b = -1;
+        f() {
+            int a = 1000;
+
+            printf("       a=%d\n", a);
+            printf("  this.a=%d\n", this.a);
+            printf("global.a=%d\n\n", global.a);
+            if (this.a++ == 102)
+                printf("this=%O\n\n", this);
+        }
+        f();
+        f();
+        f();
+    }
+}

@@ -1,0 +1,28 @@
+import yoix.*.*;
+import yoix.apple.*;
+
+converter(int ft, int fc) {
+    Array ftc, fcc;
+    String fts, fcs;
+
+    if (ft != 0) {
+	ftc = new Array { ft & 0xFF, (ft>>8) & 0xFF, (ft>>16) & 0xFF, (ft>>24) & 0xFF };
+	fts = strfmt("%c%c%c%c", ftc[3], ftc[2], ftc[1], ftc[0]);
+    } else fts = "";
+
+    if (fc != 0) {
+	fcc = new Array { fc & 0xFF, (fc>>8) & 0xFF, (fc>>16) & 0xFF, (fc>>24) & 0xFF };
+	fcs = strfmt("%c%c%c%c", fcc[3], fcc[2], fcc[1], fcc[0]);
+    } else fcs = "";
+
+    return(new Array { fts, fcs });
+}
+
+String file;
+Array codes;
+
+file = argv[1];
+ft = appleGetFileType(file);
+fc = appleGetFileCreator(file);
+codes = converter(ft, fc);
+fprintf(stdout, "Type: %s\nCreator: %s\n", codes[0], codes[1]);

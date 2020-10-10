@@ -1,0 +1,107 @@
+//
+// Variation of the last example that can be used to test windows. The
+// main differences are that the big collection of event handlers are
+// defined in the window.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    Color  background = Color.yellow;
+    int    requestfocus = TRUE;
+
+    //
+    // This officially enables the dragGestureRecognized() event
+    // handler in the Swing components that supply automatic drag
+    // handling. It does no harm anywhere else, including in AWT
+    // components that don't have a transferhandler field.
+    //
+
+    Object transferhandler = NULL;
+
+    //
+    // This should be every possible event handler, so we can do
+    // stuff to the component and watch as they get called. Notice
+    // that windowOpened() and windowClosing() some real work too.
+    //
+
+    actionPerformed(e) = HandleEvent(argv[0], e);
+    adjustmentValueChanged(e) = HandleEvent(argv[0], e);
+    caretUpdate(e) = HandleEvent(argv[0], e);
+    componentHidden(e) = HandleEvent(argv[0], e);
+    componentMoved(e) = HandleEvent(argv[0], e);
+    componentResized(e) = HandleEvent(argv[0], e);
+    componentShown(e) = HandleEvent(argv[0], e);
+    dragDropEnd(e) = HandleEvent(argv[0], e);
+    dragEnter(e) = HandleEvent(argv[0], e);
+    dragExit(e) = HandleEvent(argv[0], e);
+    dragGestureRecognized(e) = HandleEvent(argv[0], e);
+    dragMouseMoved(e) = HandleEvent(argv[0], e);
+    dragOver(e) = HandleEvent(argv[0], e);
+    drop(e) = HandleEvent(argv[0], e);
+    dropActionChanged(e) = HandleEvent(argv[0], e);
+    focusGained(e) = HandleEvent(argv[0], e);
+    focusLost(e) = HandleEvent(argv[0], e);
+    hyperlinkActivated(e) = HandleEvent(argv[0], e);
+    hyperlinkEntered(e) = HandleEvent(argv[0], e);
+    hyperlinkExited(e) = HandleEvent(argv[0], e);
+    invocationAction(e) = HandleEvent(argv[0], e);
+    invocationBrowse(e) = HandleEvent(argv[0], e);
+    invocationEdit(e) = HandleEvent(argv[0], e);
+    invocationRun(e) = HandleEvent(argv[0], e);
+    invocationSelection(e) = HandleEvent(argv[0], e);
+    itemStateChanged(e) = HandleEvent(argv[0], e);
+    keyPressed(e) = HandleEvent(argv[0], e);
+    keyReleased(e) = HandleEvent(argv[0], e);
+    keyTyped(e) = HandleEvent(argv[0], e);
+    mouseWheelMoved(e) = HandleEvent(argv[0], e);
+    mouseClicked(e) = HandleEvent(argv[0], e);
+    mouseDragged(e) = HandleEvent(argv[0], e);
+    mouseEntered(e) = HandleEvent(argv[0], e);
+    mouseExited(e) = HandleEvent(argv[0], e);
+    mouseMoved(e) = HandleEvent(argv[0], e);
+    mousePressed(e) = HandleEvent(argv[0], e);
+    mouseReleased(e) = HandleEvent(argv[0], e);
+    stateChanged(e) = HandleEvent(argv[0], e);
+    textValueChanged(e) = HandleEvent(argv[0], e);
+    valueChanged(e) = HandleEvent(argv[0], e);
+    windowActivated(e) = HandleEvent(argv[0], e);
+    windowClosed(e) = HandleEvent(argv[0], e);
+    windowDeactivated(e) = HandleEvent(argv[0], e);
+    windowDeiconified(e) = HandleEvent(argv[0], e);
+    windowIconified(e) = HandleEvent(argv[0], e);
+
+    //
+    // It's convenient to handle a few special things when this window
+    // is first opened and then again when is is closing.
+    //
+
+    windowOpened(e) {
+	postEvent("invocationRun", this);
+	HandleEvent(argv[0], e);
+    }
+
+    windowClosing(e) {
+	if (defined("popup", this) || defined("menubar", this)) {
+	    if (this.actionPerformed != NULL)
+		this.actionPerformed(NULL);
+	    if (this.itemStateChanged != NULL)
+		this.itemStateChanged(NULL);
+	}
+	HandleEvent(argv[0], e);
+	return(FALSE);
+    }
+
+    //
+    // Called to handle most (probably all) events, so we can
+    // easily modify the behavior.
+    //
+
+    HandleEvent(String name, Object event) {
+	printf("%s\n", name);
+	if (defined(name, this))
+	    this[name] = NULL;
+    }
+};
+
+f.visible = TRUE;

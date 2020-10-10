@@ -1,0 +1,48 @@
+//
+// Java 1.5.0 made some thread related changes to TimeZone.getDefault()
+// and TimeZone.setDefault() that we think were not correct. We tried to
+// hide the changes from Yoix scripts and this test file should verify
+// that fact.
+//
+
+import yoix.*.*;
+
+printf("Initial timezone: %s (%s)\n", getTimeZone().id, date());
+setTimeZone(new TimeZone { String id = "CST"; });
+printf("Timezone after setting to CST: %s (%s)\n", getTimeZone().id, date());
+
+JDialog jf = {
+    int autodispose = TRUE;
+    int modal = TRUE;
+    int visible = TRUE;
+    Dimension size = NULL;
+    Array layout = {
+	new JButton {
+	    int presses = 0;
+	    String text = "Press to set TZ to PST";
+	    actionPerformed(e) {
+		printf("Timezone before setting to PST: %s (%s)\n", getTimeZone().id, date());
+		setTimeZone(new TimeZone { String id = "PST"; });
+		printf("Timezone after setting to PST: %s (%s)\n", getTimeZone().id, date());
+
+		TimeZone tz;
+		printf("Timezone value (in button) is: %s (%s)\n", tz.id, date(tz));
+		Calendar cl;
+		printf("Calendar value (in button) is: %s (%s)\n", cl.timezone.id, date(cl.timezone));
+		presses++;
+		if (presses == 2)
+		    root.visible = false;
+	    }
+	},
+    };
+};
+
+printf("Timezone after modal dialog: %s (%s)\n", getTimeZone().id, date());
+
+TimeZone tz;
+printf("Timezone value (in main) is: %s (%s)\n", tz.id, date(tz));
+Calendar cl;
+printf("Calendar value (in main) is: %s (%s)\n", cl.timezone.id, date(cl.timezone));
+setTimeZone();
+printf("Timezone after reset: %s (%s)\n", getTimeZone().id, date());
+

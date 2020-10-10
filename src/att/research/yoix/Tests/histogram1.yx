@@ -1,0 +1,33 @@
+//
+// Simple stand-alone histogram example - not particularly interesting and
+// isn't something we've used in a production program.
+//
+
+import yoix.*.*;
+import yoix.ydat.*;
+
+JFrame frame = {
+    Array layout = {
+	new JHistogram {
+	    String tag = "$_histogram";
+	    String text = "this\nis\na\ntest\nand\nthis\nis\nnot\n";
+
+            Palette palette = {
+                Array  colors[20];              // filled in based on model
+                int    model = 2;               // one of 0, 1, 2, 3, 4
+                double hue = 0.0;               // modified by models 1, 2, 3
+                double saturation = 1.0;        // modified by model 4
+                double brightness = 1.0;        // modified by model 0
+	    };
+	},
+    };
+};
+
+frame.visible = TRUE;
+
+/////frame.components.$_histogram.text = "this\nis\na\ntest\nand\nthis\nis\nnot";
+printf("%s", frame.components.$_histogram.text);
+
+sleep(3);
+
+frame.components.$_histogram.text += "Now\nis\nthe\ntime\nfor\nall\n";

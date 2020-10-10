@@ -1,0 +1,266 @@
+//
+// Simple example that shows how a glasspane in a JFrame could
+// be used to lock an application. Incomplete, but what's left
+// to do shouldn't be too difficult - we probably will finish
+// in the near future.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    String font = "Lucida-bold-12";
+
+    JMenuBar menubar = {
+        Menu items = {
+	    "File", new Menu {
+		"Quit", "file_quit",
+	    },
+
+            "Options", new Menu {
+                "Dummy 1", "option_dummy1", FALSE,
+               	"Dummy 2", "option_dummy2", TRUE,
+		"-", NULL,
+		"Dummy 3", "option_dummy3",
+            },
+        };
+    };
+
+    GridBagLayout layoutmanager;
+
+    Array layout = {
+	new JLabel {
+	    String text = "GlassPane Test";
+	    String font = "Lucida-bold-16";
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+
+	    Insets insets = {
+		double top = 72.0/8;
+		double bottom = 72.0/8;
+	    };
+	},
+
+	new JTextArea {
+	    int rows = 0;
+	    int columns = 0;
+	    int edit = TRUE;
+	    int scroll = AS_NEEDED;
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int weightx = 100;
+	    int weighty = 100;
+	    int fill = BOTH;
+
+	    Insets insets = {
+		double left = 72.0/4;
+		double right = 72.0/4;
+	    };
+	},
+
+	new JPanel {
+	    GridLayout layoutmanager = {
+		double hgap = 72.0/16;
+	    };
+	    Array layout = {
+		new JButton {
+		    String text = "Lock";
+
+		    actionPerformed(e) {
+			root.glasspane.SetVisible(TRUE, root);
+		    }
+		},
+		new JButton {
+		    String text = "Quit";
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+
+	    Insets insets = {
+		double top = 72.0/8;
+		double bottom = 72.0/8;
+	    };
+	},
+    };
+
+    JPanel glasspane = {
+	String font = "Lucida-bold-12";
+	int    visible = FALSE;
+	int    opaque = FALSE;	// lets some of frame show
+
+	GridBagLayout layoutmanager;
+	Array layout = {
+	    new JPanel {
+		int opaque = TRUE;
+
+		Border border = {
+		    int type = BEVELED|LOWERED;
+
+		    Insets insets = {
+			double left = 72.0/4;
+			double right = 72.0/4;
+		    };
+		};
+
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JLabel {
+			String tag = "$_lock_label";
+			String text = "Password";
+			int    alignment = LEFT;
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int anchor = LEFT;
+
+			Insets insets = {
+			    double top = 72.0/8;
+			    double bottom = 72.0/16;
+			};
+		    },
+
+		    new JTextField {
+			String tag = "$_lock_password";
+			int    columns = 20;
+			int    echo = '*';
+
+			actionPerformed(e) {
+			    printf("actionPerformed: e=%O\n", e);
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int fill = HORIZONTAL;
+
+			Insets insets = {
+			    double bottom = 72.0/8;
+			};
+		    },
+
+		    new JButton {
+			String tag = "$_lock_ok";
+			String text = "OK";
+
+			actionPerformed(e) {
+			    //
+			    // Eventually save password somewhere so we can
+			    // check it when someone tries to unlock us.
+			    //
+
+			    root.components.$_lock_password.text = NULL;
+			    root.components.$_lock_cancel.visible = FALSE;
+			    root.components.$_lock_cancel.enabled = FALSE;
+			}
+		    },
+		    new GridBagConstraints {
+			int anchor = LEFT;
+
+			Insets insets = {
+			    double right = 72.0/2;
+			    double bottom = 72.0/8;
+			};
+		    },
+
+		    new JButton {
+			String tag = "$_lock_cancel";
+			String text = "Cancel";
+
+			actionPerformed(e) {
+			    root.SetVisible(FALSE, NULL);
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int anchor = RIGHT;
+
+			Insets insets = {
+			    double left = 72.0/2;
+			    double bottom = 72.0/8;
+			};
+		    },
+		};
+	    },
+	    NULL,
+	};
+
+	////////////////////////////
+	//
+	// JPanel Event Handlers
+	//
+	////////////////////////////
+
+	mouseClicked(e) {
+
+	    //
+	    // Capturing these means they don't get through to the
+	    // application. May want to capture other mouse events.
+	    //
+
+	    printf("mouseClicked: e=%O\n", e);
+	}
+
+	mousePressed(e) {
+
+	    printf("mousePressed: e=%O\n", e);
+	}
+
+	mouseReleased(e) {
+	    printf("mouseReleased: e=%O\n", e);
+	}
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	SetVisible(int state, Object owner) {
+
+	    //
+	    // We pass owner in because it's currently not automatically
+	    // recorded in glasspane (which can be any kind of component)
+	    // and it may never be. Also note that root in this JPanel
+	    // is currently NULL because it's not officially part of the
+	    // layout that's managed by anyone (i.e., owner).
+	    //
+
+	    this.components.$_lock_password.text = NULL;
+	    this.components.$_lock_cancel.visible = state;
+	    this.components.$_lock_cancel.enabled = state;
+	    this.visible = state;
+	    this.components.$_lock_password.requestfocus = TRUE;
+	}
+    };
+
+    ////////////////////////////
+    //
+    // JFrame Event Handlers
+    //
+    ////////////////////////////
+
+    actionPerformed(e) {
+	switch (e.command) {
+	    case "file_quit":
+		exit(0);
+		break;
+
+	    default:
+		printf("actionPerformed: e=%O\n", e);
+		break;
+	}
+    }
+
+    itemStateChanged(e) {
+	printf("itemStateChanged: e=%O\n", e);
+    }
+};
+
+f.visible = TRUE;
+

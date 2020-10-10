@@ -1,0 +1,30 @@
+import yoix.*.*;
+import yoix.module.att.research.yoix.jvma.JVMTestModule.*;
+
+assembleClass(@<<
+    public class XXX extends YYY {
+        int qwert = 12
+        java.lang.String poiuy  = "Now is the time"
+
+        void getField(int a1,    double a2  ,  java.lang.String a3) {
+            int x
+            double d
+            java.lang.String s
+
+            aload 0
+            aload 1
+            iadd
+            return
+        }
+
+        public void <init>(java.lang.String name, int value) {
+            double qwert
+
+            aload 0
+            return
+        }
+    }
+>>@);
+
+printf("%s", dumpClassFile());
+

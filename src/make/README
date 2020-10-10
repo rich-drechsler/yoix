@@ -1,0 +1,7 @@
+Any makefiles in this directory are designed to be included by most of the
+makefiles in the source package that do the real work. In the past we tried
+to write makefiles that worked properly with different versions of make
+(there were lots of them), but today just targeting GNU make is more sensible,
+so we've dropped the portability goal and now assume GNU make is available on
+your system.
+

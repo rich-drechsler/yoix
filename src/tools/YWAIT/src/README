@@ -1,0 +1,2237 @@
+
+			    YWAIT Version 2.0
+
+    This software is covered by the Common Public License Version 1.0.
+
+    YWAIT (Yoix Web Application Instant Template) provides a substantial
+    and expandable framework for the server side of a Web based application
+    that uses Perl for most of the server side scripts and relies on Java
+    and the Yoix interpreter to provide the client side GUI. We've used
+    variations of this architecture, which we described in the 2002 paper
+
+	http://www.yoix.org/papers/lncs23760090.pdf
+
+    to build large web based production systems and we've done it for many
+    years now. Even though we've made many changes in this version you can
+    still expect reliable, flexible, production quality behavior from the
+    YWAIT client and server software.
+
+-------------
+Yoix Software
+-------------
+
+    This version of YWAIT uses features that were introduced in the 2.0.0
+    Yoix release, which means it won't work with an old Yoix interpreter.
+    For completeness, we include a compatible version of the interpreter
+    in the binary file
+
+	jars/yoix.jar
+
+    so this really is a standalone package that you don't have to update.
+    However, if you visit the official Yoix web site
+
+	http://www.research.att.com/sw/tools/yoix
+
+    or
+
+	http://www.yoix.org/
+
+    you can always download the source for the Yoix interpreter and build
+    your own yoix.jar file. Documentation is also available at that web
+    site, so it's the place to go if you have questions about Yoix.
+
+------------
+What You Get
+------------
+
+    The source package includes everything you need to build and install
+    the server software on systems that are equipped with standard Unix
+    and Java development tools and run a web server, like Apache. YWAIT
+    also builds an installer for the client-side software, and the HTML
+    document that's displayed when you point a browser at your web site
+    contains a link to that installer. The client software is the Yoix
+    interpreter (perhaps augmented by custom modules) in an executable
+    jar file that starts the interpreter using a very small application
+    specific class that knows how to get to your web site. Clients run
+    the installer once and then rely on the server to keep everything,
+    including the jar file installed on their system, up to date.
+
+    We've used variations of this architecture since 1998 and we think
+    of it as a "Web Application", but you may prefer to call it a "Java
+    Application", "Rich Internet Application" or something else that may
+    not be fit to print - the choice is yours, but only after you really
+    try the software. There's no browser or JavaScript involved in our
+    architecture and we don't rely on HTML or XML. Instead, Java takes
+    the place of the browser and we use the Yoix interpreter, which is
+    written in Java, for scripting and providing a platform independent
+    interface to Java. The format of the data exchanged between a client
+    and the server is not specified. Instead, the Yoix script that builds
+    the screen used to present the data and the cgi script that delivers
+    data to that screen make the decision, and they can pick any format
+    they want, including HTML or XML.
+
+    This architecture and our desire to use it and Java to deliver real
+    production applications inside AT&T is why Yoix was written and why
+    platform independence was and still is a primary focus of the Yoix
+    interpreter. A single (rather large) Java application, namely the
+    Yoix interpreter, concentrates really hard on tricky Java issues
+    and also happens to accept a reasonably simple scripting language.
+    Stick the interpreter between the Java Virtual Machine running on
+    a client and Yoix scripts sitting on a server and there's a pretty
+    good chance you'll end up with a portable application. But there's
+    an advantage even when you don't - one Java program means one place
+    to address portability issues, and when it's done right Yoix scripts
+    everywhere benefit.
+
+    So it's the Yoix scripts sitting on the server that are endowed with
+    the "Write Once, Run Anywhere" property and it's the Yoix interpreter
+    that we change when portability issues arise. The interpreter lets us
+    reuse our Java code while the language, which intentionally omits a way
+    to access arbitrary Java features, limits Yoix scripts to the features
+    that are exposed by the Yoix interpreter. An obvious downside is that
+    the Yoix interpreter always lags Java, but the same thing undoubtedly
+    can be said about any substantial Java application. Java's latest and
+    greatest features usually take time to appear in production programs,
+    and that's really the way it should be.
+
+----------
+You Decide
+----------
+
+    This is a solid package that delivers production quality performance
+    and it's a good example of the Yoix technology that we developed many
+    years ago and continue to use today. There's much more we could say,
+    but you shouldn't believe our sales pitch. Instead build, install and
+    test the software and you can make up your own mind about performance
+    and portability. Devote some time to understanding the server software
+    and the Yoix language and you'll be in a position to comment on the
+    flexibility of the YWAIT approach. Try https if you're concerned about
+    security and you can decide if you're satisfied with the behavior.
+
+-----------------
+Your Requirements
+-----------------
+
+    Building and installing your application doesn't require any unusual
+    expertise. Being comfortable talking to a shell and a text editor on
+    some flavor of Unix (e.g., Linux, Solaris, OSX) should be about all
+    the experience you need to configure, build, install, and test your
+    system. You'll have to poke around a bit on your system, mostly for
+    information about your web server, update some variable definitions
+    that our makefiles use, run make to install your application, point
+    a browser at your web site to make sure your web server is behaving,
+    and use java when you're really ready to test your application.
+
+    You need standard Unix and Java development tools (e.g., make, java,
+    javac, sed, cc, sh, perl etc.) to build and install your application.
+    Most of our makefiles are simple, but even the complicated ones avoid
+    using features that would have required a particular version of make.
+    The story with java and javac isn't nearly as forgiving, so you won't
+    get far without a relatively new version of the Java Development Kit.
+    We prefer 1.5.0 (Sun may call it 5.0), but 1.4.0 or later should let
+    you complete the build. If you plan on running or testing the client
+    from your server then you might as well install 1.5.0.
+
+    Any version of Perl5 or later should work, but you will need to make
+    sure the following perl packages are available:
+
+       Config     URI::Escape    Compress::Zlib     IO::File
+
+    You can easily check by running a script that contains the lines:
+
+       require Config;
+       require URI::Escape;
+       require Compress::Zlib;
+       require IO::File;
+
+    If the script completes without complaining, you are OK. If you need
+    to install packages, they do not have to be in the system perl package
+    area, they can be installed elsewhere, but you will need to set the
+    PERL_LIB_LINE entry in the gsubsti._YX file that is located in the
+    src/config directory. Perl packages can be found at the
+
+	http://www.cpan.org
+
+    site.
+
+---------------
+Our Assumptions
+---------------
+
+    Our main test and development system was a Linux PC running an Apache
+    web server. Root access wasn't an issue and there were no applications
+    or users to worry about, so we could change the web server's behavior
+    and nobody complained. It's not the required environment and probably
+    doesn't describe your server, but it's the environment we'll assume in
+    this file. Your job, as you read these instructions, is to translate
+    them back to your web server or somehow convey the information to your
+    friendly system administrator.
+
+    As we talk about the initial setup, which involves making changes to
+    makefile variables and the web server's configuration, we'll choose
+    some values that you eventually should change. For example, we call
+    our application "ywaitdemo" and use "127.0.0.1" as the IP address and
+    "localhost" as the name of the web server. We'll also use "httpd" as
+    the name of the program (i.e., the daemon) that runs on the web server
+    and delivers documents (e.g., HTML files) to clients or executes cgi
+    scripts for them. There's a decent chance you'll find a program named
+    httpd on your web server, but it's not guaranteed even if you're using
+    Apache.
+
+    Claiming the "system administrator" title on our server has a subtle
+    influence on our example. We can begin by assigning values to makefile
+    variables that are closely connected to httpd's configuration file and
+    be confident we can make httpd behave properly. You may have to reverse
+    the process and first discover what httpd allows and then assign values
+    to makefile variables that conform to those rules.
+
+------------------
+Naming Conventions
+------------------
+
+    Our source file naming conventions need a few words. Files that end in
+    strange suffixes, like ._HTML, ._JAVA, ._PL, ._SH, ._TXT, and ._YX are
+    usually stream edited by a Yoix script named gsubsti.yx. The exception
+    is gsubsti._YX itself, which is translated into gsubsti.yx by a sed
+    script that's defined in make/gsubsti.mk.
+
+    Upper case suffixes mark source files that need preprocessing and the
+    underscore prevents name collisions on case-insensitive file systems.
+    In other words, when you see files like
+
+	bin/ywait_exec.pl
+
+    and
+
+	bin/ywait_exec._PL
+
+    remember that ywait_exec.pl is the Perl script that eventually will be
+    installed, but it's created from ywait_exec._PL, which is the official
+    source and the file you must edit when you need to change the script's
+    behavior. Accidentally put your changes in ywait_exec.pl and they will
+    disappear when make decides to remove or overwrite ywait_exec.pl. If
+    you're curious about the preprocessing step type something like
+
+	diff bin/ywait_exec._PL bin/ywait_exec.pl
+
+    and you'll see what happened.
+
+    ---
+
+    There's a naming convention that we follow in Yoix scripts that we'll
+    briefly mention here. Yoix builtins (e.g., open(), close(), fprintf()
+    appendText()) always begin with a lower case letter, so when you see
+    a function call, like QueueCommand() or ShowScreen(), and the name of
+    the function begins with an upper case letter you can be sure it's not
+    calling a Yoix builtin. Start your Yoix function names with an upper
+    case letter, which is what we do in YWAIT, and the name automatically
+    carries "I'm not a Yoix builtin" with it.
+
+---------------
+Getting Started
+---------------
+
+    Obviously this is an important file if you're just starting, but two
+    others are more important and you should take a look at both of them
+    before you build anything
+
+	Makefile
+	    This is the top level makefile and you will use it to build
+	    and install the entire package. Probably nothing to change
+	    here, unless you start adding your own source directories.
+	    The SERVER_ROOT variable that's defined in this file can be
+	    convenient if you're maintaining a real system, so keep it
+	    in mind, but it's not something you need right now.
+
+	make/variables.mk
+	    If you're lucky this will be the only YWAIT source file that
+	    you have to change. It's where important makefile variables
+	    are initialized, usually with values that were selected when
+	    you (or someone on your behalf) ran the YWAIT configuration
+	    program. It's a file that's supposed to be included, either
+	    directly or indirectly, by every Makefile in this package.
+
+	    Pay attention to SERVER_SETUIDFILES - the default list will
+	    probably work on your web server, but we recommend that you
+	    try the empty list
+
+		SERVER_SETUIDFILES =
+
+	    and stick with it if it works. The programs mentioned in the
+	    SERVER_SETUIDFILES list are the only ones that are installed
+	    as setuid and setgid on your web server.
+
+    There are a few other files you may want to look at if you're curious
+    or just want to understand what happens when you run make.
+
+	make/rules.mk
+	    This is where you'll find definitions for targets (e.g., all
+	    install, clean and clobber) that the low level Makefiles use.
+	    Inference rules defined near the end of this file control the
+	    preprocessing of source files marked by the special suffixes
+	    that are also defined in this file.
+
+	make/common.mk
+	    A file that's included by almost every low level Makefile
+	    in the YWAIT source package. It's really only two lines that
+	    include variables.mk and rules.mk.
+
+	config/gsubsti._YX
+	    This is a complicated Yoix script that's used to preprocess
+	    source files that are marked by the special suffixes that we
+	    mentioned above (of course gsubsti._YX is an exception). The
+	    preprocessing replaces "magic" tokens like,
+
+		<_ACRONYN_>
+
+	    or
+
+		<_ACRONYM_DQ_>
+
+	    with their official definitions. Most of those definitions
+	    come from variables.mk, but a few of the "magic" tokens are
+	    only defined in this file.
+
+	    The generality that gsubsti._YX provides comes at a price.
+	    Starting the Yoix interpreter is a non-trivial job that can
+	    take several seconds on slower machines, and doing it over
+	    and over again as each source file is preprocessed isn't a
+	    particularly good "showcase" for Yoix.
+
+--------------------
+Makefile Variables I
+--------------------
+
+    An important part of your job involves the initialization of makefile
+    variables. Four of them have to be coordinated with your web server's
+    configuration, so that's what we'll talk about in this section. The
+    four variables are SERVER_ALIAS, SERVER_SCRIPTALIAS, SERVER_DOCDIR,
+    and SERVER_CGIBIN. You'll find their definitions in
+
+	make/variables.mk
+
+    so that's the file we'll be updating.
+
+    SERVER_ALIAS
+    SERVER_SCRIPTALIAS
+	These are the URL paths that are mapped to real directories on
+	your web server. SERVER_ALIAS is for documents (i.e., HTML files
+	or Yoix scripts) and SERVER_SCRIPTALIAS is for cgi scripts. The
+	only one your users need is SERVER_ALIAS, because it's part of
+	the URL they use to visit your application's web site (e.g., to
+	get the installer for the client software). We'll set
+
+	    SERVER_ALIAS = ywaitdemo
+	    SERVER_SCRIPTALIAS = ywaitdemo-cgi
+
+	but you should pick values that are right for your application
+	and web server. You may have to talk to your system administrator
+	or dig through your web server's configuration file to find the
+	answer. Remember, we're the system administrator in our example,
+	so we can set the values right now and worry about making the web
+	server behave in the next section. You probably won't be so lucky.
+
+    SERVER_CGIBIN
+    SERVER_DOCDIR
+	Three variables control where server software is installed and two
+	of them (i.e., SERVER_CGIBIN and SERVER_DOCDIR) will be needed when
+	we configure httpd. We'll set
+
+	    SERVER_CGIBIN = /var/www/ywaitdemo/cgi-bin
+	    SERVER_DOCDIR = /var/www/ywaitdemo/htdocs
+
+	but once again you should to pick directories that are right for
+	your application and web server. SERVER_DOCDIR is where the web
+	server will look for documents that describe your application and
+	Yoix scripts that YWAIT's client software will need. SERVER_CGIBIN
+	is where two important cgi scripts go. One handles login and the
+	other takes care of almost everything else that goes on between
+	clients and your server.
+
+--------------
+The Web Server
+--------------
+
+    Clients that want to run your application eventually have to talk to
+    your web server, so that's what we'll focus on in this section. We're
+    not "web server" experts and we really have only experimented with the
+    Apache server, so it's the only one we're even remotely qualified to
+    talk about. Our lack of "web server" expertise means this section will
+    be mercifully short, however there's lots of good documentation about
+    Apache on the web, so you won't have any trouble filling in the gaps.
+
+    ---
+
+    We will assume httpd is running and someone has already handled the
+    initial setup, so all we have to do is add a few lines to the httpd
+    configuration file. Your first job is to find that file. A reasonable
+    guess is
+
+    	/etc/httpd/conf/httpd.conf
+
+    but if that's not right you'll have some detective work to do, or you
+    could just ask someone. We think you should make a copy of httpd.conf
+    before you change it, but it's your choice and your mess to clean up
+    if something goes wrong.
+
+    When you're ready find the "Alias" section in your httpd.conf and add
+    something like
+
+    	Alias /ywaitdemo/ /var/www/ywaitdemo/htdocs/
+
+    	<Directory "/var/www/ywaitdemo/htdocs">
+    	    AllowOverride None
+    	    Options None
+    	    Order allow,deny
+    	    Allow from all
+    	</Directory>
+
+    Notice how the SERVER_ALIAS and SERVER_DOCDIR definitions that were
+    discussed in the last section are used here - you obviously should
+    substitute your values. Next find the "ScriptAlias" section and add
+    something like
+
+    	ScriptAlias /ywaitdemo-cgi/ /var/www/ywaitdemo/cgi-bin/
+
+    	<Directory "/var/www/ywaitdemo/cgi-bin">
+    	    AllowOverride None
+    	    Options None
+    	    Order allow,deny
+    	    Allow from all
+    	</Directory>
+
+    Notice how our SERVER_SCRIPTALIAS and SERVER_CGIBIN definitions were
+    used here - you obviously should substitute values that you assigned
+    to those variables.
+
+    ---
+
+    That's pretty much it. Write the config file out and then tell httpd
+    (if it's really running) to read the new config file. We do it on our
+    system by typing something like,
+
+    	/usr/sbin/httpd -krestart
+
+    but check the httpd man page or talk to your system administrator. If
+    you're lucky everything will just work, but if it doesn't you'll need
+    the httpd logs files (access_log and error_log). In fact, the httpd
+    logs are sometimes the only way to track down problems (e.g., errors
+    in scripts should end up in error_log), so we recommend that you take
+    a quick look at the ones on your system. They're in
+
+    	/var/log/httpd
+
+    on our Linux web server, but they're also mentioned in httpd.conf, so
+    you shouldn't have any trouble finding them.
+
+---------------------
+Makefile Variables II
+---------------------
+
+    Make sure you're happy with the variable definitions in
+
+	make/variables.mk
+
+    before you use make to build and install YWAIT on your web server. We
+    discussed four important makefile variables several sections ago, but
+    others may also need your attention. We'll list them in alphabetical
+    order, even though some are clearly more important than others, and
+    we'll talk about the ones that still need an explanation.
+
+    ---
+
+    ACRONYM
+    ACRONYM_LOWER
+    ACRONYM_UPLOW
+	Short names that are associated with your application in upper,
+	lower, and mixed case. ACRONYM_LOWER and ACRONYM_UPLOW are used
+	in pathnames and Java class names, so avoid spaces or other funny
+	characters that could cause problems. There currently aren't any
+	restrictions on ACRONYM, but it's probably best if you follow the
+	rules that apply to ACRONYM_LOWER and ACRONYM_UPLOW. We named our
+	application "ywaitdemo", so we would set
+
+	    ACRONYM = YWAITDEMO
+	    ACRONYM_LOWER = ywaitdemo
+	    ACRONYM_UPLOW = YwaitDemo
+
+	but you eventually should come up with a better name.
+
+    BETA_PREFIX
+	A variable that we sometimes set when we want to install a test
+	version that runs in parallel with a production system. We set
+	it to
+
+	    BETA_PREFIX =
+
+	and we recommend you do the same thing.
+
+    DIFF_OPTIONS
+	Command line options that are handed to diff when the diffs target
+	is built. Setting them on the command line when you run make is the
+	best way to temporarily change DIFF_OPTIONS.
+
+
+    FULLNAME
+	This is a long name of your application. It's not unusual to set it
+	to ACRONYM_UPLOW, but characters like spaces that can't be used in
+	ACRONYM_UPLOW don't cause problems in FULLNAME. We set
+
+	    FULLNAME = Ywait Demo
+
+	but you should pick a value that's right for your application.
+
+    GSUBSCRIPT_BASENAME
+	This is the base name of the Yoix script that stream edits source
+	files that are marked by the suffixes that we discussed earlier in
+	this file (e.g., ._JAVA, ,_HTML, ._PL, ._SH, ._YX). We set it to
+
+	    GSUBSCRIPT_BASENAME = gsubsti
+
+	and there's absolutely no reason to set it to anything else.
+
+    JARFILE_BASENAME
+	This is the base name of the jar file that gets loaded on client
+	machines when they run yoix application's installer. We usually
+	assign the same value to JARFILE_BASENAME and ACRONYM_UPLOW, so
+	we would do
+
+	    JARFILE_BASENAME = YwaitDemo
+
+	or
+
+	    JARFILE_BASENAME = $(ACRONYM_UPLOW)
+
+	but you should pick a value that's right for your application.
+
+    JARFILE_RELEASE
+	JARFILE_RELEASE should be set to X.Y.Z (where X, Y, Z are digits).
+	It's used to identify the jar file that's installed on a client's
+        system and is also used in etc/ywait_rc._PL to initialize the list
+	of allowed releases. We set
+
+	    JARFILE_RELEASE = 1.0.0
+
+	and for the time being you might as well do the same thing.
+
+    JAVA_BIN
+	You need java, javac (the compiler), and jar to build and install,
+	and our Makefiles assume all three can be found in JAVA_BIN. We set
+	it to
+
+	    JAVA_BIN = /usr/local/java/bin
+
+	but you must provide the right directory for your system. Remember,
+	we recommend Java 1.5.0 if you plan on running the client software
+	on your server, otherwise some variation of Java 1.4.X should let
+	you finish the build.
+
+    OWNER
+	The name of the owner of this application, typically the name of
+	the company paying your salary. The SUBOWNER field can be used to
+	provide more detail. We work for AT&T, so we would put
+
+	    OWNER = AT\&T
+
+	but you can leave it blank or fill it in as you see fit. Notice
+	the backslash in front of the ampersand - it's needed because we
+	use OWNER in a sed script and & means something special to sed
+	if it's not escaped.
+
+    PERL_PATH
+	Almost all the scripts that run on the server are written in Perl,
+	so you definitely will need a decent version of Perl. PERL_PATH
+	should be the full path name of the perl executable that should
+	be used. We set it to
+
+	    PERL_PATH = /usr/bin/perl
+
+	but you must supply a value that's right for your web server.
+
+    PROPRIETARY_LABEL
+	Text that appears at the bottom of almost every system screen. We
+	often use it for a proprietary label, but you're free to use it for
+	whatever you want. An empty label is allowed and is often the right
+	choice.
+
+    SERVER_ALIAS
+	Discussed in an earlier section.
+
+    SERVER_BASEURL
+	SERVER_BASEURL should be the leading portion of your application's
+	URL and it obviously must be coordinated with your web server. This
+	is also where you set the protocol (e.g., https) and port that your
+	web server uses. We recommend IP addresses rather than relying on
+	DNS, so we would set it to
+
+	    SERVER_BASEURL = http://127.0.0.1
+
+	but you must provide a value (protocol, address, and port) that's
+	coordinated with your web server.
+
+    SERVER_CGIBIN
+	Discussed in an earlier section.
+
+    SERVER_DOCDIR
+	Discussed in an earlier section.
+
+    SERVER_HOMEDIR
+	We discussed SERVER_CGIBIN and SERVER_DOCDIR several sections ago,
+	but most files and directories installed on your web server end up
+	somewhere under SERVER_HOMEDIR. We like it when SERVER_CGIBIN and
+	SERVER_DOCDIR are subdirectories of SERVER_HOMEDIR, so we set
+
+	    SERVER_HOMEDIR = /var/www/ywaitdemo
+
+	but it's not required and your system administrator may have rules
+	that separate the directories. Three different makefile variables
+	that control where files are installed should let you comply with
+	any rules your web server throws at you.
+
+    SERVER_SCRIPTALIAS
+	Discussed in an earlier section.
+
+    SERVER_SETUIDFILES
+	SERVER_SETUIDFILES are the names of executables that are installed
+	as setuid and setgid programs. The default list
+
+	    SERVER_SETUIDFILES = ywait_exec ywait_login
+
+	probably works on all web servers, but it should be set to
+
+	    SERVER_SETUIDFILES =
+
+	if your web server handles things for you (i.e., runs cgi scripts
+	as you). Try the empty list if you're not sure what's needed and
+	stick with it if it works. Your system administrator undoubtedly
+	can help and both of you may want to take a close look at
+
+	    bin/ywait_exec._C
+
+	and
+
+	    bin/ywait_login._C
+
+	which are the source files for our default setuid programs. Both
+	of them are very simple C programs, so you shouldn't have trouble
+	understanding them.
+
+    SERVER_TYPE
+	This should be set to PRODUCTION, DEMONSTRATION, DEVELOPMENT, or
+	PROTOTYPE. It controls messages users see when they login and the
+	default colors used for things like screen backgrounds. We set
+
+	    SERVER_TYPE = DEMONSTRATION
+
+	but you can pick any one of the four values that's appropriate for
+	your application.
+
+    SUBOWNER
+	The name of the organization within OWNER that is the owner of this
+	application. We work for AT&T Research, so we put
+
+	    SUBOWNER = Research
+
+	but you can leave it blank or fill it in as you see fit.
+
+    USER_NAME
+	This is a variable that gives you a little control over the login
+	process used by your application. Setting it to NULL means everyone
+	must supply a name and password that's validated by your web server.
+	The default validation is handled by a Perl script that's installed
+	in the subs directory and it uses a passwd file that's installed in
+	the etc directory. The passwd file that YWAIT supplies has a single
+	entry for a user named "guest" with an empty password field, which
+	is a convention that lets the next login as that user, in this case
+	"guest", set the password. We set
+
+	    USER_NAME = NULL
+
+	and to start with we recommend that you do the same, at least until
+	your application is really works. After that you have choices. For
+	example,
+
+	    USER_NAME =
+
+	or
+
+	    USER_NAME = unknown
+
+	means your application will use a login screen that just asks for
+	a user name, however you still have some work to do on your server
+	before users will get past the login screen. One approach is to add
+	a "magic" entry to your installed passwd file (see the comments in
+	the passwd file), while another approach would be to edit the Perl
+	script in the subs directory that handles user validation. Neither
+	one is difficult, but we decided that automating everything based
+	on the value assigned to USER_NAME in variables.mk probably would
+	not be a great idea.
+
+------------
+Installation
+------------
+
+    When you're comfortable with the definitions in variables.mk return to
+    your top level source directory (it's where you originally found this
+    file) and type
+
+	make
+
+    or
+
+	make all
+
+    to build everything and
+
+	make install
+
+    if you want to build and install everything in one step. In practice,
+    we usually use
+
+	make all install
+
+    because it completely separates the build and install steps, and that
+    gives make a chance to quit before anything is installed if the build
+    fails. Along the same lines, we usually do
+
+	make clean all install
+
+    or
+
+	make clobber all install
+
+    when we want to rebuild and install everything (or almost everything).
+    The clean and clobber targets remove things that make built, and right
+    now there's only a small difference between them - gsubsti.yx and jar
+    files built by make and left in the jars directory are removed when
+    you use clobber but not when you use clean. Most of the time clean is
+    the right choice.
+
+    ---
+
+    Incidentally, every file named Makefile in the YWAIT source package can
+    be used this way. For example, type
+
+	cd htdocs
+	make all install
+
+    and you only build and install the files that are in the htdocs source
+    directory. One small point deserves mention - using clobber instead of
+    clean in a subdirectory
+
+	cd htdocs
+	make clobber
+
+    removes gsubsti.yx, which indirectly affects other source directories.
+
+-------------
+The Installer
+-------------
+
+    One of the things you get after you build and install is a simple web
+    page that will direct users to a special jar file that they can use to
+    install all the software (except for Java) that they need to connect
+    to your server. In our case we end up with two html files
+
+	index.html
+	YwaitDemo.html
+
+    and the installer (i.e., the executable jar file)
+
+	YwaitDemo.jar
+
+    in the htdocs directory under SERVER_DOCDIR.
+
+    Users can read about your application (i.e., whatever's in index.html)
+    by pointing their browser at your server's URL. In our case we would
+    tell users to go to
+
+	http://localhost/
+
+    to read about ywaitdemo and find links to the executable jar file that
+    installs the client software on their system.
+
+    We recommend you try the entire process, because if your browser has
+    trouble finding the installed index.html file then something may be
+    wrong with (or missing from) the changes that you made to the httpd
+    configuration file. You might as well track the problem down because
+    your clients undoubtedly will have trouble too. In this case the best
+    debugging advice we can give you is to make sure httpd is running and
+    make use of the httpd log files (access_log and error_log). As usual,
+    your system administrator may have to help, particularly if you can't
+    find or read log files.
+
+------------------
+Testing The Server
+------------------
+
+    After you run the installer you probably should test your new web site,
+    so find the bin directory that was created by the installer and run the
+    script that has the name that you assigned to the ACRONYM_UPLOW variable
+    in your Makefile. In our case we would run
+
+	YwaitDemo
+
+    and if things work we would see a login screen for the application. If
+    you get to the login screen and you haven't done anything to the passwd
+    file (it's installed in the etc directory) then "guest" (without quotes)
+    is be the only name that will be recognized and the first password that
+    you send for "guest" will end up as the official password. There's much
+    more info about the simple passwd file that YWAIT supplies in etc/README.
+
+---------------
+Server Problems
+---------------
+
+    If you're lucky everything is working and you can skip this section,
+    but server problems aren't unusual, so we'll outline some debugging
+    techniques that might help.
+
+    ---
+
+    The httpd logs are always useful and they're often the best place to
+    start, but you'll undoubtedly need help from your system administrator
+    if you can't find them or you're not allowed to read the logs. Nothing
+    will work if your web server isn't listening, so make sure httpd (or
+    whatever the daemon happens to be called on your server) is running.
+    If you want to be thorough make sure you and httpd agree about the IP
+    address and port that you're using.
+
+    ---
+
+    YWAIT has a log file that the cgi scripts update. Ours would be
+
+	/var/www/ywaitdemo/admin/logs/access_log
+
+    but you'll find yours in the admin/logs directory under SERVER_HOMEDIR.
+    Actually, the Perl scripts kicked off by the two cgi scripts are really
+    responsible for updating the log file and they do it using a subroutine
+    named WriteLog() that's defined in your system's rc file. The YWAIT log
+    file is where important information about a running system goes, but it
+    usually won't provide much help if you're struggling with a system that
+    isn't responding.
+
+    ---
+
+    Your browser can be a useful debugging tool, so an easy thing to try
+    is point it at the Yoix script that starts your application. In our
+    example the URL would be,
+
+	http://localhost/ywaitdemo/ywaitdemo.yx
+
+    but you will have to make the obvious changes for your application. If
+    you followed our advice and used an IP address in your SERVER_BASEURL
+    definition then make sure you also run the browser test with a URL that
+    uses that IP address. The URL to test in our example is
+
+	http://127.0.0.1/ywaitdemo/ywaitdemo.yx
+
+    but, as usual, you need to substitute values that are appropriate for
+    your application. Notice how we used SERVER_BASEURL and SERVER_ALIAS
+    to build up the first part of the URL. If your browser displays the
+    file then httpd is probably happy with the SERVER_DOCDIR portion of
+    your web site, but if either test fails go to the httpd logs or your
+    system administrator for help.
+
+    ---
+
+    It's also easy to run a quick test of your cgi scripts, but in this
+    case many more things can go wrong, so success isn't a guarantee that
+    your scripts will work when they start handling real work. Point your
+    browser at the login script, which in our example would be
+
+	http://127.0.0.1/ywaitdemo-cgi/ywaitdemo_login.cgi
+
+    and if you're lucky you'll see,
+
+	STATUS=696e7465726e616c6572726f72
+	REASON=6e6f20696e70757420737570706c696564
+
+    which is a hex-encoded message that says
+
+	STATUS=internalerror
+	REASON=no input supplied
+
+    As usual, you should substitute values that are appropriate for your
+    application. Notice how we used SERVER_BASEURL and SERVER_SCRIPTALIAS
+    to build up the first part of the URL. If your browser displays the
+    error message from the login script then httpd is probably happy with
+    the SERVER_CGIBIN portion of your web site, otherwise go to the httpd
+    logs or your system administrator for help.
+
+    ---
+
+    The YWAIT source package includes the Yoix interpreter in an executable
+    jar file (i.e., jars/yoix.jar), so if you type something like
+
+	java -jar jars/yoix.jar http://127.0.0.1/ywaitdemo/ywaitdemo.yx
+
+    and you're in the top level source directory you eventually should see
+    your application's login screen. As usual, you should substitute values
+    that are appropriate for your application, which might also include the
+    full path to java. If the login screen doesn't show up then something
+    must still be wrong with your web site, so look at the httpd log files
+    or talk to your system administrator.
+
+    ---
+
+    Sometimes you can get to the login screen but no farther and the usual
+    suspects in this case are Perl problems (e.g., a missing module), file
+    permission problems, or a problem with your passwd file. A quick look
+    at your web server's error log will usually uncover Perl problems. If
+    you don't have access to the httpd logs try redirecting stderr in the
+    cgi script that handles logins or talk to your system administrator.
+
+    ---
+
+    Suspect file permission problems if you changed SERVER_SETUIDFILES and
+    in that case you probably should restore the default value
+
+	SERVER_SETUIDFILES = ywait_exec ywait_login
+
+    in variables.mk and install again. If you want to do it quickly use the
+    Makefile in the bin directory to build and install, but if you're in a
+    real hurry you could just type,
+
+	chmod 6755 /var/www/ywaitdemo/bin/ywait_exec
+	chmod 6755 /var/www/ywaitdemo/bin/ywait_login
+
+    as long as you remember to update the SERVER_SETUIDFILES definition in
+    variables.mk if this fixes your problem.
+
+    ---
+
+    If you still can't login find your installed passwd file. Ours is
+
+	/var/www/ywaitdemo/etc/passwd
+
+    but yours will be installed in the etc directory under SERVER_HOMEDIR.
+    If the only uncommented line in the file is
+
+	guest::shared:0:0:::Guest Login::
+
+    then nobody has logged in as "guest" and it's unlikely the passwd file
+    is causing problems - the empty password field simply means the next
+    login as "guest" sets the password and nobody has done it yet. On the
+    other hand if there's more than one entry for "guest" and the last one
+    looks something like
+
+	guest:2sLpZAbxIdm5k:shared:1234567890:0:::Guest Login::
+
+    then someone (most likely you) has already logged in as "guest" and you
+    don't know the password. In this case an easy fix is to delete the last
+    "guest" entry and try logging in again. You should also look for a lock
+    file named "passwd.lck" in the same directory as your passwd file. If
+    you find one remove it and try logging in again.
+
+    ---
+
+    If you're really desperate make SERVER_HOMEDIR and everything under it
+    readable and writable by everyone. It's definitely not the way to run
+    a production system, but it's a brute force approach that eliminates
+    file permissions as a source of your problems. Remember, this isn't a
+    permanent fix - find the real problem is if this is the "magic" that
+    makes everything else work.
+
+--------------------
+It Works - Now What?
+--------------------
+
+    It's often instructive to watch the official YWAIT log file while you
+    experiment, so we suggest you type something like
+
+	tail -f /var/www/ywaitdemo/admin/logs/access_log
+
+    in a terminal window and keep that window somewhere you can see while
+    you're testing your application. A variable named LOGDETAIL gives you
+    some control over how much detail ends up in the log. It's defined in
+    the file
+
+	/var/www/ywaitdemo/etc/ywaitdemo_rc.pl
+
+    on our server and it can be changed while the system is running. Make
+    it larger (e.g., 5) to get more detail and smaller to get less. It's
+    also occasionally interesting to watch logs files that httpd updates.
+
+    ---
+
+    Try some simple screens first. Select "Help->About", "Show->MOTD", and
+    "Show->Logins" from the main screen's menubar and you'll get a look at
+    three pretty simple screens. The "MOTD" and "Logins" screens are built
+    from the same screen file, namely
+
+	/var/www/ywaitdemo/screens/ywaitdemo_viewer.yx
+
+    while the "About" screen is built from
+
+	/var/www/ywaitdemo/htdocs/ywaitdemo_notify.yx
+
+    which is an important screen file that's also used for alerts, errors,
+    and warnings.
+
+    Old time Unix users may remember the "message of the day" file that was
+    stored in /etc/motd and displayed after a successful login. YWAIT does
+    something similar in its "Welcome" screen when it finds a file in
+
+	/var/www/ywaitdemo/etc/motd
+
+    and also lets you look at that file when you select "Show->MOTD" from
+    the main screen's menubar. Create a motd file on your server and see
+    what happens. An empty or missing motd file means version information
+    is displayed as the "message of the day".
+
+    ---
+
+    Screens usually let you drag text out of components, like a JTextArea
+    or JTextField, but only a few currently let you drop text in them. The
+    clipboard and the screens used to send messages to users or comments to
+    administrators have JTextAreas that can be the "source" or the "target"
+    of a drag and drop operation. Select "Show->Clipboard" from the menubar
+    on your main screen and verify that the drag and drop operations really
+    work.
+
+    Incidentally, you can find the three screens that accept dropped text
+    by looking for event handlers named dragEnter() or drop() in the Yoix
+    scripts that YWAIT supplies. For example, type
+
+	grep 'dragEnter(' [a-z]*/*
+
+    in your source top level source directory and you'll find them.
+
+    ---
+
+    The debugger screen is another one you should try. The JComboBox in
+    the lower right corner of the debugger screen determines what happens
+    when the "Execute" button is pressed. Scroll through the selections
+    in the JComboBox, pick "Test Plugin 1" or "Test Plugin 2", and press
+    the "Execute" button. If a small window pops up hit the button labeled
+    "Test" and you may get a chance to play with some interesting examples.
+    Unfortunately we can't always distribute the software that the plugin
+    tests need, so there's a chance nothing will happen.
+
+    The two JComboBox selections labeled "Reset Screens" and "Reset All"
+    clear data structures that clients use to cache "screens" and other
+    information that was downloaded from the server. They're often used
+    when we modify screen files on the server and then want to test the
+    changes on a client that's already running. The obvious alternative,
+    which always works, is log back in again whenever there's a change
+    that needs to be tested.
+
+    You can see how they work without actually changing a screen file.
+    Select "Show->MOTD" from the main screen's menubar and the "Message
+    Of The Day" screen should be displayed, but it's only downloaded from
+    the server once. The easiest way to prove it is by watching the YWAIT
+    log file - you'll see an entry with "GETSCREEN" as the command field
+    when the client decides it needs to ask the server for a new screen.
+    Select "Reset Screens" in the JComboBox, press the "Execute" button,
+    and you'll see a "GETSCREEN" command the next time you show the MOTD
+    screen. If you're really ambitious, manually change something, like
+    the background color of the JTextArea, that you'll notice. We would
+    do it in the screen file
+
+	/var/www/ywaitdemo/screens/ywaitdemo_viewer.yx
+
+    that's installed on our server.
+
+    ---
+
+    Everything that you find under "Examples" in your main screen's menubar
+    is worth a try. The "Examples->Template" and "Examples->Server" screens
+    are examples that should help if you're interested in customizing YWAIT
+    and are ready to start looking though some Yoix code. The templates are
+    screen files you can copy and modify to suit your needs, and the server
+    screens are filled with comments and are really "hooked up" to scripts
+    that run on your server.
+
+    ---
+
+    Try sending yourself a message. Select "Send->Message" from the main
+    screen's menubar and a simple screen should appear that lets you type
+    a text message and send it to a user of your application. Try it and
+    see if you can find the message sitting on your server. If you want
+    to read your messages select "Show->Messages" from your main screen's
+    menubar or press the small "envelope" icon that should have appeared
+    near the lower right corner of the main screen.
+
+    Imagining improvements or alternatives to the simple message system
+    isn't hard and it's probably something we'll add in the near future.
+    Send us mail if it's something you're really interested in.
+
+    ---
+
+    See if you can change your password. Select "Send->Password" from the
+    main screen's menubar and a screen, which in this case will be a modal
+    dialog (i.e., you have to hide it to do other things), will appear and
+    you can use that screen to change your password. Some checking on the
+    server probably will reject requests to change the guest password. The
+    default password file that comes with YWAIT supports user named "guest"
+    that has an empty password field (i.e., first login sets the password),
+    but "guest" also belongs to a group named "shared" and that's a group
+    that can't change their password once it's set.
+
+    Change the group field from "shared" to "default" in the last passwd
+    file entry for the "guest" user you eventually will be able to change
+    the password. The reason we said "eventually" is because you will be
+    thrown off the system and forced to log back in if the group changes
+    while you have an active session. Anyway, log back in and then try to
+    change the password again and this time it should work. Incidentally,
+    a variable named PASSWORDTIMER that's defined in
+
+	/var/www/ywaitdemo/etc/ywaitdemo_rc.pl
+
+    won't let you change it too often.
+
+    ---
+
+    The screen shown when you select "File->Preferences" lets you change
+    user specific settings (e.g., colors, fonts) and gives you a chance
+    to save your new settings on the server. It's a very complex screen,
+    so at this point you probably shouldn't spend time reading the Yoix
+    code that implements the screen, but you definitely should try it.
+
+    Incidentally, the "shared" group, which is the default group for the
+    guest login, may be able to save preferences on the server, but it's
+    something that probably will be changed in the very near future, so
+    check the passwd file if you have trouble saving preferences on the
+    server.
+
+---------
+Exploring
+---------
+
+    The demo system that we distribute and you just installed and tested
+    is substantial, but it currently doesn't include an application that
+    you should find compelling. That eventually will change, but for now
+    it's primarily a system that you can experiment with encapsulated in
+    a framework that's not too hard to expand and customize once you're
+    familiar with the YWAIT architecture.
+
+    Many important files installed on your server are heavily commented
+    (e.g., bin/ywaitdemo_exec.pl), so they're a good source of information
+    and comments are easy to toss if you're really running a production
+    system. Most directories in the source package have README files and
+    some contain information that you won't find anywhere else, so poke
+    around in the important source directories (e.g., etc, bin, cgi-bin,
+    htdocs, screens, subs) and see what their README files say. A point
+    to keep in mind while you explore is that Perl, shell, and C programs
+    run on the server, but Yoix scripts are downloaded and executed by the
+    Yoix interpreter that's running on the client.
+
+    ---
+
+    Here's a list of some interesting files, in no particular order, that
+    are currently installed on our web server. As usual replace ywaitdemo
+    with your application's name and look for them in your SERVER_CGIBIN,
+    SERVER_DOCDIR, and SERVER_HOMEDIR directories.
+
+    cgi-bin/ywaitdemo_exec.cgi
+    cgi-bin/ywaitdemo_login.cgi
+	Small shell scripts that let you adjust system resources before
+	the Perl scripts that do the real work are kicked off. They can
+        also be useful for debugging. For example, change the line
+
+	    /var/www/ywaitdemo/bin/ywaitdemo_exec
+
+	in ywaitdemo_exec.cgi to
+
+	    /var/www/ywaitdemo/bin/ywaitdemo_exec 2>>/tmp/error_log
+
+	and errors (or debugging information written to stderr) end up
+        in /tmp/error_log rather than in httpd's error log.
+
+    bin/ywaitdemo_exec
+    bin/ywaitdemo_login
+	Small C programs called by the cgi scripts that exec() the Perl
+	scripts that handle the real work. They exist because web servers
+	don't always run your cgi scripts as "you" and operating systems
+        usually won't recognize setuid or setgid scripts. Install them as
+	setuid and setgid executables when httpd isn't cooperating and the
+	Perl scripts they exec() should run as "you".
+
+	It's the SERVER_SETUIDFILES makefile variable that picks the files
+	that are installed setuid and setgid, and if you decide that your
+	web server needs setuid help we recommend you look at the source
+	files
+
+	    bin/ywait_exec._C
+
+	and
+
+	    bin/ywait_login._C
+
+	to make sure you understand what they're doing.
+
+    bin/ywaitdemo_exec.pl
+    bin/ywaitdemo_login.pl
+	These are the two Perl scripts that end up handling the login and
+	command execution requests that clients send to your cgi scripts.
+
+	The ywaitdemo_exec.pl script is the most interesting and it's the
+	one you change when you add new screens or new capabilities to your
+	application. We included lots of comments, so if you know Perl you
+	probably won't have too much trouble following the code.
+
+	The ywaitdemo_login.pl script isn't nearly as interesting and you'll
+	probably also find that it's harder to follow. The good news is you
+	usually don't touch this file because the low level user validation
+	is handled by
+
+	     /var/www/ywaitdemo/subs/ywaitdemo_validation.pl
+
+	and that's where any customization goes.
+
+    etc/ywaitdemo_rc.pl
+	An important Perl script that's "included" by the two Perl scripts
+	that your cgi scripts call (indirectly). Lots of comments and some
+	variables (e.g., RUNSTATE, LOGDETAIL, ALLOWED_RELEASES, PINGTIMER)
+	that you occasionally adjust while the system is running.
+
+	WriteHeader() and WriteLog() probably are the subroutines you'll
+	use most. Every response that goes back to a client request must
+	call WriteHeader() before ever sending any other data. WriteLog()
+	appends stuff to the main log file and can be useful when you're
+	debugging Perl scripts.
+
+	Take a look at ValidateUser() if you're curious about the passwd
+	file and the default user validation that YWAIT provides. The call
+	that actually validates users when they login comes from
+
+	    /var/www/ywaitdemo/subs/ywaitdemo_validation.pl
+
+	which is a Perl script that you can modify to suit your own needs.
+
+    etc/passwd
+	This is the password file that let you login. You should now find
+	two entries for a user named "guest". The first entry has an empty
+	password field (i.e., ::) but the second has that field filled in
+	based on the password you supplied the first time you logged in.
+
+	The ValidateUser() subroutine that's defined in the rc file reads
+	your passwd file and always uses the last entry that it finds for
+	a particular user, so new entries can be appended to the passwd
+	file while the system is running. YWAIT provides a way to clean
+	your passwd file (see the admin/bin scripts) and it's convenient
+	let cron do the work for you.
+
+	---
+
+	Our Perl scripts always create a lock file
+
+	    /var/www/ywaitdemo/etc/passwd.lck
+
+	that contains their process id before they update the passwd file,
+	so a cron job that cleans the passwd file and ValidateUser() that
+	needs to fill an empty password in don't interfere with each other.
+	If you need to manually edit the passwd file we recommend you type
+	something like,
+
+	    >>/var/www/ywaitdemo/etc/passwd.lck
+
+	and only edit the passwd file if passwd.lck really is empty. Also
+	don't forget to remove the passwd.lck file that you created when
+	you're done.
+
+	---
+
+	We have a partially complete Yoix script that lets you update the
+	passwd file using a JTable that's displayed in a JFrame - let us
+	know if it's something you really want and we'll either send it to
+	you or move it up on our list of things to do.
+
+    admin/logs/access_log
+	This is your application's main log file and entries are created
+	by the WriteLog() subroutine defined in your rc file. It's often
+	interesting to do
+
+	    tail -f /var/www/ywaitdemo/admin/logs/access_log
+
+	in one window and watch the log grow as you, or others, do things
+	in your application. A variable named LOGDETAIL lets you control
+	how much detail ends up in the log. It's defined in your rc file
+	can be changed while your system is running. Make it bigger to get
+	more detail and smaller to get less. For example, the call
+
+	    WriteLog("-d3", "this is a test...");
+
+	only ends up in access_log when LOGDETAIL is greater than or equal
+	to 3. Omitting "-d3" in the WriteLog() call
+
+	    WriteLog("this is a test...");
+
+	is equivalent to supplying "-d0".
+
+    htdocs/ywaitdemo.yx
+	Your application starts running when clients point an appropriate
+	version of the Yoix interpreter at this file. It's automatic when
+	clients use the scripts and jar file that your installer loads on
+	their system.
+
+	This file and the others that it explicitly includes provide the
+	low level infrastructure that a YWAIT application needs. Actually
+	"low level" may not be an appropriate term, because the included
+	files are Yoix scripts that you can easily read or modify. Take
+	a quick look at ywaitdemo.yx and you'll see something like
+
+	    include ServerFile("ywaitdemo_common.yx");
+	    include ServerFile("ywaitdemo_icons.yx");
+	    include ServerFile("ywaitdemo_insets.yx");
+	    include ServerFile("ywaitdemo_plugins.yx");
+	    include ServerFile("ywaitdemo_preferences.yx");
+	    include ServerFile("ywaitdemo_screens.yx");
+	    include ServerFile("ywaitdemo_server.yx");
+	    include ServerFile("ywaitdemo_threads.yx");
+	    include ServerFile("ywaitdemo_custom.yx");
+
+	near the beginning of the file. These are the include statements
+	that download the Yoix scripts that build the YWAIT infrastructure.
+
+	A good one to look at is ywaitdemo_insets.yx, because it's short
+	and illustrates some Yoix techniques that we use elsewhere. The
+	ones that are particularly important, like ywaitdemo_screens.yx
+	and ywaitdemo_server.yx, are discussed later.
+
+    htdocs/ywaitdemo_server.yx
+	This is the file that handles communications when a client wants
+	to talk to your server. It's included by ywaitdemo.yx and usually
+	ends up "talking" to your bin/ywaitdemo_exec.pl Perl script. The
+	low level details are handled by PostCommand(). It's a long and
+	rather complicated Yoix function, but it's important and worth
+	the effort if you decide to figure it out.
+
+	Screens that communicate with the sever never call PostCommand()
+	directly, but instead they use QueueCommand() or RunCommand(),
+	which are also defined in this file. Both call PostCommand() if
+	they need to talk to the server. QueueCommand() arranges for a
+	special thread to call RunCommand(), which means QueueCommand()
+	doesn't block or wait for the server to respond. RunCommand() is
+	is much more patient - it waits for its turn in PostCommand() and
+	doesn't return until the server has responded.
+
+	Add some strategic fprintf() calls to the file installed on your
+	server and you will see the output the next time you start your
+`	application. For example, put something like
+
+	    fprintf(stderr, "header=%O\n", header);
+
+	after the "while" loop in PostCommand() that reads the response
+	from the server and the contents of header Dictionary will print
+	on stderr in the window that you used to start your application.
+	The %O option is a special Yoix addition that asks fprintf() to
+	dump the argument in a way that depends on the argument's type.
+	It can be a quick way to get debugging information that doesn't
+	force you to know anything about the object you're dumping.
+
+	If you prefer seeing the same information in dialog try,
+
+	    ShowText(strfmt("header=%O\n", header), TRUE);
+
+	but it's a modal dialog that you have to dismiss when you want to
+	continue. The optional TRUE argument tells ShowText() the string
+	is formatted with newlines and whitespace and should be displayed
+	as is.
+
+    htdocs/ywaitdemo_screens.yx
+	This is another important file and it's one that you have to deal
+	with when you start building custom screens. The first section of
+	the file (about 650 lines or so) defines important functions, like
+	GetScreen(), GetAndShowScreen(), HideScreen(), LoadScreen(), and
+	LoadArgs() and also includes several dictionaries that are used to
+	manage screens.
+
+	The rest of the file defines convenient functions, like ShowAlert()
+	and ShowViewer(), that also hide ShowScreen() calls that sometimes
+	are complicated. The number of "helper" functions often grows as we
+	build a production system with lots of custom screens, so don't be
+	surprised if you start adding your own, and you can do it in this
+	file or in htdocs/ywaitdemo_custom.yx.
+
+	---
+
+	Screen files are special Yoix scripts that have following general
+	structure
+
+	    import yoix.*.*;
+
+	    Dictionary Global = argv[1];
+
+	    Builder(String name, Array args) {
+		JFrame screen = {
+		    //
+		    // Initialize some of JFrame variables.
+		    //
+
+		    Dimension size = NULL;
+		    Object    parent = NULL;
+		    Font      font = Global.GetPreferredTextFont();
+
+		    //
+		    // Every screen also must define and initialize the
+		    // following special variables.
+		    //
+
+		    Color  screencolor = NULL;
+		    String screenname = name;		// required
+		    String screentitle = NULL;
+		    Object anchorpoint = NULL;
+		    int    anchorstyle = AUTOMATIC;
+		    int    screenanchor = CENTER;
+		    int    initialized = FALSE;
+		    int    disposeonclose = TRUE;
+		    int    savestate = TRUE;
+		    int    reloadargs = FALSE;
+
+		    //
+		    // We almost always use GridBagLayout to arrange
+		    // a screen's top-level components. It's the most
+		    // powerful layout manager that Java provides, but
+		    // it takes some time to get used to. Yoix or Java
+		    // documentation will help, but experimenting with
+		    // a working screen (you now have lots of them) is
+		    // often the best way to learn.
+		    //
+
+		    GridBagLayout layoutmanager;
+
+		    Array layout = {
+			//
+			// The initializer here should be a comma
+			// separated list of expressions arranged
+			// in pairs
+			//
+			//     new JButton {
+			//         ...
+			//     },
+			//     new GridBagConstraints {
+			//         ...
+			//     },
+			//
+			// that creates the component and constraint
+			// used to position the component. A simple
+			// screen, like ywaitdemo_template3.yx, might
+			// have five or six different components.
+			//		
+		    };
+		};
+		return(screen);
+	    }
+
+	    return(Builder);	// execute() gets this
+
+	In other words, a screen file defines a function named Builder()
+	that accepts two arguments and returns a screen (e.g., JFrame or
+	JDialog) that's built using the arguments and a Dictionary named
+	Global. However it's the line that initializes Global and the one
+	that returns Builder that are fundamental, and to understand them
+	we need to take a look at some low level screen functions. Along
+	the way we'll also discover what's in the Builder function's args
+	array.
+
+	---
+
+	GetScreen() is the best place to start, so here's a "stripped down"
+	version
+
+	    GetScreen(String name, String builder, ...) {
+		Dictionary dict;
+		Object     screen;
+		Array      args = &builder + 1;
+
+		if ((screen = GetCachedScreen(name)) == NULL) {
+		    if ((dict = LoadScreen(builder)) != NULL) {
+			if (dict.Builder != NULL) {
+			    screen = dict.Builder(name, args)
+			    LoadArgs(screen, args);
+			    if (dict.cachescreen)
+				ScreenCache[name] = screen;
+			}
+		    }
+		}
+		return(screen);
+	    }
+
+	The first thing to notice are the arguments. The two strings are
+	easy, but the ... might look strange. It's the way Yoix functions
+	specify optional arguments and should be familiar if you're a C
+	or C++ programmer.
+
+	The initialization of args might be confusing, so here's a quick
+	explanation. Arguments in a Yoix function are stored in an Array
+	that's officially called argv, and when you take the address of
+	an argument you essentially get another array that's the subset
+	of argv that starts at that argument. Add 1, as we did in
+
+		&builder + 1
+
+	and the array starts at the argument that follow builder, which
+	means it's an array that contains the optional arguments. Actually
+	our explanation isn't quite right, but the result is essentially
+	correct, so it's good enough for now.
+
+	Notice how GetScreen() uses name. GetCachedScreen(name) looks for
+	name in the ScreenCache dictionary and returns NULL if it doesn't
+	find a usable screen associated with name. So we only build a new
+	screen, which might also involve downloading data from the server,
+	if the one we're interested in (i.e., name) isn't currently cached.
+	In other words, name is for finding cached screens and it provides
+	a way to manage screens that may or may not be created by different
+	Builder() functions.
+
+	---
+
+	We have to look at part of LoadScreen() if we want to understand
+	the builder argument, so here's a "stripped down" version of that
+	function
+
+	    LoadScreen(String builder) {
+		Dictionary dict;
+		String     fullname;
+		Array      data;
+
+		if ((dict = GetScreenDirectoryEntry(builder)) != NULL) {
+		    if (dict.Builder == NULL) {
+			fullname = "ywaitdemo_" + builder + ".yx";
+			data = RunCommand(NULL, "GETSCREEN",  fullname);
+			dict.Builder = execute(data[0], fullname, global);
+		    }
+		}
+		return(dict);
+	    }
+
+	If Builder is missing from the special dictionary that's returned
+	by GetScreenDirectoryEntry() we ask the server for help. First we
+	create a string using builder that looks like it's the name of a
+	Yoix script. For example, if the builder argument is "viewer" then
+	our RunCommand() call would be,
+
+	    data = RunCommand(NULL, "GETSCREEN", "ywaitdemo_viewer.yx");
+
+	and if you follow RunCommand() back to the code in
+
+	    /var/www/ywaitdemo/bin/ywaitdemo_exec.pl
+
+	that handles "GETSCREEN" you would see we get the contents of the
+	screen file
+
+	    /var/www/ywaitdemo/screens/ywaitdemo_viewer.yx
+
+	as the first (and only) string in the data array. Executing that
+	string using
+
+	    dict.Builder = execute(data[0], fullname, global);
+
+	hands our global dictionary to the screen file (as argv[1]) and the
+	assignment to dict.Builder means we remember the function that the
+	screen file returned.
+
+	---
+
+	Now back to GetScreen(). If LoadScreen() returns a dictionary that
+	defines a Builder function we call it and use the return value as
+	our new screen. The line we're talking about is
+
+	    screen = dict.Builder(name, args);
+
+	but Builder() functions normally ignore args and only save a copy
+	of name in the screen they create because HideScreen() needs it to
+	make sure ScreenCache is cleaned up when the screen is officially
+	hidden. So we have to go to the next line in GetScreen(), namely
+
+	    LoadArgs(screen, args);
+
+	and look at a modified version of LoadArgs
+
+	    LoadArgs(Object screen, Array args) {
+		int n;
+
+		for (n = 0; n < args@sizeof - 1; n += 2) {
+		    if (args[n] instanceof String && defined(args[n], screen))
+			screen[args[n]] = args[n+1];
+		}
+	    }
+
+	to figure out what the optional arguments are.
+
+	Even if you don't know Yoix you probably can figure this one out.
+	The elements in args are name/value pairs that initialize fields
+	in the screen. The name (i.e., the element at the even index) must
+	be a string and
+
+	    defined(args[n], screen)
+
+	means it also must be the name of a field that's defined in screen.
+	If both tests are passed then
+
+	    screen[args[n]] = args[n+1];
+
+	assigns the second element of the pair to that field. For example,
+	if args was the array
+
+	    Array args = {"background", Color.green};
+
+	then the initialization in LoadArgs() would be
+
+	    screen["background"] = Color.green;
+
+	which is exactly the same as
+
+	    screen.background = Color.green;
+
+    htdocs/ywaitdemo_common.yx
+	Some generally useful functions collected together in one file.
+	Generic event handlers, like DragGestureRecognized(), KeyTyped()
+	or MouseWheelMoved() are interesting. Find their definitions in
+	this file and then look for calls in screen files and you'll see
+	how we use them. Add some debugging code, like
+
+	    fprintf(stderr, "root=%O\n", root);
+
+	which dumps lots of stuff, or
+
+	    fprintf(stderr, "screen title=%s\n", root.title);
+
+	to any one of the generic event handlers that are defined in the
+	ywaitdemo_common.yx file that's installed on your server, and the
+	next time you login you will see the message written to stderr in
+	the window that you used to start your application.
+
+	Incidentally, we picked "root" in our debugging code to emphasize
+	a point about Yoix functions. You won't find a variable named root
+	defined in the generic event handlers, so where's it coming from?
+	It's an important point, so see if you can figure it out, but if
+	you can't here's a hint. The place where the interpreter actually
+	found the function that it's executing (e.g., a JTextArea), which
+	is also known as "this", is automatically searched when a variable
+	like root isn't found.
+
+    screens/ywaitdemo_server_example*.yx
+	These are screen files that really are "hooked up" to your server.
+	Enter things in textfields, press send buttons and your web server
+	returns data that's automatically displayed by other components in
+	the screen (e.g., JTextArea or JTable). There are lots of comments
+	in these files and they interact with sections of the Perl script
+
+	    /var/www/ywaitdemo/bin/ywaitdemo_exec.pl
+
+	that are also heavily commented.
+
+	The examples are all instructive, but the first is the easiest, so
+	concentrate on that one if you're just getting started. See if you
+	can follow how things move from the Send button, to UpdateScreen(),
+	to PostCommand(), to the "SERVERDEMO1" section of ywaitdemo_exec.pl,
+	and finally how the data sent back from the server ends up as the
+	text displayed by the screen's JTextArea. Here's an brief outline
+	of what happens
+
+	Press Send
+	    Java gets an ActionEvent from the button.
+
+	Java
+	    Hands that ActionEvent to the Yoix interpreter.
+
+	Yoix
+	    Translates the ActionEvent to its Yoix representation and then
+	    calls the Yoix function named actionPerformed() that's defined
+	    in the JButton and passes the Yoix version of the ActionEvent
+	    to that function.
+
+	actionPerformed()
+	    Calls UpdateScreen(), which is defined later in the screen. The
+	    actual call is
+
+		root.UpdateScreen();
+
+	    which uses an important field named root that's defined in the
+	    Yoix representation Swing and AWT components and maintained by
+	    the Yoix interpreter's layout machinery. The root field in our
+	    JButton (or any other Swing component in the screen) points to
+	    the JFrame that contains it, so that's where the UpdateScreen()
+	    function is found.
+
+	UpdateScreen()
+	    Calls QueueCommand() which eventually makes contact with the
+	    server using PostCommand(). Arguments handed to QueueCommand()
+	    are the screen (for the wait cursor), the name of the command
+	    (i.e, SERVERDEMO1), the text currently in the JTextField that
+	    has "$_argument" as its tag field, NULL (to mark the end of
+	    the arguments sent to the server), and a pointer to the field
+	    named text in the JTextArea that has "$_textarea" as its tag
+	    field (data returned by the server ends up here). Take a look
+	    at the JButton and JFrame reference pages for more information
+	    about the tag and components fields.
+
+	QueueCommand()
+	    Arranges a RunCommand() call with the same arguments, but that
+	    call is made from a special thread named CommandThread, which
+	    means QueueCommand() doesn't wait for the server to respond.
+
+	RunCommand()
+	    Patiently waits for its chance to call PostCommand(), which
+	    means RunCommand() doesn't return until the server responds.
+
+	PostCommand()
+	    This is where the client and server exchange information. The
+	    server side is handled by the ywaitdemo_exec.pl and if you look
+	    for SERVERDEMO1 in that file you'll see where the data that's
+	    returned actually comes from.
+
+	    The PostCommand() that runs on the client sends everything up
+	    to the NULL to the server, then waits for ywaitdemo_exec.pl to
+	    return a header and additional data, splits that data up based
+	    on information (e.g., SEPARATOR and ARGCOUNT) that the server
+	    placed in the header, and then distributes the pieces of the
+	    returned data to the remaining arguments. PostCommand() checks
+	    each argument carefully and uses its type to determine what to
+	    do with the returned data.
+
+    screens/ywaitdemo_template*.yx
+	These are supposed to be fairly simple screens that you can copy
+	and modify when you want to add a new screen to your application.
+	You can preview them by selecting "Examples->Template" from your
+	main screen's menubar. The template screens don't actually talk
+	to your server, but there are several other examples (discussed
+	below) that do.
+
+    admin/bin/broadcast.pl
+	Simple script that manages the broadcast messages that are sent to
+	users when they contact the server. The PINGTIMER variable defined
+	in your rc file gives you some over how often that happens.
+
+    admin/bin/cleanup.pl
+	A rather complicated script, usually run by cron, that can be used
+	to clean your system up. Suggestions that you get from crontab.pl
+	use this script.
+
+    admin/bin/crontab.pl
+	A simple script the suggests possible crontab entries that you can
+	use to maintain your system.
+
+-----------------
+Customizing YWAIT
+-----------------
+
+    We're going to limit the discussion in this section to the most common
+    type of customization, namely hooking a new screen up to an existing
+    application. We'll show you how to build a simple screen file, arrange
+    to show it when the user does something (e.g., selects an item from a
+    menu), and exchange data with the server. We'll start working in the
+    YWAIT source, but we'll occasionally install our changes and test things
+    using our ywaitdemo application. We encourage you to follow along using
+    your source files and your application.
+
+    ---
+
+    We assume you looked at the "Examples->Template" screens as you were
+    testing the system. We'll pick "Example 3" as the template for a new
+    screen that we'll call foo. The first thing to do is make a copy of
+    the template and somehow tell make about the new screen. We'll work
+    in the screens source directory, so we type
+
+	cd screens
+
+    to get to the right place and
+
+	cp ywait_screen_template3.yx ywait_foo.yx
+
+    to make our copy. Next edit the Makefile and change the line
+
+	SOURCE = \
+
+    to
+
+	SOURCE = \
+		ywait_foo.yx \
+
+    Actually you can add ywait_foo.yx anywhere in the SOURCE list as long
+    as you get the backslashes right. They're continuation characters and
+    we always add a space separator because old versions of make sometimes
+    misbehave without them. If you add ywait_foo.yx to the end of the list
+    append a space and backslash to the previous last line and omit them
+    on the ywait_foo.yx line. If you got things right typing
+
+	make install
+
+    should copy ywait_foo.yx to
+
+	/var/www/ywaitdemo/screens/ywaitdemo_foo.yx
+
+    but it's obviously not hooked up to anything yet, so there's nothing
+    else to test.
+
+    ---
+
+    Next we'll add an entry in the main screen's menubar that will show our
+    new screen. It's not difficult, but might take a few tries if it's your
+    first time. The main screen is in the htdocs directory, so type
+
+	cd ../htdocs
+
+    to get to the right directory. You probably should save a copy, so type
+
+	cp ywait_main.yx ywait_main.yx.bak
+
+    before you make any changes. We're going to add an entry under "Show",
+    so edit ywait_main.yx and find the lines
+
+	new JMenu {
+	    String text = "Show";
+	    Array items = {
+		new JMenuItem {
+		    String text = "Clipboard";
+		    String command = "clipboard";
+		},
+		new JMenuItem {
+		    String text = "Debugger";
+		    String command = "debugger";
+		    String tag = command;
+		},
+		new JMenuItem {
+		    String text = "Logins";
+		    String command = "logins";
+		},
+		new JMenuItem {
+		    String text = "Messages";
+		    String command = "messages";
+		},
+		new JMenuItem {
+		    String text = "MOTD";
+		    String command = "motd";
+		},
+	    };
+	},
+
+    Add a new JMenuItem (the four lines line after the MOTD entry) to the
+    items array
+
+	new JMenu {
+	    String text = "Show";
+	    Array items = {
+		new JMenuItem {
+		    String text = "Clipboard";
+		    String command = "clipboard";
+		},
+		new JMenuItem {
+		    String text = "Debugger";
+		    String command = "debugger";
+		    String tag = command;
+		},
+		new JMenuItem {
+		    String text = "Logins";
+		    String command = "logins";
+		},
+		new JMenuItem {
+		    String text = "Messages";
+		    String command = "messages";
+		},
+		new JMenuItem {
+		    String text = "MOTD";
+		    String command = "motd";
+		},
+		new JMenuItem {			// added
+		    String text = "FOO";	// added
+		    String command = "foo";	// added
+		},				// added
+	    };
+	},
+
+    that we'll eventually use to show our new screen. Incidentally, put
+
+	NULL,
+
+    or
+
+	"-",
+
+    between the "MOTD" and "FOO" entries in the items array and you end
+    up with a horizontal line drawn between the them in the menu.
+
+    We're not done with ywait_main.yx yet, but let's install the new version
+    anyway, and see what happens when we select "Show->FOO". Type
+
+	make install
+
+    and our modified main screen will be installed. Start your application
+    again and you should see an entry labeled "FOO" under "Show". Try it
+    and you should see an error dialog that displays the message
+
+	Missing action for command: foo
+
+    See if you can find where message is coming from.
+
+    ---
+
+    Now let's work on showing our screen when "Show->FOO" is selected from
+    the main screen's menubar. Edit ywait_main.yx again, but this time look
+    for the lines,
+
+	case "screen_template1":
+	case "screen_template2":
+	case "screen_template3":
+	case "screen_template3a":
+	case "screen_template4":
+	case "screen_template4a":
+	    Global.GetAndShowScreen(command, command);
+	    break;
+
+    which are used to show the different template screens. Remember, our
+    screen is a copy of ywait_screen_template3.yx, so we'll initially show
+    it the same way, but we'll make our own Global.GetAndShowScreen() call
+    because the arguments will eventually change. Add the lines
+
+	case "foo":
+	    Global.GetAndShowScreen(command, command);
+	    break;
+
+    right after the ones that handle the template screens, and that should
+    do it. Save the changes, quit the editor, type
+
+	make install
+
+    and log back in to your application. This time our screen, which is a
+    duplicate of ywait_screen_template3.yx, should appear when "Show->FOO"
+    is selected.
+
+    ---
+
+    In case you're wondering, we picked "foo" for the case label because
+    that's the value we assigned to the "command" field in the JMenuItem
+    that we added for our screen. It also happens to be part of the name
+    of our screen file (i.e., ywait_foo.yx) and Global.GetAndShowScreen()
+    uses its second argument, in this case "foo", when asks the server to
+    download a screen file. It's convenient, but not necessary. You could
+    change the "command" field in our JMenuItem to
+
+	String command = "this is a test";
+
+    and everything would work if you used
+
+	case "this is a test":
+	     Global.GetAndShowScreen(command, "foo");
+	     break;
+
+    to show our screen. We're still using command in the GetAndShowScreen()
+    call, but it's not required. GetAndShowScreen() uses its first argument
+    as an arbitrary name that YWAIT's screen handling machinery associates
+    with a particular screen. The first thing GetAndShowScreen() does is
+    look for an existing (i.e., cached) screen that's been linked to that
+    name, and if it finds one it doesn't bother building a new screen. In
+    other words, our screen is built the first time you select "Show->FOO"
+    from the menubar, but do it again (without dismissing the screen) and
+    it's not built again.
+
+    ---
+
+    Let's make our screen look and behave differently than the one that we
+    copied. We're not going to do much, but a few simple changes will, be
+    instructive. First type
+
+	cd ../screens
+
+    to get us back to the right directory and then edit ywait_foo.yx. Look
+    for the lines
+
+        JFrame screen = {
+	    Insets border = Global.GetLabeledScreenInsets();
+	    String title = Global.ACRONYM + " Template 3";
+	    Object parent = NULL;
+	    Font   font = Global.GetPreferredTextFont();
+	    int    opaque = TRUE;
+
+	    //
+	    // This is starting screen size. Setting size to NULL is special
+	    // and means the individual components displayed in the screen
+	    // determine the size.
+	    //
+
+	    Dimension size = {
+		double width = 7.0*72;
+		double height = 3.0*72;
+	    };
+
+    change the screen's title and its size,
+
+	JFrame screen = {
+	    Insets border = Global.GetLabeledScreenInsets();
+	    String title = Global.ACRONYM + " Test Screen";	// changed
+	    Object parent = NULL;
+	    Font   font = Global.GetPreferredTextFont();
+	    int    opaque = TRUE;
+
+	    //
+	    // This is starting screen size. Setting size to NULL is special
+	    // and means the individual components displayed in the screen
+	    // determine the size.
+	    //
+
+	    Dimension size = {
+		double width = 8.0*72;		// changed: was 7.0*72
+		double height = 4.0*72;		// changed: was 3.0*72
+	    };
+
+     write it out, install the new screen file using
+
+	make install
+
+    login to your application, and test the new screen. You should notice
+    some differences when you compare it to template3. Dismiss our screen,
+    but don't quit the application, because we're going to make a few more
+    small changes. Find the lines
+
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = TRUE;	// TRUE means remember size and location
+	int    reloadargs = FALSE;
+
+    in your ywait_foo.yx source file, change screenanchor and savestate,
+
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = EAST;	// changed: it was CENTER
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = FALSE;	// changed: it was TRUE
+	int    reloadargs = FALSE;
+
+    save the changes, quit the editor, type
+
+	make install
+
+    and try the screen. Nothing should change because the client remembers
+    the screen's Builder() function and won't go back to the server unless
+    we force it. Quitting is one way, but "Reset Screens" and "Reset All"
+    selections in the debugger screen are quicker. Select "Show->Debugger"
+    from the menubar and use the debugger to reset the screens (i.e., clear
+    the screen related data structures). Try the screen again and it should
+    behave differently.
+
+    The screenanchor change is immediately obvious. See if you can figure
+    out what savestate controls. Move the screen or resize it, dismiss it,
+    and then see what happens when you show the screen again. The behavior
+    should change when savestate changes.
+
+    ---
+
+    The next thing we'll do is add two buttons to our screen, so point your
+    editor at ywait_foo.yx and look for the lines
+
+	Array layout = {
+	    new JButton {
+		String text = "Send";
+		Font   font = Global.GetPreferredButtonFont();
+
+		actionPerformed(e) {
+		    //
+		    // You undoubtedly have work to do here. All we
+		    // currently do is arrange to call HandleSend()
+		    // (it's defined below) from the command thread
+		    // rather than from Java's event thread. It's a
+		    // common approach when the work we're supposed
+		    // to do could take a while (e.g., contacting the
+		    // server).
+		    //
+		    Global.QueueCommand(root, &root.HandleSend);
+		}
+	    },
+	    new JButton {
+		String text = "Dismiss";
+		Font   font = Global.GetPreferredButtonFont();
+
+		actionPerformed(e) {
+		    Global.QueueCommand(root, &root.HideScreen);
+		}
+	    },
+	};
+
+     which is where the buttons on our screen are currently defined. We'll
+     create a button labeled "Clear" and another one labeled "Test"
+
+	    new JButton {
+		String text = "Clear";
+
+		actionPerformed(e) {
+		    root.ClearScreen();
+		}
+	    },
+	    new JButton {
+		String text = "Test";
+
+		actionPerformed(e) {
+		    root.components.$_textarea.text += date() + "\n";
+		}
+	    },
+
+    and if we put this code between the two existing buttons that's where
+    the "Clear" and "Test" buttons will appear in our screen.
+
+    Save the changes, quit the editor, type
+
+	make install
+
+    and use "Reset Screens" in the debugger screen or log back in to your
+    application. Select "Show->FOO" and there should now be four buttons
+    near the bottom of your screen.
+
+    ---
+
+    The last thing to do is exchange some data with our server. We'll keep
+    this simple and send you to the "Examples->Server" screens if you want
+    better examples.
+
+    The idea is that we pick an arbitrary new command name, say FOO, that
+    the screen can send to the server and that the Perl script
+
+	bin/ywait_exec._PL
+
+    that runs on the server will recognize. The screen uses QueueCommand()
+    or RunCommand() not only to send the new command and arguments to the
+    Perl script that runs on the server but also to handle the data that's
+    returned by the server. In other words, it's really just a matter of
+    coordinating the screen's Yoix code with the server's Perl script and
+    as long as they agree the data that's transferred between them can be
+    anything they want.
+
+    So we're going to use a command named FOO to ask the server for data.
+    Remember, we're going to keep this really simple because you can go to
+    the "Examples->Server" screens when you want better examples. All our
+    FOO command will do is return the server's current time and we'll display
+    it in our JTextArea.
+
+    User scripts are added in the subs directory and loaded in ywait_exec._PL
+    at run-time as needed via hooks built into ywait_exec.pl during the make
+    process and by the ywait_usercommand._PL script in subs returning the
+    appropriate string value that will be handled by an eval call in ywait_exec._PL.
+
+    The first step is to edit the Perl script, so type,
+
+	cd ../subs
+
+    point your editor at ywait_usercommand._PL, look for the lines,
+
+	} elsif ($COMMAND eq "SERVERDEMO3") {
+	    #
+	    # This example expands on SERVERDEMO2b and shows how additional
+	    # arguments (e.g., "-d" and "2") can be passed to the serverdemo
+	    # script and used to control how the script handles the arguments
+	    # stored in @args that came from the client. It's an example that
+	    # illustrates how a script can handle related client requests.
+	    #
+	    $cmd = "serverdemo(\"-d\", \"2\", \@args)";
+
+    append code in a way that a perl eval can understand to handle our wonderful
+    new FOO command
+
+	} elsif ($COMMAND eq "FOO") {
+	    WriteHeader();
+	    $cmd = "print time() . \"\\\n"";
+
+    save your changes, and type
+
+	make install
+
+    to install the new Perl script. Nobody's hooked up to the FOO command
+    yet, but it's probably a good idea to test your application again just
+    to make sure Perl doesn't object to the code you added. If there's a
+    look in the httpd error_log for help.
+
+    ---
+
+    Now let's make our screen use the new command. Type
+
+	cd ../screens
+
+    and edit ywait_foo.yx. First find the "Send" button definition
+
+	new JButton {
+	    String text = "Send";
+	    Font   font = Global.GetPreferredButtonFont();
+
+	    actionPerformed(e) {
+		//
+		// You undoubtedly have work to do here. All we
+		// currently do is arrange to call HandleSend()
+		// (it's defined below) from the command thread
+		// rather than from Java's event thread. It's a
+		// common approach when the work we're supposed
+		// to do could take a while (e.g., contacting the
+		// server).
+		 //
+		Global.QueueCommand(root, &root.HandleSend);
+	    }
+	},
+
+    and notice it calls QueueCommand(), but all that call does is arrange
+    to call a function named HandleSend() that's already defined in our
+    screen. Find the HandleSend() definition in our screen
+
+	HandleSend() {
+	    //
+	    // This function is eventually called when the user presses
+	    // the Send button. All we do is pop up a message dialog, so
+	    // you will have to change things. You probably will want to
+	    // contact the server using Global.QueueCommand(), however
+	    // in this case Global.RunCommand() may be more appropriate
+	    // because we probably know we got here via QueueCommand()
+	    // when the Send button was pressed.
+	    // 
+
+	    Global.ShowMessage(this, "This is a message from HandleSend...");
+	    HideScreen();
+	}
+
+    change it to,
+
+	HandleSend() {
+	    Global.QueueCommand(this, "FOO", NULL, &components.$_textarea.text);
+	}
+
+    save your changes, quit the editor, and type
+
+	make install
+
+    to install the new screen file. Test your new screen, but don't forget
+    to use the debugger's "Reset Screens" is you're still logged in. Press
+    the "Send" button and the data that the server sent us ends up as the
+    only thing displayed in the JTextArea.
+
+    ---
+
+    The behavior isn't as nice as our "Test" button, so lets see if we can
+    fix it. Edit ywait_foo.yx again, replace HandleSend() with
+
+	HandleSend() {
+	    String arg;
+
+	    Global.RunCommand(this, "FOO", NULL, &arg);
+	    components.$_textarea.text += date(atoi(arg)) + "\n";
+	}
+
+    save your changes, quit the editor, and type
+
+	make install
+
+    to install the new screen file. Things now look much better - in fact
+    "Send" and "Test" now behave the same way.
+
+    Notice that we changed the QueueCommand() call to RunCommand(). Do you
+    can understand why? Here's a hint if you need one. The declaration
+
+	String arg;
+
+    creates a string variable named arg that starts out NULL, and the
+
+	atoi(arg);
+
+    call doesn't like a NULL argument.
+
+-------
+Summary
+-------
+
+    That's it for now, but expect more in the near future.
+

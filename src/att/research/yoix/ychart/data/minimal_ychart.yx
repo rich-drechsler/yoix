@@ -1,0 +1,25 @@
+//
+// The command line used to run this file should look something like
+//
+//	yoix ychart.yx [options] minimal_ychart.yx
+//
+// where options are parsed by the Options() function (define in ychart.yx)
+// and ychart.yx and minimal_ychart.yx should be pathnames or URLs that point
+// to ychart.yx and this file.
+//
+
+Dictionary ChartData = {
+    LoadChart() {
+	int r;
+	int c;
+
+	rows = 12;
+	columns = 12;
+	chartcells = new Array[rows*columns];
+
+	for (r = 0; r < rows; r++)
+	    for (c = max(0,r-1); c < min(r+2,columns); c++)
+		NewChartCell(NULL, r, c, 1, 1, NULL, NULL);
+    }
+};
+

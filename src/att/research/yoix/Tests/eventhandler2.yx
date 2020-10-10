@@ -1,0 +1,172 @@
+//
+// Test file that adds every event handler to a component, mostly so we
+// can officially test to see which ones work. The event handlers disable
+// themselves after one call, but that behavior can be easily changed in
+// the HandleEvent() function that's defined below.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    Dimension size = NULL;
+
+    FlowLayout layoutmanager = {
+	double vgap = 72;
+	double hgap = 72;
+    };
+
+    Array layout = {
+	new JButton {
+	    String tag = "$_target";
+	    String text = "Some text to display";
+	    Color  background = Color.yellow;
+	    Color  foreground = Color.red;
+	    int    requestfocus = TRUE;
+	    int    minimum = 0;
+	    int    maximum = 100;
+	    int    rows = 10;
+	    int    columns = 20;
+	    int    edit = TRUE;
+
+	    Array items = {
+		"This", "is",
+		"an", "event",
+		" handler", "test",
+	    };
+
+
+	    //
+	    // This officially enables the dragGestureRecognized() event
+	    // handler in the Swing components that supply automatic drag
+	    // handling. It does no harm anywhere else, including in AWT
+	    // components that don't have a transferhandler field.
+	    //
+
+	    Object transferhandler = NULL;
+
+	    //
+	    // This should be every possible event handler, so we can do
+	    // stuff to the component and watch as they get called.
+	    //
+
+	    actionPerformed(e) = HandleEvent(argv[0], e);
+	    adjustmentValueChanged(e) = HandleEvent(argv[0], e);
+	    caretUpdate(e) = HandleEvent(argv[0], e);
+	    componentHidden(e) = HandleEvent(argv[0], e);
+	    componentMoved(e) = HandleEvent(argv[0], e);
+	    componentResized(e) = HandleEvent(argv[0], e);
+	    componentShown(e) = HandleEvent(argv[0], e);
+	    dragDropEnd(e) = HandleEvent(argv[0], e);
+	    dragEnter(e) = HandleEvent(argv[0], e);
+	    dragExit(e) = HandleEvent(argv[0], e);
+	    dragGestureRecognized(e) = HandleEvent(argv[0], e);
+	    dragMouseMoved(e) = HandleEvent(argv[0], e);
+	    dragOver(e) = HandleEvent(argv[0], e);
+	    drop(e) = HandleEvent(argv[0], e);
+	    dropActionChanged(e) = HandleEvent(argv[0], e);
+	    focusGained(e) = HandleEvent(argv[0], e);
+	    focusLost(e) = HandleEvent(argv[0], e);
+	    hyperlinkActivated(e) = HandleEvent(argv[0], e);
+	    hyperlinkEntered(e) = HandleEvent(argv[0], e);
+	    hyperlinkExited(e) = HandleEvent(argv[0], e);
+	    invocationAction(e) = HandleEvent(argv[0], e);
+	    invocationBrowse(e) = HandleEvent(argv[0], e);
+	    invocationEdit(e) = HandleEvent(argv[0], e);
+	    invocationRun(e) = HandleEvent(argv[0], e);
+	    invocationSelection(e) = HandleEvent(argv[0], e);
+	    itemStateChanged(e) = HandleEvent(argv[0], e);
+	    keyPressed(e) = HandleEvent(argv[0], e);
+	    keyReleased(e) = HandleEvent(argv[0], e);
+	    keyTyped(e) = HandleEvent(argv[0], e);
+	    mouseClicked(e) = HandleEvent(argv[0], e);
+	    mouseDragged(e) = HandleEvent(argv[0], e);
+	    mouseEntered(e) = HandleEvent(argv[0], e);
+	    mouseExited(e) = HandleEvent(argv[0], e);
+	    mouseMoved(e) = HandleEvent(argv[0], e);
+	    mousePressed(e) = HandleEvent(argv[0], e);
+	    mouseReleased(e) = HandleEvent(argv[0], e);
+	    mouseWheelMoved(e) = HandleEvent(argv[0], e);
+	    stateChanged(e) = HandleEvent(argv[0], e);
+	    textValueChanged(e) = HandleEvent(argv[0], e);
+	    valueChanged(e) = HandleEvent(argv[0], e);
+	    windowActivated(e) = HandleEvent(argv[0], e);
+	    windowClosed(e) = HandleEvent(argv[0], e);
+	    windowClosing(e) = HandleEvent(argv[0], e);
+	    windowDeactivated(e) = HandleEvent(argv[0], e);
+	    windowDeiconified(e) = HandleEvent(argv[0], e);
+	    windowIconified(e) = HandleEvent(argv[0], e);
+	    windowOpened(e) = HandleEvent(argv[0], e);
+
+	    //
+	    // Called to handle most (probably all) events, so we can
+	    // easily modify the behavior.
+	    //
+
+	    HandleEvent(String name, Object event) {
+		printf("%s\n", name);
+		if (defined(name, this))
+		    this[name] = NULL;
+	    }
+	}
+    };
+
+    //
+    // It's convenient to handle a few special things when this window
+    // is first opened and then again when is is closing.
+    //
+
+    windowOpened(e) {
+	Dimension size;
+	Object    target = components.$_target;
+
+	//
+	// Try to make ridiculously small components are big enough that
+	// we can see them and easily move the mouse around inside them.
+	// Also officially tests invocationRun(), even though it should
+	// not be unnecessay - this way makes sure invocationRun() ends
+	// up in the list of event handlers.
+	//
+
+	size = target.size;
+	if (size.width <= 72/8 || size.height <= 72/8) {
+	    size.width = max(size.width, 72);
+	    size.height = max(size.height, 72);
+	    target.size = size;
+	    this.size = NULL;
+	}
+	postEvent("invocationRun", target);
+    }
+
+    windowClosing(e) {
+	Object target = components.$_target;
+
+	//
+	// We do a little extra work here that probably isn't necessary,
+	// but it makes the list of called event handlers a little more
+	// complete. Any component that can show a popup menu or display
+	// a menubar can define actionPerformed() and itemStateChanged()
+	// event handlers to support them, so we make sure they show up
+	// in the list. We also hide the component and then post another
+	// windowClosing() event, which should give componentHidden() a
+	// chance to be called.
+	//
+	// Incidentally, if you define a windowClosing() handler then you
+	// must (eventually) dispose of the window on your own or return
+	// FALSE if you want the interpreter to clean up for you. Just a
+	// small point, but it may be confusing.
+	//
+
+	if (target.visible) {
+	    if (defined("popup", target) || defined("menubar", target)) {
+		if (target.actionPerformed != NULL)
+		    target.actionPerformed(NULL);
+		if (target.itemStateChanged != NULL)
+		    target.itemStateChanged(NULL);
+	    }
+	    target.visible = FALSE;
+	    postEvent("windowClosing", this);
+	} else this.dispose = TRUE;
+    }
+};
+
+f.visible = TRUE;

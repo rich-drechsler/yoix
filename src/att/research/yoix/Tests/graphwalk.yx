@@ -1,0 +1,106 @@
+import yoix.*.*;
+
+graph_str = "\
+digraph g {\n\
+  n1 [ name=\"JPKjr\", born=18880906, died=19691118, gender=M ]\n\
+  n2 [ name=\"JPKIII\", born=19150725, died=19440812, gender=M ]\n\
+  n3 [ name=\"JFK\", born=19170529, died=19631122, gender=M ]\n\
+  n4 [ name=\"none\", born=19560823, died=19560823, gender=F ]\n\
+  n5 [ name=\"CBK\", born=19571127, died=0, gender=F ]\n\
+  n6 [ name=\"RS\", born=19880625, died=0, gender=F ]\n\
+  n7 [ name=\"JFKjr\", born=19601125, died=19990716, gender=M ]\n\
+  n8 [ name=\"PBK\", born=19630807, died=19630809, gender=M ]\n\
+  n9 [ name=\"RK\", born=19180913, died=20050107, gender=F ]\n\
+  n10 [ name=\"KK\", born=19200229, died=19480519, gender=F ]\n\
+  n11 [ name=\"EMK\", born=19210710, died=0, gender=F ]\n\
+  n12 [ name=\"RSSjr\", born=19540428, died=0, gender=M ]\n\
+  n13 [ name=\"MOS\", born=19551106, died=0, gender=F ]\n\
+  n14 [ name=\"TPS\", born=19590829, died=0, gender=M ]\n\
+  n15 [ name=\"MKS\", born=19640217, died=0, gender=M ]\n\
+  n16 [ name=\"APKS\", born=19650720, died=0, gender=M ]\n\
+  n17 [ name=\"PK\", born=19240506, died=0, gender=F ]\n\
+  n18 [ name=\"CKL\", born=19550000, died=0, gender=M ]\n\
+  n19 [ name=\"SML\", born=19560000, died=0, gender=M ]\n\
+  n20 [ name=\"VFL\", born=19590000, died=0, gender=F ]\n\
+  n21 [ name=\"REL\", born=19610000, died=0, gender=F ]\n\
+  n22 [ name=\"RFK\", born=19251120, died=19680606, gender=M ]\n\
+  n23 [ name=\"KHK\", born=19510704, died=0, gender=F ]\n\
+  n24 [ name=\"JPK\", born=19520924, died=0, gender=M ]\n\
+  n25 [ name=\"RFK\", born=19540117, died=0, gender=M ]\n\
+  n26 [ name=\"DAK\", born=19550615, died=19840000, gender=M ]\n\
+  n27 [ name=\"MCK\", born=19560909, died=0, gender=F ]\n\
+  n28 [ name=\"MLK\", born=19580227, died=19971231, gender=M ]\n\
+  n29 [ name=\"MKK\", born=19590908, died=0, gender=F ]\n\
+  n30 [ name=\"CGK\", born=19630704, died=0, gender=M ]\n\
+  n31 [ name=\"MMTK\", born=19650109, died=0, gender=M ]\n\
+  n32 [ name=\"DHK\", born=19670324, died=0, gender=M ]\n\
+  n33 [ name=\"REKK\", born=19681212, died=0, gender=F ]\n\
+  n34 [ name=\"JAK\", born=19280220, died=0, gender=F ]\n\
+  n35 [ name=\"SS\", born=19570000, died=0, gender=M ]\n\
+  n36 [ name=\"WKS\", born=19600000, died=0, gender=M ]\n\
+  n37 [ name=\"AMS\", born=19670000, died=0, gender=F ]\n\
+  n38 [ name=\"KMS\", born=19720000, died=0, gender=F ]\n\
+  n39 [ name=\"EMK\", born=19320222, died=0, gender=M ]\n\
+  n40 [ name=\"KK\", born=19600227, died=0, gender=F ]\n\
+  n41 [ name=\"EKjr\", born=19610926, died=0, gender=M ]\n\
+  n42 [ name=\"PJK\", born=19670714, died=0, gender=M ]\n\
+  n1->n2\n\
+  n1->n3\n\
+  n1->n9\n\
+  n1->n10\n\
+  n1->n11\n\
+  n1->n17\n\
+  n1->n22\n\
+  n1->n34\n\
+  n1->n39\n\
+  n3->n4\n\
+  n3->n5\n\
+  n3->n7\n\
+  n3->n8\n\
+  n5->n6\n\
+  n11->n12\n\
+  n11->n13\n\
+  n11->n14\n\
+  n11->n15\n\
+  n11->n16\n\
+  n17->n18\n\
+  n17->n19\n\
+  n17->n20\n\
+  n17->n21\n\
+  n22->n23\n\
+  n22->n24\n\
+  n22->n25\n\
+  n22->n26\n\
+  n22->n27\n\
+  n22->n28\n\
+  n22->n29\n\
+  n22->n30\n\
+  n22->n31\n\
+  n22->n32\n\
+  n22->n33\n\
+  n34->n35\n\
+  n34->n36\n\
+  n34->n37\n\
+  n34->n38\n\
+  n39->n40\n\
+  n39->n41\n\
+  n39->n42\n\
+}";
+
+g = dotGraph(graph_str);
+
+nodeinfo() {
+    Pointer ptr = attributes;
+    while(ptr@sizeof) {
+	fprintf(stdout, "%s: %s=%s\n", name, (*ptr)@nameof, *ptr);
+	ptr++;
+    }
+}
+
+stdout.nextline = "Walk Example:";
+g.walk(nodeinfo);
+
+stdout.nextline = "==========================";
+
+stdout.nextline = "BFS Example:";
+g.element("n1").bfs(nodeinfo);

@@ -1,0 +1,1550 @@
+//
+// Icon management that includes simple-minded caching for icons that come
+// from the UIManager and more complicated code that builds custom icons
+// using the "PostScript-like" drawing capabilites provided by the Yoix
+// interpreter. A decent start, but much more could be done if you decide
+// to get really ambitious.
+//
+// we use urlEncode to keep the generated names as single-line strings
+
+Dictionary IconCache[0, ...];
+
+final int CONTROL_BACK = 1;
+final int CONTROL_EJECT = 2;
+final int CONTROL_FASTBACK = 3;
+final int CONTROL_FASTFORWARD = 4;
+final int CONTROL_FIRSTFRAME = 5;
+final int CONTROL_FORWARD = 6;
+final int CONTROL_FRAMEBACK = 7;
+final int CONTROL_FRAMEFORWARD = 8;
+final int CONTROL_LASTFRAME = 9;
+final int CONTROL_PAUSE = 10;
+final int CONTROL_REFRESH = 11;
+final int CONTROL_STOP = 12;
+
+Font LOGOFONT = NULL;
+
+GetATTIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     backcolor = (argc > 2) ? argv[2] : Color.white;
+    Color     fontcolor = (argc > 3) ? argv[3] : Color.black;
+    Color     backglobe = (argc > 4) ? argv[4] : Color.white;
+    String    name = "attIcon" + toString(size) +":"+ toString(backcolor)
+	+":"+ toString(fontcolor) +":"+ toString(backglobe);
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildATTIcon(size, backcolor, fontcolor, backglobe);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetBackIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    String    name = urlEncode("backIcon" + toString(size) + toString(iconcolor));
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildControlIcon(CONTROL_BACK, size, iconcolor, FALSE, FALSE);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetButtonDiamondIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    double    shrink = (argc > 3) ? argv[3] : 0.9;
+    String    name = urlEncode("buttonDiamondIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+    
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 4, 45, NULL, iconcolor, NULL, TRUE, FALSE, FALSE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetButtonDownIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    double    shrink = (argc > 3) ? argv[3] : 0.9;
+    String    name = urlEncode("buttonDownIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+    
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 3, 180, NULL, iconcolor, NULL, TRUE, FALSE, FALSE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetButtonLeftIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    double    shrink = (argc > 3) ? argv[3] : 0.9;
+    String    name = urlEncode("buttonLeftIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+    
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 3, 270, NULL, iconcolor, NULL, TRUE, FALSE, FALSE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetButtonRightIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    double    shrink = (argc > 3) ? argv[3] : 0.9;
+    String    name = urlEncode("buttonRightIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+    
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 3, 90, NULL, iconcolor, NULL, TRUE, FALSE, FALSE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetButtonUpIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    double    shrink = (argc > 3) ? argv[3] : 0.9;
+    String    name = urlEncode("buttonUpIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+    
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 3, 0, NULL, iconcolor, NULL, TRUE, FALSE, FALSE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetDataVizIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.6*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.green;
+    double    shrink = (argc > 3) ? argv[3] : 0.9;
+    String    name = urlEncode("dataVizIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 360, 0, "Viz", iconcolor, Color.black, TRUE, TRUE, TRUE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetDragAndDropIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.6*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.blue;
+    double    shrink = (argc > 3) ? argv[3] : 0.9;
+    String    name = urlEncode("draganddropIcon" + toString(size) + toString(iconcolor) + toString(shrink));
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 360, 0, "DnD", iconcolor, Color.white, TRUE, TRUE, TRUE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetEjectIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    String    name = urlEncode("ejectIcon" + toString(size) + toString(iconcolor));
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildControlIcon(CONTROL_EJECT, size, iconcolor, FALSE, FALSE);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetErrorIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.6*72.0);
+    double    shrink = (argc > 2) ? argv[2] : 1.0;
+    String    name = urlEncode("errorIcon" + toString(size) + toString(shrink));
+
+    //
+    // Old code used VM.screen.uimanager.get(name) to grab the icon, but
+    // we now build and cache our own versions.
+    //
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 8, 0, "STOP", Color.red, Color.white, FALSE, TRUE, TRUE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetFastBackIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    String    name = urlEncode("fastbackIcon" + toString(size) + toString(iconcolor));
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildControlIcon(CONTROL_FASTBACK, size, iconcolor, FALSE, FALSE);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetFastForwardIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    String    name = urlEncode("fastforwardIcon" + toString(size) + toString(iconcolor));
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildControlIcon(CONTROL_FASTFORWARD, size, iconcolor, FALSE, FALSE);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetFirstFrameIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    String    name = urlEncode("firstFrameIcon" + toString(size) + toString(iconcolor));
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildControlIcon(CONTROL_FIRSTFRAME, size, iconcolor, FALSE, FALSE);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetForwardIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    String    name = urlEncode("forwardIcon" + toString(size) + toString(iconcolor));
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildControlIcon(CONTROL_FORWARD, size, iconcolor, FALSE, FALSE);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetFrameBackIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    String    name = urlEncode("framebackIcon" + toString(size) + toString(iconcolor));
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildControlIcon(CONTROL_FRAMEBACK, size, iconcolor, FALSE, FALSE);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetFrameForwardIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    String    name = urlEncode("frameforwardIcon" + toString(size) + toString(iconcolor));
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildControlIcon(CONTROL_FRAMEFORWARD, size, iconcolor, FALSE, FALSE);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetHaltIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.6*72.0);
+    double    shrink = (argc > 2) ? argv[2] : 1.0;
+    String    name = urlEncode("haltIcon" + toString(size) + toString(shrink));
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 8, 0, "STOP", Color.red, Color.white, FALSE, FALSE, TRUE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetInfoIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.6*72.0);
+    double    shrink = (argc > 2) ? argv[2] : 1.0;
+    String    name = urlEncode("infoIcon" + toString(size) + toString(shrink));
+
+    //
+    // Old code used VM.screen.uimanager.get(name) to grab the icon, but
+    // we now build and cache our own versions.
+    //
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 4, 0, "i", Color.white, Color.black, TRUE, TRUE, TRUE, shrink, "Times-bolditalic-10");
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetMailIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.6*72.0);
+    double    shrink = (argc > 2) ? argv[2] : 1.0;
+    String    name = urlEncode("mailIcon" + toString(size) + toString(shrink));
+
+    if (!defined(name, IconCache)) {
+	String sender = "John Q. Programmer\n123 Techno Way\nSoftware City, XX 00000-0000";
+	String receiver = "The YOIX Team\nAT&T Shannon Laboratory\n180 Park Avenue\nFlorham Park, NJ 07932-0971";
+	Image image = BuildEnvelopeIcon(size, sender, receiver, TRUE, shrink);
+	image.description = name;
+	IconCache[name] = image;
+    }
+
+    return(IconCache[name]);
+}
+
+GetLastFrameIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    String    name = urlEncode("lastFrameIcon" + toString(size) + toString(iconcolor));
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildControlIcon(CONTROL_LASTFRAME, size, iconcolor, FALSE, FALSE);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetPauseIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    String    name = urlEncode("pauseIcon" + toString(size) + toString(iconcolor));
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildControlIcon(CONTROL_PAUSE, size, iconcolor, FALSE, FALSE);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetQuestionIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.6*72.0);
+    double  shrink = (argc > 2) ? argv[2] : 1.0;
+    String  name = urlEncode("questionIcon" + toString(size) + toString(shrink));
+
+    //
+    // Old code used VM.screen.uimanager.get(name) to grab the icon, but
+    // we now build and cache our own versions.
+    //
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 360, 0, "?", Color.white, Color.black, TRUE, TRUE, TRUE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetRefreshIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    String    name = urlEncode("refreshIcon" + toString(size) + toString(iconcolor));
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildControlIcon(CONTROL_REFRESH, size, iconcolor, FALSE, FALSE);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetStopIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.25*72.0);
+    Color     iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    String    name = urlEncode("stopIcon" + toString(size) + toString(iconcolor));
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildControlIcon(CONTROL_STOP, size, iconcolor, FALSE, FALSE);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetWarningIcon(...) {
+    Dimension size = PickIconSize((argc > 1) ? argv[1] : 0.6*72.0);
+    double    shrink = (argc > 2) ? argv[2] : 1.0;
+    String    name = urlEncode("warningIcon" + toString(size) + toString(shrink));
+
+    //
+    // Old code used VM.screen.uimanager.get(name) to grab the icon, but
+    // we now build and cache our own versions.
+    //
+
+    if (!defined(name, IconCache)) {
+	Image image = BuildPolygonIcon(size, 3, 0, "!", Color.yellow, Color.black, TRUE, TRUE, TRUE, shrink, NULL);
+	image.description = name;
+	IconCache[name] = image;
+    }
+    return(IconCache[name]);
+}
+
+GetYoixLogoIcon(...) {
+    double  size = (argc > 1) ? argv[1] : (1.5 * 72.0);
+    Color   iconcolor = (argc > 2 && argv[2]) ? argv[2] : Color.black;
+    int     shadow = (argc > 3) ? argv[3] : (size >= 18);
+    String  name = urlEncode("yoixLogoIcon" + toString(size) + toString(iconcolor) + toString(shadow));
+
+    //
+    // The try/catch prevents errors if we're using older versions of the
+    // Yoix interpreter that don't have the stringBounds() builtin, which
+    // was added after 2.1.5. This should eliminate problems that showed
+    // up in the welcome screen, which is the main reason for the kludge.
+    // We're sure there's a better way to handle things and we eventually
+    // will investigate fully.
+    //
+
+    try {
+	if (!defined(name, IconCache)) {
+	    Image image = BuildYoixLogoImage(size, iconcolor, shadow);
+	    image.description = name;
+	    IconCache[name] = image;
+	}
+    }
+    catch(e) {
+	IconCache[name] = NULL;
+	return(TRUE);
+    }
+    return(IconCache[name]);
+}
+
+//
+// These are the custom icon builders mentioned above. The techniques that
+// we use to draw the icon and any associated text currently rely on some
+// special "Path-related" builtins that aren't part of PostScript, however
+// anyone familiar with PostScript won't have trouble following the code.
+// Part of the reason we picked the "Path" method was that there was a bug
+// in our low level implementation of the charpath() builtin that resulted
+// in small, but noticeable, inconsistencies when we tried to measure text
+// using charpath() and render it using show(). The mistake has been fixed
+// but we decided to stick with the "Path" approach because there are some
+// benefits (e.g., using strokepath() to fatten very small text).
+//
+
+BuildATTIcon(Dimension size, Color backcolor, Color fontcolor, Color backglobe) {
+
+    Image image = {
+		    
+	ds0(Graphics g) {
+	    g {
+		// globe - background
+		moveto(59.40,94.90);
+		curveto(39.81,94.90,23.87,78.96,23.87,59.37);
+		curveto(23.87,39.78,39.81,23.84,59.40,23.84);
+		curveto(78.99,23.84,94.93,39.78,94.93,59.37);
+		curveto(94.93,78.96,78.99,94.90,59.40,94.90);
+
+		closepath();
+	    }
+	}
+
+	ds1(Graphics g) {
+	    g {
+		// globe - first white stripe
+		moveto(76.57,88.73);
+		curveto(76.56,88.74,76.54,88.75,76.53,88.75);
+		curveto(77.84,87.97,78.71,87.37,78.71,86.38);
+		curveto(78.71,82.91,70.34,79.74,59.42,79.46);
+		curveto(48.50,79.17,39.45,81.89,39.21,85.35);
+		curveto(39.13,86.47,40.03,87.36,41.59,88.35);
+		curveto(46.77,91.55,52.87,93.39,59.40,93.39);
+		curveto(65.66,93.39,71.53,91.69,76.57,88.73);
+
+		closepath();
+	    }
+	}
+
+	ds2(Graphics g) {
+	    g {
+		// globe - second white stripe
+		moveto(36.94,84.91);
+		curveto(35.12,82.79,35.12,80.90,35.12,80.62);
+		curveto(35.12,77.47,39.65,72.44,52.75,72.44);
+		curveto(60.52,72.44,66.79,73.97,71.53,75.56);
+		curveto(79.12,78.11,82.87,81.23,82.74,83.56);
+		curveto(82.73,83.76,82.69,83.99,82.60,84.23);
+		curveto(84.01,82.91,85.31,81.48,86.48,79.94);
+		curveto(86.48,79.94,86.47,79.95,86.47,79.95);
+		curveto(87.09,79.10,87.62,78.02,87.60,76.99);
+		curveto(87.57,73.58,84.30,68.32,69.44,67.08);
+		curveto(62.07,66.47,52.56,67.78,48.97,68.24);
+		curveto(38.36,69.61,30.62,73.78,30.62,76.99);
+		curveto(30.62,77.24,30.79,77.80,31.24,78.45);
+		curveto(32.86,80.84,34.78,83.01,36.94,84.91);
+
+		closepath();
+	    }
+	}
+
+	ds3(Graphics g) {
+	    g {
+		// globe - third white stripe
+		moveto(92.27,66.94);
+		curveto(92.27,65.24,90.17,54.76,69.50,52.86);
+		curveto(66.58,52.59,33.13,52.21,26.79,65.71);
+		curveto(26.70,65.91,26.61,66.12,26.56,66.34);
+		curveto(26.49,66.64,26.46,66.85,26.45,67.09);
+		curveto(26.45,67.27,26.46,67.44,26.47,67.60);
+		curveto(26.50,67.89,26.64,68.56,26.74,68.93);
+		curveto(27.11,70.18,27.54,71.40,28.04,72.58);
+		curveto(27.99,72.18,27.97,71.74,27.98,71.18);
+		curveto(28.00,70.44,28.16,69.61,28.44,68.81);
+		curveto(31.15,61.23,47.85,54.63,68.08,60.23);
+		curveto(76.67,62.60,89.50,67.15,89.50,74.12);
+		curveto(89.50,74.36,89.56,74.80,89.26,75.67);
+		curveto(90.36,73.65,91.27,71.50,91.95,69.26);
+		curveto(92.27,68.17,92.27,67.65,92.27,66.94);
+
+		closepath();
+	    }
+	}
+
+	ds4(Graphics g) {
+	    g {
+		// globe - fourth white stripe
+		moveto(25.41,61.04);
+		curveto(26.08,55.81,30.81,50.04,38.90,47.46);
+		curveto(48.77,44.32,54.82,44.22,69.17,47.45);
+		curveto(91.11,52.40,92.90,61.99,93.04,64.46);
+		curveto(93.29,62.80,93.42,61.10,93.42,59.37);
+		curveto(93.42,58.81,93.41,58.25,93.38,57.70);
+		curveto(93.34,57.14,93.21,56.12,93.12,55.66);
+		curveto(93.05,55.32,92.99,55.08,92.90,54.82);
+		curveto(91.07,50.01,84.28,40.76,63.56,40.01);
+		curveto(56.91,39.77,45.20,42.09,37.83,45.14);
+		curveto(32.18,47.47,26.64,51.88,25.57,56.22);
+		curveto(25.52,56.43,25.48,56.82,25.45,57.07);
+		curveto(25.40,57.83,25.37,58.60,25.37,59.37);
+		curveto(25.37,59.93,25.38,60.49,25.41,61.04);
+
+		closepath();
+	    }
+	}
+
+	ds5(Graphics g) {
+	    g {
+		// globe - fifth white stripe
+		moveto(90.07,44.65);
+		curveto(89.72,43.94,89.34,43.31,89.02,42.84);
+		curveto(88.43,41.99,87.82,41.36,86.99,40.53);
+		curveto(79.84,33.34,63.46,25.48,39.65,35.43);
+		curveto(34.01,37.79,30.31,41.74,28.74,44.61);
+		curveto(28.25,45.62,27.81,46.66,27.42,47.73);
+		curveto(27.80,46.97,28.23,46.25,28.71,45.56);
+		curveto(36.72,34.12,55.10,34.82,58.70,35.23);
+		curveto(82.86,37.94,90.33,46.64,92.55,51.69);
+		curveto(91.98,49.23,91.14,46.87,90.07,44.65);
+
+		closepath();
+	    }
+	}
+
+	ds6(Graphics g) {
+	    g {
+		// globe - sixth white stripe
+		moveto(59.40,25.35);
+		curveto(50.79,25.35,42.92,28.56,36.92,33.85);
+		curveto(44.09,28.93,53.39,28.28,57.95,28.28);
+		curveto(73.10,28.28,81.76,33.94,86.23,38.47);
+		curveto(79.99,30.49,70.28,25.35,59.40,25.35);
+
+		closepath();
+	    }
+	}
+
+	a(Graphics g) {
+	    g {
+		// "a" outline
+		moveto(126.43,46.73);
+		curveto(126.20,47.38,126.13,48.09,126.12,48.40);
+		curveto(126.10,48.63,126.09,49.56,126.09,49.56);
+		lineto(126.09,61.29);
+		curveto(126.09,67.48,121.71,69.69,117.61,69.69);
+		curveto(114.37,69.69,111.41,68.84,109.50,67.57);
+		curveto(109.34,67.46,109.24,67.30,109.20,67.14);
+		curveto(109.17,66.97,109.20,66.79,109.30,66.65);
+		curveto(109.31,66.63,110.81,64.60,110.81,64.60);
+		curveto(111.02,64.31,111.43,64.25,111.73,64.46);
+		curveto(111.73,64.45,111.94,64.59,111.94,64.59);
+		curveto(113.42,65.52,115.18,66.05,116.97,66.05);
+		curveto(122.03,66.05,121.89,62.09,121.89,61.57);
+		curveto(121.89,61.31,121.73,61.25,121.54,61.25);
+		lineto(120.75,61.27);
+		curveto(116.83,61.41,106.87,60.08,106.87,52.18);
+		curveto(106.87,47.54,110.74,45.18,114.34,45.18);
+		curveto(117.84,45.18,120.65,46.56,122.05,48.26);
+		lineto(122.06,48.28);
+		curveto(122.08,48.30,122.11,48.32,122.14,48.32);
+		curveto(122.19,48.32,122.23,48.27,122.23,48.23);
+		curveto(122.22,48.01,122.22,47.52,122.27,47.09);
+		curveto(122.30,46.71,122.35,46.42,122.42,46.21);
+		curveto(122.48,46.03,122.60,45.84,122.77,45.75);
+		curveto(122.86,45.71,122.96,45.68,123.06,45.68);
+		curveto(123.06,45.68,125.86,45.68,125.86,45.68);
+		curveto(126.22,45.68,126.52,45.97,126.52,46.32);
+		curveto(126.52,46.44,126.43,46.73,126.43,46.73);
+
+		// "a" inside
+		moveto(122.07,55.91);
+		curveto(121.49,51.87,119.50,49.53,115.82,48.93);
+		curveto(113.23,48.50,110.88,49.57,110.76,52.34);
+		curveto(110.62,55.39,114.16,57.95,120.70,57.67);
+		curveto(120.70,57.67,121.18,57.64,121.50,57.60);
+		curveto(121.79,57.57,121.96,57.48,122.07,57.31);
+		curveto(122.18,57.15,122.20,56.83,122.07,55.91);
+
+		closepath();
+	    }
+	}
+
+	t1(Graphics g) {
+	    g {
+		// "t" (first)
+		moveto(142.60,48.74);
+		curveto(142.60,48.74,142.46,48.73,142.46,48.73);
+		curveto(138.86,48.73,137.03,50.64,137.03,54.41);
+		lineto(137.03,65.51);
+		curveto(137.03,65.70,137.19,65.86,137.38,65.86);
+		lineto(143.03,65.86);
+		curveto(143.41,65.86,143.71,66.16,143.71,66.53);
+		lineto(143.71,68.99);
+		curveto(143.71,69.36,143.41,69.67,143.03,69.67);
+		lineto(137.40,69.67);
+		curveto(137.19,69.67,137.03,69.83,137.03,70.03);
+		lineto(137.03,75.13);
+		curveto(137.04,75.49,136.75,75.81,136.38,75.83);
+		lineto(136.31,75.83);
+		curveto(136.31,75.83,133.42,75.60,133.42,75.60);
+		curveto(133.06,75.60,132.76,75.30,132.76,74.93);
+		lineto(132.76,70.02);
+		curveto(132.76,69.82,132.60,69.67,132.40,69.67);
+		lineto(128.86,69.67);
+		curveto(128.49,69.67,128.18,69.37,128.18,69.00);
+		lineto(128.18,66.52);
+		curveto(128.18,66.34,128.26,66.17,128.39,66.05);
+		curveto(128.52,65.92,128.69,65.86,128.87,65.86);
+		lineto(132.41,65.86);
+		curveto(132.60,65.86,132.76,65.70,132.76,65.51);
+		lineto(132.76,53.67);
+		curveto(132.76,47.31,137.54,45.04,141.74,45.04);
+		curveto(141.74,45.04,142.23,45.03,142.62,45.07);
+		curveto(142.99,45.11,143.28,45.37,143.28,45.74);
+		lineto(143.28,48.07);
+		curveto(143.28,48.44,142.98,48.74,142.60,48.74);
+
+		closepath();
+	    }
+	}
+
+	and(Graphics g) {
+	    g {
+		// "&" outline
+		moveto(167.17,46.90);
+		lineto(162.68,51.54);
+		curveto(162.55,51.64,162.49,51.86,162.62,52.04);
+		curveto(162.63,52.05,166.04,57.81,166.04,57.81);
+		curveto(166.12,57.97,166.13,58.08,166.13,58.14);
+		curveto(166.13,58.50,165.83,58.80,165.47,58.80);
+		lineto(162.96,58.80);
+		curveto(162.70,58.80,162.48,58.67,162.36,58.45);
+		lineto(160.19,54.70);
+		curveto(160.09,54.56,159.87,54.52,159.72,54.63);
+		curveto(159.71,54.63,156.21,58.24,156.21,58.24);
+		curveto(156.15,58.30,156.13,58.38,156.13,58.45);
+		curveto(156.13,58.54,156.16,58.64,156.24,58.70);
+		lineto(156.28,58.74);
+		curveto(158.26,59.89,160.52,61.59,160.52,64.58);
+		curveto(160.52,68.01,158.06,70.31,154.40,70.31);
+		curveto(150.81,70.31,148.08,67.91,148.08,64.32);
+		curveto(148.08,62.74,148.74,61.17,150.10,59.51);
+		curveto(150.10,59.51,150.13,59.48,150.13,59.48);
+		curveto(150.19,59.41,150.21,59.32,150.20,59.23);
+		curveto(150.19,59.14,150.14,59.06,150.07,59.00);
+		curveto(147.08,57.30,145.58,55.06,145.58,52.31);
+		curveto(145.58,47.64,149.48,45.20,153.34,45.20);
+		curveto(155.99,45.20,158.05,46.21,160.04,48.50);
+		curveto(160.05,48.51,160.08,48.55,160.08,48.55);
+		curveto(160.20,48.67,160.42,48.67,160.56,48.53);
+		lineto(162.97,46.03);
+		curveto(162.97,46.03,163.03,45.97,163.03,45.97);
+		curveto(163.16,45.84,163.33,45.78,163.50,45.78);
+		lineto(166.46,45.77);
+		lineto(166.69,45.77);
+		curveto(167.06,45.77,167.36,46.07,167.36,46.44);
+		curveto(167.36,46.61,167.29,46.77,167.17,46.90);
+
+		// "&" upper inside
+		moveto(154.46,66.85);
+		curveto(155.96,66.85,156.77,65.81,156.77,64.54);
+		curveto(156.77,63.06,155.45,62.20,153.85,61.31);
+		lineto(153.77,61.27);
+		curveto(153.65,61.20,153.48,61.23,153.38,61.33);
+		curveto(153.38,61.34,153.35,61.37,153.35,61.37);
+		curveto(152.65,62.13,151.83,63.34,151.83,64.21);
+		curveto(151.83,65.69,152.90,66.85,154.46,66.85);
+
+		// "&" lower inside
+		moveto(157.68,51.01);
+		lineto(157.66,50.99);
+		curveto(156.50,49.61,155.23,48.69,153.38,48.69);
+		curveto(151.18,48.69,149.46,50.27,149.46,52.28);
+		curveto(149.46,54.07,150.22,55.13,152.48,56.50);
+		curveto(152.64,56.59,152.82,56.57,152.93,56.46);
+		lineto(157.64,51.52);
+		curveto(157.73,51.44,157.76,51.36,157.77,51.27);
+		curveto(157.77,51.26,157.77,51.26,157.77,51.26);
+		curveto(157.77,51.17,157.74,51.10,157.68,51.01);
+
+		closepath();
+	    }
+	}
+
+	t2(Graphics g) {
+	    g {
+		// "t" (second)
+		moveto(180.65,48.74);
+		curveto(180.65,48.74,180.51,48.73,180.51,48.73);
+		curveto(176.90,48.73,175.07,50.64,175.07,54.41);
+		lineto(175.07,65.51);
+		curveto(175.07,65.70,175.23,65.86,175.43,65.86);
+		lineto(181.08,65.86);
+		curveto(181.45,65.86,181.75,66.16,181.75,66.53);
+		lineto(181.75,68.99);
+		curveto(181.75,69.36,181.45,69.67,181.08,69.67);
+		lineto(175.44,69.67);
+		curveto(175.24,69.67,175.07,69.83,175.07,70.03);
+		lineto(175.07,75.13);
+		curveto(175.09,75.49,174.80,75.81,174.43,75.83);
+		lineto(174.35,75.83);
+		curveto(174.35,75.83,171.46,75.60,171.46,75.60);
+		curveto(171.11,75.60,170.80,75.30,170.80,74.93);
+		lineto(170.80,70.02);
+		curveto(170.80,69.82,170.64,69.67,170.45,69.67);
+		lineto(166.90,69.67);
+		curveto(166.53,69.67,166.23,69.37,166.23,69.00);
+		lineto(166.22,66.52);
+		curveto(166.23,66.34,166.30,66.17,166.43,66.05);
+		curveto(166.56,65.92,166.73,65.86,166.92,65.86);
+		lineto(170.45,65.86);
+		curveto(170.65,65.86,170.80,65.70,170.80,65.51);
+		lineto(170.80,53.67);
+		curveto(170.80,47.31,175.59,45.04,179.78,45.04);
+		curveto(179.78,45.04,180.28,45.03,180.66,45.07);
+		curveto(181.04,45.11,181.32,45.37,181.32,45.74);
+		lineto(181.32,48.07);
+		curveto(181.32,48.44,181.02,48.74,180.65,48.74);
+
+		closepath();
+	    }
+	}
+
+	Color backcolor = backcolor;
+	Color fontcolor = fontcolor;
+	Color backglobe = backglobe;
+
+	Dimension size = size;
+	int       type = TYPE_RGB_ALPHA;
+
+	Dimension basesize = {
+	    double width = 181.75 - 23.84;
+	    double height = 94.93 - 25.35;
+	};
+
+	double sx = size.width/basesize.width;
+	double sy = size.height/basesize.height;
+	
+	double scalefactor;
+	Point  offset;
+	if (sx > sy) {
+	    scalefactor = sy * 0.95;
+	    offset.x = (size.width/scalefactor - basesize.width) / 2.0 - 24;
+	    offset.y = (size.height/scalefactor - basesize.height) / 2.0 - 22;
+	} else {
+	    scalefactor = sx * 0.95;
+	    offset.x = (size.width/scalefactor - basesize.width) / 2.0 - 24;
+	    offset.y = (size.height/scalefactor - basesize.height) / 2.0 - 22;
+	}
+
+	Graphics graphics = {
+	    int antialiasing = TRUE;
+	};
+
+	paint(Rectangle r) {
+	    graphics {
+		erasedrawable(0.0);	// make a transparent image
+
+		gsave();
+		rectclip(r);
+
+		if (backcolor != NULL) {
+		    clippath();
+		    setrgbcolor(backcolor.red, backcolor.green, backcolor.blue);
+		    fill();
+		}
+
+		translate(size.width/2.0, size.height/2.0);
+		scale(scalefactor, -scalefactor);
+		translate(-size.width/2.0/scalefactor, -size.height/2.0/scalefactor);
+
+		translate(offset.x, offset.y);
+
+		moveto(0,0);
+		a(graphics);
+		t1(graphics);
+		and(graphics);
+		t2(graphics);
+		if (fontcolor == NULL)
+		    setgray(0);
+		else setrgbcolor(
+		    fontcolor.red,
+		    fontcolor.green,
+		    fontcolor.blue
+		);
+		fill();
+
+		if (backglobe != NULL) {
+		    ds0(graphics);
+		    setrgbcolor(
+			backglobe.red,
+			backglobe.green,
+			backglobe.blue
+		    );
+		    fill();
+		}
+
+		ds0(graphics);
+		ds1(graphics);
+		ds2(graphics);
+		ds3(graphics);
+		ds4(graphics);
+		ds5(graphics);
+		ds6(graphics);
+		setrgbcolor(
+		    Color.attlightblue.red,
+		    Color.attlightblue.green,
+		    Color.attlightblue.blue
+		);
+		fill();
+
+		grestore();
+	    }
+	}
+    };
+
+    return(image);
+}
+
+BuildControlIcon(int icontype, Dimension size, Color iconcolor, int smooth, int addshadow) {
+    Image image = {
+	Dimension size = size;
+	int       type = TYPE_RGB_ALPHA;
+
+	Point midpoint = {
+	    double x = size.width/2;
+	    double y = size.height/2;
+	};
+
+	Graphics graphics = {
+	    int linejoin = (smooth ? JOIN_ROUND : JOIN_MITER);
+	    int linecap = (smooth ? CAP_ROUND : CAP_BUTT);
+	    int antialiasing = TRUE;
+	};
+
+	Color iconcolor = iconcolor;
+	int   icontype = icontype;
+	int   smooth = smooth;
+	int   addshadow = addshadow;
+
+	int   sz;
+
+	if (midpoint.x > midpoint.y)
+	    sz = midpoint.y;
+	else sz = midpoint.x;
+
+	paint(Rectangle r) {
+	    double side = 0.9*sz;
+	    double shadow = side/20;
+
+	    graphics {
+		erasedrawable(0.0);	// make a transparent image
+
+		switch(icontype) {
+		    case CONTROL_BACK:
+			moveto(midpoint.x - side/2, midpoint.y);
+			appendpath(DrawTriangle(side, 1, 1, -90));
+			moveto(midpoint.x + 3 * side/8, midpoint.y);
+			appendpath(DrawSquare(side, 1, 0.4));
+			break;
+
+		    case CONTROL_EJECT:
+			moveto(midpoint.x, midpoint.y - (side/3));
+			appendpath(DrawTriangle(side, 1, 0.5, 0));
+			moveto(midpoint.x, midpoint.y + (side/3));
+			appendpath(DrawSquare(side, 1, 0.3, 0));
+			break;
+
+		    case CONTROL_FASTBACK:
+			moveto(midpoint.x - 5*side/8, midpoint.y);
+			appendpath(DrawTriangle(side, 1, 0.75, -90));
+			moveto(midpoint.x - side/4, midpoint.y);
+			appendpath(DrawTriangle(side, 1, 1, -90));
+			moveto(midpoint.x + 3*side/8, midpoint.y);
+			appendpath(DrawSquare(side, 1, 0.4));
+			break;
+
+		    case CONTROL_FASTFORWARD:
+			moveto(midpoint.x - 3*side/8, midpoint.y);
+			appendpath(DrawSquare(side, 1, 0.4));
+			moveto(midpoint.x + side/4, midpoint.y);
+			appendpath(DrawTriangle(side, 1, 1, 90));
+			moveto(midpoint.x + 5*side/8, midpoint.y);
+			appendpath(DrawTriangle(side, 1, 0.75, 90));
+			break;
+
+		    case CONTROL_FIRSTFRAME:
+			moveto(midpoint.x - (side/3), midpoint.y);
+			appendpath(DrawSquare(side, 1, 0.3, -90));
+			moveto(midpoint.x + (side/3), midpoint.y);
+			appendpath(DrawTriangle(side, 1, 0.5, -90));
+			break;
+
+		    case CONTROL_FORWARD:
+			moveto(midpoint.x - 3*side/8, midpoint.y);
+			appendpath(DrawSquare(side, 1, 0.4));
+			moveto(midpoint.x + side/2, midpoint.y);
+			appendpath(DrawTriangle(side, 1, 1, 90));
+			break;
+
+		    case CONTROL_FRAMEBACK:
+			moveto(midpoint.x - (side/3), midpoint.y);
+			appendpath(DrawTriangle(side, 1, 0.5, -90));
+			moveto(midpoint.x + (side/3), midpoint.y);
+			appendpath(DrawSquare(side, 1, 0.3, -90));
+			break;
+
+		    case CONTROL_FRAMEFORWARD:
+			moveto(midpoint.x - (side/3), midpoint.y);
+			appendpath(DrawSquare(side, 1, 0.3, 90));
+			moveto(midpoint.x + (side/3), midpoint.y);
+			appendpath(DrawTriangle(side, 1, 0.5, 90));
+			break;
+
+		    case CONTROL_LASTFRAME:
+			moveto(midpoint.x - (side/3), midpoint.y);
+			appendpath(DrawTriangle(side, 1, 0.5, 90));
+			moveto(midpoint.x + (side/3), midpoint.y);
+			appendpath(DrawSquare(side, 1, 0.3, 90));
+			break;
+
+		    case CONTROL_PAUSE:
+			moveto(midpoint.x - (7*side/24), midpoint.y);
+			appendpath(DrawSquare(side, 1, 0.3, 90));
+			moveto(midpoint.x + (7*side/24), midpoint.y);
+			appendpath(DrawSquare(side, 1, 0.3, 90));
+			break;
+
+		    case CONTROL_REFRESH:
+			moveto(midpoint.x, midpoint.y);
+			appendpath(DrawArc(side/2, 270, side * 0.15));
+			moveto(midpoint.x + (0.6*sqrt(3)*side/4), midpoint.y - side/2);
+			appendpath(DrawTriangle(side * 0.6, 1, 1, 90));
+			break;
+
+		    case CONTROL_STOP:
+			moveto(midpoint.x, midpoint.y);
+			appendpath(DrawSquare(side, 0.8, 0.8));
+			break;
+		}
+		Draw(graphics, iconcolor, shadow);
+	    }
+	}
+
+	DrawArc(double radius, double angle, double width, ...) {
+	    Path   retpath;
+	    double dx = width/2;
+	    double xscale = (argc > 4 && argv[4] instanceof Number) ? argv[4] : 1;
+	    double yscale = (argc > 5 && argv[5] instanceof Number) ? argv[5] : 1;
+	    double altangle = (argc > 6 && argv[6] instanceof Number) ? argv[6] : 0;
+
+	    retpath {
+		moveto(0, -(radius - dx));
+		arcn(0, 0, radius+dx, angle, 0);
+		arc(0, 0, radius-dx, 0, angle);
+		closepath();
+		moveto(0, 0);
+		// could do these directly in "arc" call, but more consistent this way
+		if (xscale != 1 || yscale != 1)
+		    scalepath(xscale, yscale);
+		if (altangle != 0)
+		    rotatepath(altangle);
+	    }
+	    return(retpath);
+	}
+
+	DrawSquare(double side, ...) {
+	    // draw a square with sides of length 'side' about the current point
+	    double dx = side / 2;
+	    Path   retpath;
+	    double xscale = (argc > 2 && argv[2] instanceof Number) ? argv[2] : 1;
+	    double yscale = (argc > 3 && argv[3] instanceof Number) ? argv[3] : 1;
+	    double angle = (argc > 4 && argv[4] instanceof Number) ? argv[4] : 0;
+
+	    retpath {
+		moveto(0, 0);
+		rmoveto(dx, dx);
+		rlineto(-side, 0);
+		rlineto(0, -side);
+		rlineto(side, 0);
+		rlineto(0, side);
+		closepath();
+		moveto(0, 0);
+		if (xscale != 1 || yscale != 1)
+		    scalepath(xscale, yscale);
+		if (angle != 0)
+		    rotatepath(angle);
+	    }
+	    return(retpath);
+	}
+
+	DrawTriangle(double side, ...) {
+	    // draw a square with sides of length 'side' about the current point
+	    double dx = side / 2;
+	    double dy = sqrt(3) * side / 4;
+	    Path   retpath;
+	    double xscale = (argc > 2 && argv[2] instanceof Number) ? argv[2] : 1;
+	    double yscale = (argc > 3 && argv[3] instanceof Number) ? argv[3] : 1;
+	    double angle = (argc > 4 && argv[4] instanceof Number) ? argv[4] : 0;
+
+	    retpath {
+		moveto(0, 0);
+		rmoveto(dx, dy);
+		rlineto(-side, 0);
+		rlineto(dx, -2 * dy);
+		rlineto(dx, 2 * dy);
+		closepath();
+		moveto(0, 0);
+		if (xscale != 1 || yscale != 1)
+		    scalepath(xscale, yscale);
+		if (angle != 0)
+		    rotatepath(angle);
+	    }
+	    return(retpath);
+	}
+
+	Draw(Graphics graphics, Color iconcolor, double shadow) {
+	    graphics {
+		if (addshadow && shadow > 0.001) {
+		    gsave();
+		    path.translatepath(shadow, shadow);
+		    setgray(.5);
+		    linewidth = shadow * 2;
+		    strokepath();
+		    fill(.4);
+		    grestore();
+		}
+		foreground = iconcolor;
+		gsave();
+		linewidth = shadow;
+		stroke();
+		grestore();
+		fill();
+	    }
+	}
+    };
+    return(image);
+}
+
+BuildEnvelopeIcon(Object size, String sender, String receiver, int addshadow, double shrink) {
+    Image image = {
+	Dimension size = PickIconSize(size);
+	int       type = TYPE_RGB_ALPHA;
+
+	Graphics graphics = {
+	    String font = "Courier-bold-10";
+	    int    antialiasing = TRUE;
+	};
+
+	String sender = sender;
+	String receiver = receiver;
+	double shrink = min(shrink, 1.0);
+	int    addshadow = addshadow;
+
+	paint(Rectangle r) {
+	    Rectangle textbounds;
+	    Rectangle bounds;
+	    double    factor;
+	    double    scaling;
+	    double    shadow;
+	    double    dx;
+	    double    dy;
+	    Array     lines;
+	    int       n;
+
+	    if ((factor = min(size.width, size.height)/72.0) < 1.0) {
+		if (factor <= .25)
+		    factor = 0;
+	    } else factor = min(factor, 2.0);
+	    shadow = factor*72.0/18;
+
+	    graphics {
+		erasedrawable(0.0);	// make a transparent image
+
+		//
+		// Build an envelope with an appropriate aspect ratio that we
+		// will scale into the available space.
+		//
+
+		moveto(0, 0);
+		rlineto(100, 0);
+		rlineto(0, 60);
+		rlineto(-100, 0);
+		closepath();
+
+		//
+		// Scale the envelope so it fits the comfortably into the image,
+		// then translate the path so it's centered in the image.
+		//
+
+		bounds = pathbbox();
+		scaling = .95*shrink*min((size.width - 2*shadow)/bounds.width, (size.height - 2*shadow)/bounds.height);
+		path.scalepath(scaling, scaling);
+		bounds = pathbbox();
+		path.translatepath(size.width/2 - (bounds.x + bounds.width/2), size.height/2 - (bounds.y + bounds.height/2));
+
+		//
+		// Remember the final envelope bounds - we will need them when
+		// add the stamp and addresses.
+		//
+
+		bounds = pathbbox();
+		dx = max(0.025*bounds.width, 1);
+		dy = max(0.025*bounds.width, 1);
+
+		//
+		// Draw the shadow, if there's supposed to be one, then stroke
+		// and fill the envelope.
+		//
+
+		if (addshadow && shadow > 0) {
+		    gsave();
+		    path.translatepath(shadow, shadow);
+		    setgray(.5);
+		    fill(.4);
+		    grestore();
+		}
+
+		gsave();
+		setgray(0);
+		stroke();
+		grestore();
+		setgray(1);
+		fill();
+
+		//
+		// Draw the stamp.
+		//
+
+		moveto(bounds.x + bounds.width - dx, bounds.y + dy);
+		rlineto(0, 10*scaling);
+		rlineto(-8*scaling, 0);
+		rlineto(0, -10*scaling);
+		closepath();
+		setgray(0);
+		fill();
+
+		//
+		// We deal with the addresses as paths that are supposed to fit
+		// comfortably into the envelope that we just drew using the same
+		// techniques that we just used for the envelope.
+		//
+
+		lines = strsplit(sender, "\n");
+		for (n = 0; n < lines@sizeof; n++) {
+		    moveto(0, (n+1)*font.height);
+		    charpath(lines[n]);
+		}
+		textbounds = pathbbox();
+		scaling = min(.5*bounds.width/textbounds.width, .4*bounds.height/textbounds.height);
+		path.scalepath(scaling, scaling);
+		path.translatepath(bounds.x + dx, bounds.y + dy);
+		fill();
+
+		lines = strsplit(receiver, "\n");
+		for (n = 0; n < lines@sizeof; n++) {
+		    moveto(0, (n+1)*font.height);
+		    charpath(lines[n]);
+		}
+		textbounds = pathbbox();
+		scaling = min(.6*bounds.width/textbounds.width, .4*bounds.height/textbounds.height);
+		path.scalepath(scaling, scaling);
+		path.translatepath(bounds.x + .2*bounds.width, bounds.y + .5*bounds.height);
+		fill();
+	    }
+	}
+    };
+    return(image);
+}
+
+BuildPolygonIcon(Dimension size, int sides, double degrees, String text, Color polygoncolor, Color textcolor, int smooth, int outline, int addshadow, double shrink, String font) {
+    Image image = {
+	Dimension size = size;
+	int       type = TYPE_RGB_ALPHA;
+
+	Graphics graphics = {
+	    String font = (font == NULL ? "Helvetica-bold-10" : font);
+	    int    antialiasing = TRUE;
+	    int    linejoin = (smooth ? JOIN_ROUND : JOIN_MITER);
+	    int    linecap = (smooth ? CAP_ROUND : CAP_BUTT);
+	};
+
+	String text = text;
+	double shrink = min(shrink, 1.0);
+	Color  polygoncolor = polygoncolor;
+	Color  textcolor = textcolor;
+	double adjustment;
+	double degrees = degrees;
+	int    sides = sides;
+	int    addshadow = addshadow;
+	int    smooth = smooth;
+	int    outline = outline;
+
+	paint(Rectangle r) {
+	    Rectangle textbounds;
+	    Rectangle bounds;
+	    double    factor;
+	    double    scaling;
+	    double    shadow;
+	    double    strokewidth;
+	    double    side;
+	    double    dx;
+	    double    dy;
+	    double    angle;
+	    int       n;
+
+	    angle = 360.0/sides;
+	    dx = abs(sin(angle/2));
+	    dy = abs(cos(angle/2));
+	    side = 2.0*dx;
+
+	    if ((factor = min(size.width, size.height)/72.0) < 1.0) {
+		if (factor <= .25)
+		    factor = 0;
+	    } else factor = min(factor, 2.0);
+	    if (factor == 0) {
+		addshadow = 0;
+		smooth = 0;
+		outline = 0;
+	    }
+	    shadow = factor*72.0/18;
+	    strokewidth = 2.0*shadow;
+
+	    graphics {
+		erasedrawable(0.0);	// make a transparent image
+
+		//
+		// Build a "unit" polygon with center at (0, 0) and a horizontal
+		// side along its bottom.
+		//
+
+		translate(dx, dy);
+		moveto(0, 0);
+
+		for (n = 0; n < sides; n++) {
+		    translate(-side, 0);
+		    lineto(0, 0);
+		    rotate(angle);
+		}
+
+		closepath();
+		rotatepath(degrees);
+		translate(-dx, -dy);	// should be back to the original CTM
+
+		//
+		// Scale the polygon so it fits the comfortably into the image,
+		// then translate the path so it's centered in the image.
+		//
+
+		bounds = pathbbox();
+		adjustment = 0;
+		if (addshadow && shadow > 0)
+		    adjustment += shadow;
+		adjustment += strokewidth;
+		scaling = shrink*min((size.width - 2*adjustment)/bounds.width, (size.height - 2*adjustment)/bounds.height);
+		path.scalepath(scaling, scaling);
+		bounds = pathbbox();
+		path.translatepath(size.width/2 - (bounds.x + bounds.width/2), size.height/2 - (bounds.y + bounds.height/2));
+
+		//
+		// Draw the polygon's shadow, if there's supposed to be one, and
+		// then draw the polygon.
+		//
+
+		if (addshadow && shadow > 0) {
+		    gsave();
+		    path.translatepath(shadow, shadow);
+		    setgray(.5);
+		    linewidth = strokewidth;
+		    strokepath();
+		    fill(.4);
+		    grestore();
+		}
+
+		foreground = polygoncolor;
+		gsave();
+		linewidth = strokewidth;
+		strokepath();
+		fill();
+		grestore();
+		if (outline) {
+		    gsave();
+		    linewidth = strokewidth/2;
+		    foreground = textcolor;
+		    strokepath();
+		    fill();
+		    grestore();
+		}
+		fill();
+
+		//
+		// We deal with the text string as a path that's supposed to fit
+		// comfortably into the polygon that we just drew using the same
+		// techniques that we just used for the polygon.
+		//
+
+		if (text != NULL && text@sizeof > 0) {
+		    moveto(0, 0);
+		    charpath(text);
+		    textbounds = pathbbox();
+		    scaling = 0.9*min(bounds.width/textbounds.width, .6*bounds.height/textbounds.height);
+		    path.scalepath(scaling, scaling);
+		    bounds = pathbbox();
+		    if (sides == 3)
+			path.translatepath(size.width/2 - bounds.x - bounds.width/2, size.height/2 + 1.25 * (bounds.height/2 - (bounds.height + bounds.y)));
+		    else path.translatepath(size.width/2 - bounds.x - bounds.width/2, size.height/2 + (bounds.height/2 - (bounds.height + bounds.y)));
+		    foreground = textcolor;
+
+		    if (scaling < 0.5) {
+			//
+			// This should fatten up text a bit when it's really
+			// small. Thrown in quickly, so there's undoubtedly
+			// lots of room for improvement - maybe later!!
+			//
+			gsave();
+			linewidth = .4;
+			strokepath();
+			fill();
+			grestore();
+		    }
+		    fill();
+
+		}
+	    }
+	}
+    };
+    return(image);
+}
+
+BuildYoixLogoImage(double pointsize, Color color, int addshadow) {
+    GenImage(Font imagefont, Color color) {
+	Rectangle textrect;
+	Rectangle rect;
+	Dimension delta;
+	double    radius;
+	Font      regfont;
+
+	//
+	// Construct the font used for the registered mark. We translate
+	// the font so there's no need to move when we use it to show the
+	// registered mark.
+	//
+
+	rect = stringBounds(imagefont, "\xAE", TRUE);
+	delta = imagefont.matrix.idtransform(0, rect.y);
+	regfont = imagefont.scalefont(0.5, 0.5).translatefont(0.0, delta.height);
+
+	//
+	// Estimate the radius of a circle that covers all Y characters
+	// that make up the logo.
+	//
+
+	rect = stringBounds(imagefont, "Y", TRUE);
+	radius = sqrt(rect.width*rect.width + rect.height*rect.height);
+
+	//
+	// Now build a rectangle that's supposed to cover everything. We
+	// could add some slop here, but so far it's not necessary. This
+	// is also where we could account for any extra horizontal spacing
+	// that's added when we print the text string.
+	//
+
+	textrect = stringBounds(imagefont, "Yoix");
+	textrect.width += radius + stringWidth(regfont, "\xAE") - 0.33 * rect.width - 0.6 * stringBounds(imagefont, "i", TRUE).width;
+	textrect.height = 2.0 * radius;
+
+	Image yoixlogo = {
+	    double radius = radius;
+	    Color  imgcolor = color;
+	    Font   imagefont = imagefont;
+	    Font   regfont = regfont;
+	    int    type = TYPE_RGB_ALPHA;
+
+	    Graphics graphics = {
+		Color foreground = imgcolor;
+		Font  font = imagefont;
+		int   textantialiasing = TRUE;
+	    };
+
+	    Dimension size = {
+		// assumes proportional shadow offsets of (0.005, 0.02)
+		double width = textrect.width   * 1.01;
+		double height = textrect.height * 1.04;
+	    };
+
+	    paint(Rectangle r) {
+		double alpha = 1.0;
+		double alpha2 = 0.3333;
+		int    limit = 12;
+		int    n;
+
+		kerner(int c0, int c1) {
+		    String str[1];
+		    double width;
+
+		    switch(c0) {
+		    case 'Y':
+			*str = c0;
+			width = stringBounds(font, str, TRUE).width;
+			rmoveto(-0.33*width, 0.0);
+			break;
+		    case 'o':
+			*str = c1;
+			width = stringBounds(font, str, TRUE).width;
+			rmoveto(-0.5*width, 0.0);
+			break;
+
+		    case 'i':
+			*str = c0;
+			width = stringBounds(font, str, TRUE).width;
+			rmoveto(-0.1 * width, 0.0);
+			break;
+		    }
+		}
+
+		graphics {
+		    gsave();
+		    erasedrawable(0.0);
+		    rectclip(r);
+		    // assumes proportional shadow offsets of (0.005, 0.02)
+		    translate(this.radius + 0.005 * this.size.width, this.size.height/2.0);
+		    for (n = 0; n < limit; n++) {
+			moveto(0.0, 0.0);
+			setfont(this.imagefont);
+			if (n == 0) {
+			    kshow(kerner, "Yoix", alpha);
+			    setfont(this.regfont);
+			    show("\xAE", alpha);
+			    alpha = alpha2;
+			} else show("Y", alpha);
+			alpha *= 0.75;
+			rotate(30);
+		    } 
+		    grestore();
+		}
+	    }
+	};
+
+	return(yoixlogo);
+    }
+
+    if (LOGOFONT == NULL) {
+	String basename;
+	Array  fontlist = getFontList();
+
+	if (indexOfObject(fontlist, "ClearviewATT") >= 0)
+	    basename = "ClearviewATT";
+	else if (indexOfObject(fontlist, "Helvetica") >= 0)
+	    basename = "Helvetica";
+	else basename = "sans";
+
+	LOGOFONT = new Font {
+	    String name = basename + "-plain-48";
+	};
+    }
+
+    Font imagefont = LOGOFONT.scalefont(pointsize/48.0, pointsize/48.0);
+    Image image;
+
+    if (addshadow) {
+	Image logo = GenImage(imagefont, color);
+	image = new Image {
+	    int type = TYPE_RGB_ALPHA;
+
+	    Image source = logo;
+	    Image img = logo;
+	    Image shadow = new Image {
+		Image source = img;
+		Array kernel = new Array[100];
+		int   type = TYPE_RGB_ALPHA;
+
+		for (ptr in kernel)
+		    *ptr = 0.0055;
+
+		paint() {
+		    convolve(kernel);
+		}
+	    };
+
+	    paint(Rectangle r) {
+		graphics {
+		    gsave();
+		    moveto(0, 0);
+		    showimage(this.img);
+		    // assumes proportional shadow offsets of (0.005, 0.02)
+		    moveto(this.img.size.height * 0.005, this.img.size.height * 0.02);
+		    showimage(this.shadow);
+		    grestore();
+		}
+	    }
+	};
+    } else image = GenImage(imagefont, color);
+
+    return(image);
+}
+
+PickIconSize(Object size) {
+    if (!(size instanceof Dimension)) {
+	if (size instanceof Number) {
+	    size = new Dimension {
+		double width = size;
+		double height = size;
+	    };
+	} else if (size instanceof Font) {
+	    size = new Dimension {
+		double width = size.height;
+		double height = size.height;
+	    };
+	} else {
+	    size = new Dimension {
+		double width = 72.0/3;
+		double height = 72.0/3;
+	    };
+	}
+    }
+    return(size);
+}

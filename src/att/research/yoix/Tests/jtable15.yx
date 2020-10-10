@@ -1,0 +1,108 @@
+import yoix.*.*;
+
+JTable jt = {
+    Array columns = {
+	new JTableColumn {
+	    String header = "Col 1";
+	    int type = INTEGER_TYPE;
+	    String  text = "100\n10\n9\n5\n1\n0\n-1\n-5\n-9\n-10\n-100\nN/A\n??\n??";
+	    Dictionary attributes = {
+		int overflow = 10;
+		int underflow = 4;
+		String lowSubstitute = "N/A";
+		String highSubstitute = "??";
+	    };
+	},
+	new JTableColumn {
+	    String header = "Col 2";
+	    int type = INTEGER_TYPE;
+	    String  text = "100\n10\n9\n5\n1\n0\n-1\n-5\n-9\n-10\n-100\nN/A\n!!\n!!";
+	    Dictionary attributes = {
+		int overflow = 9;
+		int underflow = -9;
+		String lowSubstitute = "N/A";
+		String highSubstitute = "!!";
+	    };
+	},
+	new JTableColumn {
+	    String header = "Col 3";
+	    int type = INTEGER_TYPE;
+	    String  text = "100\n10\n9\n5\n1\n0\n-1\n-5\n-9\n-10\n-100\nn/a\n!!\n!!";
+	    Dictionary attributes = {
+		String lowSubstitute = "n/a";
+		String highSubstitute = "!!";
+	    };
+	},
+	new JTableColumn {
+	    String header = "Col 4";
+	    int type = DOUBLE_TYPE;
+	    String  text = "100.5\n10.5\n9.5\n5.5\n1.5\n0\n-1.5\n-5.5\n-9.5\n-10.5\n-100.5\nN/A\n??\n??";
+	    Dictionary attributes = {
+		int overflow = 10;
+		int underflow = 4;
+		String lowSubstitute = "N/A";
+		String highSubstitute = "??";
+	    };
+	},
+	new JTableColumn {
+	    String header = "Col 5";
+	    int type = DOUBLE_TYPE;
+	    String  text = "100.5\n10.5\n9.5\n5.5\n1.5\n0\n-1.5\n-5.5\n-9.5\n-10.5\n-100.5\nN/A\n!!\n!!";
+	    Dictionary attributes = {
+		double overflow = 9.5;
+		double underflow = -9.5;
+		String lowSubstitute = "N/A";
+		String highSubstitute = "!!";
+	    };
+	},
+	new JTableColumn {
+	    String header = "Col 6";
+	    int type = DOUBLE_TYPE;
+	    String  text = "100.5\n10.5\n9.5\n5.5\n1.5\n0\n-1.5\n-5.5\n-9.5\n-10.5\n-100.5\nn/a\n!!\n!!";
+	    Dictionary attributes = {
+		String lowSubstitute = "n/a";
+		String highSubstitute = "!!";
+	    };
+	},
+	new JTableColumn {
+	    String header = "Col 7";
+	    int type = PERCENT_TYPE;
+	    String  text = "100.5\n10.5\n9.5\n5.5\n1.5\n0\n-1.5\n-5.5\n-9.5\n-10.5\n-100.5\nN/A\n??\n??";
+	    Dictionary attributes = {
+		int overflow = 10;
+		int underflow = 4;
+		String lowSubstitute = "N/A";
+		String highSubstitute = "??";
+	    };
+	},
+	new JTableColumn {
+	    String header = "Col 8";
+	    int type = MONEY_TYPE;
+	    String  text = "100.5\n10.5\n9.5\n5.5\n1.5\n0\n-1.5\n-5.5\n-9.5\n-10.5\n-100.5\nN/A\n!!\n!!";
+	    Dictionary attributes = {
+		double overflow = 9.5;
+		double underflow = -9.5;
+		String lowSubstitute = "N/A";
+		String highSubstitute = "!!";
+	    };
+	},
+	new JTableColumn {
+	    String header = "Col 9";
+	    int type = PERCENT_TYPE;
+	    String  text = "100.5\n10.5\n9.5\n5.5\n1.5\n0\n-1.5\n-5.5\n-9.5\n-10.5\n-100.5\nn/a\n!!\n!!";
+	    Dictionary attributes = {
+		String lowSubstitute = "n/a";
+		String highSubstitute = "!!";
+	    };
+	},
+    };
+};
+
+
+JFrame jf = {
+    int border = 18;
+    Dimension size = NULL;
+    int       visible = 1;
+
+    Array layout = { jt };
+};

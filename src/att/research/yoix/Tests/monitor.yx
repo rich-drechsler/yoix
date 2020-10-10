@@ -1,0 +1,178 @@
+//
+// This is an example of a thread that can be used to monitor DataManager
+// status during initialization. Just assign the thread created by calling
+// Monitor() to the DataManager's monitor field and a small status window
+// with a progress bar should be displayed the first time the DataManager
+// is loaded.
+//
+
+import yoix.*.*;
+
+Monitor(...) {
+    Thread thread = {
+	int priority = yoix.thread.MAX_PRIORITY - 1;
+
+	JWindow progress_screen = {
+	    Dimension size = NULL;
+	    String    font = "Helvetica-bold-12";
+	    int       autodispose = TRUE;
+
+	    BevelBorder border = {
+		int raised = TRUE;
+		EmptyBorder child = {
+		    Insets insets = {
+			double top = 72.0/4;
+			double left = 72.0/4;
+			double bottom = 72.0/16;
+			double right = 72.0/4;
+		    };
+		};
+	    };
+
+	    Point dragpoint = NULL;
+
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		new JProgressBar {
+		    String tag = "$_bar";
+		    String text = NULL;
+		    Color  background = Color.white;
+		    Color  foreground = Color.blue;
+		    int    orientation = HORIZONTAL;
+
+		    Dimension preferredsize = {
+			double width = 4.5*72.0;
+			double height = 0.25*72.0;
+		    };
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 100;
+		    int weighty = 100;
+		    int fill = HORIZONTAL;
+
+		    Insets insets = {
+			double bottom = 72.0/16;
+		    };
+		},
+
+		new JLabel {
+		    String tag = "$_elapsed";
+		    int    alignment = RIGHT;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int anchor = RIGHT;
+	        },
+	    };
+
+	    ////////////////////////////
+	    //
+	    // Event Handlers
+	    //
+	    ////////////////////////////
+
+	    mousePressed(e) {
+		toFront(this);
+		dragpoint = e.location;
+		cursor = Cursor.MOVE_CURSOR;
+	    }
+
+	    mouseDragged(e) {
+		Point  point = this.location;
+
+		point.x += (e.location.x - dragpoint.x);
+		point.y += (e.location.y - dragpoint.y);
+		this.location = point;
+	    }
+
+	    mouseReleased(e) {
+		dragpoint = NULL;
+		cursor = Cursor.DEFAULT_CURSOR;
+	    }
+
+	    ////////////////////////////
+	    //
+	    // Miscellaneous Functions
+	    //
+	    ////////////////////////////
+
+	    ShowScreen() {
+		if (!visible) {
+		    location = new Point {
+			double x = (VM.screen.width - size.width)/2;
+			double y = (VM.screen.height - size.height)/2 - 72;
+		    };
+		    visible = TRUE;
+		}
+	    }
+
+	    UpdateStatus(Array status) {
+		String info = status[1];
+		String elapsed = timerFormat(status[2]);
+		int    indeterminant;
+
+		switch (status[0]) {
+		    case 0:		// idle	- probably impossible
+		    case 1:		// running
+		    case 5:		// sorting
+			indeterminant = TRUE;
+			break;
+
+		    case 2:		// reading
+		    case 3:		// building
+		    case 4:		// loading
+			info += ": " + toString((int)status[4]) + "/" + toString((int)status[5]);
+			indeterminant = TRUE;
+			break;
+
+		    default:
+			info = "Unknown State";
+			indeterminant = TRUE;
+			break;
+		}
+
+		components.$_bar.text = status[1];
+		components.$_bar.maximum = (int)status[5];
+		components.$_bar.value = (int)status[4];
+		components.$_bar.indeterminate = indeterminant;
+		components.$_elapsed.text = elapsed;
+	    }
+	};
+
+	run(...) {
+	    Object manager;
+
+	    //
+	    // NOTE - progress_screen may have autodispose set to TRUE, so
+	    // this probably will only run once, which I think is usually
+	    // what we want.
+	    //
+
+	    if (!progress_screen.dispose) {
+		if (argc > 1) {
+		    manager = argv[1];
+		    progress_screen.ShowScreen();
+		    yoix.thread.sleep(.25);
+		    while (1) {
+			/////progress_screen.UpdateStatus(manager.getState());
+			progress_screen.UpdateStatus(new Array {1, "Building", 2.0, "dummy", 30.0, 100.0});
+			yoix.thread.sleep(.25);
+		    }
+		    progress_screen.visible = FALSE;
+		}
+	    }
+	}
+
+	afterInterrupt() {
+	    progress_screen.visible = FALSE;
+	}
+    };
+
+    return(thread);
+}
+
+/////return(Monitor);
+
+Thread thread = Monitor();
+thread.run("testing");

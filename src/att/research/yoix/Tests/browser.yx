@@ -1,0 +1,103 @@
+//
+// Unfortunately JTextPane doesn't do a great job handling most of today's
+// web pages.
+//
+
+import yoix.*.*;
+
+String url = argc > 1 && argv[1]@sizeof > 0 ? argv[1] : "http://www.att.com";
+Dictionary urlinfo = parseURL(url);
+String pagebase = urlinfo.protocol + "://" + urlinfo.host;
+
+JFrame f = {
+    String title = "Very Simple Browser";
+
+    Color background = Color.white;
+
+    int border = 9;
+    int visible = TRUE;
+
+    Array layout = {
+	new JTextPane {
+	    String tag = "$_textpane";
+	    Color  background = Color.white;
+	    int mode = 1; // 1=HTML; 0=plain; -1=RTF
+	    //String text = "<html><body>Hello, <b>world</b>!</body></html>";
+	    String page = url;
+	    //String text = browser_text;
+	    int    edit = FALSE;
+	    int    scroll = AS_NEEDED;
+
+	    hyperlinkActivated(e) {
+		String newurl = NULL;
+
+		
+		try {
+		    urlinfo = parseURL(e.href);
+		    newurl = e.href;
+		}
+		catch(e) {
+		    return(TRUE);
+		}
+		if (newurl == NULL) {
+		    newurl = pagebase + e.href;
+		    try {
+			urlinfo = parseURL(newurl);
+		    }
+		    catch(e) {
+			newurl = NULL;
+			return(TRUE);
+		    }
+		}
+		if (newurl != NULL) {
+		    url = newurl;
+		    pagebase = urlinfo.protocol + "://" + urlinfo.host;
+		    page = url;
+		} else showMessageDialog(root, strfmt("malformed link \"%s\"", e.href), "Bad Link", ERROR_MESSAGE);
+	    }
+
+	}, CENTER,
+
+	new JPanel {
+	    FlowLayout  layoutmanager = {
+		int vgap = 72/12;
+	    };
+
+	    Array layout = {
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String text = "Refresh";
+			    int    requestfocus = TRUE;
+
+			    actionPerformed(e) {
+				root.components.$_textpane.page = null;
+				root.components.$_textpane.page = url;
+			    }
+			},
+
+			new JButton {
+			    String text = "Dump";
+
+			    actionPerformed(e) {
+				//stdout.nextline = root.components.$_textpane.text;
+				stdout.nextline = root.components.$_textpane.page;
+			    }
+			},
+
+			new JButton {
+			    String text = "Quit";
+
+			    actionPerformed(e) {
+				exit(0);
+			    }
+			},
+		    };
+		},
+	    };
+	}, SOUTH,
+    };
+};
+

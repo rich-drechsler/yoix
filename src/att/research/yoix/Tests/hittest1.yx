@@ -1,0 +1,39 @@
+//
+// Duplicates the last example using Paths, which are new, and
+// the Java2D capabilities that were added to Graphics objects.
+//
+
+import yoix.*.*;
+
+Star(double xcenter, double ycenter) {
+    Path p;
+
+    p.moveto(xcenter + 0, ycenter + -50);
+    p.lineto(xcenter + 29, ycenter + 40);
+    p.lineto(xcenter + -47, ycenter + -15);
+    p.lineto(xcenter + 47, ycenter + -15);
+    p.lineto(xcenter + -29, ycenter + 40);
+    p.closepath();
+    return(p);
+}
+
+JFrame f = {
+    Color background = Color.black;
+
+    paint(Rectangle rect) {
+	graphics {
+	    setpath(Star(size.width - 72, size.height - 72*2));
+	    gsave();
+	    setcmykcolor(0, 0, 1);
+	    eofill();
+	    grestore();
+	}
+    }
+
+    mousePressed(e) {
+	puts(graphics.ineofill(e.location) ? "inside" : "outside");
+    }
+};
+
+f.visible = TRUE;
+

@@ -1,0 +1,1877 @@
+//
+// A Generic screen that wraps around a Canvas3D.
+//
+
+import yoix.j3d.*;
+import yoix.*.*;
+
+VM.create = 0;
+
+addColor();
+
+const double METERSPERFEET = 0.3048;
+const double METERSPERINCH = METERSPERFEET/12.0;
+
+const Font BUTTONFONT = {String name = "Helvetica-bold-14";};
+const Font LABELFONT = {String name = "Helvetica-bold-14";};
+const Font MENUFONT = {String name = "Helvetica-bold-12";};
+
+const double RADIUS = 2.25*METERSPERINCH;
+const double TABLEWIDTH = 5*METERSPERFEET;
+const double TABLEHEIGHT = 10.0*METERSPERFEET;
+
+const int CUE_BALL_CENTER = 0;
+const int CUE_BALL_INSIDE_EDGE = 1;
+const int CUE_BALL_OUTSIDE_EDGE = 2;
+const int OBJECT_BALL_CENTER = 3;
+const int OBJECT_BALL_INSIDE_EDGE = 4;
+const int OBJECT_BALL_OUTSIDE_EDGE = 5;
+
+NewContactLine(String tag, Color color) {
+    Object line;
+
+    line = new Shape3D {
+	String tag = tag;
+
+	Transform3D transform;
+	Array geometry = NULL;
+
+	Appearance appearance = {
+	    Dictionary capabilities = {
+		int ALLOW_APPEARANCE_MODIFY = 0;
+		int ALLOW_APPEARANCE_READ = 0;
+		int ALLOW_APPEARANCE_WRITE = 0;
+	    };
+
+	    ColoringAttributes coloring = {
+		Color color = color;
+	    };
+	};
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	Object universe = NULL;
+	int    visible = FALSE;
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	GetVisible() {
+	    return(visible);
+	}
+
+	SetUniverse(Object universe) {
+	    this.universe = universe;
+	}
+
+	SetVisible(int state) {
+	    Object cue_ball_location;
+	    Object object_ball_location;
+	    Object ghost_ball_location;
+	    double slope;
+	    double factor;
+	    double radius;
+	    int    extended;
+
+	    if (state) {
+		if ((cue_ball_location = universe.tagged.$_cue_ball.location) != NULL) {
+		    if ((object_ball_location = universe.tagged.$_object_ball.location) != NULL) {
+			if ((ghost_ball_location = universe.GetGhostBallLocation()) != NULL) {
+			    extended = universe.root.extendcontactline;
+			    radius = universe.tagged.$_object_ball.radius;
+			    if (object_ball_location.y != cue_ball_location.y) {
+				if (ghost_ball_location.x != object_ball_location.x) {
+				    slope = (object_ball_location.y - ghost_ball_location.y)/(object_ball_location.x - ghost_ball_location.x);
+				    factor = (object_ball_location.x > ghost_ball_location.x ? 1 : -1)/sqrt(1 + slope*slope);
+				    if (extended) {
+					this.geometry = new Array {
+					    new LineArray {
+						Array coordinates =  {
+						    cue_ball_location.x + radius*factor, cue_ball_location.y - radius, cue_ball_location.z,
+						    object_ball_location.x - radius*factor, object_ball_location.y + radius, object_ball_location.z,
+						};
+					    },
+					};
+				    } else {
+					this.geometry = new Array {
+					    new LineArray {
+						Array coordinates =  {
+						    cue_ball_location.x + radius*factor, cue_ball_location.y + radius*slope*factor, cue_ball_location.z,
+						    object_ball_location.x - radius*factor, object_ball_location.y - radius*slope*factor, object_ball_location.z,
+						};
+					    },
+					};
+				    }
+				} else {
+				    if (extended) {
+					this.geometry = new Array {
+					    new LineArray {
+						Array coordinates =  {
+						    cue_ball_location.x, cue_ball_location.y - radius, cue_ball_location.z,
+						    object_ball_location.x, object_ball_location.y + radius, object_ball_location.z,
+						};
+					    },
+					};
+				    } else {
+					this.geometry = new Array {
+					    new LineArray {
+						Array coordinates =  {
+						    cue_ball_location.x, cue_ball_location.y + radius, cue_ball_location.z,
+						    object_ball_location.x, object_ball_location.y - radius, object_ball_location.z,
+						};
+					    },
+					};
+				    }
+				}
+			    } else geometry = NULL;
+			} else geometry = NULL;
+		    } else geometry = NULL;
+		} else this.geometry = NULL;
+	    } else geometry = NULL;
+
+	    visible = state;
+	}
+
+	SyncObject() {
+	    SetVisible(visible);
+	}
+    };
+
+    return(line);
+}
+
+NewCueBall(String tag, Color color, double alpha, double x, double y, double radius, int steps) {
+    Object ball;
+
+    steps = max(steps, 2);
+
+    ball = new Sphere {
+	String tag = tag;
+	double radius = radius;
+	int    divisions = 128;
+
+	Transform3D transform;
+
+	Point3D position = {
+	    double x = x;
+	    double y = y;
+	    double z = 0;
+	};
+
+	Appearance appearance = {
+	    Dictionary capabilities = {
+		int ALLOW_APPEARANCE_MODIFY = 1;
+		int ALLOW_APPEARANCE_READ = 1;
+		int ALLOW_APPEARANCE_WRITE = 1;
+	    };
+
+	    ColoringAttributes coloring = {
+		Color color = color;
+	    };
+
+	    Material material = {
+		Color  ambientcolor = color;
+		Color  diffusecolor = color;
+		double shininess = 0.75;
+		int    enabled = TRUE;
+	    };
+
+	    PointAttributes points = {
+		int    antialiasing = TRUE;
+		double size = 2.0;
+	    };
+
+	    PolygonAttributes polygons = {
+		int  mode = J3D_FILL;
+		int  culling = J3D_BACK;
+	    };
+
+	    RenderingAttributes rendering = {
+		int visible = TRUE;
+	    };
+
+	    TransparencyAttributes transparency;
+	};
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	Object universe = NULL;
+	double alpha = alpha;
+	double delta;
+	int    steps = steps;
+	int    visible = TRUE;
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	GetVisible() {
+	    return(visible);
+	}
+
+	MouseWheelMoved(e) {
+	    StepBall(e.wheelrotation > 0 ? 1 : -1);
+	}
+
+	SetAlpha(double value) {
+	    alpha = max(0.0, min(1.0, value));
+	    SetTransparent(!visible);
+	}
+
+	SetTransparent(int state) {
+	    if (state) {
+		appearance.transparency.mode = J3D_NICEST;
+		appearance.transparency.value = 1.0;
+	    } else {
+		appearance.transparency.mode = (alpha == 0) ? J3D_NONE : J3D_NICEST;
+		appearance.transparency.value = alpha;
+	    }
+	}
+
+	SetUniverse(Object universe) {
+	    Object ghost_ball_location;
+
+	    this.universe = universe;
+	    if ((ghost_ball_location = universe.GetGhostBallLocation()) != NULL)
+		delta = (ghost_ball_location.y - position.y)/(steps - 1);
+	}
+
+	SetVisible(int state) {
+	    SetTransparent(!state);
+	    visible = state;
+	}
+
+	StepBall(int direction) {
+	    Object transform;
+	    Object ghost_ball_location;
+	    double dy;
+	    double y;
+	    int    sign;
+
+	    if (direction) {
+		if ((ghost_ball_location = universe.GetGhostBallLocation()) != NULL) {
+		    sign = (direction > 0) ? 1 : -1;
+		    dy = sign*delta;
+		    if (location.y + dy > ghost_ball_location.y)
+			dy = ghost_ball_location.y - location.y;
+		    else if (location.y + dy < position.y)
+			dy = position.y - location.y;
+		    transform = this.transform;
+		    transform.translate(0, dy, 0);
+		    this.transform = transform;
+		    universe.SyncUniverse();
+		}
+	    }
+	}
+    };
+
+    return(ball);
+}
+
+NewGhostBall(String tag, Color color, double alpha, double radius, int steps) {
+    Object ball;
+
+    steps = max(steps, 2);
+
+    ball = new Sphere {
+	String  tag = tag;
+	double  radius = radius;
+	int     divisions = 512;
+
+	Transform3D transform;
+
+	Appearance appearance = {
+	    Dictionary capabilities = {
+		int ALLOW_APPEARANCE_MODIFY = 0;
+		int ALLOW_APPEARANCE_READ = 0;
+		int ALLOW_APPEARANCE_WRITE = 0;
+	    };
+
+	    ColoringAttributes coloring = {
+		Color color = color;
+	    };
+
+	    Material material = {
+		Color  ambientcolor = color;
+		Color  diffusecolor = color;
+		double shininess = 0.0;
+		int    enabled = TRUE;
+	    };
+
+	    PointAttributes points = {
+		int    antialiasing = TRUE;
+		double size = 2.0;
+	    };
+
+	    PolygonAttributes polygons = {
+		int  mode = J3D_FILL;
+		int  culling = J3D_BACK;
+	    };
+
+	    RenderingAttributes rendering = {
+		int visible = TRUE;
+	    };
+
+	    TransparencyAttributes transparency = {
+		int    mode = J3D_NICEST;
+		double value = alpha;
+	    };
+	};
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	Object universe = NULL;
+	double alpha = alpha;
+	double delta;
+	int    steps = steps;
+	int    visible = TRUE;
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	GetVisible() {
+	    return(visible);
+	}
+
+	MouseWheelMoved(e) {
+	    StepBall(e.wheelrotation > 0 ? 1 : -1);
+	}
+
+	SetAlpha(double value) {
+	    alpha = max(0.0, min(1.0, value));
+	    SetTransparent(!visible);
+	}
+
+	SetTransparent(int state) {
+	    if (state) {
+		appearance.transparency.mode = J3D_NICEST;
+		appearance.transparency.value = 1.0;
+	    } else {
+		appearance.transparency.mode = (alpha == 0) ? J3D_NONE : J3D_NICEST;
+		appearance.transparency.value = alpha;
+	    }
+	}
+
+	SetUniverse(Object universe) {
+	    Object ghost_ball_location;
+
+	    this.universe = universe;
+	    if ((ghost_ball_location = universe.GetGhostBallLocation()) != NULL)
+		delta = (ghost_ball_location.y - universe.tagged.$_cue_ball.position.y)/(steps - 1);
+	}
+
+	SetVisible(int state) {
+	    SetTransparent(!state);
+	    visible = state;
+	}
+
+	StepBall(int direction) {
+	    Object transform;
+	    Object ghost_ball_location;
+	    Object cue_ball;
+	    Object object_ball;
+	    double dy;
+	    int    sign;
+
+	    if (direction) {
+		if ((ghost_ball_location = universe.GetGhostBallLocation()) != NULL) {
+		    cue_ball = universe.tagged.$_cue_ball;
+		    object_ball = universe.tagged.$_object_ball;
+		    sign = (direction > 0) ? 1 : -1;
+		    dy = sign*delta;
+		    if (ghost_ball_location.y + dy < cue_ball.location.y)
+			dy = cue_ball.location.y - ghost_ball_location.y;
+		    transform = object_ball.transform;
+		    transform.translate(0, dy, 0);
+		    object_ball.transform = transform;
+		    universe.SyncUniverse();
+		}
+	    }
+	}
+
+	SyncObject() {
+	    Object point;
+	    Object transform;
+
+	    if (universe != null) {
+		if ((point = universe.GetGhostBallLocation()) != NULL) {
+		    transform = new Transform3D;
+		    transform.setToTranslation(point.x, point.y, point.z);
+		    this.transform = transform;
+		}
+		SetVisible(visible);
+	    }
+	}
+    };
+
+    return(ball);
+}
+
+NewObjectBall(String tag, Color color, double alpha, double x, double y, double radius, int steps) {
+    Object ball;
+
+    steps = 2*steps + 1;
+
+    ball = new Sphere {
+	String tag = tag;
+	double radius = radius;
+	int    divisions = 128;
+
+	Transform3D transform;
+
+	Point3D position = {
+	    double x = x;
+	    double y = y;
+	    double z = 0;
+	};
+
+	Appearance appearance = {
+	    Dictionary capabilities = {
+		int ALLOW_APPEARANCE_MODIFY = 0;
+		int ALLOW_APPEARANCE_READ = 0;
+		int ALLOW_APPEARANCE_WRITE = 0;
+	    };
+
+	    ColoringAttributes coloring = {
+		Color color = color;
+	    };
+
+	    Material material = {
+		Color  ambientcolor = color;
+		Color  diffusecolor = color;
+		double shininess = 0.75;
+		int    enabled = TRUE;
+	    };
+
+	    PointAttributes points = {
+		int    antialiasing = TRUE;
+		double size = 2.0;
+	    };
+
+	    PolygonAttributes polygons = {
+		int  mode = J3D_FILL;
+		int  culling = J3D_BACK;
+	    };
+
+	    RenderingAttributes rendering = {
+		int visible = TRUE;
+	    };
+
+	    TransparencyAttributes transparency;
+	};
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	Object universe = NULL;
+	double alpha = alpha;
+	int    steps = steps;
+	int    laststep = steps/2;
+	int    firststep = -steps/2;
+	int    step = 0;
+	int    visible = TRUE;
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	GetAngle() {
+	    Object ghost_ball_location;
+	    Object object_ball_location;
+	    double angle;
+	    double dx;
+	    double dy;
+
+	    if ((ghost_ball_location = universe.GetGhostBallLocation()) != NULL) {
+		if ((object_ball_location = universe.tagged.$_object_ball.location) != NULL) {
+		    dy = object_ball_location.x - ghost_ball_location.x;
+		    dx = object_ball_location.y - ghost_ball_location.y;
+		    angle = toDegrees(atan2(abs(dy), dx));
+		}
+	    }
+	    return(angle);
+	}
+
+	GetVisible() {
+	    return(visible);
+	}
+
+	MouseWheelMoved(e) {
+	    StepBall(e.wheelrotation > 0 ? 1 : -1);
+	}
+
+	SetAlpha(double value) {
+	    alpha = max(0.0, min(1.0, value));
+	    SetTransparent(!visible);
+	}
+
+	SetTransparent(int state) {
+	    if (state) {
+		appearance.transparency.mode = J3D_NICEST;
+		appearance.transparency.value = 1.0;
+	    } else {
+		appearance.transparency.mode = (alpha == 0) ? J3D_NONE : J3D_NICEST;
+		appearance.transparency.value = alpha;
+	    }
+	}
+
+	SetUniverse(Object universe) {
+	    this.universe = universe;
+	}
+
+	SetVisible(int state) {
+	    SetTransparent(!state);
+	    visible = state;
+	}
+
+	StepBall(int direction) {
+	    Object transform;
+	    Object ghost_ball_location;
+	    double dx;
+	    double dy;
+	    double angle0;
+	    double angle1;
+	    int    sign;
+
+	    if ((direction > 0 && step < laststep) || (direction < 0 && step > firststep)) {
+		if ((ghost_ball_location = universe.GetGhostBallLocation()) != NULL) {
+		    angle0 = 180.0*step/(steps - 1);
+		    sign = (direction > 0) ? 1 : -1;
+		    step += (direction > 0) ? 1 : -1;
+		    if (step == laststep)
+			angle1 = 90;
+		    else if (step == firststep)
+			angle1 = -90;
+		    else if (step == 0)
+			angle1 = 0;
+		    else angle1 = 180.0*step/(steps - 1);
+		    dx = 2*radius*(sin(toRadians(angle1)) - sin(toRadians(angle0)));
+		    dy = 2*radius*(cos(toRadians(angle1)) - cos(toRadians(angle0)));
+		    transform = this.transform;
+		    transform.translate(dx, dy, 0);
+		    this.transform = transform;
+		    universe.SyncUniverse();
+		}
+	    }
+	}
+
+	SyncObject() {
+	    universe.root.components.$_angle.SetAngle(GetAngle());
+	}
+    };
+
+    return(ball);
+}
+
+NewPathLine(String tag, Color color, int which) {
+    Object line;
+
+    //
+    // Creates lines parallel to the track taken by the cue ball. Currently doesn't
+    // handle the contact point line, although it probably should.
+    //
+
+    line = new Shape3D {
+	String tag = tag;
+
+	Transform3D transform;
+	Array geometry = NULL;
+
+	Appearance appearance = {
+	    Dictionary capabilities = {
+		int ALLOW_APPEARANCE_MODIFY = 0;
+		int ALLOW_APPEARANCE_READ = 0;
+		int ALLOW_APPEARANCE_WRITE = 0;
+	    };
+
+	    ColoringAttributes coloring = {
+		Color color = color;
+	    };
+	};
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	Object universe = NULL;
+	int    visible = FALSE;
+	int    which = which;
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	GetVisible() {
+	    return(visible);
+	}
+
+	SetUniverse(Object universe) {
+	    this.universe = universe;
+	}
+
+	SetVisible(int state) {
+	    Object cue_ball_location;
+	    Object object_ball_location;
+	    Object ghost_ball_location;
+	    double x;
+	    int    sign;
+
+	    if (state) {
+		if ((cue_ball_location = universe.tagged.$_cue_ball.location) != NULL) {
+		    if ((object_ball_location = universe.tagged.$_object_ball.location) != NULL) {
+			if ((ghost_ball_location = universe.GetGhostBallLocation()) != NULL) {
+			    switch (which) {
+				case CUE_BALL_CENTER:
+				    x = cue_ball_location.x;
+				    break;
+
+				case CUE_BALL_INSIDE_EDGE:
+				    sign = (object_ball_location.x >= cue_ball_location.x) ? 1 : -1;
+				    x = cue_ball_location.x + sign*universe.tagged.$_cue_ball.radius;
+				    break;
+
+				case CUE_BALL_OUTSIDE_EDGE:
+				    sign = (object_ball_location.x >= cue_ball_location.x) ? -1 : 1;
+				    x = cue_ball_location.x + sign*universe.tagged.$_cue_ball.radius;
+				    break;
+
+				case OBJECT_BALL_CENTER:
+				    x = object_ball_location.x;
+				    break;
+
+				case OBJECT_BALL_INSIDE_EDGE:
+				    sign = (object_ball_location.x >= cue_ball_location.x) ? -1 : 1;
+				    x = object_ball_location.x + sign*universe.tagged.$_object_ball.radius;
+				    break;
+
+				case OBJECT_BALL_OUTSIDE_EDGE:
+				    sign = (object_ball_location.x >= cue_ball_location.x) ? 1 : -1;
+				    x = object_ball_location.x + sign*universe.tagged.$_object_ball.radius;
+				    break;
+			    }
+			    this.geometry = new Array {
+				new LineArray {
+				    Array coordinates =  {
+					x, cue_ball_location.y, cue_ball_location.z,
+					x, object_ball_location.y + universe.tagged.$_object_ball.radius, ghost_ball_location.z,
+				    };
+				},
+			    };
+			} else geometry = NULL;
+		    } else geometry = NULL;
+		} else this.geometry = NULL;
+	    } else geometry = NULL;
+
+	    visible = state;
+	}
+
+	SyncObject() {
+	    SetVisible(visible);
+	}
+    };
+
+    return(line);
+}
+
+NewTable(String tag, Color color, double width, double radius) {
+    Object table;
+
+    table = new Shape3D {
+	String tag = "$_table";
+	Transform3D transform;
+
+	Array geometry = {
+	    new QuadArray {
+		String colorformat = "RGB";
+		int    generatenormals = TRUE;
+
+		Array coordinates = {
+		    0, 0, -radius,
+		    width, 0, -radius,
+		    width, 2*width, -radius,
+		    0, 2*width, -radius,
+		
+		};
+	    },
+	};
+
+	Appearance appearance = {
+	    Dictionary capabilities = {
+		int ALLOW_APPEARANCE_MODIFY = 0;
+		int ALLOW_APPEARANCE_READ = 0;
+		int ALLOW_APPEARANCE_WRITE = 0;
+	    };
+
+	    ColoringAttributes coloring = {
+		Color color = color;
+	    };
+
+	    Material material = {
+		Color  ambientcolor = color;
+		Color  diffusecolor = color;
+		Color  emissive = color;
+		Color  specularcolor = color;
+		////int    colortarget = J3D_AMBIENT_AND_DIFFUSE;
+		int    colortarget = J3D_DIFFUSE;
+		////int    colortarget = J3D_AMBIENT;
+		double shininess = 0.4;
+		int    enabled = TRUE;
+	    };
+
+	    PointAttributes points = {
+		int    antialiasing = TRUE;
+		double size = 2.0;
+	    };
+
+	    PolygonAttributes polygons = {
+		int  mode = J3D_FILL;
+		int  culling = J3D_BACK;
+	    };
+
+	    RenderingAttributes rendering = {
+		int visible = TRUE;
+	    };
+	};
+    };
+
+    return(table);
+}
+
+NewTargetLines(String tag, Color color) {
+    Object line;
+
+    line = new Shape3D {
+	String tag = tag;
+
+	Transform3D transform;
+	Array geometry = NULL;
+
+	Appearance appearance = {
+	    Dictionary capabilities = {
+		int ALLOW_APPEARANCE_MODIFY = 0;
+		int ALLOW_APPEARANCE_READ = 0;
+		int ALLOW_APPEARANCE_WRITE = 0;
+	    };
+
+	    ColoringAttributes coloring = {
+		Color color = color;
+	    };
+	};
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	Object universe = NULL;
+	int    visible = FALSE;
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	GetVisible() {
+	    return(visible);
+	}
+
+	SetUniverse(Object universe) {
+	    this.universe = universe;
+	}
+
+	SetVisible(int state) {
+	    Object cue_ball_location;
+	    Object object_ball_location;
+	    Object ghost_ball_location;
+	    double slope;
+	    double factor;
+	    double sign;
+	    double radius;
+	    double dx;
+	    double dy;
+
+	    if (state) {
+		if ((cue_ball_location = universe.tagged.$_cue_ball.location) != NULL) {
+		    if ((object_ball_location = universe.tagged.$_object_ball.location) != NULL) {
+			if ((ghost_ball_location = universe.GetGhostBallLocation()) != NULL) {
+			    radius = universe.tagged.$_object_ball.radius;
+			    dy = (cue_ball_location.y - object_ball_location.y);
+			    dx = (ghost_ball_location.x - object_ball_location.x);
+			    if (object_ball_location.y != cue_ball_location.y) {
+				if (cue_ball_location.x != object_ball_location.x) {
+				    slope = (object_ball_location.y - ghost_ball_location.y)/(object_ball_location.x - ghost_ball_location.x);
+				    factor = 1/sqrt(1 + slope*slope);
+				    sign = (object_ball_location.x > ghost_ball_location.x) ? -1 : 1;
+				    this.geometry = new Array {
+					new LineArray {
+					    Array coordinates =  {
+						ghost_ball_location.x + sign*2*radius*factor, ghost_ball_location.y + sign*2*radius*slope*factor, ghost_ball_location.z,
+						ghost_ball_location.x - sign*6*radius*factor, ghost_ball_location.y - sign*6*radius*slope*factor, ghost_ball_location.z,
+						ghost_ball_location.x + sign*0*radius*factor + dx, ghost_ball_location.y + sign*0*radius*slope*factor + dy, ghost_ball_location.z,
+						ghost_ball_location.x - sign*6*radius*factor + dx, ghost_ball_location.y - sign*6*radius*slope*factor + dy, ghost_ball_location.z,
+					    };
+					},
+				    };
+				} else {
+				    this.geometry = new Array {
+					new LineArray {
+					    Array coordinates =  {
+						ghost_ball_location.x, ghost_ball_location.y - 2*radius, ghost_ball_location.z,
+						ghost_ball_location.x, ghost_ball_location.y + 6*radius, ghost_ball_location.z,
+						ghost_ball_location.x + dx, ghost_ball_location.y + dy, ghost_ball_location.z,
+						ghost_ball_location.x + dx, ghost_ball_location.y + 6*radius + dy, ghost_ball_location.z,
+					    };
+					},
+				    };
+				}
+			    } else geometry = NULL;
+			} else geometry = NULL;
+		    } else geometry = NULL;
+		} else this.geometry = NULL;
+	    } else geometry = NULL;
+
+	    visible = state;
+	}
+
+	SyncObject() {
+	    SetVisible(visible);
+	}
+    };
+
+    return(line);
+}
+
+VirtualUniverse universe = {
+    Object root;
+
+    Array layout = {
+	NewTable("$_table", Color.darkgreen, TABLEWIDTH, RADIUS),
+	NewObjectBall("$_object_ball", Color.darkred, 0.0, 0.50*TABLEWIDTH, 0.50*TABLEHEIGHT, RADIUS, 90),
+	NewCueBall("$_cue_ball", Color.darkblue, 0.0, 0.50*TABLEWIDTH, 0.5*METERSPERFEET, RADIUS, 30),
+	NewGhostBall("$_ghost_ball", Color.darkred, 0.75, RADIUS, 30),
+	NewPathLine("$_aim_line", Color.white, CUE_BALL_CENTER),
+	NewTargetLines("$_target_lines", Color.green),
+	NewContactLine("$_contact_line", Color.orange),
+	NewPathLine("$_cue_ball_inside_edge", Color.green, CUE_BALL_INSIDE_EDGE),
+	NewPathLine("$_cue_ball_outside_edge", Color.green, CUE_BALL_OUTSIDE_EDGE),
+	NewPathLine("$_object_ball_inside_edge", Color.green, OBJECT_BALL_INSIDE_EDGE),
+	NewPathLine("$_object_ball_outside_edge", Color.green, OBJECT_BALL_OUTSIDE_EDGE),
+	NewPathLine("$_object_ball_center", Color.green, OBJECT_BALL_CENTER),
+
+	new AmbientLight {
+	    String tag = "$_ambient_light";
+	    Color  color = Color.gray;
+	    int    enabled = TRUE;
+	},
+
+	new DirectionalLight {
+	    String tag = "$_directional_light";
+	    Color  color = Color.white;
+	    int    enabled = TRUE;
+
+	    Vector3D direction = {
+		double x = 0;
+		double y = 0;
+		double z = -1.0;
+	    };
+	},
+
+	new PointLight {
+	    String tag = "$_point_light1";
+	    Color  color = Color.white;
+	    int    enabled = FALSE;
+
+	    Point3D position = {
+		double x = 0.50*TABLEWIDTH;
+		double y = 0.25*TABLEHEIGHT;
+		double z = 6.0*METERSPERFEET;
+	    };
+	},
+
+	new PointLight {
+	    String tag = "$_point_light2";
+	    Color  color = Color.white;
+	    int    enabled = FALSE;
+
+	    Point3D position = {
+		double x = 0.50*TABLEWIDTH;
+		double y = 0.50*TABLEHEIGHT;
+		double z = 6.0*METERSPERFEET;
+	    };
+	},
+
+	new PointLight {
+	    String tag = "$_point_light3";
+	    Color  color = Color.white;
+	    int    enabled = FALSE;
+
+	    Point3D position = {
+		double x = 0.50*TABLEWIDTH;
+		double y = 0.75*TABLEHEIGHT;
+		double z = 6.0*METERSPERFEET;
+	    };
+	},
+
+	new ViewPlatform {
+	    String tag = "$_compound_view";
+	    String currentview = "$_aim_view";
+	    Object universe;
+
+	    Transform3D transform;
+
+	    Dictionary transforms = {
+		Transform3D $_aim_view = NULL;
+		Transform3D $_top_view = NULL;
+	    };
+
+	    Dictionary deltas = {
+		Dictionary $_aim_view = {
+		    double dx = 0.0;
+		    double dy = 0.0;
+		    double dz = 0.0;
+		};
+
+		Dictionary $_top_view = {
+		    double dx = 0.0;
+		    double dy = 0.0;
+		    double dz = 0.0;
+		};
+	    };
+
+	    GetCurrentView() {
+		return(currentview);
+	    }
+
+	    MouseWheelMoved(e) {
+		switch (currentview) {
+		    case "$_aim_view":
+			if (universe.root.wheelargument === "$_view_left_right")
+			    deltas.$_aim_view.dx += e.unitstoscroll*RADIUS/20;
+			else if (universe.root.wheelargument === "$_view_up_down")
+			    deltas.$_aim_view.dz += e.unitstoscroll*RADIUS/20;
+			break;
+
+		    case "$_top_view":
+			if (universe.root.wheelargument === "$_view_left_right")
+			    deltas.$_top_view.dx += e.unitstoscroll*RADIUS/2;
+			else if (universe.root.wheelargument === "$_view_up_down")
+			    deltas.$_top_view.dz += e.unitstoscroll*RADIUS;
+			break;
+		}
+		SyncView();
+	    }
+
+	    SelectView(String name) {
+		currentview = name;
+		SyncView();
+	    }
+
+	    SetUniverse(Object universe) {
+		this.universe = universe;
+	    }
+
+	    SyncView() {
+		Object cue_ball_location;
+		Object ghost_ball_location;
+		Object transform;
+
+		switch (currentview) {
+		    case "$_aim_view":
+			if ((ghost_ball_location = universe.GetGhostBallLocation()) != NULL) {
+			    cue_ball_location = universe.tagged.$_cue_ball.location;
+			    transform = new Transform3D;
+			    transform.setToViewAt(
+				cue_ball_location.x + deltas.$_aim_view.dx, -1.5*METERSPERFEET + deltas.$_aim_view.dy, 3*RADIUS + deltas.$_aim_view.dz,
+				cue_ball_location.x, ghost_ball_location.y, 0,
+				0, 0, 1
+			    );
+			    transforms.$_aim_view = transform;
+			    this.transform = transforms.$_aim_view;
+			}
+			break;
+
+		    case "$_top_view":
+			transform = new Transform3D;
+			transform.setToViewAt(
+			    0.50*TABLEWIDTH + deltas.$_top_view.dx, 0.50*TABLEHEIGHT + deltas.$_top_view.dy, 12.0*METERSPERFEET + deltas.$_top_view.dz,
+			    0.50*TABLEWIDTH, 0.50*TABLEHEIGHT, 0.0,
+			    0, 0.50*TABLEHEIGHT, 0
+			);
+			transforms.$_top_view = transform;
+			this.transform = transforms.$_top_view;
+			break;
+		}
+	    }
+	},
+    };
+
+    ////////////////////////////
+    //
+    // Miscellaneous Functions
+    //
+    ////////////////////////////
+
+    GetGhostBallLocation() {
+	Object location;
+	Object cue_ball;
+	Object object_ball;
+	double radius;
+	double dx;
+	double y;
+
+	cue_ball = tagged.$_cue_ball;
+	object_ball = tagged.$_object_ball;
+	radius = object_ball.radius;
+	dx = object_ball.location.x - cue_ball.location.x;
+
+	if (dx*dx <= 4*radius*radius)
+	    y = object_ball.location.y - sqrt(4*radius*radius - dx*dx);
+	else y = object_ball.location.y;
+
+	location = new Point3D {
+	    double x = cue_ball.location.x;
+	    double y = y;
+	    double z = 0;
+	};
+
+	return(location);
+    }
+
+    SyncToUniverse(Object root) {
+	this.root = root;
+
+	for (ptr in layout) {
+	    if (ptr[0]) {
+		if (defined("SetUniverse", ptr[0]))
+		    ptr[0].SetUniverse(this);
+	    }
+	}
+
+    }
+
+    SyncUniverse() {
+	for (ptr in layout) {
+	    if (ptr[0] != this) {
+		if (defined("SyncObject", ptr[0])) {
+		    if (ptr[0].SyncObject@length == 0)
+			ptr[0].SyncObject();
+		    else ptr[0].SyncObject(this);
+		}
+	    }
+	}
+	for (ptr in layout) {
+	    if (ptr[0] != this) {
+		if (defined("SyncView", ptr[0]))
+		    ptr[0].SyncView();
+	    }
+	}
+    }
+};
+
+JFrame screen = {
+    Dimension size = NULL;
+    String    title = "Screen Template";
+    Number    border = 72.0/16;
+    Font      font = LABELFONT;
+    int       opaque = TRUE;
+
+    Dimension preferredsize = {
+	double width = 12.0*72;
+	double height = VM.screen.height - 72.0/2;
+    };
+
+    ////////////////////////////
+    //
+    // Custom Variables
+    //
+    ////////////////////////////
+
+    String wheelhandler = "$_object_ball";
+    String wheelargument = NULL;
+    int    extendcontactline = TRUE;
+    int    initialized = FALSE;
+
+    ButtonGroup wheelgroup;
+
+    ////////////////////////////
+    //
+    // MenuBar Layout
+    //
+    ////////////////////////////
+
+    JMenuBar menubar = {
+	Font font = MENUFONT;
+
+	Array items = {
+	    new JMenu {
+		String text = "File";
+		Array items = {
+		    new JMenuItem {
+			String text = "Open";
+
+			actionPerformed(e) {
+			}
+		    },
+		    NULL,
+		    new JMenuItem {
+			String text = "Quit";
+
+			actionPerformed(e) {
+			}
+		    },
+		};
+	    },
+	    new JMenu {
+		String text = "Settings";
+		Array items = {
+		    new JCheckBoxMenuItem {
+			String text = "Extend Contact Line";
+			String target = "$_contact_line";
+			int    state = FALSE;
+			int    visible = TRUE;
+
+			itemStateChanged(e) {
+			    root.extendcontactline = e.state;
+			    root.components.$_canvas.universe.tagged[target].SyncObject();
+			}
+
+			SyncComponent() {
+			    state = root.extendcontactline;
+			}
+		    },
+
+		    NULL,
+
+		    new JCheckBoxMenuItem {
+			String text = "Ambient Light";
+			String target = "$_ambient_light";
+			int    state = TRUE;
+			int    visible = TRUE;
+
+			itemStateChanged(e) {
+			    root.components.$_canvas.universe.tagged[target].enabled = e.state;
+			}
+
+			SyncComponent() {
+			    state = root.components.$_canvas.universe.tagged[target].enabled;
+			}
+		    },
+
+		    new JCheckBoxMenuItem {
+			String text = "Directional Light";
+			String target = "$_directional_light";
+			int    state = TRUE;
+
+			itemStateChanged(e) {
+			    root.components.$_canvas.universe.tagged[target].enabled = e.state;
+			}
+
+			SyncComponent() {
+			    state = root.components.$_canvas.universe.tagged[target].enabled;
+			}
+		    },
+
+		    new JCheckBoxMenuItem {
+			String text = "Light 1";
+			String target = "$_point_light1";
+			int    state = TRUE;
+
+			itemStateChanged(e) {
+			    root.components.$_canvas.universe.tagged[target].enabled = e.state;
+			}
+
+			SyncComponent() {
+			    state = root.components.$_canvas.universe.tagged[target].enabled;
+			}
+		    },
+
+		    new JCheckBoxMenuItem {
+			String text = "Light 2";
+			String target = "$_point_light2";
+			int    state = TRUE;
+
+			itemStateChanged(e) {
+			    root.components.$_canvas.universe.tagged[target].enabled = e.state;
+			}
+
+			SyncComponent() {
+			    state = root.components.$_canvas.universe.tagged[target].enabled;
+			}
+		    },
+
+		    new JCheckBoxMenuItem {
+			String text = "Light 3";
+			String target = "$_point_light3";
+			int    state = TRUE;
+
+			itemStateChanged(e) {
+			    root.components.$_canvas.universe.tagged[target].enabled = e.state;
+			}
+
+			SyncComponent() {
+			    state = root.components.$_canvas.universe.tagged[target].enabled;
+			}
+		    },
+		};
+	    },
+	    new JMenu {
+		String text = "Help";
+		Array items = {
+		    new JMenuItem {
+			String text = "About";
+
+			actionPerformed(e) {
+			}
+		    },
+		};
+	    },
+	};
+    };
+
+    ////////////////////////////
+    //
+    // Screen Layout
+    //
+    ////////////////////////////
+
+    GridBagLayout layoutmanager = {
+	double vgap = 72.0/16;
+    };
+
+    Array layout = {
+	new JPanel {
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		"Pool Aiming Demo",
+		new Dictionary {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int weightx = 1;
+		},
+	
+		new JLabel {
+		    String tag = "$_angle";
+
+		    SetAngle(double angle) {
+			text = strfmt("%.2f", angle);
+		    }
+		},
+		RIGHT,
+	    };
+	},
+	HORIZONTAL, REMAINDER,
+
+	new JPanel {
+	    GridBagLayout layoutmanager;
+
+	    Array layout = {
+		new JPanel {
+		    BevelBorder border;
+
+		    BorderLayout layoutmanager;
+		    Array layout = {
+			new Canvas3D {
+			    String tag = "$_canvas";
+			    ////Object view = universe;
+			    ////Object view = universe.tagged.$_top_view;
+			    ////Object view = universe.tagged.$_aim_view;
+			    Object view = universe.tagged.$_compound_view;
+
+			    mouseWheelMoved(e) {
+				Object handler = root.wheelhandler;
+
+				switch (handler) {
+				    case "$_cue_ball":
+					root.components.$_canvas.universe.tagged[handler].MouseWheelMoved(e);
+					break;
+
+				    case "$_ghost_ball":
+					root.components.$_canvas.universe.tagged[handler].MouseWheelMoved(e);
+					break;
+
+				    case "$_object_ball":
+					root.components.$_canvas.universe.tagged[handler].MouseWheelMoved(e);
+					break;
+
+				    case "$_compound_view":
+					root.components.$_canvas.universe.tagged[handler].MouseWheelMoved(e);
+					break;
+				}
+			    }
+
+			    SetView(String name) {
+				if (defined("SelectView", view))
+				    view.SelectView(name);
+			    }
+			},
+		    };
+		},
+		BOTH,
+
+		72.0/16,
+
+		new JPanel {
+		    BevelBorder border;
+		    String      tag = "$_controls";
+
+		    GridBagLayout layoutmanager = {
+			int columns = 1;
+			double vgap = 72.0/16;
+		    };
+		    Array layout = {
+			new JPanel {
+			    String border = "Show";
+			    GridBagLayout layoutmanager = {
+				int columns = 1;
+				double vgap = 72.0/72;
+			    };
+			    Array layout = {
+				new JCheckBox {
+				    String text = "Object Ball (OB)";
+				    String target = "$_object_ball";
+				    int    state = TRUE;
+				    int    visible = FALSE;
+
+				    itemStateChanged(e) {
+					root.components.$_canvas.universe.tagged[target].SetVisible(e.state);
+				    }
+
+				    SyncComponent() {
+					state = root.components.$_canvas.universe.tagged[target].GetVisible();
+				    }
+				},
+				LEFT, HORIZONTAL,
+
+				new JCheckBox {
+				    String text = "Cue Ball (CB)";
+				    String target = "$_cue_ball";
+				    int    state = TRUE;
+				    int    visible = FALSE;
+
+				    itemStateChanged(e) {
+					root.components.$_canvas.universe.tagged[target].SetVisible(e.state);
+				    }
+
+				    SyncComponent() {
+					state = root.components.$_canvas.universe.tagged[target].GetVisible();
+				    }
+				},
+				LEFT,
+
+				new JCheckBox {
+				    String text = "Ghost Ball (GB)";
+				    String target = "$_ghost_ball";
+				    int    state = TRUE;
+				    int    visible = TRUE;
+
+				    itemStateChanged(e) {
+					root.components.$_canvas.universe.tagged[target].SetVisible(e.state);
+				    }
+
+				    SyncComponent() {
+					state = root.components.$_canvas.universe.tagged[target].GetVisible();
+				    }
+				},
+
+				new JCheckBox {
+				    String text = "Aim Line";
+				    String target = "$_aim_line";
+				    int    state = TRUE;
+
+				    itemStateChanged(e) {
+					root.components.$_canvas.universe.tagged[target].SetVisible(e.state);
+				    }
+
+				    SyncComponent() {
+					state = root.components.$_canvas.universe.tagged[target].GetVisible();
+				    }
+				},
+				LEFT,
+
+				new JCheckBox {
+				    String text = "Contact Line";
+				    String target = "$_contact_line";
+				    int    state = TRUE;
+
+				    itemStateChanged(e) {
+					root.components.$_canvas.universe.tagged[target].SetVisible(e.state);
+				    }
+
+				    SyncComponent() {
+					state = root.components.$_canvas.universe.tagged[target].GetVisible();
+				    }
+				},
+				LEFT,
+
+				new JCheckBox {
+				    String text = "Target Lines";
+				    String target = "$_target_lines";
+				    int    state = TRUE;
+
+				    itemStateChanged(e) {
+					root.components.$_canvas.universe.tagged[target].SetVisible(e.state);
+				    }
+
+				    SyncComponent() {
+					state = root.components.$_canvas.universe.tagged[target].GetVisible();
+				    }
+				},
+				LEFT,
+
+				new JCheckBox {
+				    String text = "CB Inside Edge Line";
+				    String target = "$_cue_ball_inside_edge";
+				    int    state = TRUE;
+
+				    itemStateChanged(e) {
+					root.components.$_canvas.universe.tagged[target].SetVisible(e.state);
+				    }
+
+				    SyncComponent() {
+					state = root.components.$_canvas.universe.tagged[target].GetVisible();
+				    }
+				},
+				LEFT,
+
+				new JCheckBox {
+				    String text = "CB Outside Edge Line";
+				    String target = "$_cue_ball_outside_edge";
+				    int    state = TRUE;
+				    int    visible = FALSE;
+
+				    itemStateChanged(e) {
+					root.components.$_canvas.universe.tagged[target].SetVisible(e.state);
+				    }
+
+				    SyncComponent() {
+					state = root.components.$_canvas.universe.tagged[target].GetVisible();
+				    }
+				},
+				LEFT,
+
+				new JCheckBox {
+				    String text = "OB Inside Edge Line";
+				    String target = "$_object_ball_inside_edge";
+				    int    state = TRUE;
+
+				    itemStateChanged(e) {
+					root.components.$_canvas.universe.tagged[target].SetVisible(e.state);
+				    }
+
+				    SyncComponent() {
+					state = root.components.$_canvas.universe.tagged[target].GetVisible();
+				    }
+				},
+				LEFT,
+
+				new JCheckBox {
+				    String text = "OB Outside Edge Line";
+				    String target = "$_object_ball_outside_edge";
+				    int    state = TRUE;
+				    int    visible = FALSE;
+
+				    itemStateChanged(e) {
+					root.components.$_canvas.universe.tagged[target].SetVisible(e.state);
+				    }
+
+				    SyncComponent() {
+					state = root.components.$_canvas.universe.tagged[target].GetVisible();
+				    }
+				},
+				LEFT,
+
+				new JCheckBox {
+				    String text = "OB Center Line";
+				    String target = "$_object_ball_center";
+				    int    state = TRUE;
+				    int    visible = TRUE;
+
+				    itemStateChanged(e) {
+					root.components.$_canvas.universe.tagged[target].SetVisible(e.state);
+				    }
+
+				    SyncComponent() {
+					state = root.components.$_canvas.universe.tagged[target].GetVisible();
+				    }
+				},
+				LEFT,
+			    };
+			},
+			TOP, HORIZONTAL,
+
+			new JPanel {
+			    String border = "Mouse Wheel";
+			    GridBagLayout layoutmanager = {
+				int columns = 1;
+				double vgap = 72.0/72;
+			    };
+			    Array layout = {
+				new JRadioButton {
+				    String text = "Rotates OB";
+				    String target = "$_object_ball";
+				    Object group = wheelgroup;
+
+				    itemStateChanged(e) {
+					root.wheelhandler = target;
+					root.wheelargument = NULL;
+				    }
+
+				    SyncComponent() {
+					state = (root.wheelhandler === target);
+				    }
+				},
+				LEFT, HORIZONTAL,
+
+				new JRadioButton {
+				    String text = "Moves CB";
+				    String target = "$_cue_ball";
+				    Object group = wheelgroup;
+
+				    itemStateChanged(e) {
+					root.wheelhandler = target;
+					root.wheelargument = NULL;
+				    }
+
+				    SyncComponent() {
+					state = (root.wheelhandler === target);
+				    }
+				},
+				LEFT,
+
+				new JRadioButton {
+				    String text = "Moves OB";
+				    String target = "$_ghost_ball";
+				    Object group = wheelgroup;
+
+				    itemStateChanged(e) {
+					root.wheelhandler = target;
+					root.wheelargument = NULL;
+				    }
+
+				    SyncComponent() {
+					state = (root.wheelhandler === target);
+				    }
+				},
+				LEFT,
+
+				new JRadioButton {
+				    String text = "Moves View Up/Down";
+				    String handler = "$_compound_view";
+				    String argument = "$_view_up_down";
+				    Object group = wheelgroup;
+
+				    itemStateChanged(e) {
+					root.wheelhandler = handler;
+					root.wheelargument = argument;
+				    }
+
+				    SyncComponent() {
+					state = (root.wheelhandler === handler && root.wheelargument === argument);
+				    }
+				},
+				LEFT,
+
+				new JRadioButton {
+				    String text = "Moves View Left/Right";
+				    String handler = "$_compound_view";
+				    String argument = "$_view_left_right";
+				    Object group = wheelgroup;
+
+				    itemStateChanged(e) {
+					root.wheelhandler = handler;
+					root.wheelargument = argument;
+				    }
+
+				    SyncComponent() {
+					state = (root.wheelhandler === handler && root.wheelargument === argument);
+				    }
+				},
+				LEFT,
+			    };
+			},
+			TOP, HORIZONTAL,
+
+			0.0,
+
+			new JPanel {
+			    String border = "CB Transparency";
+			    GridBagLayout layoutmanager = {
+				int columns = 1;
+			    };
+			    Array layout = {
+				new JSlider {
+				    String tag = "$_cue_ball_transparency";
+				    int    orientation = HORIZONTAL;
+				    int    minimum = 0;
+				    int    maximum = 10;
+				    int    paintticks = TRUE;
+				    int    snaptoticks = TRUE;
+				    int    minortickspacing = 1;
+				    int    majortickspacing = 5;
+				    int    paintlabels = TRUE;
+				    int    value = 0;
+				    Array labels = {0, "0.0", 5, "0.5", 10, "1.0"};
+
+				    mouseWheelMoved(e) {
+					if (e.wheelrotation < 0)
+					    value--;
+					else value++;
+				    }
+
+				    stateChanged(e) {
+					root.components.$_canvas.universe.tagged.$_cue_ball.SetAlpha(value/10.0);
+				    }
+
+				    SyncComponent() {
+					root.components.$_canvas.universe.tagged.$_cue_ball.SetAlpha(value/10.0);
+				    }
+				},
+				LEFT, HORIZONTAL,
+			    };
+			},
+			TOP, HORIZONTAL,
+
+			new JPanel {
+			    String border = "OB Transparency";
+			    GridBagLayout layoutmanager = {
+				int columns = 1;
+			    };
+			    Array layout = {
+				new JSlider {
+				    String tag = "$_object_ball_transparency";
+				    int    orientation = HORIZONTAL;
+				    int    minimum = 0;
+				    int    maximum = 10;
+				    int    paintticks = TRUE;
+				    int    snaptoticks = TRUE;
+				    int    minortickspacing = 1;
+				    int    majortickspacing = 5;
+				    int    paintlabels = TRUE;
+				    int    value = 0;
+				    Array labels = {0, "0.0", 5, "0.5", 10, "1.0"};
+
+				    mouseWheelMoved(e) {
+					if (e.wheelrotation < 0)
+					    value--;
+					else value++;
+				    }
+
+				    stateChanged(e) {
+					root.components.$_canvas.universe.tagged.$_object_ball.SetAlpha(value/10.0);
+				    }
+
+				    SyncComponent() {
+					root.components.$_canvas.universe.tagged.$_object_ball.SetAlpha(value/10.0);
+				    }
+				},
+				LEFT, HORIZONTAL,
+			    };
+			},
+			TOP, HORIZONTAL,
+
+			new JPanel {
+			    String border = "GB Transparency";
+			    int    visible = FALSE;
+
+			    GridBagLayout layoutmanager = {
+				int columns = 1;
+			    };
+			    Array layout = {
+				new JSlider {
+				    String tag = "$_ghost_ball_transparency";
+				    int    orientation = HORIZONTAL;
+				    int    minimum = 0;
+				    int    maximum = 10;
+				    int    paintticks = TRUE;
+				    int    snaptoticks = TRUE;
+				    int    minortickspacing = 1;
+				    int    majortickspacing = 5;
+				    int    paintlabels = TRUE;
+				    int    value = 8;
+				    Array labels = {0, "0.0", 5, "0.5", 10, "1.0"};
+
+				    mouseWheelMoved(e) {
+					if (e.wheelrotation < 0)
+					    value--;
+					else value++;
+				    }
+
+				    stateChanged(e) {
+					root.components.$_canvas.universe.tagged.$_ghost_ball.SetAlpha(value/10.0);
+				    }
+
+				    SyncComponent() {
+					root.components.$_canvas.universe.tagged.$_ghost_ball.SetAlpha(value/10.0);
+				    }
+				},
+				LEFT, HORIZONTAL,
+			    };
+			},
+			TOP, HORIZONTAL,
+		    };
+		},
+		TOP, VERTICAL,
+	    };
+	},
+	BOTH, REMAINDER,
+
+	new JPanel {
+	    GridBagLayout layoutmanager;
+
+	    Array layout = {
+		new JPanel {
+		    GridLayout layoutmanager;
+		    Array layout = {
+			new JButton {
+			    String text = "Reset";
+			    Font   font = BUTTONFONT;
+			    int    visible = FALSE;
+
+			    actionPerformed(e) {
+			    }
+			},
+			new JButton {
+			    String text = "Dismiss";
+			    Font   font = BUTTONFONT;
+
+			    actionPerformed(e) {
+				exit(0);
+			    }
+			},
+			new JButton {
+			    String text = "Test";
+			    Font   font = BUTTONFONT;
+			    int    visible = FALSE;
+
+			    actionPerformed(e) {
+				if (root.components.$_canvas.universe.tagged.$_cue_ball.appearance.transparency.value == 0)
+				    root.components.$_canvas.universe.tagged.$_cue_ball.SetAlpha(0.8);
+				else root.components.$_canvas.universe.tagged.$_cue_ball.SetAlpha(0.0);
+			    }
+			},
+		    };
+		},
+		new Dictionary {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int weightx = 1;
+		},
+
+		new JChoice {
+		    String tag = "$_view_choice";
+
+		    Array items = {
+			"Top View", "$_top_view",
+			////"Lineup View", "$_lineup_view",
+			"Aim View", "$_aim_view",
+		    };
+
+		    itemStateChanged(e) {
+			root.components.$_canvas.SetView(selected);
+		    }
+
+		    mouseWheelMoved(e) {
+			int index;
+
+			index = indexOfObject(this.mappings, this.selected);
+			if (e.wheelrotation < 0) {
+			    if (--index >= 0)
+			    this.selected = index;
+			} else {
+			    if (++index < this.mappings@length)
+				this.selected = index;
+			}
+		    }
+
+
+		    SyncComponent() {
+			if (defined("GetCurrentView", root.components.$_canvas.view))
+			    selected = root.components.$_canvas.view.GetCurrentView();
+			else selected = 0;
+		    }
+		},
+		RIGHT,
+	    };
+	},
+	HORIZONTAL, REMAINDER,
+    };
+
+    ////////////////////////////
+    //
+    // Event Handlers
+    //
+    ////////////////////////////
+
+    ////////////////////////////
+    //
+    // Screen Functions
+    //
+    ////////////////////////////
+
+    ShowScreen() {
+	if (!initialized) {
+	    initialized = TRUE;
+	    SyncUniverse();
+	    SyncScreen();
+	}
+	visible = TRUE;
+    }
+
+    ////////////////////////////
+    //
+    // Miscellaneous Functions
+    //
+    ////////////////////////////
+
+    SyncScreen() {
+	for (ptr in components) {
+	    if (ptr[0] != this) {
+		if (defined("SyncComponent", ptr[0]))
+		    ptr[0].SyncComponent();
+	    }
+	}
+	for (ptr in menubar.components) {
+	    if (defined("SyncComponent", ptr[0]))
+		ptr[0].SyncComponent();
+	}
+    }
+
+    SyncUniverse() {
+	components.$_canvas.universe.SyncToUniverse(this);
+	components.$_canvas.universe.SyncUniverse();
+    }
+};
+
+screen.ShowScreen();
+

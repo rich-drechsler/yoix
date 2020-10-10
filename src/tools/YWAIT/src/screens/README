@@ -1,0 +1,114 @@
+This is where you'll find the Yoix source for most of the screens that YWAIT
+supplies, and it's probably also where any new screens that you add to your
+application belong. The exceptions are screens that might be used during the
+login process (they're in ../htdocs), your application's main screen (it's
+also currently in ../htdocs), and some example screens (in ../examples).
+
+Screens in this directory are served by the Perl script that handles most of
+the communication between the client and server after the client has logged
+in (see ../bin/ywait_exec._PL and ../htdocs/ywait_screens._YX for more info).
+Clients send a GETSCREEN command to the Perl script whenever they want to
+download the Yoix script that builds a screen, so if you're interested in
+low level details look for GETSCREEN in ywait_exec._PL and ywait_screens._YX.
+Incidentally, ywait_exec._PL only accepts requests from clients that look
+like they've officially logged in, which is one reason why some screens are
+handled outside the "GETSCREEN" mechanism.
+
+The main screen that YWAIT generates is ../htdocs/ywait_main.yx and the only
+reason it's not in this directory is because it's one of the screens that's
+preloaded while the user is logging in. Preloading is started by the login
+screen (look for StartPreloader() calls) and is handled by a special thread
+(look for PreloaderThread) that tries to download several screens while the
+user is trying to log in. Preloading the main screen helps some if it's a
+complicated screen, but it's definitely not required. If you decide to move
+it into this directory make sure you update the Makefiles in this directory
+and ../htdocs, assign NULL to the definition of URL in the ScreenDirectory
+entry that describes "main" in file ../htdocs/ywait_screens._YX, and remove
+"main" from the PreloaderScreens list (also in ../htdocs/ywait_screens._YX).
+
+------------------------
+Anatomy Of A Screen File
+------------------------
+
+Screen files are special Yoix scripts that have following general structure:
+
+    import yoix.*.*;
+
+    Dictionary Global = argv[1];
+
+    Builder(String name, Array args) {
+	JFrame screen = {
+	    //
+	    // Initialize some of JFrame variables.
+	    //
+
+	    Dimension size = NULL;
+	    Object    parent = NULL;
+	    Font      font = Global.GetPreferredTextFont();
+
+	    //
+	    // Every screen also must define and initialize the
+	    // following special variables.
+	    //
+
+	    String screenbuilder = global.argv[0]; // required
+	    String screenname = name;		   // required
+	    String screentitle = NULL;
+	    Object anchorpoint = NULL;
+	    int    screenanchor = CENTER;
+	    int    initialized = FALSE;
+	    int    disposeonclose = TRUE;
+	    int    savestate = TRUE;   // save screen-specific info this session
+	    int    retainstate = TRUE; // save screen-class info across sessions
+	    int    reloadargs = FALSE;
+
+	    //
+	    // We almost always use GridBagLayout to arrange
+	    // a screen's top-level components. It's the most
+	    // powerful layout manager that Java provides, but
+	    // it takes some time to get used to. Yoix or Java
+	    // documentation will help, but experimenting with
+	    // a working screen (you now have lots of them) is
+	    // often the best way to learn.
+	    //
+
+	    GridBagLayout layoutmanager;
+
+	    Array layout = {
+		//
+		// The initializer here should be a comma
+		// separated list of expressions arranged
+		// in pairs
+		//
+		//     new JButton {
+		//         ...
+		//     },
+		//     new GridBagConstraints {
+		//         ...
+		//     },
+		//
+		// that creates the component and constraint
+		// used to position the component. A simple
+		// screen, like ywaitdemo_template3.yx, might
+		// have five or six different components.
+		//		
+	    };
+	};
+	return(screen);
+    }
+
+    return(Builder);	// execute() gets this
+
+A screen file defines a function named Builder() that accepts two arguments
+and returns a screen (e.g., JFrame or JDialog) that's built using the two
+arguments and a Dictionary named Global. In addition, the screen file must
+end with a statement that returns the Builder function, which ends up as the
+value returned by the Yoix execute() builtin that processes the screen file.
+
+An easy way to start when you need to build a new screen is to copy one of
+these screens and modify the copy. Screens with "template" in their names
+are sometimes the best starting point and can be previewed when you run the
+system that YWAIT generated for you (we eventually will add more templates).
+The "Customizing YWAIT" section in the top level README file describes how
+a new screen file is built and "hooked up" to the server.
+

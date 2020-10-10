@@ -1,0 +1,14 @@
+You can run a new YDAT application that's under development using source code
+that's stored somewhere under this directory by typing something like,
+
+    make JAVAFLAGS="-mx512m" RUNARGS="scripts/public/ydat.yx -Hscripts/public -p -cpandemic data/public/pandemic.data" run
+
+and if you're lucky the data windows (or an error message) should pop up on
+your monitor.
+
+Compiling the Java code will only work if your system has an appropriate JDK
+and other obscure tools (e.g., javacc) installed. If not the build triggered
+by the make call will fail and your only alternative is to use an existing
+Yoix jar file. I'm doing it all here because I anticipate issues and/or new
+features that might require Java code changes or additions.
+

@@ -1,0 +1,21 @@
+import yoix.*.*;
+
+JFrame f = {
+    Color background = Color.white;
+
+    paint(Rectangle r) {
+	graphics {        // "named block"
+	    gsave();
+	    linewidth = 9;
+	    rectclip(r);
+	    setrgbcolor(0, 0, 1);
+	    rectfill(72, 72, 144, 72, .4);     // alpha
+	    setrgbcolor(1, 0, 0);
+	    rectstroke(72, 72, 144, 72, .2);   // alpha   
+	    grestore();
+	}
+    }
+};
+
+f.visible = TRUE;
+

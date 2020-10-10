@@ -1,0 +1,543 @@
+//
+// General editing support.
+//
+
+final int SUBMIT_ALL_READY = 1;
+final int SUBMIT_ALWAYS = 2;
+final int SUBMIT_ALL_CHANGED = 3;
+final int SUBMIT_ALL_CHANGED_ALL_READY = 4;
+final int SUBMIT_ANY_CHANGED = 5;
+final int SUBMIT_ANY_CHANGED_ALL_READY = 6;
+
+final int ADVANCE_ALWAYS = 0;
+final int ADVANCE_IS_READY = 1;
+final int ADVANCE_NOT_EMPTY = 2;
+
+////////////////////////////
+//
+// Patterns and Formats
+//
+////////////////////////////
+
+
+final String FORMAT_DATE = "yyyy-MM-dd";
+final String FORMAT_DATETIME_XML = "yyyy-MM-dd'T'HH:mm:ss.SSSX";
+final String FORMAT_DATETIME = "yyyy-MM-dd HH:mm:ss";
+final String FORMAT_DATE_HHmm = "yyyy-MM-dd HH:mm";
+final String FORMAT_DATE_HHmmss = "yyyy-MM-dd HH:mm:ss";
+final String FORMAT_DATETIME_WQ = "yyyy-MM-dd'T'HH:mm:ss.SSSX";		// Paul's was yyyy-MM-dd'T'HH:mm:SSSX
+
+final String PATTERN_DATE = "^[0-9][0-9][0-9][0-9]-[01][0-9]-[0123][0-9]$";
+final String PATTERN_DATETIME_XML = "^[0-9][0-9][0-9][0-9]-[01][0-9]-[0123][0-9]T[012][0-9]:[0-5][0-9]:[0-5][0-9][.][0-9][0-9][0-9][+-][0-9][0-9]:[0-9][0-9]$";
+final String PATTERN_DATETIME = "^[0-9][0-9][0-9][0-9]-[01][0-9]-[0123][0-9] [012][0-9]:[0-5][0-9]:[0-5][0-9]$";
+final String PATTERN_DATE_HHmm = "^[0-9][0-9][0-9][0-9]-[01][0-9]-[0123][0-9] [012][0-9]:[0-5][0-9]$";
+final String PATTERN_DATE_HHmmss = "^[0-9][0-9][0-9][0-9]-[01][0-9]-[0123][0-9] [012][0-9]:[0-5][0-9]:[0-5][0-9]$";
+
+final String PATTERN_ISGRAPH = "^[!-~]+";
+final String PATTERN_ISPRINT = "^[ -~]+";
+final String PATTERN_NAME = "^[a-zA-Z][ -~]*$";
+final String PATTERN_DIGITS = "^[0-9]+";
+final String PATTERN_SSN = "^[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]$";
+final String PATTERN_EMAIL = "^[a-zA-Z0-9_+-][a-zA-Z0-9_+-.]*[a-zA-Z0-9_+-][@][a-zA-Z0-9-.]+[.][a-zA-Z][a-zA-Z]+$";
+final String PATTERN_CFID = "^[0-9][0-9][0-9]$";		// no idea if this is correct!!!
+
+final String PATTERN_NANP_STYLES = "[ ]*(([0-9][0-9][0-9])|([(][0-9][0-9][0-9][)]))[ ]*[-]?[ ]*[0-9][0-9][0-9][ ]*[-]?[ ]*[0-9][0-9][0-9][0-9][ ]*";
+final String PATTERN_NANP_SYTLE1 = "[ ]*([0-9][0-9][0-9])[ ]*[-]?[ ]*([0-9][0-9][0-9])[ ]*[-]?[ ]*([0-9][0-9][0-9][0-9])[ ]*";
+final String PATTERN_NANP_STYLE2 = "[ ]*[(]([0-9][0-9][0-9])[)][ ]*[-]?[ ]*([0-9][0-9][0-9])[ ]*[-]?[ ]*([0-9][0-9][0-9][0-9])[ ]*";
+
+final String PATTERN_NANP = "^" + PATTERN_NANP_STYLES + "$";
+final String PATTERN_NANP_LIST = "^" + PATTERN_NANP_STYLES + "(," + PATTERN_NANP_STYLES + ")*$";
+final String PATTERN_EXTENSION = "^[0-9]*$";
+
+//
+// Using these with regexec() should be a little more efficient than using
+// =~ with the corresponding string pattern.
+// 
+
+final Regexp REGEXP_NANP_SYTLE1 = {
+    String pattern = "^" + PATTERN_NANP_SYTLE1 + "$";
+};
+
+final Regexp REGEXP_NANP_STYLE2 = {
+    String pattern = "^" + PATTERN_NANP_STYLE2 + "$";
+};
+
+FormatNANP(String value) {
+    if (regexec(REGEXP_NANP_SYTLE1, value))
+	value = substi("\\1-\\2-\\3", REGEXP_NANP_SYTLE1, value);
+    else if (regexec(REGEXP_NANP_STYLE2, value))
+	value = substi("\\1-\\2-\\3", REGEXP_NANP_STYLE2, value);
+    return(value);
+}
+
+FormatNANP_LIST(String numbers) {
+    String value;
+    Array  list;
+
+    list = strsplit(numbers, ",");
+    for (ptr in list) {
+	if (value == NULL)
+	    value = FormatNANP(ptr[0]);
+	else value += "," + FormatNANP(ptr[0]);
+    }
+    return(value);
+}
+
+////////////////////////////
+//
+// Preferences
+//
+////////////////////////////
+
+GetPreferredEditedTabForeground() = getDarkerColor(GetPreferredVisitedColor());
+GetPreferredInvalidComponentForeground() = GetPreferredWarningColor();
+GetPreferredInvalidTabForeground() = GetPreferredWarningColor();
+GetPreferredInvalidTableCellBackground() = getSaturationAdjustedColor(GetPreferredWarningColor(), 0.40);
+GetPreferredInvalidTableCellSelectedBackground() = getSaturationAdjustedColor(GetPreferredWarningColor(), 0.20);
+
+GetPreferredSelectorButtonInsets() {
+    JButton button;
+    Insets  insets = NULL;
+
+    if (defined("insets", button)) {        // added in release 2.1.7
+	insets = button.insets;
+	insets.top *= 0.1;
+	insets.bottom *= 0.1;
+	insets.left *= 0.1;
+	insets.right *= 0.1;
+    }
+    return(insets);
+}
+
+////////////////////////////
+//
+// DnD Support
+//
+////////////////////////////
+
+DragEnterHandlerForEditComponent(DropTargetEvent e) {
+    //
+    // This should be assigned to a function named DragEnterHandler in all
+    // "edit components" that can accept drops. If it's defined it will be
+    // called from the standard YWAIT DragEnter() function before the usual
+    // DnD code is run, which only happens if this function returns FALSE.
+    //
+
+    return(editor.HandleDragEnter(e, this));
+}
+
+DropHandlerForEditComponent(DropTargetEvent e) {
+    //
+    // This should be assigned to a function named DropHandler in all "edit
+    // components" that can accept drops. If it's defined it will be called
+    // from the standard YWAIT Drop() function before the usual DnD code is
+    // run, which only happens if this function returns FALSE.
+    //
+
+    return(editor.HandleDrop(e, this));
+}
+
+SyncDropTargetEventForEditComponent(DropTargetEvent e) {
+    //
+    // Dragging a row from a JTable can result in a transferable dictionary
+    // that looks like,
+    //
+    //     e.transferable = new Dictionary {
+    //         Dictionary Dictionary = {...};
+    //         String String = "...";
+    //     };
+    //
+    // (see the end of TableDragGestureRecognized() for more details). The
+    // entries in Dictionary are string representations of columns in the
+    // selected row that are associated with "application tags", while the
+    // value assigned to String is the traditional text representation of
+    // the selected row. When the transferable is a dictionary that has an
+    // entry named Dictionary we assign it to e.transferable, which assumes
+    // the editor will eventually be called on to process the dictionary.
+    //
+
+    if (e.transferable instanceof Dictionary) {
+	if (defined("Dictionary", e.transferable))
+	    e.transferable = e.transferable.Dictionary;
+	else if (defined("String", e.transferable))
+	    e.transferable = e.transferable.String;
+    } else if (!(e.transferable instanceof String))
+	e.transferable = NULL;
+}
+
+////////////////////////////
+//
+// Table Support
+//
+////////////////////////////
+
+GetLoadableTableRecords(Object data, String sep, ...) {
+    String line;
+    Array  lines;
+    Array  records;
+    int    newlinealias = (argc > 3 && argv[3] instanceof int) ? argv[3] : FALSE;
+
+    if (data instanceof String) {
+	if (data@sizeof > 0) {
+	    lines = linesplit(data);
+	    records = new Array[lines@sizeof];
+	    if (newlinealias) {
+		for (ptr in lines) {
+		    line = replace(ptr[0], newlinealias, '\n');
+		    records[ptr@offset] = strsplit(line, sep);
+		}
+	    } else {
+		for (ptr in lines)
+		    records[ptr@offset] = strsplit(ptr[0], sep);
+	    }
+	} else records = NULL;
+    } else if (data instanceof Array)
+	records = data;
+    else records = NULL;
+
+    return(records);
+}
+
+TableCancelMousePressed() {
+    if (defined("modifiers") && defined("pressed")) {
+	modifiers = 0;
+	pressed = NULL;
+	selectionbackground = NULL;
+    }
+}
+
+TableGetFieldsByAppTag(int row) {
+    Dictionary fields = NULL;
+    int        column;
+
+    if (defined("apptags", this)) {
+	if (apptags@sizeof > 0) {
+	    fields = new Dictionary[0, ...];
+	    for (ptr in apptags) {
+		if (defined(ptr[0], tags)) {		// just to make sure
+		    column = tags[ptr[0]];
+		    if (action(GET_COLUMN_FIELD, column, "visible"))
+			fields[ptr[0]@nameof] = action(GET_FIELD, row, tags[ptr[0]]);
+		}
+	    }
+	}
+    }
+    return(fields);
+}
+
+TableMouseDragged(e) {
+    double dx;
+    double dy;
+
+    if (defined("pressed") && defined("clickradius2")) {
+	if (pressed != NULL) {
+	    dx = e.location.x - pressed.x;
+	    dy = e.location.y - pressed.y;
+	    if (dx*dx + dy*dy > clickradius2) {
+		pressed = NULL;
+		if (defined("is_edit_component") && is_edit_component)
+                    RestoreRowBackground();
+		else selectionbackground = NULL;
+	    }
+	}
+    }
+}
+
+TableMouseExited(e) {
+    if (defined("cell_label_tag") && defined(cell_label_tag, root.components))
+	root.components[cell_label_tag].text = "";
+}
+
+TableMouseMoved(e) {
+    Dictionary result;
+    Object     label;
+    Object     val;
+    String     out;
+    Array      headers;
+    int        row;
+    int        col;
+
+    if (defined("cell_label_tag") && defined(cell_label_tag, root.components)) {
+	headers = FALSE && defined("cell_label_headers", this) ? this.cell_label_headers : this.headers;
+	label = root.components[cell_label_tag];
+	result = action(FIND_CELL_AT, e.location);
+	if ((row = result.valuesRow) >= 0 && (col = result.valuesColumn) >= 0) {
+	    switch (types[col]) {
+		case BOOLEAN_TYPE:
+		    label.text = strfmt("%s: %s", headers[col], action(GET_FIELD, row, col, "view"));
+		    break;
+
+		case TIMER_TYPE:
+		    if ((val = action(GET_FIELD, row, col, "value")) < -2000000000.0)
+			out = action(GET_FIELD, row, col, "view");
+		    else if ((val = action(GET_FIELD, row, col, "value")) > 2000000000)
+			out = action(GET_FIELD, row, col, "view");
+		    else out = timerFormat("Y'y' Tt't' Dd'd 'Hh'h 'Mm'm 's's'", val);
+		    label.text = strfmt("%s: %s", headers[col], out);
+		    break;
+
+		case INTEGER_TYPE:
+		    if ((val = action(GET_FIELD, row, col, "value")) < -2000000000)
+			out = action(GET_FIELD, row, col, "view");
+		    else if ((val = action(GET_FIELD, row, col, "value")) > 2000000000)
+			out = action(GET_FIELD, row, col, "view");
+		    else out = strfmt("%'d", val);
+		    label.text = strfmt("%s: %s", headers[col], out);
+		    break;
+
+		case DOUBLE_TYPE:
+		    label.text = strfmt("%s: %'-13.2f", headers[col], action(GET_FIELD, row, col, "value"));
+		    break;
+
+		default:
+		    label.text = strfmt("%s: %s", headers[col], action(GET_FIELD, row, col, "view"));
+		    break;
+	    }
+
+	    if (e.modifiers & CTRL_MASK) {
+		CopyToClipboardScreen(e.modifiers & SHIFT_MASK
+		    ? GetTableRowFromColumn(this, row, col, ((e.modifiers&ALT_MASK) != ALT_MASK))
+		    : action(GET_FIELD, row, col, "view")
+		);
+	    }
+	} else label.text = "";
+    }
+}
+
+TableMousePressed(e) {
+    Dictionary cell;
+    String     value;
+    int        mask;
+
+    if (!e.popuptrigger) {
+	if (defined("modifiers") && defined("pressed")) {
+	    if (modifiers == 0) {
+		mask = defined("activemask") ? activemask : BUTTON1_MASK;
+		if ((e.modifiers&mask) == mask) {
+		    if ((cell = action(FIND_CELL_AT, e.location)) != NULL) {
+			if (cell.viewRow >= 0 && indexOfObject(activecolumns, cell.valuesColumn) >= 0) {
+			    if (defined("is_edit_component") && is_edit_component) {
+				action(EDIT_STOP);
+				if (IsCellValid(cell.valuesRow, cell.valuesColumn) && !IsCellEmpty(cell.valuesRow, cell.valuesColumn)) {
+				    pressed = e.location;
+				    SetRowBackground(cell.valuesRow, GetPreferredPressedColor());
+				    action(ADD_ROW_SELECTION, cell.viewRow);
+				}
+			    } else {
+				pressed = e.location;
+				selectionbackground = GetPreferredPressedColor();
+				action(ADD_ROW_SELECTION, cell.viewRow);
+			    }
+			}
+		    }
+		}
+	    }
+	    modifiers |= e.modifiers;
+	}
+    } else ShowTableSnapShotPopup(this, e.location);
+}
+
+TableMouseReleased(e) {
+    double dx;
+    double dy;
+    int    mask;
+
+    if (!e.popuptrigger) {
+	if (defined("modifiers") && defined("pressed") && defined("clickradius2")) {
+	    mask = defined("activemask") ? activemask : BUTTON1_MASK;
+	    if (pressed != NULL) {
+		dx = e.location.x - pressed.x;
+		dy = e.location.y - pressed.y;
+		if (dx*dx + dy*dy > clickradius2) {
+		    pressed = NULL;
+		    if (defined("is_edit_component") && is_edit_component)
+			RestoreRowBackground();
+		    else selectionbackground = NULL;
+		}
+	    }
+	    modifiers &= ~e.modifiers;
+	    if ((modifiers&mask) == 0) {
+		if (defined("is_edit_component") && is_edit_component)
+		    RestoreRowBackground();
+		else selectionbackground = NULL;
+	    }
+	}
+    } else ShowTableSnapShotPopup(this, e.location);
+}
+
+//
+// Table snapshot support.
+//
+
+CreateTableSnapShotPopup(JTable table, JPopupMenu popup) {
+    Array items;
+
+    //
+    // If popup isn't NULL the required items are appended to the existing
+    // items, otherwise a new popup menu is created that only contains the
+    // snapshot related items.
+    //
+
+    items = new Array {
+	new JMenuItem {
+	    String text = "Table Snapshot";
+	    String command = "table_snapshot";
+
+	    actionPerformed(e) {
+		ShowTableSnapShotScreen(this.root);
+	    }
+	},
+	new JMenuItem {
+	    String text = "Clear Table";
+	    int    visible = defined("PopupClearTable", table) && table.PopupClearTable;
+
+	    actionPerformed(e) {
+		Object table;
+
+		if ((table = this.root) != NULL) {
+		    if (defined("PopupClearTable", table)) {
+			if (table.PopupClearTable) {
+			    if (table.PopupClearTable instanceof Callable)
+				table.PopupClearTable();
+			    else if (defined("TableLoader", table))
+				table.TableLoader(NULL);
+			    else table.text = "";
+			}
+		    }
+		}
+	    }
+	},
+    };
+
+    if (popup == NULL || popup.items == NULL) {
+	popup = new JPopupMenu {
+	    Array items = items;
+	};
+    } else popup.items = new Array {unroll(popup.items), NULL, unroll(items)};
+
+    return(popup);
+}
+
+ShowTableSnapShotPopup(JTable table, Point location) {
+    if (table != NULL) {
+	if (defined("snapshot_counter", table) && table.snapshot_counter instanceof int) {
+	    if (table.popup == NULL || table.popup.getEnabled("table_snapshot") < 0)
+		table.popup = CreateTableSnapShotPopup(table, table.popup);
+	}
+	if (table.popup != NULL) {
+	    table.popup.visible = FALSE;		// just in case;
+	    table.popup.background = table.root.background;
+	    table.popup.location = location;
+	    table.popup.visible = (location != NULL);
+	}
+    }
+}
+
+ShowTableSnapShotScreen(JTable table) {
+    Dictionary snapshot_table_config;
+    String     snapshot_prefix;
+    String     snapshot_suffix;
+    String     snapshot_screen_name;
+    String     snapshot_label;
+    String     snapshot_title;
+    Array      columns;
+    Array      position[0,...];
+    int        snapshot_counter;
+    int        n;
+
+    if (table != NULL) {
+	columns = table.columns;
+	for (n = 0; n < columns@sizeof; n++) {
+	    position[n] = columns[n].view;
+	    columns[n] = new JTableColumn {
+		Dictionary attributes = columns[n].attributes;
+		int        alignment = columns[n].alignment;
+		int        altalignment = columns[n].altalignment;
+		Object     altbackground = columns[n].altbackground;
+		Object     altfont = columns[n].altfont;
+		Object     altforeground = columns[n].altforeground;
+		Object     background = NULL;
+		int        edit = FALSE;
+		Font       font = columns[n].font;
+		Object     foreground = table.foreground;
+		String     header = columns[n].header;
+		int        type = columns[n].type;
+		int        visible = columns[n].visible;
+		double     width = columns[n].width;
+		String     tag = (columns[n].tag !~ "^_[0-9]*") ? columns[n].tag : NULL;
+	    };
+	}
+	CompareNumbers(a, b) = (a - b);
+	qsort(position, CompareNumbers, columns);
+
+	snapshot_table_config = new Dictionary[0, ...] {
+	    "columns", columns,
+	    "inputfilter", table.inputfilter,
+	    "preferredsize", new Dimension {
+		double width = getViewportSize(table, true).width;
+		double height = 0;
+	    },
+	    "resizemode", table.resizemode,
+	    "rows", min(10, table.rows > 0 ? table.rows : 5),
+	    "scroll", table.scroll,
+	};
+
+	if (defined("snapshot_prefix", table) && table.snapshot_prefix@sizeof)
+	    snapshot_prefix = table.snapshot_prefix + " ";
+	else snapshot_prefix = "";
+
+	if (defined("snapshot_suffix", table) && table.snapshot_suffix@sizeof)
+	    snapshot_suffix = " " + table.snapshot_suffix;
+	else snapshot_suffix = "";
+
+	if (defined("snapshot_counter", table) && table.snapshot_counter >= 0) {
+	    snapshot_counter = ++table.snapshot_counter;
+	    snapshot_screen_name = strfmt("%s.%s[%d]", table.root.screenname, table.tag, snapshot_counter);
+	    snapshot_title = strfmt("%sSnap Shot [%d]%s", snapshot_prefix, snapshot_counter, snapshot_suffix);
+	    snapshot_label = strfmt("%sSnap Shot [%d]%s", snapshot_prefix, snapshot_counter, snapshot_suffix);
+	} else {
+	    snapshot_screen_name = strfmt("%s.%s", table.root.screenname, table.tag);
+	    snapshot_title = strfmt("%sSnap Shot%s", snapshot_prefix, snapshot_suffix);
+	    snapshot_label = strfmt("%sSnap Shot%s", snapshot_prefix, snapshot_suffix);
+	}
+
+	GetAndShowScreen(
+	    snapshot_screen_name,
+	    "table_snapshot",
+	    "snapshot_table_source", table,
+	    "snapshot_table_config", snapshot_table_config,
+	    "snapshot_title", snapshot_title,
+	    "snapshot_label", snapshot_label
+	);
+    }
+}
+
+////////////////////////////
+//
+// Miscellaneous Constants
+//
+////////////////////////////
+
+final String DATE_LAST_MONTH = "LAST_MONTH";
+final String DATE_THIS_MONTH = "THIS_MONTH";
+final String DATE_NEXT_MONTH = "NEXT_MONTH";
+final String DATE_THIS_YEAR = "THIS_YEAR";
+final String DATE_NEXT_YEAR = "NEXT_YEAR";
+final String DATE_NEVER = "NEVER";
+final String DATE_OTHER = "OTHER";
+
+final String STATUS_ADDED = "ADDED";
+final String STATUS_EDITED = "EDITED";
+final String STATUS_UNEDITED = "";
+final String STATUS_ACTIVATED = "ACTIVATED";
+final String STATUS_DISABLED = "DISABLED";
+
+//
+// These are used to set bits in the flags argument that's passed to the date
+// editor builders.
+//
+
+final int VISIBLE_DOW = 0x01;
+final int VISIBLE_AMPM = 0x02;
+final int VISIBLE_TZ = 0x04;
+final int ACTIVE_YEAR = 0x08;

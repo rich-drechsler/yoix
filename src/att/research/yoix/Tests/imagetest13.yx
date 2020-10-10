@@ -1,0 +1,51 @@
+//
+// Simple example that creates a separate transparent image from
+// an existing image and draws it in a frame, as proof.
+//
+
+import yoix.*.*;
+
+Image logo = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+};
+
+Image transparent_logo = {
+    Dimension size = logo.size;
+    int type = TYPE_RGB_ALPHA;
+
+    paint() {
+	graphics {          // "named block"
+	    gsave();
+	    moveto(0, 0);
+	    showimage(logo, .5);
+	    grestore();
+	}
+    }
+};
+
+JFrame f = {
+    Color background = Color.red;
+    int   border = 72/8;
+
+    paint(Rectangle rect) {
+	//
+	// Could have used
+	//
+	//	showimage(logo, .5);
+	//
+	// but all we really wanted to do in this example
+	// is show how you create a partially transparent
+	// image - showing it here is just supposed to be
+	// proof.
+	//
+	graphics {
+	    gsave();
+	    rectclip(rect);
+	    moveto(72, 72);
+	    showimage(transparent_logo);
+	    grestore();
+	}
+    }
+};
+
+f.visible = TRUE;

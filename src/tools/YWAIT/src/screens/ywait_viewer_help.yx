@@ -1,0 +1,302 @@
+//
+// Simple help screen - lots of room for improvement.
+// Consider it as a starting point.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+//
+// Set iconmodel to 0 and all buttons get text labels, set it to 1 and
+// Dismiss button is the only one, and anything greater than 1 means no
+// text labels. Could be controlled at runtime and even moved into the
+// screen, but that seemeed like overkill.
+//
+
+int iconmodel = 1;
+
+final String TEXT_DISMISS = "Dismiss";
+final String TEXT_FIRST = "First";
+final String TEXT_LAST = "Last";
+final String TEXT_NEXT = "Next";
+final String TEXT_PREVIOUS = "Previous";
+final String TEXT_REFRESH = "Refresh";
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Dimension size = NULL;
+	Insets    border = Global.GetLabeledScreenInsets();
+	String    title = Global.ACRONYM + " Help";
+	Object    parent = Global.MainScreen;
+	Font      font = Global.GetPreferredLabelFont();
+	int       autoraise = TRUE;
+	int       opaque = TRUE;
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = TRUE;   // save screen-specific info within session
+	int    retainstate = TRUE; // save screen-class info across sessions
+	int    reloadargs = TRUE;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	String command = NULL;
+	String command_arg = NULL;
+
+	Pointer page;
+	Array   history;
+	int     textmode = 0;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    Global.NewJHeadingLabel(NULL, Global.ACRONYM + " HELP SYSTEM"),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+	    },
+
+	    new JTextPane {
+		String tag = "$_help";
+		Color  background = Global.GetPreferredTextBackground();
+		Color  foreground = Global.GetPreferredTextForeground();
+		Insets insets = Global.GetTextAreaInsets();
+		Object transferhandler = NULL;		// required for custom drag and drop
+		int    mode = 0;
+		int    opaque = TRUE;
+		int    edit = FALSE;
+		int    scroll = AS_NEEDED;
+
+		Dimension preferredsize = {
+		    double width = 7.0*72;
+		    double height = 4.0*72;
+		};
+
+		Function keyPressed = Global.KeyPressed;
+		Function dragGestureRecognized = Global.DragGestureRecognized;
+
+		hyperlinkEntered(e) {
+		    cursor = Cursor.HAND_CURSOR;
+		}
+
+		hyperlinkExited(e) {
+		    cursor = Cursor.DEFAULT_CURSOR;
+		}
+
+		hyperlinkActivated(e) {
+		    if (e.href != NULL && e.href@sizeof > 0) {
+			if (startsWith(e.href, "!")) {
+			    root.page = NULL;
+			    Global.QueueCommandOnce(this, &root.Reset, substring(e.href, 1));
+			} else Global.QueueCommandOnce(NULL, Global.ViewURL(e.href));
+		    }
+		}
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = BOTH;
+	    },
+
+	    Global.NewJLabel("$_pages", NULL),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int anchor = RIGHT;
+	    },
+
+	    new JPanel {
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JPanel {
+			String tag = "$_buttons";
+
+			GridLayout layoutmanager;
+			Array layout =  {
+			    new JButton {
+				String text = iconmodel ? NULL : TEXT_FIRST;
+				String tooltiptext = iconmodel ? TEXT_FIRST : NULL;
+				Image  icon = iconmodel ? Global.GetFastBackIcon() : NULL;
+				Font   font = Global.GetPreferredButtonFont();
+
+				actionPerformed(e) {
+				    if (root.page != root.history) {
+					root.page = root.history;
+					root.Reset(*(root.page));
+				    }
+				}
+			    },
+			    new JButton {
+				String text = iconmodel ? NULL : TEXT_PREVIOUS;
+				String tooltiptext = iconmodel ? TEXT_PREVIOUS : NULL;
+				Image  icon = iconmodel ? Global.GetBackIcon() : NULL;
+				Font   font = Global.GetPreferredButtonFont();
+
+				actionPerformed(e) {
+				    if (root.page@offset > 0) {
+					root.page--;
+					root.Reset(*(root.page));
+				    }
+				}
+			    },
+			    new JButton {
+				String text = iconmodel ? NULL : TEXT_REFRESH;
+				String tooltiptext = iconmodel ? TEXT_REFRESH : NULL;
+				Image  icon = iconmodel ? Global.GetRefreshIcon() : NULL;
+				Font   font = Global.GetPreferredButtonFont();
+
+				actionPerformed(e) {
+				    root.Reset(NULL);
+				}
+			    },
+			    new JButton {
+				String text = iconmodel ? NULL : TEXT_NEXT;
+				String tooltiptext = iconmodel ? TEXT_NEXT : NULL;
+				Image  icon = iconmodel ? Global.GetForwardIcon() : NULL;
+				Font   font = Global.GetPreferredButtonFont();
+
+				actionPerformed(e) {
+				    if (root.page@sizeof > 1) {
+					root.page++;
+					root.Reset(*(root.page));
+				    }
+				}
+			    },
+			    new JButton {
+				String text = iconmodel ? NULL : TEXT_LAST;
+				String tooltiptext = iconmodel ? TEXT_LAST : NULL;
+				Image  icon = iconmodel ? Global.GetFastForwardIcon() : NULL;
+				Font   font = Global.GetPreferredButtonFont();
+
+				actionPerformed(e) {
+				    if (root.page != (root.history+root.history@length-1)) {
+					root.page = (root.history+root.history@length-1);
+					root.Reset(*(root.page));
+				    }
+				}
+			    },
+			};
+		    },
+		    new Dictionary {
+			int gridx = 1;
+			int gridy = 1;
+			int weightx = 1;
+		    },
+
+		    new JButton {
+			String text = iconmodel > 1 ? NULL : TEXT_DISMISS;
+			String tooltiptext = iconmodel > 1 ? TEXT_DISMISS : NULL;
+			Image  icon = iconmodel > 1 ? Global.GetEjectIcon() : NULL;
+			Font   font = Global.GetPreferredButtonFont();
+			int    requestfocus = TRUE;
+
+			actionPerformed(e) {
+			    Global.AltQueueCommand(root, &root.HideScreen);
+			}
+		    },
+		    RIGHT,
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int fill = HORIZONTAL;
+	    },
+
+	    Global.NewJProprietaryLabel(),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    components.$_help.text = "";
+	}
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+
+	LoadScreen() {
+	    ReloadScreen();
+	}
+
+	ReloadScreen() {
+	    components.$_help.mode = textmode;
+	    history = NULL;
+	    page = NULL;
+	    if (command != NULL && command_arg != NULL)
+		Reset(command_arg);
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	Reset(String target) {
+	    ClearScreen();
+	    if (command != NULL) {
+		if (target != NULL) {
+		    if (history == NULL)
+			history = new Array[0,...];
+		    if (page == NULL && (history@length == 0 || target != history[history@length - 1]))
+			history[history@length] = target;
+		    if (page == NULL)
+			page = history + history@length - 1;
+		    Global.QueueCommandOnce(
+			this,
+			command,
+			target,
+			NULL,
+			&components.$_help
+		    );
+		    components.$_pages.text = strfmt("%d of %d", (1+page@offset), history@length);
+		} else if (page != NULL) {
+		    Global.QueueCommandOnce(
+			this,
+			command,
+			*page,
+			NULL,
+			&components.$_help
+		    );
+		}
+	    }
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);

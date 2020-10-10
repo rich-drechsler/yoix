@@ -1,0 +1,333 @@
+//
+// This is the entry point for the Yoix implementation of <_ACRONYM_>.
+// The first few declarations describe the server and your system and
+// they're usually set when make builds the system. ServerScript() and
+// ServerFile() are Yoix functions (currently defined as expressions)
+// that are used when we ask the server to run a cgi script or give us
+// a file. You can make them more complicated if you want to do things
+// like distribute the load between several servers.
+//
+
+import yoix.*.*;
+import yoix.ydat.*;	// data visualization
+import yoix.apple.*;	// apple extension classes - if they are available
+
+VM.create = FALSE;	// FALSE means don't create without declaration
+
+//
+// A default background color that can be used by any screens, including
+// the login screen, that are displayed before the user actually logs in
+// and has their preferences loaded.
+//
+
+Color PreLoginBackground = {
+    double red = 0.84;
+    double green = 0.85;
+    double blue = 0.86;
+};
+
+JWindow loadgress = {
+    Dimension size = NULL;
+    Color     background = PreLoginBackground;
+    int       autodispose = TRUE;
+
+    BevelBorder border = {
+	int raised = TRUE;
+	EmptyBorder child = {
+	    double insets = 72.0/4;
+	};
+    };
+
+    Array layout = {
+	new JProgressBar {
+	    String tag = "$_bar";
+	    String text = "Loading <_ACRONYM_DQ_>...";
+	    Color  background = Color.white;
+	    Color  foreground = Color.blue;
+	    int    orientation = HORIZONTAL;
+	    int    minimum = 0;
+	    int    maximum = 100;
+	    int    value = 0;
+
+	    Dimension preferredsize = {
+		int height = 72/4;
+		int width = 4*72;
+	    };
+	},
+    };
+
+    HideScreen() {
+	visible = FALSE;
+	global.loadgress = NULL;
+    }
+
+    ShowScreen() {
+	location = new Point {
+	    double x = (VM.screen.width - size.width)/2;
+	    double y = (VM.screen.height - size.height)/2;
+	};
+	visible = TRUE;
+    }
+};
+
+final String ACRONYM = "<_ACRONYM_DQ_>";
+final String acronym = "<_ACRONYM_LOWER_DQ_>";
+final String Acronym = "<_ACRONYM_UPLOW_DQ_>";
+
+final String AccessWarning = "<_ACCESS_WARNING_DQ_>";
+final String BetaPrefix = "<_BETA_PREFIX_DQ_>";
+final String DeveloperOrganization = "<_DEVELORG_DQ_>";
+final String FullName = "<_FULLNAME_DQ_>";
+final String Owner = "<_OWNER_DQ_>";
+final String ProprietaryLabel = "<_PROPRIETARY_LABEL_DQ_>";
+final String ServerType = "<_SERVER_TYPE_DQ_>";
+final String Subowner = "<_SUBOWNER_DQ_>";
+final String SystemWarning = "<_SYSTEM_WARNING_DQ_>";
+
+//
+// Scripts listed in the AddOns array, which is a recent addition, are included
+// by ywait_addon.yx.
+//
+
+Array AddOns[0, ...] = {
+    "<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_csp.yx",
+    //
+    // Uncomment the next file name if you want to use the YWAIT "DnD JList":
+    //
+    //     "<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_dndlist_constructors.yx",
+    //
+    // Uncomment the next three file names if you want to use YWAIT "edit components":
+    //
+    //     "<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_edit_constructors.yx",
+    //     "<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_edit_support.yx",
+    //     "<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_edit_templates.yx",
+    //
+};
+
+ServerFile(String name) = "<_SERVER_BASEURL_DQ_>/<_SERVER_ALIAS_DQ_>/" + name;
+ServerScript(String name) = "<_SERVER_BASEURL_DQ_>/<_SERVER_SCRIPTALIAS_DQ_>/" + name;
+
+//
+// All of these files must be successfully included before your application
+// can do any real work, so we quit if anything goes wrong.
+//
+
+setErrorLimit(1);	// means we quit after one error
+loadgress.ShowScreen();
+include ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_common.yx");
+loadgress.components.$_bar.value += 17;
+include ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_constructors.yx");
+loadgress.components.$_bar.value += 22;
+include ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_icons.yx");
+loadgress.components.$_bar.value += 11;
+include ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_insets.yx");
+loadgress.components.$_bar.value += 1;
+include ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_plugins.yx");
+loadgress.components.$_bar.value += 1;
+include ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_preferences.yx");
+loadgress.components.$_bar.value += 19;
+include ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_screens.yx");
+loadgress.components.$_bar.value += 12;
+include ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_server.yx");
+loadgress.components.$_bar.value += 6;
+include ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_threads.yx");
+loadgress.components.$_bar.value += 2;
+include ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_debug.yx");
+loadgress.components.$_bar.value += 2;
+//
+// Originally this was last (for overrides), but we decided that one of the custom
+// things that might be done is to make changes to the AddOns array. Anyway, because
+// of that ywait_custom.yx is no longer the last included file.
+//
+include ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_custom.yx");
+loadgress.components.$_bar.value = loadgress.components.$_bar.maximum - 2;
+include ServerFile("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_addon.yx");
+loadgress.components.$_bar.value = loadgress.components.$_bar.maximum;
+setErrorLimit(0);
+
+Dictionary CommandOpts[0,...]; // for command-line name=value args using -G
+
+String ReleaseNumber = "<_JARFILE_RELEASE_DQ_>";
+String ReleaseDate = "<_JARFILE_RELEASE_DATE_DQ_>";
+String UserName = <_USER_NAME_>;	// when NULL, login expected
+String GroupName = <_GROUP_NAME_>;	// when NULL, set at login, if any
+String JarFileBaseName = "<_JARFILE_BASENAME_DQ_>";
+String JavaVersion = getProperty("java.version");
+String JavaRuntimeVersion = getProperty("java.runtime.version");
+String JavaVendor = getProperty("java.specification.vendor");
+String ModuleVersion = getModuleVersion("att.research.yoix.<_ACRONYM_LOWER_DQ_>.Module");
+String UserOperatingSystem = yoix.re.gsubsti("_", "[^!-~]", yoix.system.OSNAME);
+String UserProperties = toString(getProperty(new Array[] { "user.country", "user.dir", "user.home", "user.language", "user.name", "user.timezone" }));
+String UserTimeZone = yoix.re.gsubsti("_", "[^!-~]", yoix.system.USERTIMEZONE);
+String ClientAddress = getHostAddress();
+String ClientName = getHostName();
+String ClientId = ClientAddress + "[" + ClientName + "]";
+String LoginLabel = "<_LOGIN_LABEL_DQ_>";
+String PasswordLabel = "<_PASSWORD_LABEL_DQ_>";
+Object MainScreen = NULL;
+int    GarbageTimer = 60;
+int    LoginStyle = -1;			// set properly later
+int    ScreenVisibility = TRUE;
+int    Quitting = FALSE;
+int    OpenServerTries = 1;
+int    ShowWelcome = TRUE;		// controls appearance of welcome screen
+
+//
+// Remember the temp files created by MakeTempFile() so we can clean up
+// when we exit gracefully. Means everyone should use MakeTempFile() to
+// create temporary files.
+//
+
+Array TempFileCache[0, ...];
+int   NextTempFile = 0;
+
+MakeTempFile(...) {
+    String path = tempnam(NULL, "<_ACRONYM_UPLOW_DQ_>");
+
+    if (argc > 1)
+	path += argv[1];
+
+    synchronized(TempFileCache) {
+	TempFileCache[NextTempFile++] = path;
+    }
+    return(path);
+}
+
+CleanupClient() {
+    String path;
+    int	   n;
+
+    for (n = 0; n < TempFileCache@sizeof; n++) {
+	if (defined(n, TempFileCache)) {
+	    if ((path = TempFileCache[n]) != NULL)
+		unlink(path);
+	}
+    }
+    TempFileCache = new Array[0, ...];
+    NextTempFile = 0;
+
+    if (!Updating)
+	ServerSave(NULL, FALSE);
+}
+
+CleanupServer() {
+    //
+    // There may be things you want the server to do (e.g., unlock cases)
+    // when we're really quitting and this is probably where they should
+    // be handled.
+    //
+}
+
+ParseRelease() {
+    return(atoi(strjoin(strsplit(ReleaseNumber, "."), "")));
+}
+
+Run() {
+    String username;
+    String groupname;
+    String password = "<system>";
+
+    if (UserName == NULL || UserName === "" || toLowerCase(UserName) === "unknown" || toLowerCase(UserName) === "external") {
+	if (GroupName == NULL)
+	    GroupName = "default";
+
+	if (UserName == NULL) {
+	    LoginStyle = 1;
+	    GetAndShowScreen("login_password", "login_password");
+	    if (NewPassword)
+		ShowSendPassword(NewPassword);
+	} else if (toLowerCase(UserName) === "external") {
+	    LoginStyle = 0;
+	    try {
+		if (!HandleExternalLogin(NULL)) {
+		    ShowError("External login support is not working properly - contact\n an administrator for more help.");
+		    Quit(1);
+		}
+	    }
+	    catch(e) {
+		ShowError("External logins are not currently supported - contact an\nadministrator for more help.");
+		Quit(1);
+	    }
+	} else {
+	    LoginStyle = 0;
+	    GetAndShowScreen("login", "login");
+	}
+    } else {
+	if (GroupName == NULL)
+	    groupname = "default";
+	else groupname = GroupName;
+
+	if (UserName != NULL)
+	    username = UserName;
+	else username = "null";
+
+	if (RunCommand(NULL, "LOGID", username, password, groupname, ReleaseNumber, VM.Version, UserTimeZone, UserOperatingSystem, ClientId, "0", UserProperties) == NULL) {
+	    stderr.nextline = "Login failed.";
+	    Quit(1);
+	} else {
+	    //
+	    // Seems questionable to me - PostCommand() is now setting both
+	    // based on values that come back in the header when FirstLogin
+	    // is TRUE.
+	    //
+	    //     UserName = username;
+	    //     GroupName = groupname;
+	    //
+	    // Was changed on 3/25/11 along with the ywait_server._YX change
+	    // that sets UserName.
+	    //
+	    FirstLogin = FALSE;
+	    PingServer();
+	}
+    }
+
+    if (!Updating) {
+	StartThreads();
+	if (ShowWelcome) {
+	    GetAndShowScreen(
+		"welcome", "welcome",
+		"welcomemessage", trim("<_WELCOME_MESSAGE_DQ_>")
+	    );
+	}
+	MainScreen = GetAndShowScreen("main", "main");
+    }
+}
+
+Setup() {
+    //
+    // Old versions called this after Options(), but doing it first means
+    // preferences are setup if we decide to use the notify screen for an
+    // error or warning message. The ShowWarning() that's now in Options()
+    // used to just write the error out to stderr using fprintf. Change it
+    // back if you switch the order of the Options() and Setup() calls.
+    // 
+
+    SetupPreferences();
+    addShutdownHook(ShutdownHook);
+}
+
+ShutdownHook() {
+    //
+    // This is the "shutdown hook" that's called when we exit gracefully
+    // or are interrupted, but only after it's officially installed by
+    // addShutdownHook(), which currently happens in Setup(). Calling
+    // exit here means shutdown hooks installed after this one don't
+    // get a chance to run - probably an unnecessary precaution.
+    //
+
+    ScreenVisibility = FALSE;	// no more screens will be shown
+    CleanupServer();
+    CleanupClient();
+    PostQuitting();
+    exit;
+}
+
+//
+// Start <_ACRONYM_>
+//
+
+Setup();
+Options();
+loadgress.HideScreen();
+Run();
+

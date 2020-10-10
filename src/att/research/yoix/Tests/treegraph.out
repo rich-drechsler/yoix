@@ -1,0 +1,22 @@
+<graph name=g strict=1 directed=1>
+    <node name=node1 width=50 />
+    <node name=node2 />
+    <node name=node3 />
+    <edge name=edge1 tail=node1 head=node2 />
+    <edge name=edge2 tail=node3 head=node1 label=dog />
+    <edge name=edge3 tail=node2 head=node3 />
+    <edge name=edge4 tail=node1 head=node4 />
+    <edge name=edge5 tail=node2 head="small green node5" />
+    <subgraph name=gg>
+        <node name=node4 />
+        <node name="small green node5" width=0.75 height=0.5 color=green />
+        <edge name="big red edge6" tail=node2 head=node1 color=red />
+        <subgraph name=ggg>
+            <node name=node8 />
+        </subgraph>
+    </subgraph>
+    <subgraph name=gggg>
+        <node name=node9 />
+    </subgraph>
+</graph>
+

@@ -1,0 +1,13 @@
+This is a Yoix script that's used to stream edit some source files before
+they're actually installed. In general, files that end in suffixes ._HTML,
+._JAVA, ._PL, ._TXT, and ._YX and need special preprocessing by gsubsti.yx
+before they're ready to be read, compiled, or executed. The exception is
+gsubsti._YX, which is translated into gsubsti.yx by a sed script that's
+defined in ../make/gsubsti.mk.
+
+Inference rules that are defined near the end of ../make/rules.mk control
+the preprocessing, so that's were to look if you want to find the command
+line that's used to execute gsubsti.yx. It's also where you'll find the
+complete list of suffixes that we use to mark the source files that need
+special preprocessing.
+

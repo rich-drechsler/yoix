@@ -1,0 +1,183 @@
+//
+// Example that shows how list selector screens can help users enter text
+// into components, like JTextFields, withour having to type.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+Builder(String name, Array args) {
+    //
+    // Notice that we use Global.NewJFrameEditScreen() to create the screen. It's
+    // defined in ywait_edit_constructors.yx and it uses EDITMANAGER_TEMPLATE and
+    // EDITMANAGER_TEMPLATE, which are both defined in ywait_edit_templates.yx, to
+    // build the screen.
+    // 
+
+    JFrame screen = Global.NewJFrameEditScreen(name, new Dictionary {
+	Dimension size = NULL;
+	String    title = Global.ACRONYM + " DND List Example";
+	Insets    border = Global.GetLabeledScreenInsets();
+	Font      font = Global.GetPreferredLabelFont();
+	int       opaque = TRUE;
+
+	Dimension preferredsize = {
+	    double width = 8.0*72;
+	    double height = 0.0;
+	};
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = TRUE;	// TRUE means remember size and location
+	int    retainstate = TRUE; // remember size and location across sessions
+	int    reloadargs = TRUE;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	int submitmodel = Global.SUBMIT_ANY_CHANGED_ALL_READY;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager = {
+	    double vgap = 72.0/16;
+	    int    columns = 1;
+	};
+
+	Array layout = {
+	    Global.NewJHeadingLabel(NULL, "Example Edit Screen"),
+	    HORIZONTAL,
+
+	    Global.NewJPanelEditor("$_general", new Dictionary {
+		String edit_status_label_tag = NULL;
+		int    edit_standalone = TRUE;
+
+		BevelBorder border = {
+		    EmptyBorder child = {
+			double insets = 72.0/8;
+		    };
+		};
+
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    Global.NewJTextFieldEditComponent("$_general_company", "Company", NULL, 30, NULL, "datatag", "general/company"),
+		    HORIZONTAL, REMAINDER,
+		    new JPanel {
+			GridBagLayout layoutmanager;
+			Array layout = {
+			    Global.NewJTextFieldEditComponent(
+				"$_general_fullname", "Full Name", NULL, 30, NULL,
+				"datatag", "general/fullname"
+			    ),
+			    HORIZONTAL,
+			    Global.NewJTextFieldEditComponent("$_general_city", "City", NULL, 10, NULL, "datatag", "general/city", "required", FALSE),
+			    NONE,
+			    Global.NewJTextFieldEditComponent("$_general_state", "State", NULL, 10, NULL, "datatag", "general/state", "required", FALSE),
+			    NONE,
+			    Global.NewJTextFieldEditComponent("$_general_zip", "Zip", NULL, 10, NULL, "datatag", "general/zip", "required", FALSE),
+			    NONE, REMAINDER,
+			};
+		    },
+		    HORIZONTAL, REMAINDER,
+		    Global.NewJPanelEditStackUndoControls("$_general", TRUE, TRUE),
+		    NONE, LEFT, REMAINDER,
+		};
+	    }),
+	    BOTH,
+
+	    new JPanel {
+		GridLayout layoutmanager;
+		Array layout = {
+		    new JButton {
+			String tag = "$_submit_button";
+			String text = "Submit";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			}
+		    },
+		    new JButton {
+			String text = "Dismiss";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    Global.QueueCommand(root, &root.HideScreen);
+			}
+		    },
+		};
+	    },
+	    NONE, CENTER,
+
+	    new JLabel {
+		String text = Global.ProprietaryLabel;
+		Font   font = Global.GetPreferredProprietaryFont();
+		int    alignment = CENTER;
+	    },
+	    NONE, CENTER,
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+
+	InitializeScreen() {
+	    InitializeEditScreen();		// required to get things started properly
+	}
+
+	////////////////////////////
+	//
+	// Edit Functions
+	//
+	////////////////////////////
+
+	SyncScreen() {
+	    //
+	    // Automatically called, if it's defined, when a change is made to an
+	    // edit component. Often used, as we do here, to enable or disable a
+	    // "submit" button.
+	    //
+
+	    if (!CanSubmit(submitmodel)) {
+		//
+		// Assumes interpreter version 2.3.1 or newer, otherwise the
+		// code should test focusowner field before storing FALSE in
+		// requestfocus. Older versions always transferred focus, no
+		// matter who had it, when FALSE was stored in requestfocus.
+		//
+		components.$_submit_button.requestfocus = FALSE;
+		components.$_submit_button.enabled = FALSE;
+	    } else components.$_submit_button.enabled = TRUE;
+	}
+     });
+
+    return(screen);
+}
+
+return(Builder);

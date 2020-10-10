@@ -1,0 +1,44 @@
+//
+// Simple thread example that illustrates deadlock.
+//
+
+import yoix.*.*;
+
+Object lock1 = "lock1";
+Object lock2 = "lock2";
+
+Thread thread1 = {
+    run() {
+	synchronized(lock1) {
+	    printf("thread1: got lock1\n");
+	    sleep(3);
+	    printf("thread1: waiting for lock2\n");
+	    synchronized(lock2) {
+		printf("thread1: got lock2 - impossible\n");
+		sleep(5);
+	    }
+	    printf("thread1: released lock2\n");
+	}
+	printf("thread1: released lock1\n");
+    }
+};
+
+Thread thread2 = {
+    run() {
+	synchronized(lock2) {
+	    printf("thread2: got lock2\n");
+	    sleep(3);
+	    printf("thread2: waiting for lock1\n");
+	    synchronized(lock1) {
+		printf("thread2: got lock1 - impossible\n");
+		sleep(5);
+	    }
+	    printf("thread2: released lock1\n");
+	}
+	printf("thread2: released lock2\n");
+    }
+};
+
+thread1.run();
+thread2.run();
+

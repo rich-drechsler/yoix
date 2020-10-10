@@ -1,0 +1,340 @@
+import yoix.*.*;
+
+String bcjarfile = "Data/bcprov-jdk14-129.jar";
+String fullpath = yoixPath(argv[0]);
+int last = lastIndexOf(fullpath, '/');
+String jarpath = substring(fullpath, 0, last+1) + bcjarfile;
+
+try {
+    adjustSecurity(ADDPROVIDER, "org.bouncycastle.jce.provider.BouncyCastleProvider", jarpath);
+}
+catch(e) {
+    stdout.nextline = e.message;
+    return(true);
+}
+
+Array sortcols = new Array[0,...] { 2, 4, 3, };
+
+String filtertext = "*|Me*|S*|*";
+
+JFrame screen = {
+    Dimension size = NULL;
+
+    Array layout = {
+	new JTable {
+	    String tag = "$_table";
+	    int reorder = 1;
+	    int resize = 1;
+	    int scroll = AS_NEEDED;
+	    int edit = 0;
+	    int rows = 20;
+	    int resizemode = AUTO_RESIZE_OFF;
+	    Color background = Color.white;
+	    Array altbackground = {
+		Color.white,
+		new Color { double red = 1.; double green = 204./255.; double blue = 204./255.; },
+		new Color { double red = 204./255.; double green = 1.; double blue = 204./255.; },
+	    };
+
+	    invocationAction(InvocationEvent e) {
+
+		// over-engineered
+
+		if (e.valuesColumn >= 0) {
+
+		    int idx;
+		    int len;
+		    int sz;
+		    int off;
+		    int i, j;
+
+		    if ((e.modifiers&(CTRL_MASK|SHIFT_MASK)) != (CTRL_MASK|SHIFT_MASK)) {
+			if ((e.modifiers&CTRL_MASK) == 0) {
+			    sortcols = new Array[0,...] {};
+			    len = 0;
+			} else {
+			    e.modifiers &= ~CTRL_MASK;
+			    len = sortcols@length;
+			}
+	
+			if (e.modifiers == BUTTON1_MASK) {
+			    if (len == 0 && action(GET_COLUMN_FIELD, e.valuesColumn, "state") > 0)
+				idx = 0;
+			    else
+				idx = 1 + e.valuesColumn;
+			} else {
+			    if (len == 0 && action(GET_COLUMN_FIELD, e.valuesColumn, "state") < 0)
+				idx = 0;
+			    else
+				idx = -(1 + e.valuesColumn);
+			}
+			for (i=0; i<len; i++) {
+			    if (idx == sortcols[i]) {
+				for (j=i; j>0; j--) {
+				    sortcols[j] = sortcols[j-1];
+				}
+				sortcols[0] = 0;
+				idx = 0;
+				break;
+			    } else if (-idx == sortcols[i]) {
+				sortcols[i] = idx;
+				idx = 0;
+				break;
+			    }
+			}
+			for(off=0; off<len; off++) {
+			    if (sortcols[off] != 0) break;
+			}
+			if (idx != 0) {
+			    sortcols[len] = idx;
+			    len++;
+			}
+
+			//fprintf(stderr, "len=%d, idx=%d\n%O\n", len, off, sortcols);
+			if (len == off) {
+			    action(TABLE_SORT, null);
+			    sortcols = new Array[0,...] {};
+			} else {
+			    action(TABLE_SORT, sortcols + off);
+			}
+		    }
+		}
+	    }
+
+	    Array columns = {
+		new JTableColumn {
+		    String header = "Provider";
+		    int type = STRING_TYPE;
+		    int width = 144;
+		},
+		new JTableColumn {
+		    String header = "Operation";
+		    int type = STRING_TYPE;
+		    int width = 144;
+		},
+		new JTableColumn {
+		    String header = "Name";
+		    int type = STRING_TYPE;
+		    int width = 144;
+		},
+		new JTableColumn {
+		    String header = "Value";
+		    int type = STRING_TYPE;
+		    int width = 144;
+		},
+	    };
+	    Array values = getProviderInfo();
+
+	    invocationChange(e) {
+		switch(e.change) {
+		case "resize":
+		    if (e.viewColumn >= 0) {
+			root.SyncSizes(this, root.components.$_filter);
+		    }
+		    break;
+		case "drag":
+		    root.components.$_filter.action(MOVE_COLUMN, e.fromViewColumn, e.toViewColumn);
+		    break;
+		}
+	    }
+
+	    int adjusting = FALSE;
+	    adjustmentValueChanged(e) {
+
+		if (e.orientation == HORIZONTAL) {
+		    adjusting = TRUE;
+
+		    if (!root.components.$_filter.adjusting)
+			root.components.$_filter.origin = new Point { double x = origin.x; int y = 0; };
+		    adjusting = FALSE;
+		}
+	    }
+	},
+	CENTER,
+	new JPanel {
+	    GridBagLayout layoutmanager;
+
+	    Array layout = {
+		new JTable {
+		    String tag = "$_filter";
+		    int reorder = 0;
+		    int rows = 1;
+		    int resize = 0;
+		    int scrollinit = NONE;
+		    int scrollvert = HORIZONTAL_NEVER|VERTICAL_ALWAYS;
+		    int scrollmode = scrollinit;
+		    int scroll = scrollmode;
+		    int resizemode = AUTO_RESIZE_OFF;
+		    int rowheightadjustment = -1;
+		    int edit = 1;
+		    Color background = Color.white;
+		    Color selectionbackground = Color.white;
+
+		    String outputfilter = "\t";
+
+		    Array types = {
+			STRING_TYPE, STRING_TYPE, STRING_TYPE, STRING_TYPE,
+		    };
+
+// 		    invocationEdit(e) {
+// 			if (e.oldtext !== e.text)
+// 			    root.Filter();
+// 		    }
+
+		    int adjusting = FALSE;
+		    adjustmentValueChanged(e) {
+
+			if (e.orientation == HORIZONTAL) {
+			    adjusting = TRUE;
+
+			    if (!root.components.$_table.adjusting)
+				root.components.$_table.origin = new Point { double x = origin.x; int y = 0; };
+			    adjusting = FALSE;
+			}
+		    }
+		},
+		new GridBagConstraints {
+		    int gridy = 1;
+		    int gridx = 1;
+		    int gridwidth = REMAINDER;
+		    int fill = BOTH;
+		    int weightx = 2;
+		},
+		new JPanel {
+		    Array layout = {
+			new JButton {
+			    String text = "Filter";
+			    actionPerformed(e) {
+				root.Filter();
+			    }
+			},
+			new JButton {
+			    String text = "Reset";
+			    actionPerformed(e) {
+				root.ResetFilter();
+			    }
+			},
+			new JButton {
+			    String text = "Exit";
+			    actionPerformed(e) {
+				exit(0);
+			    }
+			},
+		    };
+		},
+		new GridBagConstraints {
+		    int gridy = 2;
+		    int gridx = 1;
+		    int anchor = CENTER;
+		    int gridwidth = REMAINDER;
+		    int insets = 9;
+		},
+		new JLabel {
+		    String text = "";
+		},
+		new GridBagConstraints {
+		    int gridy = 2;
+		    int gridx = 1;
+		    int fill = HORIZONTAL;
+		    int gridwidth = RELATIVE;
+		    int weightx = 2;
+		    int insets = 9;
+		},
+		new JCheckBox {
+		    String tag = "$_nodots";
+		    String text = "Filter Dotted Entries";
+		    int    selected = false;
+		    actionPerformed(e) {
+			root.Filter();
+		    }
+		},
+		new GridBagConstraints {
+		    int gridy = 2;
+		    int gridx = 3;
+		    int anchor = RIGHT;
+		    int gridwidth = REMAINDER;
+		    int insets = 9;
+		},
+	    };
+	},
+	SOUTH,
+    };
+
+    SyncSizes(JTable master, JTable slave) {
+	if (master.size.height > master.viewport.height) {
+	    if (slave.scrollmode == slave.scrollinit) {
+		slave.scrollmode = slave.scrollvert;
+		slave.scroll = slave.scrollvert;
+	    }
+	} else {
+	    if (slave.scrollmode == slave.scrollvert) {
+		slave.scrollmode = slave.scrollinit;
+		slave.scroll = slave.scrollinit;
+	    }
+	}
+	for(n = 0; n < master.width; n++) {
+	    w = master.action(GET_COLUMN_FIELD, n, "width");
+	    v = master.action(GET_COLUMN_VIEW_INDEX, n);
+	    m = slave.action(GET_COLUMN_DATA_INDEX, v);
+	    slave.action(SET_COLUMN_FIELD, m, "width", w);
+	}
+    }
+
+    Load() {
+	Dictionary cmp = components;
+
+	components.$_filter.text = filtertext;
+	cmp.$_table.values = getProviderInfo(cmp.$_nodots.selected);
+	Filter();
+    }
+
+    Filter() {
+	Array       vizinfo;
+	Array       colcells;
+	Array       filters;
+	Regexp      re;
+	JTable      tab = components.$_table;
+	JTable      flt = components.$_filter;
+	Pointer     ptr;
+	Pointer     ptr2;
+	int         n;
+	int         nodots = components.$_nodots.selected;
+	int         usepat;
+
+	flt.action(EDIT_STOP);
+
+	save        cursor = Cursor.WAIT_CURSOR;
+
+	filters = strsplit(trim(flt.text), "\t");
+	tab.action(ROW_VISIBILITY, 1); // would only apply to existing set if omitted
+	vizinfo = new Array[tab.rows];
+	for (ptr in vizinfo) *ptr = 1;
+	for (ptr in filters) {
+	    usepat = (*ptr !== "*");
+	    if (nodots || usepat) {
+		re = regexp(*ptr, SHELL_PATTERN); // could conditionally add CASE_INSENSITIVE
+		colcells = linesplit(tab.action(GET_COLUMN_FIELD, ptr@offset, "text", 1));
+		for (ptr2 in colcells) {
+		    if (vizinfo[n = ptr2@offset]) {
+			if (nodots && indexOf(*ptr2, '.') >= 0)
+			    vizinfo[n] = 0;
+			else if (usepat)
+			    vizinfo[n] = regexec(re, *ptr2);
+		    }
+		}
+	    }
+	}
+	tab.action(ROW_VISIBILITY, vizinfo, "view");
+    }
+
+    ResetFilter() {
+	components.$_filter.text = filtertext;
+	Filter();
+    }
+};
+
+screen.Load();
+screen.components.$_table.action(TABLE_SORT, sortcols);
+screen.validate = 0;
+screen.SyncSizes(screen.components.$_table, screen.components.$_filter);
+screen.visible = 1;

@@ -1,0 +1,410 @@
+//
+// A modified version of the original components test that uses Swing
+// and also demonstrates some things Swing specific things.
+//
+
+import yoix.*.*;
+
+Image img = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+};
+
+ButtonGroup rbg;
+int         count = 0;
+
+ButtonGroup bg1;
+
+JMenu menu1 = {
+    String text = "abodes";
+    int    mnemonic = KeyCode.VK_A;
+    Array items = {
+	new JMenuItem {
+	    String tag = "$_house";
+	    String text = "dog";
+	    String command = "house";
+	    int    mnemonic = KeyCode.VK_D;
+	    int    type = RADIO_BUTTON;
+	    ButtonGroup group = bg1;
+	},
+	new JMenuItem {
+	    String tag = "$_barn";
+	    String text = "horse";
+	    String command = "barn";
+	    int    mnemonic = KeyCode.VK_H;
+	    int    type = RADIO_BUTTON;
+	    ButtonGroup group = bg1;
+	},
+	new JMenuItem {
+	    String tag = "$_cage";
+	    String text = "bird";
+	    String command = "cage";
+	    int    mnemonic = KeyCode.VK_B;
+	    int    type = CHECKBOX_BUTTON;
+	},
+	new JMenuItem {
+	    String tag = "$_pond";
+	    String text = "fish";
+	    String command = "pond";
+	    int    mnemonic = KeyCode.VK_F;
+	    int    type = CHECKBOX_BUTTON;
+	},
+	null,
+	new JMenuItem {
+	    String tag = "$_basement";
+	    String text = "cat";
+	    String command = "basement";
+	},
+	"-",
+	new JMenu {
+	    String text = "names1";
+	    Menu items = {
+		"dog", "Data",
+		"horse", "Splash",
+	    };
+	},
+    };
+};
+
+JMenu menu2 = {
+    String text = "nonsense";
+
+    Menu items = {
+	"Now", "is the time",
+	"For", "all good men",
+	"-", NULL,
+	"Party", "sdaasddsdsa",
+	"More", new Array {
+	    "To", "come to the", "qwert", 1,
+	    "Aid", "of their", "qwert", 0,
+	},
+    };
+};
+
+ButtonGroup bg2;
+
+JPopupMenu popupmenu = {
+    String text = "popup-duplicate";
+    Array items = {
+	new JMenuItem {
+	    String tag = "$_house";
+	    String text = "dog";
+	    String command = "house";
+	    int    mnemonic = KeyCode.VK_D;
+	    int    type = RADIO_BUTTON;
+	    ButtonGroup group = bg2;
+	},
+	new JMenuItem {
+	    String tag = "$_barn";
+	    String text = "horse";
+	    String command = "barn";
+	    int    mnemonic = KeyCode.VK_H;
+	    int    type = RADIO_BUTTON;
+	    ButtonGroup group = bg2;
+	},
+	new JMenuItem {
+	    String tag = "$_cage";
+	    String text = "bird";
+	    String command = "cage";
+	    int    mnemonic = KeyCode.VK_B;
+	    int    type = CHECKBOX_BUTTON;
+	},
+	new JMenuItem {
+	    String tag = "$_pond";
+	    String text = "fish";
+	    String command = "pond";
+	    int    mnemonic = KeyCode.VK_F;
+	    int    type = CHECKBOX_BUTTON;
+	},
+	null,
+	new JMenuItem {
+	    String tag = "$_basement";
+	    String text = "cat";
+	    String command = "basement";
+	},
+	"-",
+	new JMenu {
+	    String tag = "$_names";
+	    String text = "names2";
+	    Array items = {
+		new JMenuItem {
+		    String tag = "$_Data";
+		    String text = "dog";
+		    String command = "Data";
+		},
+		new JMenuItem {
+		    String tag = "$_Splash";
+		    String text = "horse";
+		    String command = "Splash";
+		},
+		new JMenu {
+		    String text = "More->";
+		    Array items = {
+			new JMenuItem {
+			    String tag = "$_Rosie";
+			    String text = "Rosie";
+			    String command = "Rosie";
+			},
+		    };
+		},
+	    };
+	},
+    };
+};
+
+JMenuBar mb = {
+    JPopupMenu popup = null;
+
+    Array items = {
+	menu1,
+	menu2,
+    };
+
+    actionPerformed(ActionEvent e) {
+	stderr.nextline = "popup command = " + e.command;
+    }
+
+    mousePressed(e) {
+	if (e.popuptrigger) {
+	    global.popupmenu.location = e.location;
+	    this.popup = global.popupmenu;
+	}
+    }
+
+    // microsoft issues the popuptrigger on release
+    Function mouseReleased = mousePressed;
+};
+
+JDialog f = {
+    JMenuBar menubar = mb;
+
+    Dimension size = {
+	double width = 9*72;
+	double height = 4*72;
+    };
+
+    GridLayout layoutmanager = {
+	int hgap = 36;
+	int vgap = 6;
+	int rows = 0;
+	int columns = 3;
+    };
+
+    Array layout = {
+	new JButton {
+	    String tag = "$_button1";
+	    String text = "Increment Test";
+	    String font = "Helvetica-bold-18";
+	    Color  background = Color.red;
+
+	    actionPerformed(e) {
+		count += 1;
+		if (count == 0)
+		    visible = FALSE;
+	    }
+	},
+
+	new JButton {
+	    String tag = "$_button2";
+	    String text = "Decrement Test";
+	    String command = "xxxxx";
+	    Color  background = Color.blue;
+	    Color  foreground = Color.white;
+
+	    actionPerformed(e) {
+		count -= 1;
+		if (count == -5)
+		    root.components.$_button1.visible = TRUE;
+	    }
+
+	    keyTyped(e) {
+		if (e.keychar == 'q')
+		    exit(0);
+		else if (e.keychar == '@')
+		    text = "";
+		else text += e.keystring;
+	    }
+	},
+
+	new JCanvas {
+	    String tag = "$_canvas";
+	    int    state = FALSE;
+
+	    Color background = {
+		double red = .5;
+		double green = .1;
+		double blue = .5;
+	    };
+
+	    Image backgroundimage = img;
+
+	    paint(Rectangle r) {
+		graphics {
+		    gsave();
+		    rectclip(r);
+		    moveto(50, 50);
+		    show("hello world");
+		    grestore();
+		}
+	    }
+
+	    Insets border = {
+		double top = 4;
+		double left = 4;
+		double bottom = 4;
+		double right = 4;
+	    };
+
+	    mousePressed(e) {
+		if (e.modifiers & BUTTON1_MASK)
+		    state = TRUE;
+	    }
+
+	    mouseReleased(e) {
+		if (e.modifiers & BUTTON1_MASK)
+		state = FALSE;
+	    }
+	},
+
+	new JPanel {
+	    Array layout = {
+		new JTextField {
+		    String tag = "$_clear";
+		    String text = "Now is the time";
+		    String oldtext = text;
+		    int    columns = 20;
+		    
+		    actionPerformed(e) {
+			root.components.$_button1.text = e.command;
+		    }
+
+			textValueChanged(e) {
+			    fprintf(stderr,"changed\n");
+			    // validate change here, for example, and maybe
+			    // restore old text
+			    oldtext = text;
+			}
+		},
+	    };
+	},
+
+	new JPanel {
+	    Array layout = {
+		new JTextField {
+		    String tag = "$_pswd";
+		    String text = "When was it now";
+		    int    columns = 20;
+		    int    echo = '*';
+
+		    actionPerformed(e) {
+			root.components.$_button1.text = e.command;
+		    }
+		},
+	    };
+	},
+
+	new JTextArea {
+	    String tag = "$_textarea";
+	    String text = "Textarea test:\n";
+	    int    columns = 20;
+	    int    rows = 5;
+	    int    scroll = VERTICAL;
+	},
+
+	new JButton {
+	    ButtonGroup group = rbg;
+	    String      text = "Now is the time";
+	    int         type = RADIO_BUTTON;
+	    int         selected = FALSE;
+	    int         state = FALSE;
+	},
+
+	new JButton {
+	    ButtonGroup group = rbg;
+	    String      tag = "$_checkbox2";
+	    String      text = "for all good men";
+	    int         type = RADIO_BUTTON;
+	    int         selected = FALSE;
+	    int         state = FALSE;
+	},
+
+	new JButton {
+	    String text = "ButtonGroup";
+	    Color  background = Color.green;
+
+	    actionPerformed(e) {
+		if (root.components.$_jlab.alignment == RIGHT) {
+		    menu1.text = "ab";
+		    root.components.$_jlab.text = "Left justified";
+		    root.components.$_jlab.alignment = LEFT;
+		    root.components.$_checkbox2.text = "FOR ALL GOOD MEN";
+		} else {
+		    root.components.$_jlab.text = "Right justified";
+		    root.components.$_jlab.alignment = RIGHT;
+		    menu1.text = "abodes";
+		    root.components.$_checkbox2.text = "for all good men";
+		}
+
+		if (rbg.selected != NULL) {
+		    stderr.nextline = rbg.selected.text;
+		    appendText(root.components.$_textarea, rbg.selected.text + "\n");
+		}
+		if (rbg.selected == root.components.$_checkbox2)
+		    rbg.selected = null;
+		else rbg.selected = root.components.$_checkbox2;
+	    }
+	},
+
+	new JList {
+	    int scroll = VERTICAL;
+	    
+	    Array items = {
+		"Now is the time", NULL,
+		"for", NULL,
+		"all good men", "two",
+		"to come to the aid", NULL,
+		"of their", NULL,
+		"party",  NULL,
+	    };
+
+	    Array selected = {1, 3};
+	    int   multiplemode = TRUE;
+	    int   rows = 4;
+	    ////int  selected = 3;
+
+	    valueChanged(e) {
+		if (e.sequence == 0)
+		    printf("%O\n", selected);
+	    }
+	},
+
+	new JSlider {
+	    int orientation = HORIZONTAL;
+	    int minimum = 0;
+	    int maximum = 100;
+	    int paintlabels = 1;
+
+	    Array labels = {
+		0, "No Red",
+		100, "All Red"
+	    };
+
+	    stateChanged(e) {
+		root.components.$_canvas.background = new Color {
+		    double  red = (value + 0.0)/(maximum - minimum);
+		};
+		////root.components.$_textarea.caret = value;
+	    }
+	},
+
+	new JLabel {
+	    String tag = "$_jlab";
+	    String text = "Right justified";
+	    Color  foreground = {double red = .8;};
+	    int    alignment = RIGHT;
+	},
+    };
+};
+
+f.visible = TRUE;
+stdout.nextline = toString(yoix.system.time() - VM.starttime);
+

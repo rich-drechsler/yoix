@@ -1,0 +1,66 @@
+Stuff in this directory builds the installer (an executable jar file) that
+clients can use to load the software needed to access your application, a
+web page with instructions and a link to that installer.
+
+This undoubtedly is the most difficult source directory. The Makefile is
+quite confusing, but there's probably not too much that can be done to
+simplify things because it's hard work that takes several steps. Building
+your installer mirrors how the official Yoix installer has been built for
+many years now.
+
+Fortunately, you don't have to understand the Makefile or the installer,
+because there probably are only three files you'll ever change:
+
+    Ywait_Installer._HTML
+	A web page with instructions and a link to the installer that
+	your clients use to load your application on their system. As
+	you probably guessed, this file is preprocessed by gsubsti.yx
+	and installed in SERVER_DOCDIR when you run make. There's also
+	supposed to be a link to this page in your application's main
+	web page (i.e., ../htdocs/index._HTML).
+
+    Ywait_Installer._YX
+	A complicated Yoix script that builds the GUI that your clients
+	interact with when they run the installer. There's probably not
+	much to change here, however the panels and messages displayed
+	by those panels are all defined in this file. For example, look
+	for WelcomePanel or WelcomeMessage and you'll find things that
+	are used to build the first screen that the installer displays.
+	NOTE - we're not talking about the splash screen that pops up
+	when the installer is started.
+
+    yoix.jar
+	A jar file that includes the Yoix interpreter and any optional
+	custom modules that your application needs. New releases of the
+	Yoix interpreter are available at:
+
+		http://www.yoix.org/
+
+	A jar file and the interpreter's source code are both available
+	at that site. Replace yoix.jar in this directory (probably after
+	saving a copy) with a different version and that's what will be
+	used to build your installer and your application's jar file the
+	next time you run make.
+
+	We suggest that you change the value assigned to JARFILE_RELEASE
+	in ../make/variables.mk whenever the yoix.jar changes. The value
+	assigned to JARFILE_RELEASE ends up in the jar file that clients
+	get when they run the installer, and code that runs on the server
+	can compare that value to a list of acceptable values and use the
+	result of that comparison to decide if client's jar file needs to
+	be updated. The server code that handles the checks can be found
+	in ../etc/ywait_rc._PL and you should notice that JARFILE_RELEASE
+	is used in the list of allowed releases in that file.
+
+	YWAIT doesn't use symbolic links in the package that it generates,
+	but that doesn't mean you can't. In fact, one of the things you
+	might want to do is rename yoix.jar so it includes JARFILE_RELEASE
+	in its name and then make yoix.jar a symbolic link to that file.
+	For example, if JARFILE_RELEASE is set to 1.0.0 in the top level
+	Makefile, then something like
+
+		mv yoix.jar yoix.jar_1.0.0
+		ln -s yoix.jar_1.0.0 yoix.jar
+
+	would be a reasonable way to reorganize this source directory.
+

@@ -1,0 +1,142 @@
+//
+// An image encoding and decoding tester - mostly to verify that the
+// JPEG encoding and decoding builtins don't object to any image type.
+//
+// NOTE - we had some problems with TYPE_USHORT_GRAY using Java 1.3.1
+// on an SGI, so our Java code may silently map TYPE_USHORT_GRAY to
+// TYPE_BYTE_GRAY.
+//
+
+import yoix.*.*;
+
+Array IMAGETYPES = {
+    "TYPE_INT_RGB", TYPE_INT_RGB,
+    "TYPE_INT_ARGB", TYPE_INT_ARGB,
+    "TYPE_INT_ARGB_PRE", TYPE_INT_ARGB_PRE,
+    "TYPE_INT_BGR", TYPE_INT_BGR,
+    "TYPE_3BYTE_BGR", TYPE_3BYTE_BGR,
+    "TYPE_4BYTE_ABGR", TYPE_4BYTE_ABGR,
+    "TYPE_4BYTE_ABGR_PRE", TYPE_4BYTE_ABGR_PRE,
+    "TYPE_USHORT_565_RGB", TYPE_USHORT_565_RGB,
+    "TYPE_USHORT_555_RGB", TYPE_USHORT_555_RGB,
+    "TYPE_BYTE_GRAY", TYPE_BYTE_GRAY,
+    "TYPE_USHORT_GRAY", TYPE_USHORT_GRAY,
+    "TYPE_BYTE_BINARY", TYPE_BYTE_BINARY,
+    "TYPE_BYTE_INDEXED", TYPE_BYTE_INDEXED,
+};
+
+int nexttype = 2;
+
+Image original = {
+    String  source = "http://www.yoix.org/imgs/ATTlogo.gif";
+};
+
+Insets SHADOW_INSETS = {
+    double left = 72.0/25;
+    double top = 72.0/25;
+    double right = 72.0/25;
+    double bottom = 72.0/25;
+};
+
+JFrame f = {
+    String font = "Helvetica-bold-14";
+
+    Dimension size = {
+	double width = min(10*72, VM.screen.width - 72);
+	double height = VM.screen.height/2;
+    };
+
+    JMenuBar menubar = {
+	Menu items = {
+	    "File", new Menu {
+		"Quit", "quit",
+	    },
+	};
+    };
+
+    Array layout = {
+	new JLabel {
+	    String tag = "$_label";
+	    String font = "Lucida-regular-14";
+	    String text = "Image Encoding Tester";
+	    int    alignment = CENTER;
+	}, NORTH,
+
+	new JPanel {
+	    GridLayout layoutmanager;
+
+	    Array layout = {
+		new JCanvas {
+		    String tag = "$_original";
+		    Color  background = Color.gray;
+		    Insets border = SHADOW_INSETS;
+		    int    state = TRUE;
+
+		    Image image = original;
+
+		    paint(Rectangle r) {
+			double x = (this.size.width - image.size.width)/2;
+			double y = (this.size.height - image.size.height)/2;
+
+			drawImage(this, image, x, y);
+		    }
+		},
+		new JCanvas {
+		    String tag = "$_converted";
+		    Color  background = Color.gray;
+		    Insets border = SHADOW_INSETS;
+		    int    state = TRUE;
+
+		    Image image = original;
+
+		    paint(Rectangle r) {
+			double x = (this.size.width - image.size.width)/2;
+			double y = (this.size.height - image.size.height)/2;
+
+			drawImage(this, image, x, y);
+		    }
+		},
+	    };
+	}, CENTER,
+
+	new JPanel {
+	    String font = "Helvetica-regular-14";
+	    GridLayout layoutmanager;
+
+	    Array layout = {
+		new JButton {
+		    String text = "Encode";
+
+		    actionPerformed(e) {
+			printf("Testing image type %s\n", IMAGETYPES[nexttype]);
+			Image temp = {
+			    Image source = original;
+			    int   type = IMAGETYPES[nexttype + 1];
+			    paint(Rectangle r) {
+				Matrix m;
+				m.rotate(30);
+				transform(m);
+			    }
+			};
+			nexttype = (nexttype+2)%(IMAGETYPES@length);
+			String encoded = encodeJPEG(temp);
+			Image  decoded = decodeJPEG(encoded);
+
+			root.components.$_converted.image = decoded;
+			root.components.$_converted.repaint();
+		    }
+		},
+		new JButton {
+		    String text = "Quit";
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+	    };
+	}, SOUTH,
+    };
+};
+
+f.visible = TRUE;
+

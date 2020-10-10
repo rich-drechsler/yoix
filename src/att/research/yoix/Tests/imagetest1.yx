@@ -1,0 +1,46 @@
+//
+// An old example that shows how images can be used as the background
+// of a JCanvas.
+//
+
+import yoix.*.*;
+
+Image img = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+
+    Dimension size = {
+	int  height = 72;
+	int  width = 144;
+    };
+};
+
+JCanvas c = {
+    Color background = Color.red;
+    Image backgroundimage = img;
+    int   backgroundhints = SCALE_TILE;
+
+    Insets border = {
+	int left = 72/8;
+	int top = 72/8;
+	int right = 72/8;
+	int bottom = 72/8;
+    };
+};
+
+JFrame f = {
+    Array layout = {c};
+};
+
+f.visible = TRUE;
+sleep(3);
+c.backgroundimage = img;
+sleep(3);
+img.size = img.preferredsize;
+c.backgroundimage = img;
+sleep(3);
+c.backgroundhints = SCALE_DEFAULT;
+sleep(6);
+c.backgroundimage = NULL;
+sleep(10);
+exit(0);
+

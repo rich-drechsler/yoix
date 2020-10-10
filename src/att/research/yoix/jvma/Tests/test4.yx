@@ -1,0 +1,78 @@
+import yoix.*.*;
+import yoix.module.att.research.yoix.jvma.JVMTestModule.*;
+
+assembleClass(@<<
+    public class XXX extends YYY {
+        int QWERT = 12
+        static java.lang.String poiuy  = "Now is the time"
+
+	extern private double XXX.putField(double, int);
+	extern public static int java.lang.Dummy.add(int, int)
+	extern public int ZZZ.dump()
+
+	class YYY extends ZZZ
+	class java.util.HashMap extends java.util.Map
+
+        private int getField(int a1,    double a2  ,  java.lang.String a3) {
+            int x
+            double d
+            java.lang.String s
+
+XXXX:
+	    push "Now is"
+	    goto XXXX
+            push d
+	    push 1.0
+	    add
+	    store d
+	    new int[]
+	    push 3
+	    push 4
+	    multianewarray int[][][] 2
+
+            push QWERT
+	    push 10
+	    anewarray XXX
+	    push poiuy
+	    ldc 23
+extern java.io.PrintStream System.err
+	    store System.err
+	    push 100
+	    i2d
+	    push 110
+	    invoke XXX.putField
+	    invoke ZZZ.dump
+            return
+        }
+
+        private double putField(double name, int value) {
+            double qwert
+	    float[]    array
+
+	    push array
+	    push 2
+	    push 45.6
+	    arraystore
+	    ldc 10
+	    store value
+            push qwert
+	    push 1.0
+	    push 3.0F
+	    push 5
+	    push -1L
+	    invoke getField(int, double, java.lang.String)
+	    invoke getField
+	    return
+	}
+
+	private int test(int arg1, double arg2) {
+	    push arg1
+	    push arg2
+	    sub
+	    return
+	}
+    }
+>>@);
+
+fprintf(stderr, "%s", dumpClassFile());
+

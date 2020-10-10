@@ -1,0 +1,208 @@
+//
+// Clipboard dialog - now mostly used as a scratch pad for drag and drop
+// and as a way to copy selected text to the system clipboard using Ctrl-C.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+int USEMONOSPACE = TRUE;
+int SHOWMONOSPACE = TRUE;
+
+ItemStateChanged(e) {
+    root.SyncFonts();
+}
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Insets border = Global.GetUnLabeledScreenInsets();
+	String title = Global.ACRONYM + " Clipboard";
+	Font   font = Global.GetPreferredLabelFont();
+	int    autoraise = TRUE;
+	int    opaque = TRUE;
+
+	Dimension size = {
+	    double width = 7.5*72;
+	    double height = 2.0*72;
+	};
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = SOUTHWEST;
+	int    disposeonclose = FALSE;
+	int    initialized = FALSE;
+	int    savestate = TRUE;   // save screen-specific info within session
+	int    retainstate = TRUE; // save screen-class info across sessions
+	int    reloadargs = FALSE;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	int showmonospace = SHOWMONOSPACE;
+	int usemonospace = USEMONOSPACE;
+
+	//
+	// If users run the system a long time and "print" plenty of
+	// times, there might be loads of tmp files, so to be nice,
+	// clean them up when this screen is dismissed. Doing this
+	// is probably overkill (unless the files are "really big")
+	// because tmp files are cleaned up when the application is
+	// closed.
+	//
+
+	Array local_file_cache[0,...];
+	int   cachecount;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    Global.NewJTextArea("$_textarea", NULL, 0, 0, AS_NEEDED, "requestfocus", TRUE),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = BOTH;
+	    },
+
+	    new JPanel {
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JPanel {
+			GridLayout layoutmanager;
+			Array layout = {
+			    new JButton {
+				String text = "Print";
+				Font   font = Global.GetPreferredButtonFont();
+
+				actionPerformed(e) {
+				    String txt = root.components.$_textarea.text;
+
+				    if (txt != NULL && trim(txt)@length > 0)
+					root.local_file_cache[root.cachecount++] = Global.ViewFile(txt, ".htm", TRUE);
+				    else Global.ShowMessage(root, "Nothing to print.");
+				}
+			    },
+			    new JButton {
+				String text = "Clear";
+				Font   font = Global.GetPreferredButtonFont();
+
+				actionPerformed(e) {
+				    root.ClearScreen();
+				    root.components.$_textarea.requestfocus = TRUE;
+				}
+			    },
+			    new JButton {
+				String text = "Dismiss";
+				Font   font = Global.GetPreferredButtonFont();
+
+				actionPerformed(e) {
+				    Global.AltQueueCommand(root, &root.HideScreen);
+				}
+			    },
+			};
+		    },
+		    new Dictionary {
+			int gridx = 1;
+			int gridy = 1;
+			int weightx = 1;
+		    },
+
+		    Global.NewJCheckBox(
+			"$_monospace", "Monospace", NULL, USEMONOSPACE,
+			"state", USEMONOSPACE,
+			"visible", SHOWMONOSPACE,
+			"requestfocusenabled", FALSE,
+			"itemStateChanged", ItemStateChanged
+		    ),
+		    LEFT,
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    fill = HORIZONTAL;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    Global.NewJProprietaryLabel(),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    components.$_textarea.text = "";
+	}
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+
+	InitializeScreen() {
+	    if (defined("$_monospace", components)) {
+		components.$_monospace.state = usemonospace;
+		components.$_monospace.visible = showmonospace;
+		SyncFonts();
+	    }
+	}
+
+	ShowScreen() {
+	    cachecount = 0;
+	    visible = Global.ScreenVisibility;
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	ReplaceText(String text) {
+	    if (text !== components.$_textarea.text)
+		components.$_textarea.text = text;
+	}
+
+	SetText(String text) {
+	    appendText(components.$_textarea, text);
+	}
+
+	SyncFonts() {
+	    if (defined("$_monospace", components)) {
+		if (components.$_monospace.state)
+		    components.$_textarea.font = Global.GetPreferredMonospaceFont();
+		else components.$_textarea.font = Global.GetPreferredTextFont();
+	    }
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);

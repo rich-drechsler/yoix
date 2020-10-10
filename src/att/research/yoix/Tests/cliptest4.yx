@@ -1,0 +1,36 @@
+//
+// Shows the default clipping path that you get with a component, like
+// a JCanvas.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    FlowLayout layoutmanager = {
+	int vgap = 72;
+    };
+
+    Array layout = {
+	new JCanvas {
+	    Color background = Color.yellow;
+	    Dimension preferredsize = {
+		double width = 72;
+		double height = 72;
+	    };
+
+	    paint() {
+		graphics {
+		    gsave();
+		    initclip();
+		    clippath();
+		    setlinewidth(0);
+		    setrgbcolor(1, 0, 0);
+		    stroke();
+		    grestore();
+		}
+	    }
+	},
+    };
+};
+
+f.visible = TRUE;

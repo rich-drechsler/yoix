@@ -1,0 +1,139 @@
+//
+// Something like the last example, but illustrates how a Yoix function
+// can build the entire JTreeNode structure for a JTree from a compact
+// text representation. BuildTop(), which is the function that does the
+// actual work, was borrowed from an existing application, so it doesn't
+// duplicate everything, but it's not hard to see how it could be changed
+// too add tooltips (and perhaps font information) to the nodes.
+//
+
+import yoix.*.*;
+
+String TREEDATA =
+    "0|0||The C Programming Language|" +
+    "0|1||Introduction|" +
+    "0|2||A Tutorial Introduction|" +
+    "2|3||Getting Started|" +
+    "2|4||Variables and Arithmetic|" +
+    "0|5||Types, Operators and Expressions|" +
+    "5|6||Variable Names|" +
+    "5|7||Data Types and Sizes|" +
+    "7|8||Variable Names|" +
+    "7|9||Data Types and Sizes";
+
+BuildTop(String desc, String separator) {
+    Dictionary lengths;
+    Dictionary indices;
+    Dictionary nodes;
+    JTreeNode  child;
+    Array      data;
+
+    //
+    // Currently assumes desc is a string of fields delimited by the separator
+    // string (probably just "|") and that four consecutive fields make up a
+    // "record" that completely describes a JTreeNode. The first field names
+    // the parent. The three remaining fields in the record set fields in the
+    // new JTreeNode. Records aren't separated by newlines and fields obviously
+    // can't contain separator. We also assume the "record" that defines a node
+    // precedes it's use as a parent of any node and the that first "record"
+    // describes the tree's top node.
+    //
+    // Here's a summary of the fields:
+    // 
+    //    INDEX     VALUE
+    //    -----     -----
+    //      0       tag name of the parent of this node
+    //      1       tag name of this node
+    //      2       string assigned to this node's content field
+    //      3       string assigned to this node's text field
+    //
+    // We make two passes through the data array, which is the original text
+    // data split into fields using separator. First pass calculates lengths
+    // of the children arrays for each node and also decides where each node
+    // should go in the children array of its parent. We omitted error checks
+    // in the interest of efficiency.
+    // 
+
+    data = strsplit(desc, separator);
+
+    //
+    // We manage the data using three dictionaries that are intentionally made
+    // a little larger than required.
+    //
+
+    lengths = new Dictionary[data@sizeof/3];	// divide by 4 would be exact
+    indices = new Dictionary[data@sizeof/3];
+    nodes = new Dictionary[data@sizeof/3];
+
+    //
+    // We assume the first entry is the root of the tree, and we handle it
+    // outside the two loops to eliminate tests that would otherwise have
+    // to check each record.
+    //
+
+    indices[data[1]] = 0;
+    lengths[data[1]] = 0;
+
+    for (ptr in data+4 by 4) {
+	lengths[ptr[1]] = 0;
+	indices[ptr[1]] = lengths[ptr[0]]++;
+    }
+
+    nodes[data[1]] = new JTreeNode {	// this will be the tree's top node
+	String tag = data[1];
+	String content = data[2];
+	String text = data[3];
+	Array  children[lengths[data[1]]];
+    };
+
+    for (ptr in data+4 by 4) {
+	child = new JTreeNode {
+	    String tag = ptr[1];
+	    String content = ptr[2];
+	    String text = ptr[3];
+	    Array  children[lengths[ptr[1]]];
+	};
+	nodes[ptr[0]].children[indices[ptr[1]]] = child;
+	nodes[ptr[1]] = child;
+    }
+
+    return(nodes[data[1]]);
+}
+
+JFrame jf = {
+    Color background = yoix.xcolor.antiquewhite1;
+    Array layout = {
+	new JScrollPane {
+	    Array layout = {
+		new JTree {
+		    int tooltips = 1;
+		    int multiplemode = MULTIPLE_INTERVAL_SELECTION;
+		    int expandsselectednodes = 0;
+		    String font = "TimesRoman-14";
+		    String tag = "jt";
+
+		    JTreeNode top = BuildTop(TREEDATA, "|");
+
+		    invocationBrowse(InvocationEvent e) {
+			switch(e.type) {
+			case NODE_COLLAPSED:
+			    if (nodelist != null)
+				root.action(SELECT_NODES, nodelist);
+			    break;
+			case NODE_COLLAPSING:
+			    nodelist = root.action(GET_SELECTED_NODES);
+			    break;
+			case NODE_EXPANDED:
+			    break;
+			case NODE_EXPANDING:
+			    return(!showConfirmDialog(root, "Expand node?", "Expand?", YES_NO_OPTION));
+			    break;
+			}
+		    }
+		},
+	    };
+	}, CENTER,
+    };
+    int visible = 1;
+};
+

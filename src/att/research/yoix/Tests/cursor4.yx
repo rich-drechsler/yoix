@@ -1,0 +1,65 @@
+import yoix.*.*;
+
+Image triangle = {
+    int type = TYPE_RGBA;
+
+    Dimension size = {
+	double width = 36;
+	double height = 36;
+    };
+
+    paint(Rectangle r) {
+	Rectangle bbox;
+
+	graphics {
+	    gsave();
+	    initclip();
+	    clippath();
+	    bbox = pathbbox();
+	    newpath();
+
+	    moveto(0, 0);
+	    rlineto(bbox.width, 0);
+	    rlineto(0, bbox.height);
+	    closepath();
+	    setrgbcolor(0, 1, 1);
+	    gsave();
+	    fill();
+	    grestore();
+	    setrgbcolor(1, 0, 0);
+	    setlinewidth(1);
+	    stroke();
+	    grestore();
+
+	    hotspot = new Point {
+		double x = bbox.width/2;
+		double y = bbox.height/2;
+	    };
+	}
+    }
+};
+
+addCursor("TRIANGLE", triangle);
+
+JFrame frame = {
+    BoxLayout layoutmanager;
+
+    Array layout = {
+	0,
+	new JButton {
+	    Object cursor = Cursor.TRIANGLE;
+	    String text = "This is a test...";
+
+	    mousePressed(e) {
+		cursor = NULL;
+	    }
+
+	    mouseReleased(e) {
+		cursor = "TRIANGLE";
+	    }
+	},
+	0
+    };
+};
+
+frame.visible = TRUE;

@@ -1,0 +1,92 @@
+import yoix.*.*;
+
+JFrame f = {
+    String title = "JDesktopPane Test";
+
+    Array layout = {
+	new JDesktopPane {
+	    String tag = "$_desktop";
+	    Color  background = Color.yellow;
+	    int    counter;
+
+	    JPopupMenu popup = {
+		String text = "Popup Menu";
+
+		Menu items = {
+		    "Small Frame", "small_frame",
+		    "Big Frame", "big_frame",
+		    "-", NULL,
+		    "Exit", "exit",
+		};
+	    };
+
+	    Array layout = {
+		new JLabel {
+		    String tag = "$_label";
+		    String text = "Use popup menu to create frames";
+		    String font = "Ludida-bold-12";
+		    Color  foreground = red;
+
+		    Point location = {
+			double x = 72;
+			double y = 72;
+		    };
+		},
+	    };
+
+	    mousePressed(e) {
+		if (e.popuptrigger)
+		    ShowPopupAt(e.location);
+	    }
+
+	    mouseReleased(e) {
+		if (e.popuptrigger)
+		    ShowPopupAt(e.location);
+	    }
+
+	    ShowPopupAt(Point location) {
+		components.$_label.visible = FALSE;
+		popup.location = location;
+		popup.visible = TRUE;
+	    }
+
+	    actionPerformed(e) {
+		Object desktop = root.components.$_desktop;
+		Object frame;
+
+		switch (e.command) {
+		    case "small_frame":
+			frame = new JInternalFrame {
+			    Dimension size = {
+				double width = 4*72;
+				double height = 3*72;
+			    };
+
+			    Point location = {
+				double x = 18*desktop.counter;
+				double y = 18*desktop.counter++;
+			    };
+			};
+			break;
+
+		    case "big_frame":
+			frame = new JInternalFrame {
+			    Dimension size = desktop.size;
+			};
+			break;
+
+		    case "exit":
+			exit(0);
+			break;
+		}
+
+		if (frame != NULL) {
+		    frame.desktop = desktop;
+		    frame.visible = TRUE;
+		}
+	    }
+	}, CENTER,
+    };
+};
+
+f.visible = TRUE;

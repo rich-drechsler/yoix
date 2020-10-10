@@ -1,0 +1,30 @@
+import yoix.*.*;
+
+JFrame f = {
+    Color background = Color.white;
+
+    Graphics graphics = {
+	String font = "Lucida-plain-24";
+	int    textantialiasing = TRUE;
+    };
+
+    paint(Rectangle rect) {
+        graphics {          // "named block"
+            gsave();
+            translate(72, 72);
+	    rotate(10);
+	    moveto(0, 0);
+	    show("wide");
+	    moveto(0, 36);
+	    scale(2, 1);
+	    show("wider");
+	    moveto(0, 72);
+	    scale(2, 1);
+	    show("widest");
+            grestore();
+        }
+    }
+};
+
+f.visible = TRUE;
+

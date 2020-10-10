@@ -1,0 +1,157 @@
+import yoix.*.*;
+
+Dictionary FAVICONS = {
+    Object abc = "1F8B0800000000000000C5945D0E82400C84DF3905476097FF4758F0FE47D2E987B124A84441E723512C99694BDC10F370BB1A5D312F422A44C6C733F6E8B5C346C0377A1370943602CED0AE80AA174D253E0CE0260CA2990D67D7269126518F826A3079BBD25419FEF72C56623292C1F7A1166D1417D33408C280B6686255351FAA593789D1B44C63F28F12E9BB1EEB075469B4E8445F0BCA19373CBADAA0EB94185F653E3FF7EACDD9A2CA41DC5764033207A6ACC5BF03AA58CFA5407E1ADA5DAA0490490C76EC1D62126C93656281B55F69672C55B35E5EF29FFF0787059C7E54FCE8B03BE5B8BE021F5D9F3B27060000";
+    Object cbs = "1F8B0800000000000000B554410E80200CBBFB0A9E009A9078F6FF7F52A9872E753834161212DDD6AD1B94399563D773CF29972D9F6BC2F1DF7A20581B6AC3D25009F83B4ED08070390058C2EB8900361FA0348640C15228583A538D12C0F4C6A85BD346E008DC9B8B00414DD3C29DD0A1E0140D819A467447EEECCB5F260EF78EC0F3350446D3C18952AF1B89BC16F5EB504BBE8C764C255FD3769A131D561D04F71EC4758FD4E43E155E5EA3A15D0216CDAB49B5F6D6FFCFF50E8A8E6E2827060000";
+    Object cnn = "1F8B0800000000000000333452300422331032523030743600412E371A83510B069905CE8620E8E66600041012530459BD852148C4C210046162E82AB9908D86684055844E4254E2B6188705D85C8DDD4F1012E66A741154711C16600B49C23EC346E2B000394C917D80E96AFCE25822197F1C400CC215FAD8ACC1B000B752CCA08358894B1C1106C32CA30D4D0B0024CACD9C27060000";
+    Object fox = "1F8B0800000000000000BD94511283200C44FF3D85479080A89F08F4FE472A7175268A50C669EBF32B86EC36AB55D4AB745BBEA91F941F988EE6474C1BF51E4751D3538116563D687308941CD59DF2B3A54DA07D2DB964C9449340CBAE4BC80C6CB832FA44A88F400FFA51319E41450743C6EE02AF78C56F60445899BCBEF0E5509F1DB3776AE646205A06C77000AD72C46E00235CC2E3943487094706DB96E5317894EE40FE5B4F5684C59B90F315B50BE49D48E214B2DCAF8CABBE222481CA292795A00F02F2ED2A858C41A8A3B28E0C2A364E6AB25DD39BFEEC6BF8EB87F60599BCE7E7FFA6107803D89B3BBF27060000";
+    Object nbc = "1F8B0800000000000000ED935B0A83301045FFBB0A97904CDE9F7192EC7F49D55C3F26A8D4B6145A28864314B967AE414D935E965F174D4AB35AAF5BE3565AFA1CFF82770535649B5A09CE1363CFA9DA42C17ABFDC71361C5F142028B3269324A30A36B3B3C64507E2CD4B82FDBC321ACF3135A2D1C3A5C44CAA04E2834E830011039BAF366C82BE9702B441B4E4A5067B813C83ED1389D91F35B05C5CDE48B321836829DB1FB28CF67A4E71E028E8A103BB6CD374CAC3C4EC20E214A7A6AB24DE1F1BEC3542268B9F8582470D9E24A63BE337FDC9BF20B8030E234A2327060000";
+    Object wb = "1F8B0800000000000000333452300422331032523030743600412E08851F1A3B5A383A3B42485C22B8204E0B908D209E24600179C6E1B7860A16E0B766685A40B520A2792413630D7D8388546BE86401097140AA6534B780981289E4C26E002CC0AF97280B7059438C2E2E00F21E912127060000";
+};
+
+GetTextIcon(Dictionary dict,String name) {
+    Image icon;
+
+    Color   pixel;
+    Color   bkgd;
+    Stream  input;
+    int     type;
+    int     width;
+    int     height;
+    int     row;
+    int     col;
+    int     rows;
+    int     cols;
+    int     red;
+    int     green;
+    int     blue;
+    int     flag;
+
+    if (defined(name, dict)) {
+	if (dict[name] instanceof Image) {
+	    icon = dict[name];
+	} else {
+
+	    input = new StringStream {
+		int mode = READ;
+		int filters = GZIP|HEXCODER;
+		String name = dict[name];
+		int open = 1;
+	    };
+
+	    if (fscanf(input, "%d %d %d %d %d %02X%02X%02X%02X\n", &width, &height, &cols, &rows, &type, &flag, &red, &green, &blue) != 9) {
+		fprintf(stderr, "ERROR: icon string does not appear to be a valid compressed hexed image\n"); // should never happen
+		exit(2);
+	    }
+
+	    icon = new Image {
+		int       type = type;
+		Color     background = (flag ? new Color{ int red = red; int green = green; int blue = blue; } : NULL);
+		Dimension size = {
+		    int width = width;
+		    int height = height;
+		};
+	    };
+
+	    if (type == TYPE_RGBA)
+		bkgd = icon.background;
+	    else bkgd = NULL;
+
+	    for (row = 0; row < rows; row++) {
+		for (col = 0; col < cols; col++) {
+		    if (fscanf(input, "%02X%02X%02X", &red, &green, &blue) != 3) {
+			fprintf(stderr, "ERROR: missing pixel at (%d, %d)\n", col, row); // should never happen
+			exit(2);
+		    }
+		    pixel = new Color {
+			int red = red;
+			int green = green;
+			int blue = blue;
+		    };
+		    if (bkgd == NULL || pixel !== bkgd)
+			icon.setpixel(col, row, pixel);
+		}
+	    }
+	    dict[name] = icon;
+	}
+    } else icon = NULL;
+
+    return(icon);
+}
+
+Array ListMap = {
+    GetTextIcon(FAVICONS, "abc"), "This is row one", "1",
+    GetTextIcon(FAVICONS, "cbs"), "This is row two", "2",
+    GetTextIcon(FAVICONS, "cnn"), "This is row three", "3",
+    GetTextIcon(FAVICONS, "fox"), "This is row four", "4",
+    GetTextIcon(FAVICONS, "nbc"), "This is row five", "5",
+    GetTextIcon(FAVICONS, "wb"), "This is row six", "6",
+};
+
+final int LIST_ROWS = 5;
+
+JFrame screen = {
+    Dimension size = NULL;
+    double    border = 72.0/8;
+    String    title = "List Tests";
+    int       opaque = TRUE;
+
+    GridBagLayout layoutmanager;
+
+    Array layout = {
+	new JPanel {
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		new JPanel {
+		    EtchedBorder border = {
+			String title = "TV List";
+		    };
+
+		    GridBagLayout layoutmanager = {
+			int    columns = 1;
+			double vgap = 72.0/16;
+		    };
+		    Array layout = {
+			new JList {
+			    String tag = "$_list";
+			    Array  items = ListMap;
+			    int    rows = LIST_ROWS;
+			    int    multiplemode = TRUE;
+			    Object selected = NULL;
+			},
+			BOTH,
+		    };
+		},
+		BOTH,
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int weightx = 1;
+	    int weighty = 1;
+	    int fill = BOTH;
+	},
+
+	new JPanel {
+	    GridLayout layoutmanager;
+	    Array layout = {
+		new JButton {
+		    String text = "Dismiss";
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		 },
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    Insets insets = {
+		double top = 72.0/8;
+	    };
+	},
+    };
+};
+
+screen.visible = TRUE;
+

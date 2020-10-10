@@ -1,0 +1,13 @@
+//
+// Prints a short sequence of random integers on standard output. The
+// sequence changes each time you run this program because the seed
+// used by random() is set based on the current time in milliseconds.
+//
+
+import yoix.*.*;
+
+int limit = 100;
+int n;
+
+for (n = 0; n < 10; n++)
+    printf("%d\n", random()*limit);

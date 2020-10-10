@@ -1,0 +1,67 @@
+//
+// A Swing version - notice that window decorations don't hide
+// the outline.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    GridBagLayout layoutmanager;
+
+    Array layout = {
+	new JLabel {
+	    String text = "Clippath Test";
+	    String font = "Lucida-bold-14";
+	    Color  background = Color.green;
+	},
+	new GridBagConstraints {
+	    int gridx = 1;
+	    int gridy = 1;
+	    int weighty = 100;
+	    int anchor = NORTH;
+
+	    Insets insets = {
+		double top = 72.0/2;
+		double bottom = 72.0/2;
+	    };
+	},
+
+	new JButton {
+	    String text = "Draw Clippath";
+	    Color  background = Color.green;
+
+	    actionPerformed(e) {
+		root.DrawClipPath();
+	    }
+	},
+	new GridBagConstraints {
+	    int gridx = 1;
+	    int gridy = 2;
+	    int weightx = 100;
+	    int anchor = EAST;
+
+	    Insets insets = {
+		double top = 72.0/2;
+		double left = 72.0/2;
+		double bottom = 72.0/2;
+		double right = 72.0/2;
+	    };
+	},
+    };
+
+    DrawClipPath() {
+	graphics {
+	    gsave();
+	    clippath();
+	    setrgbcolor(1, 0, 0);
+	    setlinewidth(8);
+	    stroke();
+	    sleep(3);
+	    grestore();
+	    repaint();
+	}
+    }
+};
+
+f.visible = 1;
+

@@ -1,0 +1,42 @@
+import yoix.j3d.*;
+import yoix.*.*;
+
+LineStripArray a1 = {
+    int vertexcount = 4;
+};
+
+fprintf(stderr, "a1=%.2O\n", a1);
+sleep(1);
+
+LineStripArray a3 = {
+    Array coordinates = {
+	1, 2, 3,
+	4, 5, 6,
+	7,
+    };
+};
+
+fprintf(stderr, "a3=%.2O\n", a3);
+sleep(1);
+
+LineStripArray a4 = {
+    Array coordinates = {
+	1, 2, 3,
+	4, 5, 6,
+	7, 8, 9,
+	10,
+    };
+
+    String colorformat = "RGB";
+    Array colors = {
+	1, 0, 0,
+	0, 1, 0,
+	0, 0, 1,
+	1, 1, 0,
+	1, 0, 1,
+	0, 1, 1,
+    };
+};
+
+fprintf(stderr, "a4=%.2O\n", a4);
+sleep(1);

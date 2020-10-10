@@ -1,0 +1,86 @@
+//
+// BoxLayout example.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    Dimension size = NULL;
+
+    BoxLayout layoutmanager = {
+	int orientation = VERTICAL;
+    };
+
+    Array layout = {
+	72.0/16,	// 1/16 inch strut
+
+	new JButton {
+	    String text = "Top";
+
+	    actionPerformed(ActionEvent e) {
+		printf("actionPerformed: e=%O\n", e);
+	    }
+	},
+
+	72.0,		// 1 inch strut
+
+	new JPanel {
+	    BoxLayout layoutmanager = {
+		int orientation = HORIZONTAL;
+	    };
+
+	    Array layout = {
+		72.0/4,		// 1/4 inch strut
+		new JButton {
+		    String text = "Left";
+
+		    actionPerformed(ActionEvent e) {
+			printf("actionPerformed: e=%O\n", e);
+		    }
+		},
+
+		0,		// glue
+
+		new JButton {
+		    String text = "Quit";
+
+		    actionPerformed(ActionEvent e) {
+			exit(0);
+		    }
+		},
+
+		0,		// glue
+
+		new JButton {
+		    String text = "Right";
+
+		    actionPerformed(ActionEvent e) {
+			printf("actionPerformed: e=%O\n", e);
+		    }
+		},
+
+		72.0/4,		// 1/4 inch strut
+	    };
+	},
+
+
+	2*72,			// 2 inch strut
+
+	new JPanel {
+	    Array layout = {
+		new JButton {
+		    String text = "Bottom";
+
+		    actionPerformed(ActionEvent e) {
+			printf("actionPerformed: e=%O\n", e);
+		    }
+		},
+	    };
+	},
+
+	72.0/16,		// 1/16 inch strut
+    };
+};
+
+f.visible = TRUE;
+

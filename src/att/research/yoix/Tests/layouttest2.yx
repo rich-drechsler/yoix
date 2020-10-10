@@ -1,0 +1,94 @@
+//
+// Very old test file.
+//
+
+import yoix.*.*;
+
+new JFrame {
+    int cursor = Cursor.MOVE_CURSOR;
+    int visible = TRUE;
+
+    JMenuBar menubar = {
+	Menu items = {
+	    "File", new Menu {
+		"Open", "Open File",
+		"Close", "Close File",
+		"Cursors", new Menu {
+		    "Default", "xxx",
+		    "Wait", "yyy",
+		    "Move", "zzz",
+		},
+		"-", NULL,
+		"Exit", "Exit",
+	    },
+
+	    "Edit", new Menu {
+		"Save", "Save", 1,
+		"Save As", "Save As",
+	    },
+	};
+    };
+
+    //
+    // Default layout manager is BorderLayout, so you could delete
+    // the next line.
+    //
+
+    BorderLayout layoutmanager;
+
+    Array layout = {
+	new JButton {
+	   String text = "Button 1";
+	   String font = "Helvetica-plain-18";
+	   Color  background = Color.red;
+
+	    actionPerformed(ActionEvent e) {
+		printf("actionPerformed: e=%O\n", e);
+	    }
+	}, CENTER,
+
+	new JButton {
+	    String text = "Button 2";
+	    Color  background = Color.green;
+
+	    actionPerformed(ActionEvent e) {
+		printf("actionPerformed: e=%O\n", e);
+	    }
+	}, "East",
+
+	new JButton {
+	    String text = "Button 3";
+	    Color  background = Color.blue;
+
+	    actionPerformed(ActionEvent e) {
+		printf("actionPerformed: e=%O\n", e);
+	    }
+	}, SOUTH,
+    };
+
+    //
+    // Frame event handlers - for MenuBar
+    //
+
+    actionPerformed(ActionEvent e) {
+	printf("actionPerformed: e=%O\n", e);
+	if (strcmp(e.command, "Exit") == 0)
+	    exit(0);
+	else if (e.command[0] == 'x')
+	    cursor = Cursor.DEFAULT_CURSOR;
+	else if (e.command[0] == 'y')
+	    cursor = Cursor.WAIT_CURSOR;
+	else if (e.command[0] == 'z')
+	    cursor = Cursor.MOVE_CURSOR;
+    }
+
+    itemStateChanged(ItemEvent e) {
+	printf("itemStateChanged: e=%O\n", e);
+    }
+
+    keyTyped(KeyEvent e) {
+	if (e.keychar == 'q')
+	    exit(0);
+    }
+};
+

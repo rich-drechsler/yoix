@@ -1,0 +1,301 @@
+//
+// Thread support.
+//
+
+import yoix.*.*;
+
+Thread CommandThread = {
+    //
+    // A thread designed to run commands that would normally be run by
+    // Java's event thread. Required if the Stop button is supposed to
+    // work while we're talking to the server (or doing anything else
+    // that could block the event thread). Set CommandThread to NULL if
+    // you want to disable command queuing and the Stop button.
+    //
+
+    int priority = 1 + MIN_PRIORITY;		// make it lower than event thread??
+    int persistent = TRUE;
+
+    //
+    // The code that we use to talk to the server remembers the stream
+    // it's using for communications and explicitly closes it, if it's
+    // not NULL whenever the CommandThread starts or finishes talking
+    // to the server. Done mostly because interrupting CommandThread
+    // may not work but closing the stream might. This was definitely
+    // needed a long time ago, but it may no longer be required. Take
+    // a look at OpenServerStream() and CloseServerStream() if you want
+    // to experiment.
+    //
+
+    Stream stream = NULL;	// interrupts may not work but close might
+
+    //
+    // Simple thread that's used to clear the network status information
+    // after a little while, but hopefully not while we're talking to the
+    // server. Nothing will break if this thread doesn't do its job.
+    //
+
+    Thread ClearThread = {
+	int    priority = MIN_PRIORITY;
+	int    alive = FALSE;
+	double timeout = 0;
+
+	run() {
+	    timeout = time() + 5;
+
+	    while (Posting || time() < timeout) {
+		sleep(1.0);
+		//
+		// Give the user a chance to read the last one.
+		//
+		if (Posting)
+		    timeout = time() + 5;
+	    }
+	    ClearNetworkStatus();
+	}
+    };
+
+    StartClearThread() {
+	ClearThread.timeout = time() + 5;
+	ClearThread.alive = TRUE;
+    }
+};
+
+Thread AltCommandThread = {
+    //
+    // A thread designed to provide an alternate thread to run commands.
+    // Commands intended for this thread are important, but short duration
+    // commands such as might occur in HideScreen and that should not have
+    // to wait behind longer running commands that might be in the standard
+    // CommandThread.  Commands that communicate with the server should
+    // not be put on this thread as the Stop button does not affect this
+    // thread (currently, but that could change should it be necessary).
+    // Set AltCommandThread to NULL if you want to use the CommandThread
+    // instead. No need for stream or ClearThread unlike CommandThread.
+    //
+
+    int priority = 2 + MIN_PRIORITY;		// one more than CommandThread
+    int persistent = TRUE;
+};
+
+Thread DebugThread = {
+    int	priority = MIN_PRIORITY;
+
+    run() {
+	String info;
+	String exceptions;
+
+	//
+	// We'll undoubtedly get more info than we really want because
+	// interrupting sleeping threads generates exceptions that are
+	// currently saved. One alternative could limit the SendDebug()
+	// calls by checking the system error count.
+	// 
+
+	while (DebugFlags) {
+	    info = NULL;
+	    if (DebugFlags & 0x01) {
+		info = strfmt("[%s] %s JVM=%s OS=%s %s",
+		    date(time()),
+		    ClientAddress,
+		    JavaRuntimeVersion,
+		    UserOperatingSystem,
+		    MemoryUsage(NULL)
+		);
+	    }
+	    if ((exceptions = getSavedExceptions()) != NULL) {
+		if (info@sizeof)
+		    info += "\n";
+		info += exceptions;
+	    }
+	    SendDebug(info);
+	    sleep(30);
+	}
+    }
+};
+
+Thread GarbageThread = {
+    //
+    // A very low priority thread that occasionally tries to force Java's
+    // garbage collection to run, provided GarbageTimer is positive. Work
+    // is done by Collect(), which is also called by the PingThread. This
+    // seemed to help many years ago, but there's a pretty good chance you
+    // can disable it (e.g., set GarbageTimeer to 0) without causing any
+    // problems.
+    //
+
+    int	priority = MIN_PRIORITY;
+
+    Collect(double pause) {
+	CleanCachedScreens();
+	gc();
+	runFinalization();
+	if (pause > 0) {
+	    sleep(pause);
+	    gc();
+	    runFinalization();
+	}
+    }
+
+    run() {
+	while (GarbageTimer > 0) {
+	    sleep(max(GarbageTimer, 5));
+	    Collect(1);
+	}
+    }
+};
+
+Thread PingThread = {
+    //
+    // Low priority thread that occasionally pokes the server with a query.
+    // Time interval is controlled by the server scripts and is sent back
+    // in the header. Minimum time between "pings" currently is 30 seconds
+    // no matter what value the is set in the header. This is a very useful
+    // thread that means clients should get important information, like a
+    // broadcast message, without having to wait too long.
+    //
+
+    int priority = 1 + MIN_PRIORITY;
+
+    double start;
+    double alarm;
+
+    Ping() {
+	String status;
+
+	GarbageThread.Collect(0);
+	start = time();
+	status = strfmt("%s [%s] %s JVM=%s OS=%s %s",
+	    "CLIENTINFO",
+	    date(start),
+	    ClientAddress,
+	    JavaRuntimeVersion,
+	    UserOperatingSystem,
+	    MemoryUsage(NULL)
+	);
+	PingServer(status);
+    }
+
+    SetAlarm(String value) {
+	if (value != NULL)
+	    alarm = start + 60*atof(value);
+    }
+
+    run() {
+	double now = time();
+	String status;
+	int    free;
+	int    total;
+
+	alarm = now;
+	start = now;
+
+	while (TRUE) {
+	    sleep(30);
+	    if (alarm > start) {
+		if (time() > alarm)
+		    Ping();
+	    }
+	}
+    }
+};
+
+Thread PreloaderThread = {
+    //
+    // A thread that's used to preload a few screens while we're waiting
+    // for the user to login or finish reading the conneted screen. Helps
+    // make the system feel more responsive.
+    //
+
+    run() {
+	Dictionary dict;
+	String     name;
+	int        n;
+
+	for (n = 0; n < PreloaderScreens@sizeof; n++) {
+	    synchronized(PreloaderScreens) {
+		if ((name = PreloaderScreens[n]) != NULL) {
+		    PreloaderScreens[n] = NULL;
+		    LoadScreen(name);
+		}
+	    }
+	}
+    }
+};
+
+Thread PreBuilderThread = {
+    //
+    // A thread that can be used to "prebuild" screens. The mechanism is only
+    // activiated when an appropriate call to GetPreBuiltScreen() is added to
+    // a screen's Builder() function, so most screens aren't prebuilt. This
+    // is a recent addition (9/17/10) that can help when screen's Builder()
+    // function starts to have a noticeable impact on performance. Adding a
+    // few lines that look something like,
+    //
+    //    if ((screen = GetPreBuiltScreen(name, args, Builder, global.argv[0])) != NULL) {
+    //        //
+    //        // Any custom screen initialization based on name and args
+    //        // should be added here - prebuilt screens always call the
+    //        // Builder() function with NULL name and args arguments, so
+    //        // there's a chance you'll have more work to do before the
+    //        // screen is really ready to be returned.
+    //        //
+    //        screen.screenname = name;
+    //        return(screen);
+    //    }
+    //
+    // near the start of the Builder() function triggers screen prebuilding.
+    // The argument global.argv[0] is the string that's used to locate the
+    // screen's entry in ScreenDirectory.
+    //
+    int priority = MIN_PRIORITY + 1;
+    int persistent = TRUE;
+};
+
+//
+// Simple functions that we use to start and stop threads.
+//
+
+StartClearThread() {
+    CommandThread.StartClearThread();
+}
+
+StartDebugger() {
+    DebugThread.alive = TRUE;
+}
+
+StartPreloader() {
+    PreloaderThread.alive = TRUE;
+}
+
+StartThreads() {
+    GarbageThread.run();
+    PingThread.run();
+}
+
+Stop() {
+    CommandThread.alive = FALSE;
+    CommandThread.stream = NULL;
+    UpdateStopStatus();
+    ResetCursors();
+}
+
+StopPreloader() {
+    int n;
+
+    //
+    // The old version used brute force and killed the PreloadThread, but
+    // we now do it gently by setting all entries in the PreloaderScreens
+    // array to NULL.
+    //
+
+    synchronized(PreloaderScreens) {
+	for (n = 0; n < PreloaderScreens@sizeof; n++)
+	    PreloaderScreens[n] = NULL;
+    }
+}
+
+StopPreBuilder() {
+    PreBuilderThread.alive = FALSE;
+}
+

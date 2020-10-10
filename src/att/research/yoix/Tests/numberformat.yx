@@ -1,0 +1,115 @@
+import yoix.util.*;
+
+int inbr = 12345678;
+double dnbr = 123456.7890;
+
+stdout.nextline = "Test 1 =============";
+stdout.nextline = numberFormat(inbr);
+stdout.nextline = numberFormat(dnbr);
+stdout.nextline = numberFormat(inbr, DOUBLE_TYPE);
+stdout.nextline = numberFormat(dnbr, DOUBLE_TYPE);
+stdout.nextline = numberFormat(inbr, INTEGER_TYPE);
+stdout.nextline = numberFormat(dnbr, INTEGER_TYPE);
+stdout.nextline = numberFormat(inbr, MONEY_TYPE);
+stdout.nextline = numberFormat(dnbr, MONEY_TYPE);
+stdout.nextline = numberFormat(inbr, PERCENT_TYPE);
+stdout.nextline = numberFormat(dnbr, PERCENT_TYPE);
+
+stdout.nextline = "Test 2 =============";
+stdout.nextline = numberFormat(-inbr);
+stdout.nextline = numberFormat(-dnbr);
+stdout.nextline = numberFormat(-inbr, DOUBLE_TYPE);
+stdout.nextline = numberFormat(-dnbr, DOUBLE_TYPE);
+stdout.nextline = numberFormat(-inbr, INTEGER_TYPE);
+stdout.nextline = numberFormat(-dnbr, INTEGER_TYPE);
+stdout.nextline = numberFormat(-inbr, MONEY_TYPE);
+stdout.nextline = numberFormat(-dnbr, MONEY_TYPE);
+stdout.nextline = numberFormat(-inbr, PERCENT_TYPE);
+stdout.nextline = numberFormat(-dnbr, PERCENT_TYPE);
+
+stdout.nextline = "Test 3 =============";
+stdout.nextline = numberFormat(inbr, new Dictionary { int type = DOUBLE_TYPE; });
+stdout.nextline = numberFormat(dnbr, new Dictionary { int type = DOUBLE_TYPE; });
+stdout.nextline = numberFormat(inbr, new Dictionary { int type = INTEGER_TYPE; });
+stdout.nextline = numberFormat(dnbr, new Dictionary { int type = INTEGER_TYPE; });
+stdout.nextline = numberFormat(inbr, new Dictionary { int type = MONEY_TYPE; });
+stdout.nextline = numberFormat(dnbr, new Dictionary { int type = MONEY_TYPE; });
+stdout.nextline = numberFormat(inbr, new Dictionary { int type = PERCENT_TYPE; });
+stdout.nextline = numberFormat(dnbr, new Dictionary { int type = PERCENT_TYPE; });
+
+stdout.nextline = "Test 4 =============";
+stdout.nextline = numberFormat(inbr, new Dictionary { int type = DOUBLE_TYPE; int groupingUsed = FALSE; });
+stdout.nextline = numberFormat(dnbr, new Dictionary { int type = DOUBLE_TYPE; int groupingUsed = FALSE; });
+stdout.nextline = numberFormat(inbr, new Dictionary { int type = INTEGER_TYPE; int groupingUsed = FALSE; });
+stdout.nextline = numberFormat(dnbr, new Dictionary { int type = INTEGER_TYPE; int groupingUsed = FALSE; });
+stdout.nextline = numberFormat(inbr, new Dictionary { int type = MONEY_TYPE; int groupingUsed = FALSE; });
+stdout.nextline = numberFormat(dnbr, new Dictionary { int type = MONEY_TYPE; int groupingUsed = FALSE; });
+stdout.nextline = numberFormat(inbr, new Dictionary { int type = PERCENT_TYPE; int groupingUsed = FALSE; });
+stdout.nextline = numberFormat(dnbr, new Dictionary { int type = PERCENT_TYPE; int groupingUsed = FALSE; });
+
+stdout.nextline = "Test 5 =============";
+stdout.nextline = numberFormat(inbr, new Dictionary { int type = DOUBLE_TYPE; int groupingSize = 4; });
+stdout.nextline = numberFormat(dnbr, new Dictionary { int type = DOUBLE_TYPE; int groupingSize = 4; });
+stdout.nextline = numberFormat(inbr, new Dictionary { int type = INTEGER_TYPE; int groupingSize = 4; });
+stdout.nextline = numberFormat(dnbr, new Dictionary { int type = INTEGER_TYPE; int groupingSize = 4; });
+stdout.nextline = numberFormat(inbr, new Dictionary { int type = MONEY_TYPE; int groupingSize = 4; });
+stdout.nextline = numberFormat(dnbr, new Dictionary { int type = MONEY_TYPE; int groupingSize = 4; });
+stdout.nextline = numberFormat(inbr, new Dictionary { int type = PERCENT_TYPE; int groupingSize = 4; });
+
+stdout.nextline = "Test 6 =============";
+Locale lc = new Locale { String country = "Italy"; String language = "it"; };
+stdout.nextline = numberFormat(lc, inbr);
+stdout.nextline = numberFormat(lc, dnbr);
+stdout.nextline = numberFormat(lc, inbr, DOUBLE_TYPE);
+stdout.nextline = numberFormat(lc, dnbr, DOUBLE_TYPE);
+stdout.nextline = numberFormat(lc, inbr, INTEGER_TYPE);
+stdout.nextline = numberFormat(lc, dnbr, INTEGER_TYPE);
+stdout.nextline = numberFormat(lc, inbr, MONEY_TYPE);
+stdout.nextline = numberFormat(lc, dnbr, MONEY_TYPE);
+stdout.nextline = numberFormat(lc, inbr, PERCENT_TYPE);
+stdout.nextline = numberFormat(lc, dnbr, PERCENT_TYPE);
+
+stdout.nextline = "Test 7 =============";
+stdout.nextline = toString(parseNumber(numberFormat(inbr)) == inbr);
+stdout.nextline = toString(parseNumber(numberFormat(dnbr)) == dnbr);
+stdout.nextline = toString(parseNumber(numberFormat(inbr, DOUBLE_TYPE)) == inbr);
+stdout.nextline = toString(parseNumber(numberFormat(dnbr, DOUBLE_TYPE)) == dnbr);
+stdout.nextline = toString(parseNumber(numberFormat(inbr, INTEGER_TYPE)) == inbr);
+stdout.nextline = toString(parseNumber(numberFormat(dnbr, INTEGER_TYPE)) == 123457);
+stdout.nextline = toString(parseNumber(numberFormat(inbr, MONEY_TYPE), MONEY_TYPE) == inbr);
+stdout.nextline = toString(parseNumber(numberFormat(dnbr, MONEY_TYPE), MONEY_TYPE) == 123456.79);
+stdout.nextline = toString(parseNumber(numberFormat(inbr, PERCENT_TYPE), PERCENT_TYPE) == inbr);
+stdout.nextline = toString(parseNumber(numberFormat(dnbr, PERCENT_TYPE), PERCENT_TYPE) == 123456.79);
+
+stdout.nextline = "Test 8 =============";
+stdout.nextline = toString(parseNumber(toString(inbr))== inbr);
+stdout.nextline = toString(parseNumber(numberFormat(inbr), new Dictionary {
+    int type = INTEGER_TYPE;
+    int groupingUsed = TRUE;
+}) == inbr);
+stdout.nextline = toString(parseNumber(numberFormat(inbr), new Dictionary {
+    int type = INTEGER_TYPE;
+    int groupingUsed = FALSE;
+}) == 12);
+
+
+stdout.nextline = "Test 9 =============";
+stdout.nextline = toString(parseNumber("1234"));
+stdout.nextline = toString(parseNumber("1234.5678"));
+stdout.nextline = toString(parseNumber("1234", INTEGER_TYPE));
+stdout.nextline = toString(parseNumber("1234.5678", INTEGER_TYPE));
+stdout.nextline = toString(parseNumber("$1234", MONEY_TYPE));
+stdout.nextline = toString(parseNumber("$1234.5678", MONEY_TYPE));
+stdout.nextline = toString(parseNumber("$1,234", MONEY_TYPE));
+stdout.nextline = toString(parseNumber("$1,234.56", MONEY_TYPE));
+stdout.nextline = toString(parseNumber("($1,234.56)", MONEY_TYPE));
+stdout.nextline = toString(parseNumber("1,234%", PERCENT_TYPE));
+stdout.nextline = toString(parseNumber("1,234.5678%", PERCENT_TYPE));
+stdout.nextline = toString(parseNumber("1,234%", new Dictionary {
+    int type = PERCENT_TYPE;
+    int multiplier = 10000;
+}));
+stdout.nextline = toString(parseNumber("1,234.5678%", new Dictionary {
+    int type = PERCENT_TYPE;
+    int multiplier = 10000;
+}));

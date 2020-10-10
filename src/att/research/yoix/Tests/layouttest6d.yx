@@ -1,0 +1,73 @@
+//
+// A simple test file that can be used to check the behavior of Java's
+// JScrollPane when the screen is resized. The interpreter now includes
+// code that tries to improve the default behavior when an explicit or
+// implicit JScrollPane is contained in a screen that's resized. You can
+// use the magic field named sizecontrol to change the behavior. Storing
+// zero in sizecontrol is supposed to restore Java's default behavior.
+//
+
+import yoix.*.*;
+
+Array List1Map = {
+    "X", "1",
+    "XX", "2",
+    "XXX", "3",
+    "XXXX", "4",
+    "XXXXX", "5",
+    "XXXXXX", "6",
+    "XXXXXXX", "7",
+    "XXXXXXXX", "8",
+    "XXXXXXXXX", "9",
+    "XXXXXXXXXX", "10",
+    "XXXXXXXXXXX", "11",
+    "XXXXXXXXXXXX", "12",
+    "XXXXXXXXXXXXX", "13",
+    "XXXXXXXXXXXXXX", "14",
+    "XXXXXXXXXXXXXXX", "15",
+};
+
+Array List2Map = {
+    "This is row one blah, blah, blah", "1",
+    "This is row two", "2",
+    "This is row three", "3",
+    "This is row four", "4",
+    "This is row five", "5",
+    "This is row six", "6",
+    "This is row seven", "7",
+};
+
+final int LIST_ROWS = 7;
+
+JFrame screen = {
+    Dimension size = NULL;
+    double    border = 72.0/8;
+    String    title = "Layout Test";
+    int       opaque = TRUE;
+
+    GridBagLayout layoutmanager;
+
+    Array layout = {
+	new JList {
+	    String tag = "$_list2";
+	    Array  items = List2Map;
+	    Object selected = NULL;
+	    int    rows = LIST_ROWS;
+	    int    scroll = AS_NEEDED;
+	},
+	BOTH,
+
+	new JTextArea {
+	    String tag = "$_text2";
+	    String text = "Now is\nthe time\nfor all\ngood men\nto come\nto the\naid of\ntheir party";
+	    double insets = 72.0/12;
+	    int columns = 0;
+	    int rows = 4;
+	    int scroll = AS_NEEDED;
+	},
+	BOTH,
+    };
+};
+
+screen.visible = TRUE;
+

@@ -1,0 +1,55 @@
+//
+// An old example that illustrates the use of font transformation
+// builtins and several different PostScript style show operators
+// that draw text strings. Every paint() call leaves the coordinate
+// system rotated by a few degrees.
+//
+
+import yoix.*.*;
+
+Font basefont = {
+    String name = "Lucida-plain-30";
+};
+
+Font superscriptfont = basefont.translatefont(0, -basefont.ascent).scalefont(.6, .6);
+Font subscriptfont = basefont.translatefont(0, basefont.descent).scalefont(.6, .6);
+
+JFrame f = {
+    Color background = Color.lightGray;
+
+    Graphics graphics = {
+	String font = "Lucida-plain-12";
+	Color  foreground = Color.yellow;
+    };
+    Dimension size = {
+	double width = VM.screen.width - 72;
+	double height = VM.screen.height - 72;
+    };
+    Point origin = {
+	double x = size.width/2;
+	double y = size.height/2;
+    };
+
+    paint(rect) {
+	graphics {
+	    translate(origin.x, origin.y);
+	    origin.x = 0;
+	    origin.y = 0;
+	    moveto(0, 0);
+	    setfont(basefont);
+	    ashow(0, 0, "Now is the time ");
+	    setfont(superscriptfont);
+	    ashow(0, 0, "for");
+	    setfont(basefont);
+	    ashow(0, 0, "all");
+	    setfont(subscriptfont);
+	    ashow(0, 0, "good");
+	    setfont(basefont);
+	    kshow(null, "men to come to the aid");
+rotate(10);
+	}
+    }
+};
+
+f.visible = TRUE;
+

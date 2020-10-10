@@ -1,0 +1,127 @@
+/*
+ * Trivial program that merges a zip file with the source for the
+ * Java class that will end up being the installer class.
+ *
+ * Here's a brief outline of how you might build an installer class file
+ * named XXX1_0.class using software that we have supplied:
+ *
+ *   1:	Copy YoixInstaller.java to a file named XXX1_0.java.
+ *
+ *   2: Replace all occurrences of YoixInstaller by XXX1_0 in 
+ *	XXX1_0.java.
+ *
+ *   3: Put the Yoix script that starts the installation in a new
+ *	zip file (say xxx.zip). Other things will end up in that
+ *	xxx.zip, but the Yoix script that starts things must be
+ *	first!!
+ *
+ *	We use a script named installer.yx to install Yoix, but
+ *	you must write your own. You may modify installer.yx and
+ *	use the modified script to install your software, but you
+ *	may not change installer.yx (without our permission) and
+ *	use it to install Yoix.
+ *
+ *   4:	Find yoix.jar on your system or go to our Yoix source
+ *	directory and build your own. Something like,
+ *
+ *		cd ../../../att/research/yoix
+ *		make yoix.jar
+ *
+ *	should work.
+ *
+ *   5: Add yoix.jar and everything else your installer will need
+ *	to xxx.zip. Order no longer makes a difference, provided
+ *	your installer Yoix script remains first.
+ *
+ *   6: Add xxx.zip in a hexed format to the XXX1_0.java by typing
+ *
+ *		yoix buildinstaller.yx XXX1_0.java xxx.zip >XXX1_0.java.tmp
+ *		mv XXX1_0.java.tmp XXX1_0.java
+ *
+ *	and you end up with a Java file that includes your zip file
+ *	xxx.zip in a form that XXX1_0.java likes. buildinstaller.yx
+ *	can be found in this directory.
+ *
+ *   7: Compile XXX1_0.java using
+ *
+ *		javac XXX1_0.java
+ *
+ *	and you end up with a file named XXX1_0.class that installs
+ *	your software when users type
+ *
+ *		java XXX1_0
+ *
+ *	or
+ *
+ *		jre -cp . XXX1_0
+ *
+ *	Distribute XXX1_0.class and explain the command lines and you
+ *	should be done.
+ */
+
+
+import yoix.io.*;
+import yoix.stdio.*;
+import yoix.string.*;
+
+Array strs;
+File fp1, fp2;
+String str1, str2;
+Pointer ptr;
+int bytes;
+
+if (argc == 3) {
+    if ((fp1 = fopen(argv[1], "r")) == NULL) {
+	fprintf(stderr, "%s: can't open %s\n", argv[0], argv[1]);
+	exit(1);
+    }
+    if ((str1 = readStream(fp1)) == NULL || str1@sizeof == 0) {
+	fprintf(stderr, "%s:problem reading %s\n", argv[0], argv[1]);
+	exit(1);
+    }
+    fclose(fp1);
+    if ((fp2 = fopen(argv[2], "r")) == NULL) {
+	fprintf(stderr, "%s: can't open %s\n", argv[0], argv[2]);
+	exit(1);
+    }
+    if ((str2 = readStream(fp2)) == NULL) {
+	fprintf(stderr, "%s:problem reading %s\n", argv[0], argv[2]);
+	exit(1);
+    }
+    fclose(fp2);
+} else {
+    fprintf(stderr, "%s: bad argument count\n", argv[0]);
+    exit(1);
+}
+
+
+bc = str2@sizeof;
+str2 = atoh(str2);
+
+ptr = str1 + str1@sizeof - 1;
+while (ptr@offset >= 0 && *ptr != '}')
+    ptr--;
+
+if (*ptr == '}')
+    *ptr = ' ';
+else {
+    fprintf(stderr, "%s: bad format %s\n", argv[0], argv[1]);
+    exit(1);
+}
+
+stdout.nextbuf = str1;
+str1 = fmt(str2, new Array[] { 2000, 2000, 1 });
+strs = strsplit(str1, "\n");
+str1 = NULL;
+str2 = NULL;
+
+printf("    static {\n");
+printf("        %s = new String[] {\n", (argc > 3) ? argv[3] : "hexedstrings");
+
+while(strs@sizeof > 1)
+    printf("            \"%s\",\n", *strs++);
+printf("            \"%s\"\n        };\n", *strs);
+printf("        bytecount = %d;\n", bc);
+printf("    }\n");
+printf("}\n");
+exit(0);

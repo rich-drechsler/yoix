@@ -1,0 +1,24 @@
+import yoix.*.*;
+
+JFrame f = {
+    paint(Rectangle rect) {
+        graphics {
+            gsave();
+            translate(144, 144);
+            shear(0, .5);
+            arc(0, 0, 72, 0, 180);
+            setrgbcolor(0, 0, 1);
+            fill();
+            moveto(0, 0);
+            lineto(72*3, 0);
+            moveto(0, 0);
+            lineto(0, 72*3);
+            setrgbcolor(1, 0, 0);
+            stroke();
+            grestore();
+        }
+    }
+};
+
+f.visible = TRUE;
+

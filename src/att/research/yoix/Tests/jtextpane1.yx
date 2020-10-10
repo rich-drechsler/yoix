@@ -1,0 +1,67 @@
+//
+// Illustrates a JTextPane bug that happened because Java code that
+// handled changes to the page field cleared the docuement when page
+// was NULL but didn't install a new HTML editor. That part is now
+// fixed, but there still seems to be an issue with style sheets that
+// are loaded via page and hang around when the text field is used to
+// display HTML. There are some comments our README aobut this one.
+// Basically need to take a close look at the interaction between the
+// text and page fields and may want to install a new document and
+// editor in YoixBodyComponentSwing.setText(). Not certain though, and
+// the order of the initialization of text and page fields currently
+// in YoixBodyComponentSwing.buildComponent() may need to be adjusted.
+// Anyway, this main bug (problems displaying html using text field)
+// seems to be fixed - unfortunately it's a mistake that's been around
+// for a while.
+//
+
+import yoix.*.*;
+
+String HTML = @<<
+    <center>
+	<h2>
+	    Now is the time
+	</h2>
+    </center>
+>>@;
+
+JFrame f = {
+    double border = 72.0/4;
+    Dimension size = {
+	double height = 4*72;		// 4 inches
+	double width = VM.screen.width/2;
+    };
+
+    Array layout = {
+	new JTextPane {
+	    String tag = "$_textpane";
+	    String font = "Helvetica-italic-24";
+	    int    mode = 1; // 1=HTML; 0=plain; -1=RTF
+	    /////String text = HTML;
+	    String page = "http://www.yoix.org/";
+	}, CENTER,
+
+	new JButton {
+	    String text = "Test";
+	    int    counter = 0;
+
+	    actionPerformed(e) {
+		Object comp = root.components.$_textpane;
+
+		if (++counter%2) {
+		    //
+		    // Using comp.text is the preferred approach, but
+		    // setting comp.page to NULL should also work. In
+		    // older versiomns this caused problems.
+		    //
+		    comp.page = NULL;
+		} else comp.text = HTML;
+fprintf(stderr, "comp.text=%s\n", comp.text);
+	    }
+	},
+	SOUTH,
+    };
+};
+
+f.visible = TRUE;
+

@@ -1,0 +1,46 @@
+import yoix.*.*;
+
+Array items = {
+    "Now is the time", "1",
+    "for all", "2",
+    "good men to", "3",
+    "come to", "4",
+};
+
+JFrame screen = {
+    Dimension size = NULL;
+    double    border = 72.0/8;
+    String    title = "GridBagLayout Test";
+
+    GridBagLayout layoutmanager;
+
+    Array layout = {
+	new JList {
+	    int rows = 3;
+	    int scroll = AS_NEEDED;
+	},
+	new GridBagConstraints {
+	    int gridx = 1;
+	    int gridy = 1;
+	    int weightx = 1;
+	    int weighty = 1;
+	    int fill = BOTH;
+	},
+
+	new JTextArea {
+	    int rows = 6;
+	    int columns = 0;
+	    int scroll = BOTH;
+	},
+	new GridBagConstraints {
+	    int gridx = 1;
+	    int gridy = 2;
+	    int weightx = 1;
+	    int weighty = 1;
+	    int fill = BOTH;
+	},
+    };
+};
+
+screen.visible = TRUE;
+

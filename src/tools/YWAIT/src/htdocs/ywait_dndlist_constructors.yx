@@ -1,0 +1,1284 @@
+//
+// Implementation of a component that behaves something like a Swing JList
+// but does a better job supporting DnD. The big problem with DnD in a JList
+// is that the button press used to start a DnD changes the selected items.
+// It's behavior that's terribly annoying in a multiplemode JList and although
+// I looked at the low leval Java code a long time ago (so I could easily be
+// wrong) I seem to recall that Java code fixes likely would have to change
+// the behavior of the JList plaf code (usually a difficult task).
+//
+
+final double DNDLIST_HORIZONTAL_PAD = VM.screen.pixelwidth;
+final double DNDLIST_VERTICAL_PAD = VM.screen.pixelheight;
+final double DNDLIST_IMAGE_MARGIN = 2*VM.screen.pixelheight;
+final double DNDLIST_ROW_ONE_MARGIN = 2*DNDLIST_VERTICAL_PAD;
+final double DNDLIST_AUTOSCROLLER_MARGIN = 72.0/8;
+final double DNDLIST_DEFAULT_AUTOSCROLLER_DELAY = 0.25;
+final double DNDLIST_MINIMUM_AUTOSCROLLER_DELAY = 0.025;
+
+NewDnDList(String tag, Array items, int rows, Object selected, ...) {
+    Dictionary initializer;
+    Object     ptr;
+    Object     scrollable;
+
+    initializer = new Dictionary[0, ...] {
+	String tag = tag;
+	String tooltiptext = NULL;
+	Color  background = Color.white;
+	Color  foreground = Color.black;
+	Object transferhandler = NULL;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	JScrollBar vbar = NULL;
+	Thread     autoscroller = NewDnDScroller();
+	double     averageheight;
+	Object     dragged;
+	Color      selectedcolor = VM.screen.uimanager.get("List.selectionBackground");
+	Color      pressedcolor = getDarkerColor(VM.screen.uimanager.get("List.selectionBackground"));
+	Array      items;
+	Array      labels;
+	Array      mappings;
+	Array      tooltips;
+	Array      bounds;
+	Array      selectedstate;
+	int        draggedout;
+	int        selectedrow = -1;
+	int        pressedrow = -1;
+	int        highlightedrow = -1;
+	int        selectbutton = BUTTON1_MASK;
+	int        rowcount = 0;
+	int        rows = rows;
+	int        scroll = AS_NEEDED;
+
+	//
+	// The value of scrollmodel should be 0 or 1, where
+	//
+	//     0 - last list value displayed near bottom of the canvas
+	//     1 - last list value displayed near top of the canvas
+	//
+	// but it's currently ignored when the vertical scollbar is optionally
+	// displayed (e.g., scroll == AS_NEEDED).
+	//
+
+	int scrollmodel = 1;
+
+	//
+	// The value assigned to selectmodel should be 0 or 1, where
+	//
+	//     0 - don't highlight selectedrow
+	//     1 - selectedrow is highlighted, but only when component
+	//         has the focus. This model behaves more like what you
+	//         get with a standard JList.
+	//     2 - selectedrow is always highlighted, even when the
+	//         component doesn't have the focus.
+	//
+	// are currently the only implemented models.
+	//
+
+	int selectmodel = 1;
+
+	//
+	// The value assigned to arrowmodel should be 0 or 1, where
+	//
+	//     0 - arrow keys only control the scrollbar.
+	//     1 - arrow keys move selectedrow up and down. If CTRL or
+	//         SHIFT aren't pressed the new selectedrow will be the
+	//         only selected row. Holding CTRL without SHIFT moves
+	//         the selectedrow without changing the selection and
+	//         also means the SPACE key means the selection state
+	//         of selectedrow will be toggled. Holding SHIFT also
+	//         has an effect (added late and probably not 100%).
+	//
+	// are currently the only implemented models.
+	//
+
+	int arrowmodel = 1;
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	componentResized(e) {
+	    SyncComponent(FALSE);
+	}
+
+	dragDropEnd(DragSourceEvent e) {
+	    int newselectedrow = selectedrow;
+
+	    if (!e.succeeded) {
+		if (defined("selectedrow", dragged))
+		    newselectedrow = dragged.selectedrow;
+		else newselectedrow = selectedrow;
+	    } else newselectedrow = selectedrow;
+
+	    dragged = NULL;
+	    SetPressedAt(NULL);
+	    UpdateHighlightedAt(NULL);
+	    RemoveDropTarget();
+	    SetSelectedRow(newselectedrow);
+	    AfterDnD();
+	}
+
+	dragEnter(DropTargetEvent e) {
+	    Object source = e.transferable;
+	    int    accepted = FALSE;
+
+	    if (source instanceof JCanvas) {
+		if (defined("drop", source)) {
+		    accepted = TRUE;
+		    draggedout = FALSE;
+		    RegisterDropTarget();
+		}
+	    }
+	    return(accepted);
+	}
+
+	dragExit(Object e) {
+	    draggedout = TRUE;
+	    UpdateHighlightedAt(NULL);
+	}
+
+	dragGestureRecognized(e) {
+	    Object transferable;
+	    Object visual;
+	    int    row;
+	    int    n;
+
+	    if ((row = GetRowFromPoint(e.location, 0)) >= 0 && row < rowcount) {
+		dragged = new Dictionary {
+		    Array items[0, ...];
+		    Array tooltips[0, ...];
+		    Array rows[0, ...];
+		    int   selectedrow = selectedrow;
+		    int   selectedindex = 0;
+		};
+		SetSelectedRow(-1);
+		if (selectedstate[row]) {
+		    for (n = 0; n < rowcount; n++) {
+			if (selectedstate[n]) {
+			    if (n == pressedrow)
+				dragged.selectedindex = dragged.rows@sizeof;
+			    dragged.rows[dragged.rows@sizeof] = n;
+			    dragged.tooltips[dragged.tooltips@sizeof] = tooltips[n];
+			    dragged.items[dragged.items@sizeof] = labels[n];
+			    dragged.items[dragged.items@sizeof] = mappings[n];
+			}
+		    }
+		} else {
+		    dragged.rows[0] = row;
+		    dragged.tooltips[0] = tooltips[row];
+		    dragged.items[0] = labels[row];
+		    dragged.items[1] = mappings[row];
+		    dragged.selectedindex = 0;
+		}
+		transferable = this;
+		e.visual = dragged.items[0];
+		if (dragged.rows@sizeof > 1) {
+		    if (e.visual instanceof Image) {
+			visual = new Image {
+			    Color background = Color.white;
+			    Dimension size = {
+				double width = e.visual.size.width;
+				double height = e.visual.size.height + font.height;
+			    };
+			};
+			visual.graphics {
+			    gsave();
+			    erasedrawable();
+			    moveto(0, 0);
+			    showimage(e.visual);
+			    moveto(0, e.visual.size.height);
+			    rlineto(e.visual.size.width, 0);
+			    stroke();
+			    moveto(0, e.visual.size.height + font.ascent);
+			    show(" + ...");
+			    grestore();
+			}
+			e.visual = visual;
+		    } else if (e.visual instanceof String)
+			e.visual += ", ...";
+		}
+	    } else dragged = NULL;
+	    return(transferable);
+	}
+
+	dragMouseMoved(e) {
+	    UpdateHighlightedAt(e.location);
+	    if (autoscroller != NULL)
+		autoscroller.SetMouseScreenLocation(e.screenlocation);
+	}
+
+	drop(e) {
+	    JCanvas source;
+	    JCanvas dest;
+	    int     dropped;
+	    int     row;
+
+	    source = e.transferable;
+	    if (defined("SetPressedAt", source) && defined("RemoveRows", source) && defined("MoveRowsAfter", source)) {
+		dest = this;
+		source.SetPressedAt(NULL);
+		row = dest.GetRowFromPoint(e.location, DNDLIST_ROW_ONE_MARGIN);
+		if (source != dest) {
+		    dest.AddItemsAfter(source.dragged.items, source.dragged.tooltips, row, source.dragged.selectedindex);
+		    source.RemoveRows(source.dragged.rows);
+		    AfterDnD();
+		} else {
+		    //
+		    // Dropping into the source, so right now the AfterDnD() call
+		    // happens in dragDropEnd().
+		    //
+		    source.MoveRowsAfter(source.dragged.rows, row, source.dragged.selectedindex);
+		}
+		dest.requestfocus = TRUE;
+		dropped = TRUE;
+	    } else dropped = FALSE;
+
+	    return(dropped);
+	}
+
+	focusGained(e) {
+	    PaintRow(selectedrow);
+	}
+
+	focusLost(e) {
+	    PaintRow(selectedrow);
+	}
+
+	keyPressed(e) {
+	    int ctrl = e.modifiersdown&CTRL_DOWN_MASK || (ISMAC && (e.modifiersdown&META_DOWN_MASK));
+	    int shift = e.modifiersdown&SHIFT_DOWN_MASK;
+
+	    switch(e.keycode) {
+		case KeyCode.VK_UP:
+		    if (arrowmodel)
+			SetNextSelection(-1, ctrl, shift);
+		    else vbar.value -= 1;
+		    break;
+
+		case KeyCode.VK_DOWN:
+		    if (arrowmodel)
+			SetNextSelection(1, ctrl, shift);
+		    else vbar.value += 1;
+		    break;
+
+		case KeyCode.VK_SPACE:
+		    if (arrowmodel) {
+			if (ctrl) {
+			    if (shift)
+				ShiftRowSelection(selectedrow, TRUE);
+			    else ToggleRowSelection(selectedrow, FALSE);
+			} else if (shift)
+			    ShiftRowSelection(selectedrow, TRUE);
+			else SetSelectedState(selectedrow, TRUE);
+		    }
+		    break;
+	    }
+	}
+
+	mouseMoved(e) {
+	    SetToolTipTextAt(e.location);
+	}
+
+	mousePressed(e) {
+	    if ((e.modifiers & selectbutton) != 0) {
+		SetPressedAt(e.location);
+		requestfocus = TRUE;
+	    }
+	}
+
+	mouseReleased(e) {
+	    int row;
+	    int clear;
+
+	    if ((e.modifiers & selectbutton) != 0) {
+		row = GetRowFromPoint(e.location, 0);
+		clear = !(e.modifiersdown&CTRL_DOWN_MASK || (ISMAC && (e.modifiersdown&META_DOWN_MASK)));
+		if (e.modifiersdown&SHIFT_DOWN_MASK)
+		    ShiftRowSelection(row, clear);
+		else ToggleRowSelection(row, clear);
+		SetPressedAt(NULL);
+	    }
+	}
+
+	mouseWheelMoved(e) {
+	    vbar.mouseWheelMoved(e);
+	}
+
+	////////////////////////////
+	//
+	// Painting Functions
+	//
+	////////////////////////////
+
+	paint(Rectangle rect) {
+	    int row;
+	    int top;
+	    int bottom;
+
+	    if ((top = GetTopRow(rect)) >= 0) {
+		if ((bottom = GetBottomRow(rect)) >= top) {
+		    for (row = top; row <= bottom; row++)
+			PaintRow(row);
+		}
+	    }
+	}
+
+	PaintRow(int row) {
+	    Object label;
+	    Object rect;
+	    Point  p0;
+	    Point  p1;
+
+	    //
+	    // The showing test is subtle and only needed because this function
+	    // can be called directly and not just via paint().
+	    //
+
+	    if (showing) {
+		if (row >= 0 && row < rowcount) {
+		    if ((rect = GetRectangleForRow(row)) != NULL) {
+			label = labels[row];
+			graphics.font = font;
+			graphics.linewidth = 0;
+			if (row == pressedrow)
+			    graphics.setrgbcolor(pressedcolor);
+			else if (selectedstate[row])
+			    graphics.setrgbcolor(selectedcolor);
+			else graphics.setrgbcolor(background);
+			graphics.rectfill(rect);
+			graphics.setrgbcolor(foreground);
+			if (label instanceof String) {
+			    graphics.moveto(rect.x + DNDLIST_HORIZONTAL_PAD, rect.y + font.ascent + DNDLIST_VERTICAL_PAD);
+			    graphics.show(label);
+			} else if (label instanceof Image) {
+			    graphics.moveto(rect.x + DNDLIST_HORIZONTAL_PAD + DNDLIST_IMAGE_MARGIN, rect.y + DNDLIST_VERTICAL_PAD + DNDLIST_IMAGE_MARGIN);
+			    graphics.showimage(label);
+			}
+			if (IsRowHighlighted(row)) {
+			    //
+			    // Basically all we need to do is make sure the stroked
+			    // rectangle lies completely inside the filled one so the
+			    // outline we draw here is erased by that fill.
+			    //
+			    // NOTE - the linewidth used to stroke the rectangle is 0,
+			    // which means one pixel lines.
+			    //
+			    p0 = graphics.transform(rect.x, rect.y);
+			    p1 = graphics.transform(rect.x + rect.width, rect.y + rect.height);
+			    p0.x = ceil(p0.x);
+			    p0.y = ceil(p0.y);
+			    p1.x = floor(p1.x) - 1;
+			    p1.y = floor(p1.y) - 2;
+			    p0 = graphics.itransform(p0);
+			    p1 = graphics.itransform(p1);
+			    graphics.rectstroke(p0.x, p0.y, p1.x - p0.x, p1.y - p0.y);
+			}
+		    }
+		}
+	    }
+	}
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	AddItemsAfter(Array pairs, Array tips, int oldrow, int selectedindex) {
+	    Array newitems;
+	    Array newselectedstate;
+	    Array newtooltips;
+	    int   newrow;
+	    int   newselectedrow;
+	    int   n;
+	    int   m;
+
+	    if (pairs@sizeof > 0) {
+		newrow = 0;
+		newitems = new Array[0, ...];
+		newselectedstate = new Array[0, ...];
+		newtooltips = new Array[0, ...];
+		for (n = 0; n < rowcount; n++) {
+		    if (n > oldrow && pairs != NULL) {
+			for (m = 0; m < pairs@sizeof - 1; m += 2) {
+			    newselectedstate[newrow] = TRUE;
+			    newtooltips[newrow] = defined(m/2, tips) ? tips[m/2] : NULL;
+			    newitems[2*newrow] = pairs[m];
+			    newitems[2*newrow + 1] = pairs[m+1];
+			    if (m/2 == selectedindex)
+				newselectedrow = newrow;
+			    newrow++;
+			}
+			pairs = NULL;
+		    }
+		    newselectedstate[newrow] = FALSE;
+		    newtooltips[newrow] = tooltips[n];
+		    newitems[2*newrow] = items[2*n];
+		    newitems[2*newrow + 1] = items[2*n + 1];
+		    newrow++;
+		}
+		if (pairs != NULL) {
+		    for (m = 0; m < pairs@sizeof - 1; m += 2) {
+			newselectedstate[newrow] = TRUE;
+			newtooltips[newrow] = defined(m/2, tips) ? tips[m/2] : NULL;
+			newitems[2*newrow] = pairs[m];
+			newitems[2*newrow + 1] = pairs[m+1];
+			if (m/2 == selectedindex)
+			    newselectedrow = newrow;
+			newrow++;
+		    }
+		}
+		SetItems(newitems, newselectedstate, newtooltips, newselectedrow);
+	    }
+	}
+
+	AfterDnD() {
+	    //
+	    // Customizable function called at the end of a DnD operation.
+	    //
+	}
+
+	EnsureRowVisible(int row) {
+	    Rectangle rowrect;
+	    Rectangle viewrect;
+
+	    if (row >= 0 && row < rowcount) {
+		rowrect = new Rectangle bounds[row];
+		viewrect = new Rectangle {
+		    double x = 0;
+		    double y = vbar.value*averageheight;
+		    double width = size.width;
+		    double height = size.height;
+		};
+
+		while (rowrect.y + rowrect.height > viewrect.y + viewrect.height) {
+		    vbar.value += 1;
+		    viewrect.y += averageheight;
+		}
+
+		while (rowrect.y < viewrect.y) {
+		    vbar.value -= 1;
+		    viewrect.y -= averageheight;
+		}
+	    }
+	}
+
+	GetBottomRow(...) {
+	    double y = averageheight*vbar.value;
+
+	    if (argc > 1) {
+		if (argv[1] instanceof Rectangle)
+		    y += argv[1].y + argv[1].height;
+		else y += size.height;
+	    } else y += size.height;
+
+	    return(GetRowAt(y));
+	}
+
+	GetItems() {
+	    return(new Array[] items);
+	}
+
+	GetLabels() {
+	    return(new Array[] labels);
+	}
+
+	GetMappings() {
+	    return(new Array[] mappings);
+	}
+
+	GetRectangleForRow(int row) {
+	    Rectangle rect;
+
+	    if (row >= 0 && row < rowcount) {
+		rect.x = 0;
+		rect.y = bounds[row].y - averageheight*vbar.value;
+		rect.width = size.width;
+		rect.height = bounds[row].height;
+	    } else {
+		rect.x = 0;
+		rect.y = (row - vbar.value)*averageheight;
+		rect.width = size.width;
+		rect.height = averageheight;
+	    }
+	    return(rect.y + rect.height >= 0 && rect.y <= size.height ? rect : NULL);
+	}
+
+	GetRowAt(double y) {
+	    Object rect;
+	    int    row;
+
+	    //
+	    // We use a loop because eventually we don't want to always assume
+	    // the rows are uniformly spaced.
+	    //
+
+	    if (y >= 0) {
+		for (row = 0; row < rowcount; row++) {
+		    rect = bounds[row];
+		    if (y >= rect.y && y < rect.y + rect.height)
+			break;
+		}
+	    } else row = -1;
+	    return(row);
+	}
+
+	GetRowFromPoint(Point point, double slop) {
+	    return(point != NULL && point.y > slop ?  GetRowAt(point.y + averageheight*vbar.value) : -1);
+	}
+
+	GetScrollData(Object scrollbar) {
+	    Dictionary data;
+	    int        extent;
+	    int        maximum;
+
+	    if (size != NULL) {
+		if (scrollbar == vbar) {
+		    switch (scroll) {
+			case ALWAYS:
+			case VERTICAL:
+			case VERTICAL_ALWAYS:
+			    switch (scrollmodel) {
+				case 0:
+				    extent = max(1, size.height/averageheight);
+				    maximum = rowcount;
+				    break;
+
+				case 1:
+				    extent = max(1, size.height/rowcount);
+				    maximum = rowcount + extent - 1;
+				    break;
+
+				default:
+				    extent = max(1, size.height/averageheight);
+				    maximum = rowcount;
+				    break;
+			    }
+			    data = new Dictionary {
+				int minimum = 0;
+				int maximum = maximum;
+				int extent = extent;
+				int blockincrement = size.height/averageheight;
+				int unitincrement = 1;
+				int value = (maximum - extent > 0) ? scrollbar.value : minimum;
+				int visible = TRUE;
+			    };
+			    break;
+
+			case AS_NEEDED:
+			case VERTICAL_AS_NEEDED:
+			    //
+			    // Not sure what to do here with scrollmodel, so for now
+			    // we ignore it.
+			    //
+			    extent = max(1, size.height/averageheight);
+			    maximum = rowcount;
+			    data = new Dictionary {
+				int minimum = 0;
+				int maximum = maximum;
+				int extent = extent;
+				int blockincrement = size.height/averageheight;
+				int unitincrement = 1;
+				int value = (maximum - extent > 0) ? scrollbar.value : minimum;
+				int visible = (maximum - extent > 0);
+			    };
+			    break;
+
+			case NEVER:
+			case VERTICAL_NEVER:
+			    data = new Dictionary {
+				int visible = FALSE;
+			    };
+			    break;
+
+		    }
+		}
+	    }
+	    return(data);
+	}
+
+	GetSelected() {
+	    return(GetSelectedMappings());
+	}
+
+	GetSelectedCount() {
+	    int count = 0;
+	    int row;
+
+	    for (row = 0; row < rowcount; row++) {
+		if (selectedstate[row])
+		    count++;
+	    }
+	    return(count);
+	}
+
+	GetSelectedIndices() {
+	    Array values[0, ...];
+	    int   row;
+
+	    for (row = 0; row < rowcount; row++) {
+		if (selectedstate[row])
+		    values[values@sizeof] = row;
+	    }
+	    return(values);
+	}
+
+	GetSelectedItems() {
+	    Array values[0, ...];
+	    int   row;
+
+	    for (row = 0; row < rowcount; row++) {
+		if (selectedstate[row]) {
+		    values[values@sizeof] = items[2*row];
+		    values[values@sizeof] = items[2*row + 1];
+		}
+	    }
+	    return(values);
+	}
+
+	GetSelectedLabels() {
+	    Array values[0, ...];
+	    int   row;
+
+	    for (row = 0; row < rowcount; row++) {
+		if (selectedstate[row])
+		    values[values@sizeof] = labels[row];
+	    }
+	    return(values);
+	}
+
+	GetSelectedMappings() {
+	    Array values[0, ...];
+	    int   row;
+
+	    for (row = 0; row < rowcount; row++) {
+		if (selectedstate[row])
+		    values[values@sizeof] = mappings[row];
+	    }
+	    return(values);
+	}
+
+	GetTopRow(...) {
+	    double y = averageheight*vbar.value;
+
+	    if (argc > 1) {
+		if (argv[1] instanceof Rectangle)
+		    y += argv[1].y;
+	    }
+	    return(GetRowAt(y));
+	}
+
+	IsRowHighlighted(int row) {
+	    int result = FALSE;
+
+	    if (row != highlightedrow) {
+		switch (selectmodel) {
+		    case 1:
+			if (dragged == NULL && highlightedrow < 0 && selectedrow == row)
+			    result = focusowner;
+			break;
+
+		    case 2:
+			if (dragged == NULL && highlightedrow < 0 && selectedrow == row)
+			    result = TRUE;
+			break;
+		}
+	    } else result = TRUE;
+
+	    return(result);
+	}
+
+	MoveRowsAfter(Array list, int oldrow, int selectedindex) {
+	    Array newitems;
+	    Array newselectedstate;
+	    Array newtooltips;
+	    int   newselectedrow;
+	    int   newrow;
+	    int   moved;
+	    int   n;
+	    int   m;
+
+	    if (list@sizeof > 0) {
+		moved = FALSE;
+		newrow = 0;
+		newselectedrow = -1;
+		newitems = new Array[0, ...];
+		newselectedstate = new Array[0, ...];
+		newtooltips = new Array[0, ...];
+		for (n = 0; n < rowcount; n++) {
+		    if (n > oldrow && !moved) {
+			for (ptr in list) {
+			    newselectedstate[newrow] = TRUE;
+			    newtooltips[newrow] = tooltips[ptr[0]];
+			    newitems[2*newrow] = items[2*ptr[0]];
+			    newitems[2*newrow + 1] = items[2*ptr[0] + 1];
+			    if (ptr@offset == selectedindex)
+				newselectedrow = newrow;
+			    newrow++;
+			}
+			moved = TRUE;
+		    }
+		    if (indexOfObject(list, n) < 0) {
+			newselectedstate[newrow] = FALSE;
+			newtooltips[newrow] = tooltips[n];
+			newitems[2*newrow] = items[2*n];
+			newitems[2*newrow + 1] = items[2*n + 1];
+			newrow++;
+		    }
+		}
+		if (!moved) {
+		    for (ptr in list) {
+			newselectedstate[newrow] = TRUE;
+			newtooltips[newrow] = tooltips[ptr[0]];
+			newitems[2*newrow] = items[2*ptr[0]];
+			newitems[2*newrow + 1] = items[2*ptr[0] + 1];
+			if (ptr@offset == selectedindex)
+			    newselectedrow = newrow;
+			newrow++;
+		    }
+		}
+		SetItems(newitems, newselectedstate, newtooltips, newselectedrow);
+	    }
+	}
+
+	RegisterDropTarget() {
+	    if (autoscroller != NULL)
+		autoscroller.SetDropTarget(this, vbar);
+	}
+
+	RemoveDropTarget() {
+	    if (autoscroller != NULL)
+		autoscroller.SetDropTarget(NULL, NULL);
+	}
+
+	RemoveRows(Array list) {
+	    Array newitems;
+	    Array newselectedstate;
+	    Array newtooltips;
+	    int   newselectedrow;
+	    int   row;
+
+	    if (list@sizeof > 0) {
+		newselectedrow = -1;
+		newitems = new Array[0, ...];
+		newselectedstate = new Array[0, ...];
+		newtooltips = new Array[0, ...];
+		for (row = 0; row < rowcount; row++) {
+		    if (indexOfObject(list, row) < 0) {
+			newselectedstate[newselectedstate@sizeof] = selectedstate[row];
+			newtooltips[newtooltips@sizeof] = tooltips[row];
+			newitems[newitems@sizeof] = items[2*row];
+			newitems[newitems@sizeof] = items[2*row + 1];
+			if (row == selectedrow)
+			    newselectedrow = newselectedstate@sizeof;
+		    }
+		}
+		SetItems(newitems, newselectedstate, newtooltips, newselectedrow);
+	    }
+	}
+
+	SetFont(Font font) {
+	    this.font = font;
+	    SyncComponent();
+	}
+
+	SetHighlightedAt(Point point) {
+	    int nextrow = GetRowFromPoint(point, 0);
+	    int row;
+
+	    if ((row = highlightedrow) != nextrow) {
+		highlightedrow = -1;
+		PaintRow(row);
+	    }
+
+	    if (!draggedout && highlightedrow != nextrow) {
+		if (nextrow >= 0 && nextrow < rowcount) {
+		    highlightedrow = nextrow;
+		    PaintRow(nextrow);
+		}
+	    }
+	    //
+	    // Small kludge, but it's really not a big deal.
+	    //
+	    PaintRow(selectedrow);
+	}
+
+	SetItems(Array source, ...) {
+	    Object rect;
+	    Object label;
+	    double y;
+	    Array  newselectedstate = (argc > 2 && argv[2] instanceof Array) ? argv[2] : NULL;
+	    Array  newtooltips = (argc > 3 && argv[3] instanceof Array) ? argv[3] : NULL;
+	    int    newselectedrow = (argc > 4 && argv[4] instanceof int) ? argv[4] : -1;
+	    int    row;
+
+	    if ((rowcount = source@sizeof/2) > 0) {
+		items = source;
+		labels = new Array[rowcount];
+		mappings = new Array[rowcount];
+		tooltips = new Array[rowcount];
+		selectedstate = new Array[rowcount];
+		bounds = new Array[rowcount];
+		for (row = 0; row < rowcount; row++) {
+		    label = source[2*row];
+		    labels[row] = label;
+		    mappings[row] = source[2*row + 1];
+		    tooltips[row] = defined(row, newtooltips) ? newtooltips[row] : NULL;
+		    if (defined(row, newselectedstate) && newselectedstate[row])
+			selectedstate[row] = TRUE;
+		    else selectedstate[row] = FALSE;
+		    if (label instanceof String) {
+			rect = font.stringbounds(label);
+			rect.height = font.height;
+		    } else if (label instanceof Image) {
+			rect = new Rectangle;
+			rect.width = label.size.width + 2*DNDLIST_IMAGE_MARGIN;
+			rect.height = label.size.height + 2*DNDLIST_IMAGE_MARGIN;
+		    } else rect = new Rectangle;
+		    rect.y = y;
+		    rect.height += 2*DNDLIST_VERTICAL_PAD;
+		    y += rect.height;
+		    bounds[row] = rect;
+		}
+	    } else {
+		items = NULL;
+		labels = NULL;
+		mappings = NULL;
+		tooltips = NULL;
+		selectedstate = NULL;
+		bounds = NULL;
+	    }
+	    SetSelectedRow(newselectedrow);
+	    SyncComponent();
+	}
+
+	SetNextSelection(int direction, int ctrl, int shift) {
+	    int row;
+
+	    if (direction > 0) {
+		if (selectedrow >= 0 && selectedrow < rowcount)
+		    row = min(selectedrow + 1, rowcount - 1);
+		else row = 0;
+	    } else {
+		if (selectedrow >= 0 && selectedrow < rowcount)
+		    row = max(selectedrow - 1, 0);
+		else row = rowcount - 1;
+	    }
+	    if (ctrl) {
+		if (shift)
+		    ShiftRowSelection(row, FALSE);
+		else SetSelectedRow(row);
+	    } else if (shift)
+		ShiftRowSelection(row, FALSE);
+	    else ToggleRowSelection(row, TRUE);
+	    EnsureRowVisible(selectedrow);
+	}
+
+	SetPressedAt(Point point) {
+	    int row;
+
+	    if ((row = pressedrow) >= 0) {
+		pressedrow = -1;
+		PaintRow(row);
+	    }
+	    if ((row = GetRowFromPoint(point, 0)) >= 0 && row < rowcount) {
+		pressedrow = row;
+		PaintRow(row);
+	    }
+	}
+
+	SetSelected(Object value) {
+	    Array newselectedstate;
+	    int   row = -1;
+
+	    if (rowcount > 0) {
+		newselectedstate = new Array[rowcount];
+		for (ptr in newselectedstate)
+		    ptr[0] = FALSE;
+		if (value instanceof Array) {
+		    for (ptr in value) {
+			if (ptr[0] instanceof String) {
+			    if ((row = indexOfObject(mappings, ptr[0])) >= 0)
+				newselectedstate[row] = TRUE;
+			    else if ((row = indexOfObject(labels, ptr[0])) >= 0)
+				newselectedstate[row] = TRUE;
+			} else if (ptr[0] instanceof int) {
+			    if ((row = ptr[0]) >= 0 && row < rowcount)
+				newselectedstate[row] = TRUE;
+			}
+		    }
+		} else if (value instanceof String) {
+		    if ((row = indexOfObject(mappings, value)) >= 0)
+			newselectedstate[row] = TRUE;
+		    else if ((row = indexOfObject(labels, value)) >= 0)
+			newselectedstate[row] = TRUE;
+		} else if (value instanceof int) {
+		    if ((row = value) >= 0 && row < rowcount)
+			newselectedstate[row] = TRUE;
+		}
+		selectedstate = newselectedstate;
+		SetSelectedRow(row);		// probably OK
+		SyncComponent();
+	    }
+	}
+
+	SetSelectedRow(int row) {
+	    int lastrow = selectedrow;
+
+	    selectedrow = row;
+	    if (lastrow != selectedrow) {
+		PaintRow(lastrow);
+		PaintRow(selectedrow);
+	    }
+	}
+
+	SetSelectedState(int row, int state) {
+	    if (row >= 0 && row < rowcount) {
+		if (state != selectedstate[row]) {
+		    selectedstate[row] = state;
+		    SyncComponent();
+		}
+	    }
+	}
+
+	SetToolTips(Array tips) {
+	    Array newtooltips;
+	    int   row;
+
+	    if (rowcount > 0) {
+		newtooltips = new Array[rowcount];
+		for (row = 0; row < rowcount; row++) {
+		    if (row < tips@sizeof) {
+			if (tips[row] instanceof String)
+			    newtooltips[row] = tips[row];
+			else newtooltips[row] = NULL;
+		    } else newtooltips[row] = NULL;
+		}
+		tooltips = newtooltips;
+	    }
+	}
+
+	SetToolTipTextAt(Point point) {
+	    String tooltip;
+	    int    row;
+
+	    if (tooltips@sizeof > 0) {
+		if ((row = GetRowFromPoint(point, 0)) >= 0 && row < rowcount) {
+		    if (defined(row, tooltips) && tooltips[row] instanceof String) {
+			tooltip = tooltips[row];
+			if (tooltip@sizeof > 0)
+			    tooltiptext = tooltip;
+			else tooltiptext = NULL;
+		    } else tooltiptext = NULL;
+		} else tooltiptext = NULL;
+	    } else tooltiptext = NULL;
+	}
+
+	ShiftRowSelection(int row, int clear) {
+	    Array ends[2];
+	    int   last;
+	    int   index;
+	    int   n;
+
+	    //
+	    // Currently doesn't try to duplicate the JList selection algorithm
+	    // that's used when the shift key is pressed, but it seems like a
+	    // reasonable approach, particularly because the algorithm that's
+	    // used by the JList isn't all that obvious. Eventually could let
+	    // selectmodel have more control, but this is sufficient for now.
+	    //
+
+	    if (row >= 0 && row < rowcount) {
+		if (selectedrow >= 0 && selectedrow < rowcount) {
+		    if (selectmodel == 1 || selectmodel == 2 || selectedstate[selectedrow]) {
+			//
+			// First finds the bounds of the "selected" region
+			// that surrounds selectedrow.
+			//
+			ends[0] = selectedrow;
+			ends[1] = selectedrow;
+			for (; ends[0] > 0 && selectedstate[ends[0]-1]; ends[0]--) ;
+			for (last = rowcount - 1; ends[1] < last && selectedstate[ends[1]+1]; ends[1]++) ;
+			//
+			// Tests may be confusing - they came (via trial and
+			// error) as we experimented with different approaches
+			// for the selection behavior. Feel free to change them
+			// or simplify the code if you want.
+			//
+			if (row < ends[0]) {
+			    ends[0] = row;
+			} else if (row > ends[1]) {
+			    ends[1] = row;
+			} else if (ends[1] - ends[0] == 1) {
+			    ends[0] = row;
+			    ends[1] = row;
+			} else if (row - ends[0] == ends[1] - row) {
+			    if (selectedrow >= row)
+				ends[1] = row;
+			     else ends[0] = row;
+			} else if (row - ends[0] > ends[1] - row) {
+			    ends[1] = row;
+			} else {
+			    ends[0] = row;
+			}
+		    } else {
+			ends[0] = row;
+			ends[1] = row;
+		    }
+		} else {
+		    ends[0] = row;
+		    ends[1] = row;
+		}
+		for (ptr in selectedstate) {
+		    index = ptr@offset;
+		    if (index >= ends[0] && index <= ends[1])
+			selectedstate[index] = TRUE;
+		    else if (clear)
+			selectedstate[index] = FALSE;
+		}
+		SetSelectedRow(row);
+		SyncComponent();
+	    }
+	}
+
+	SyncComponent(...) {
+	    Rectangle rect;
+	    int       count;
+
+	    if (rowcount > 0) {
+		for (ptr in bounds)
+		    rect = rectUnionRect(rect, ptr[0]);
+		averageheight = rect.height/rowcount;
+	    } else averageheight = 0;
+
+	    preferredsize = new Dimension {
+		double width = rect.width + vbar.preferredsize.width + 2*DNDLIST_HORIZONTAL_PAD;
+		double height = max(0, rows*averageheight);
+	    };
+	    if (defined("SyncSelected", this))
+		SyncSelected();
+	    vbar.SyncComponent();
+	    if (argc < 2 || argv[1])
+		repaint();
+	}
+
+	ToggleRowSelection(int row, int clear) {
+	    if (row >= 0 && row < rowcount) {
+		if (clear) {
+		    for (ptr in selectedstate) {
+			if (ptr@offset == row) {
+			    switch (selectmodel) {
+				case 0:
+				    selectedstate[row] = !selectedstate[row];
+				    break;
+
+				case 1:
+				case 2:
+				    selectedstate[row] = TRUE;
+				    break;
+			    }
+			} else if (selectedstate[ptr@offset])
+			    selectedstate[ptr@offset] = FALSE;
+		    }
+		} else selectedstate[row] = !selectedstate[row];
+		SetSelectedRow(row);
+		SyncComponent();
+	    }
+	}
+
+	UpdateHighlightedAt(Point point) {
+	    Object target;
+
+	    if (autoscroller != NULL) {
+		if ((target = autoscroller.GetDropTarget()) != NULL)
+		    target.SetHighlightedAt(point);
+	    }
+	}
+    };
+
+    for (ptr = &rows + 1; ptr@sizeof > 0; ptr++) {
+	if (*ptr instanceof String) {
+	    if (ptr@sizeof > 1)
+		initializer[*ptr] = *++ptr;
+	} else if (*ptr instanceof Dictionary)
+	    unroll(*ptr, initializer);
+    }
+
+    scrollable = new JCanvas initializer;
+
+    //
+    // Install items, tooltips, and, if appropriate, set the selected items.
+    //
+    scrollable.vbar = NewDnDScrollBar(scrollable);
+    scrollable.SetItems(items);
+    if (defined("tooltips", initializer))
+	scrollable.SetToolTips(initializer.tooltips);
+    if (selected != NULL)
+	scrollable.SetSelected(selected);
+
+    JPanel container = {
+	BorderLayout layoutmanager;
+	Array layout = {
+	    scrollable,
+	    CENTER,
+	    scrollable.vbar,
+	    RIGHT,
+	};
+    };
+
+    return(container);
+}
+
+NewDnDScrollBar(Object scrollable) {
+    Object scrollbar;
+
+    scrollbar = new JScrollBar {
+	int orientation = VERTICAL;
+	int unitincrement = 1;
+	int requestfocusenabled = FALSE;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	Object scrollable = scrollable;
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	adjustmentValueChanged(AdjustmentEvent e) {
+	    //
+	    // The canvas doesn't try to paint labels that won't show up and in
+	    // most cases labels will be pretty short, so even though repaint()
+	    // usually does more than we need it's perfectly acceptable.
+	    //
+	    if (scrollable != NULL)
+		scrollable.repaint();
+	}
+
+	mouseWheelMoved(Event e) {
+	    if ((e.modifiers&BUTTON_MASK) == 0)
+		value += e.wheelrotation;
+	}
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	SyncComponent() {
+	    Dictionary data = (scrollable != NULL) ? scrollable.GetScrollData(this) : NULL;
+
+	    blockincrement = defined("blockincrement", data) ? data.blockincrement : 10;
+	    unitincrement = defined("unitincrement", data) ? data.unitincrement : 1;
+
+	    setValues(
+		defined("value", data) ? data.value : 0,
+		defined("extent", data) ? data.extent : 0,
+		defined("minimum", data) ? data.minimum : 0,
+		defined("maximum", data) ? data.maximum : 0
+	    );
+	    visible = defined("visible", data) ? data.visible : FALSE;
+	}
+    };
+
+    return(scrollbar);
+}
+
+NewDnDScroller() {
+    //
+    // Returns a thread used for scrolling when the user drags the cursor
+    // out of components that can function as drop targets. We also use it
+    // to remember the current drop target so the dragMouseMoved() handler
+    // in the drag source can add "highlights" to the appropriate component
+    // as the user drags the mouse around.
+    //
+    Thread autoscroller = {
+	int daemon = TRUE;
+	int priority = NORM_PRIORITY;
+
+	JScrollBar scrollbar = NULL;
+	Object     droptarget = NULL;
+	Point      mousepoint = NULL;
+	Array      ends[] = {0.0, -1.0};
+
+	GetDropTarget() {
+	    return(droptarget);
+	}
+
+	GetScrollBar() {
+	    return(scrollbar);
+	}
+
+	SetDropTarget(Object droptarget, JScrollBar scrollbar) {
+	    Point point;
+
+	    if (droptarget != NULL && scrollbar != NULL) {
+		point = getLocationOnScreen(droptarget);
+		if (scrollbar.orientation == VERTICAL) {
+		    ends[0] = point.y;
+		    ends[1] = point.y + droptarget.size.height;
+		} else {
+		    ends[0] = point.x;
+		    ends[1] = point.x + droptarget.size.width;
+		}
+	    }
+	    this.droptarget = droptarget;
+	    this.scrollbar = scrollbar;
+	    this.run();
+	}
+
+	SetMouseScreenLocation(Point point) {
+	    mousepoint = point;
+	}
+
+	run(...) {
+	    JScrollBar sb;
+	    double     delay = DNDLIST_DEFAULT_AUTOSCROLLER_DELAY;
+	    double     margin = DNDLIST_AUTOSCROLLER_MARGIN;
+	    Point      point;
+	    int        distance;
+	    int        coordinate;
+
+	    //
+	    // Implemented to scroll faster as the cursor gets farther away from
+	    // scrollable, provided it has moved outside margin.
+	    //
+
+	    sleep(2*delay);		// a little longer initial delay
+
+	    while ((sb = scrollbar) != NULL && droptarget != NULL) {
+		delay = DNDLIST_DEFAULT_AUTOSCROLLER_DELAY;
+		if ((point = mousepoint) != NULL) {
+		    coordinate = (sb.orientation == VERTICAL) ? point.y : point.x;
+		    if (coordinate < ends[0]) {
+			distance = ends[0] - coordinate;
+			sb.value -= 1;
+		    } else if (coordinate > ends[1]) {
+			distance = coordinate - ends[1];
+			sb.value += 1;
+		    } else distance = 0;
+		    if (distance > margin)
+			delay = max(delay*max(1.0 - (distance - margin)/margin, 0.0), DNDLIST_MINIMUM_AUTOSCROLLER_DELAY);
+		}
+		sleep(delay);
+	    }
+	}
+    };
+    return(autoscroller);
+}
+

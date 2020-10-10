@@ -1,0 +1,45 @@
+//
+// An example that uses old yoix.graphics builtins for drawing
+// and hit detection. We now strongly recommend using builtins
+// defined in Graphics objects for drawing and hit detection!!
+//
+
+import yoix.*.*;
+
+Star(double xcenter, double ycenter) {
+    return(
+	new Array {
+	    xcenter + 0, ycenter + -50,
+	    xcenter + 29, ycenter + 40,
+	    xcenter + -47, ycenter + -15,
+	    xcenter + 47, ycenter + -15,
+	    xcenter + -29, ycenter + 40,
+	}
+    );
+}
+
+JFrame f = {
+    Color background = Color.black;
+
+    Graphics graphics = {
+	Color foreground = Color.yellow;
+    };
+
+    Array star;
+
+    paint(clip) {
+	this.star = Star(size.width - 72, size.height - 72*2);
+	fillPolygon(this, unroll(star));
+    }
+
+    mousePressed(e) {
+	int result;
+
+	if (star != null)
+	    result = pointInPolygon(e.location, unroll(star));
+	puts(result ? "inside" : "outside");
+    }
+};
+
+f.visible = TRUE;
+

@@ -1,0 +1,36 @@
+//
+// Small table example that also shows how preferredsize can be
+// used to control one dimension.
+//
+
+import yoix.*.*;
+
+JFrame jf = {
+    Dimension size = NULL;
+    int       visible = 1;
+
+    Array layout = {
+	new JTable {
+	    String tag = "$_table";
+	    int rows = 3;
+	    Color  gridcolor = Color.red;
+	    Array  headers = {"Subject", "Number", "Percent"};
+	    Array  types = {STRING_TYPE, INTEGER_TYPE, PERCENT_TYPE};
+
+	    Dimension preferredsize = {
+		//
+		// Omitting height means we don't have a preference.
+		//
+		int width = 360;
+	    };
+	}, CENTER,
+    };
+};
+
+sleep(2);
+
+jf.components.$_table.text = "\
+Total population|281421906|1.0\n\
+Male|138053563|.491\n\
+Female|143368343|.509\n\
+";

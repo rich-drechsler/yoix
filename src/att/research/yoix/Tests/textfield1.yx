@@ -1,0 +1,39 @@
+//
+// An AWT TextField example that lets you check for disappearing
+// underscores. Version 0.9.2 introduced platform dependent fixes
+// that tried to address the problem - see YoixAWTTextField.java
+// in the source package if you're curious or find another system
+// that has problems.
+//
+
+import yoix.*.*;
+
+Frame f = {
+    Dimension size = NULL;
+
+    Array layout = {
+	new TextField {
+	    String tag = "$_textfield1";
+	    String font = "Helvetica-plain-12";
+	    String text = "underscore_test";
+	    int    columns = 20;
+	}, NORTH,
+
+	new TextField {
+	    String tag = "$_textfield2";
+	    String font = "Helvetica-plain-14";
+	    String text = "underscore_test";
+	    int    columns = 20;
+	}, CENTER, 
+
+	new TextField {
+	    String tag = "$_textfield3";
+	    String font = "Courier-bold-24";
+	    String text = "underscore_test";
+	    int   columns = 20;
+	}, SOUTH,
+    };
+};
+
+f.visible = TRUE;
+

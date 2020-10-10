@@ -1,0 +1,12 @@
+The server and ../bin/broadcast.pl use this directory to manage broadcast
+messages. A file named message in this directory (that's also readable by
+the cgi scripts) is the broadcast message. Users who have seen the message
+are recorded a file named log so they only get it once per login session.
+Broadcast messages and logs are appended to messages.old and logs.old when
+a broadcast message is officially canceled using
+
+	../bin/broadcast.pl -c
+
+which means you can keep a record of your broadcast messages and the users
+who actually saw them.
+

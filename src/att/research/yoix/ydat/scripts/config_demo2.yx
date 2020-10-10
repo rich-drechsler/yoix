@@ -1,0 +1,219 @@
+//
+// YDAT config file for displaying auction data. This is config file is based
+// on a very old style (CONFIGVERSION == 2) and it shouldn't be copied. We
+// will try to clean it up and make it a better example in our next release.
+//
+// These are expensive and should only be used during development, but you
+// will need both of them if you want any help tracking problems down.
+//
+//	DEBUGGING = TRUE;	// to debug tables
+//	VM.addtags = TRUE;	// for better Yoix error messages
+//
+
+int DAYS = 86400;	// seconds per day
+
+String DATEFORMAT_TIME = "dd MMM yyyy EE HH:mm:ss";
+String DATEFORMAT_DATE = "dd MMM yyyy";
+String TIMEFORMAT_HOURS = "zh:zm:zs";
+
+Array WEEKDAY_LABELS = {"Th", "Fr", "Sa", "Su", "Mo", "Tu", "We" };      // day 0, Jan 1 1970, was Thursday
+Array WEEKDAY_TICKS = {86400, 24, 6};
+Array REFUND_TICKS = {10000, 1000, 4};
+
+TimeZone TZ = {
+    String id = "GMT";
+};
+
+ PriceFormatter(double price) = strfmt("$%.0f", price);
+
+DayFormatter(double tsval) = date(TZ, DATEFORMAT_TIME, tsval);
+DayFormatter2(double ts1, double ts2) = date(TZ, abs(ts1 - ts2) < 86400. ? DATEFORMAT_TIME : DATEFORMAT_DATE, ts1);
+
+DayMinuteFormatter(double ts, double refund) {
+    return(new Array {DayFormatter(ts), strfmt("$%.0f", refund)});
+}
+
+YAxisLoader(Object arg) {
+    if ((arg.axisends[1] - arg.axisends[0]) > 200000)  // 200,000
+	arg.ticks = new Array {100000, 10000, 5};
+    else if ((arg.axisends[1] - arg.axisends[0]) > 20000)  // > 20,000
+	arg.ticks = new Array {10000, 1000, 5};
+    else if ((arg.axisends[1] - arg.axisends[0]) > 2000) // > 2,000
+	arg.ticks = new Array {1000, 100, 5};
+    else arg.ticks = new Array {100, 50, 2};
+}
+
+XAxisLoader(Object arg) {
+    if ((arg.axisends[1] - arg.axisends[0]) > 84*DAYS) {	// label weeks, daily ticks
+	arg.ticks = new Array {7*DAYS, 7, 1};
+	arg.labels = new Array { "Th" };
+    } else if ((arg.axisends[1] - arg.axisends[0]) > 40*DAYS) { // label days
+	arg.ticks = new Array {1*DAYS, 6, 2};
+	arg.labels = new Array {"T", "F", "S", "S", "M", "T", "W"};
+    } else if ((arg.axisends[1] - arg.axisends[0]) > 7*DAYS) { // hourly ticks
+	arg.ticks = new Array {1*DAYS, 24, 6};
+	arg.labels = new Array {"Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"};
+    } else {	// 15-min ticks
+	arg.ticks = new Array {1*DAYS, 96, 24};
+	arg.labels = new Array {"Thursday", "Friday", "Saturday", "Sunday", "Monday", "Tuesday", "Wednesday"};
+    }
+}
+
+CONFIGVERSION = "2.0";		// old, obsolete version (that still works)
+COLOREDBY = "vehicletype";
+INPUTSEPARATOR = "|";
+LOCATIONMODE = -1;
+PRIMARYLABEL = "Counts";
+SECONDARYLABEL = "Dollars";
+SORTEDBY = "plot1";
+TITLEMODEL = 1;
+LABEL_LONGDURATION = "Large values";
+
+Insets PLOT_PAD = {
+    double left = 5;
+    double right = 5;
+    double top = 3;
+    double bottom = 3;
+};
+
+//
+// Small adjustments to the default sizes. HISTOGRAM and SWEEPTABLE
+// are adjusted together mostly because STARTSCREENS uses the default
+// widths.
+//
+
+DIMENSIONS.HISTOGRAM.width += 36;
+DIMENSIONS.SWEEPTABLE.width -= 36;
+
+TRANSLATORS = new Dictionary {
+};
+
+DATAFIELDS = new Array {
+//
+// NAME             TYPE           INDEX  COUNTER  UNIXTIME   TRANSLATOR   GENERATOR
+// ----             ----           -----  -------  --------   ----------   ---------
+   "startdate",     DATA_STRING,     0,   FALSE,   FALSE,     NULL,        NULL,
+   "enddate",       DATA_STRING,     1,   FALSE,   FALSE,     NULL,        NULL,
+   "vehicletype",   DATA_STRING,     2,   FALSE,   FALSE,     NULL,        NULL,
+   "brand",         DATA_STRING,     3,   FALSE,   FALSE,     NULL,        NULL,
+   "nbids",         DATA_INTEGER,    4,   FALSE,   FALSE,     NULL,        NULL,
+   "price",         DATA_DOUBLE,     5,   FALSE,   FALSE,     NULL,        NULL,
+   "city",          DATA_STRING,     6,   FALSE,   FALSE,     NULL,        NULL,
+   "comment",       DATA_STRING,     7,   FALSE,   FALSE,     NULL,        NULL,
+   "outcome",       DATA_STRING,     8,   FALSE,   FALSE,     NULL,        NULL,
+
+   "starttime",     DATA_CALL,      -1,   FALSE,   TRUE,      NULL,        new Array {BUILTIN_PARSEDATE, TZ, "startdate", "MMM-dd-yy HH:mm:ss"},
+   "endtime",       DATA_CALL,      -1,   FALSE,   TRUE,      NULL,        new Array {BUILTIN_PARSEDATE, TZ, "enddate", "MMM-dd-yy HH:mm:ss"},
+   "ndays",         DATA_INTEGER,   -1,   FALSE,   FALSE,     NULL,        new Array {"endtime", "starttime", "-", 86400, "/"},
+};
+
+DATAFILTERS = new Array {
+//
+// NAME             MENULABEL         PRIMARY         SECONDARY   DIVERSITY  AUTOREADY  SPAN   SORTBY
+// ----             ---------         -------         ---------   ---------  ---------  ----   ------
+   "vehicletype",   "Vehicle Type",   "vehicletype",  "price",    NULL,      FALSE,      0,    SORTBY_TEXT,
+   "brand",         "Vehicle Brand",  "brand",        "price",    NULL,      FALSE,      0,    SORTBY_TEXT,
+   "nbids",         "NBids",          "nbids",        "price",    NULL,      FALSE,      0,    SORTBY_NUMBER,
+   "ndays",         "Length",         "ndays",        "price",    NULL,      FALSE,      0,    SORTBY_NUMBER,
+   "city",          "City",           "city",         "price",    NULL,      FALSE,      0,    SORTBY_TEXT,
+   "outcome",       "Outcome",        "outcome",      "price",    NULL,      FALSE,      0,    SORTBY_TEXT,
+};
+
+SWEEPTABLES = new Array {
+//
+// NAME            MENULABEL        REORDER  RESIZE   EXTRA  COLUMNS
+// ----            ---------        -------  ------   -----  -------
+   "saledetail",   "Sale Detail",   TRUE,    TRUE,    NULL,  new Array {
+        //
+        // DATAFIELD        LABEL           SPAN  ALIGNMENT  TYPE           ATTRIBUTES          EXTRA
+        // ---------        -----           ----  ---------  ----           ----------          -----
+	   "endtime",       "Auction End",   18,  LEFT,      DATE_TYPE,     "yyyy-MM-dd HH:mm", NULL,
+	   "outcome",       "Outcome",        8,  CENTER,    STRING_TYPE,   NULL,               NULL,
+	   "ndays",         "Days",           6,  CENTER,    INTEGER_TYPE,  NULL,               NULL,
+	   "nbids",         "Bids",           6,  CENTER,    INTEGER_TYPE,  NULL,               NULL,
+	   "price",         "Price",         12,  RIGHT,     MONEY_TYPE,    NULL,               NULL,
+	   "vehicletype",   "Vehicle",       10,  CENTER,    STRING_TYPE,   NULL,               NULL,
+	   "brand",         "Brand",         25,  CENTER,    STRING_TYPE,   NULL,               NULL,
+	   "comment",       "Comment",       80,  LEFT,      STRING_TYPE,   NULL,               NULL,
+    },
+};
+
+PLOTS = new Array {
+//
+// NAME      MENULABEL  VISIBLE  OWNER   XVALUE        YVALUE    FILTER         AUTOREADY  ANCHOR  BORDER  INSETS  PAD
+// ----      ---------  -------  -----   ------        ------    ------         ---------  ------  ------  ------  ---
+   "plot1",  NULL,      TRUE,    NULL,   "starttime",  "price",  "saledetail",  FALSE,     SOUTH,  2,      2,      PLOT_PAD,
+};
+
+AXES = new Array {
+//
+// NAME            MENULABEL  VISIBLE  OWNER     ROWS  COLUMNS  ANCHOR  INVERTED  TICKINTERVALS      TICKLABELS
+// ----            ---------  -------  -----     ----  -------  ------  --------  -------------      ----------
+   "timeaxis",     NULL,      TRUE,    "plot1",   1,    1,      NORTH,  FALSE,    WEEKDAY_TICKS,     WEEKDAY_LABELS,
+   "priceaxis",    NULL,      TRUE,    "plot1",   1,    7,      EAST,   FALSE,    REFUND_TICKS,      NULL,
+};
+
+LABELS = new Array {
+//
+// NAME              MENULABEL  VISIBLE  OWNER      ROWS  COLUMNS  ALIGNMENT  FONT   FOREGROUND          TEXT
+// ----              ---------  -------  -----      ----  -------  ---------  ----   ----------          ----
+   "counterlabel",   NULL,      TRUE,    "plot1",    1,    60,     RIGHT,     NULL,  NULL,               NULL,
+   "infolabel",      NULL,      TRUE,    "plot1",    1,    60,     LEFT,      NULL,  COLORS.sweepcolor,  NULL,
+   "startlabel",     NULL,      TRUE,    "plot1",    1,    25,     LEFT,      NULL,  NULL,               NULL,
+   "endlabel",       NULL,      TRUE,    "plot1",    1,    25,     RIGHT,     NULL,  NULL,               NULL,
+};
+
+PANELS = new Array {
+//
+// NAME           MENULABEL  VISIBLE    OWNER  WIDTH  HEIGHT  BACKGROUND    LAYOUT
+// ----           ---------  -------    -----  -----  ------  ----------    ------
+   "seebids",     NULL,      TRUE,      NULL,    0,      0,   NULL,         new Array {
+        //
+        // NAME            GRIDX  GRIDY  GRIDWIDTH  GRIDHEIGHT  WEIGHTX  WEIGHTY   IPADX     IPADY     FILL      ANCHOR   INSETS   BACKGROUND
+        // ----            -----  -----  ---------  ----------  -------  -------   -----     -----     ----      ------   ------   ----------
+           NULL,             0,     0,       1,          1,         0,       0,    72.0/8,   72.0/8,   NONE,     CENTER,  NULL,    NULL,
+           "counterlabel",   8,     1,       1,          1,         0,       0,    0,        0,        NONE,     EAST,    NULL,    NULL,
+           "priceaxis",      2,     3,       1,          1,         0,       0,    0,        0,        BOTH,     CENTER,  "plot1", NULL,
+           "plot1",          3,     3,       6,          1,       100,     100,    0,        0,        BOTH,     CENTER,  NULL,    NULL,
+           "timeaxis",       3,     7,       6,          1,       100,       0,    0,        0,        BOTH,     CENTER,  "plot1", NULL,
+           "startlabel",     3,     8,       1,          1,         0,       0,    0,        0,        NONE,     WEST,    NULL,    NULL,
+           "endlabel",       8,     8,       1,          1,         0,       0,    0,        0,        NONE,     EAST,    NULL,    NULL,
+           "infolabel",      3,     9,       6,          1,       100,       0,    0,        0,        BOTH,     CENTER,  NULL,    NULL,
+           NULL,             10,    10,      1,          1,         0,       0,    72.0/8,   72.0/32,  NONE,     CENTER,  NULL,    NULL,
+   },
+};
+
+CALLBACKS = new Array {
+//
+// OWNER              STATE          FORMATTER                LABEL                 CALLBACK
+// -----              ------         ----------               -----                 --------
+   "timeaxis",        "SELECT",      DayFormatter,            "infolabel",          NULL,
+   "timeaxis",        "SETSTART",    DayFormatter2,           "startlabel",         NULL,
+   "timeaxis",        "SETEND",      DayFormatter2,           "endlabel",           XAxisLoader,
+   "priceaxis",       "SELECT",      PriceFormatter,          "infolabel",          NULL,
+   "priceaxis",       "SETEND",      NULL,                    NULL,                 YAxisLoader,
+   "plot1",           "POINT",       DayMinuteFormatter,      "infolabel",          NULL,
+   "plot1",           "SWEEP",       DayMinuteFormatter,      "infolabel",          NULL,
+   "plot1",           "SELECT",      DayMinuteFormatter,      "infolabel",          NULL,
+};
+
+STARTSCREENS = new Array {
+    "seebids",
+	SEPARATION,		// X (< 0 lets screen choose)
+	SEPARATION,		// Y (< 0 lets screen choose)
+	0,			// WIDTH (<= 0 lets screen choose)
+	0,			// HEIGHT (<= 0 lets screen choose)
+
+    "saledetail",
+	SEPARATION,
+	-1,
+	0,
+	0,
+
+    "vehicletype",
+	DIMENSIONS.SWEEPTABLE.width + SEPARATION + 5,
+	-1,
+	0,
+	0,
+};
+

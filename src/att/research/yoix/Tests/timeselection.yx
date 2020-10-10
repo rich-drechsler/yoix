@@ -1,0 +1,344 @@
+//
+// Simple time selection screen.
+//
+
+import yoix.*.*;
+
+JFrame screen = {
+    Dimension size = NULL;
+    String    title = "Testing...";
+    double    border = 72.0/8;
+    int       resizable = FALSE;
+    int       initialized = FALSE;
+
+    Dimension preferredsize = {
+	double width = 7*72.0;
+    };
+
+    GridBagLayout layoutmanager;
+    Array layout = {
+	new JPanel {
+	    String tag = "$_weekdays_panel";
+	    EtchedBorder border = {
+		String title = "Week Days";
+	    };
+
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		new JPanel {
+		    Array layout = {
+			new JCheckBox {
+			    String text = "Sun";
+			    int    state = FALSE;
+
+			    itemStateChanged(Event e) {
+				root.SetWeekDay(0, state);
+			    }
+			},
+			new JCheckBox {
+			    String text = "Mon";
+			    int    state = TRUE;
+
+			    itemStateChanged(Event e) {
+				root.SetWeekDay(1, state);
+			    }
+			},
+			new JCheckBox {
+			    String text = "Tue";
+			    int    state = TRUE;
+
+			    itemStateChanged(Event e) {
+				root.SetWeekDay(2, state);
+			    }
+			},
+			new JCheckBox {
+			    String text = "Wed";
+			    int    state = TRUE;
+
+			    itemStateChanged(Event e) {
+				root.SetWeekDay(3, state);
+			    }
+			},
+			new JCheckBox {
+			    String text = "Thu";
+			    int    state = TRUE;
+
+			    itemStateChanged(Event e) {
+				root.SetWeekDay(4, state);
+			    }
+			},
+			new JCheckBox {
+			    String text = "Fri";
+			    int    state = TRUE;
+
+			    itemStateChanged(Event e) {
+				root.SetWeekDay(5, state);
+			    }
+			},
+			new JCheckBox {
+			    String text = "Sat";
+			    int    state = FALSE;
+
+			    itemStateChanged(Event e) {
+				root.SetWeekDay(6, state);
+			    }
+			},
+		    };
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int anchor = LEFT;
+		    int weightx = 100;
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int fill = HORIZONTAL;
+	    int weightx = 100;
+
+	    Insets insets = {
+		double bottom = 72.0/8;
+	    };
+	},
+
+	new JPanel {
+	    String tag = "$_starthour_panel";
+
+	    EtchedBorder border = {
+		String title = "Start Hour";
+	    };
+
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		new JSlider {
+		    String tag = "$_starthour_slider";
+		    String font = "Dialog-bold-10";
+		    int    orientation = HORIZONTAL;
+		    int    snaptoticks = TRUE;
+		    int    majortickspacing = 12;
+		    int    minortickspacing = 1;
+		    int    minimum = 0;
+		    int    maximum = 23;
+		    int    value = 8;
+
+		    stateChanged(Event e) {
+			SyncComponents();
+			root.SetStartHour(value);
+		    }
+
+		    SyncComponents() {
+			root.components.$_starthour_label.SyncText(value);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int fill = HORIZONTAL;
+		    int weightx = 100;
+		},
+
+		new JLabel {
+		    String tag = "$_starthour_label";
+
+		    SyncText(int value) {
+			text = toString(value);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int anchor = LEFT;
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = RELATIVE;
+	    int fill = HORIZONTAL;
+	    int weightx = 50;
+
+	    Insets insets = {
+		double bottom = 72.0/8;
+	    };
+	},
+
+	new JPanel {
+	    String tag = "$_endhour_panel";
+
+	    EtchedBorder border = {
+		String title = "End Hour";
+	    };
+
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		new JSlider {
+		    String tag = "$_endhour_slider";
+		    String font = "Dialog-bold-10";
+		    int    orientation = HORIZONTAL;
+		    int    snaptoticks = TRUE;
+		    int    majortickspacing = 12;
+		    int    minortickspacing = 1;
+		    int    minimum = 0;
+		    int    maximum = 23;
+		    int    value = 17;
+
+		    stateChanged(Event e) {
+			root.SetEndHour(value);
+			root.components.$_endhour_label.text = toString(value);
+		    }
+
+		    SyncComponents() {
+			root.components.$_endhour_label.SyncText(value);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int fill = HORIZONTAL;
+		    int weightx = 100;
+		},
+
+		new JLabel {
+		    String tag = "$_endhour_label";
+
+		    SyncText(int value) {
+			text = toString(value);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int anchor = LEFT;
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int fill = HORIZONTAL;
+	    int weightx = 50;
+
+	    Insets insets = {
+		double bottom = 72.0/8;
+	    };
+	},
+
+	new JPanel {
+	    String tag = "$_timezone_panel";
+
+	    EtchedBorder border = {
+		String title = "Time Zone";
+	    };
+
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		new JSlider {
+		    String tag = "$_timezone_slider";
+		    String font = "Dialog-bold-10";
+		    int    orientation = HORIZONTAL;
+		    int    snaptoticks = TRUE;
+		    int    majortickspacing = 12;
+		    int    minortickspacing = 1;
+		    int    minimum = -12;
+		    int    maximum = 12;
+		    int    value = 0;
+
+		    stateChanged(Event e) {
+			SyncComponents();
+			root.SetTimeZone(value);
+		    }
+
+		    SyncComponents() {
+			root.components.$_timezone_choice.SyncSelected(value);
+			root.components.$_timezone_label.SyncText(value);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int fill = HORIZONTAL;
+		    int weightx = 100;
+		},
+
+		new JLabel {
+		    String tag = "$_timezone_label";
+		    String text;
+
+		    SyncText(int value) {
+			text = toString(value);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridwidth = RELATIVE;
+		    int anchor = LEFT;
+		},
+
+		new JChoice {
+		    String tag = "$_timezone_choice";
+		    String selected = "UTC";
+
+		    Array items = {
+			"PST", "-8",
+			"MST", "-7",
+			"CST", "-6",
+			"EST", "-5",
+			"UTC", "0",
+		    };
+
+		    itemStateChanged(Event e) {
+			if (selected != NULL)
+			    root.components.$_timezone_slider.value = atoi(selected);
+		    }
+
+		    SyncSelected(int value) {
+			selected = toString(value);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int anchor = RIGHT;
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int fill = HORIZONTAL;
+	    int weightx = 100;
+
+	    Insets insets = {
+		double bottom = 72.0/8;
+	    };
+	},
+    };
+
+    ////////////////////////////
+    //
+    // Event Handlers
+    //
+    ////////////////////////////
+
+    windowOpened(e) {
+	components.$_starthour_slider.SyncComponents();
+	components.$_endhour_slider.SyncComponents();
+	components.$_timezone_slider.SyncComponents();
+    }
+
+    ////////////////////////////
+    //
+    // Support Functions
+    //
+    ////////////////////////////
+
+    SetEndHour(int hour) {
+	fprintf(stderr, "SetEndHour: hour=%d\n", hour);
+    }
+
+    SetStartHour(int hour) {
+	fprintf(stderr, "SetStartHour: hour=%d\n", hour);
+    }
+
+    SetTimeZone(int timezone) {
+	fprintf(stderr, "SetStartHour: timezone=%d\n", timezone);
+    }
+
+    SetWeekDay(int day, int state) {
+	fprintf(stderr, "SetWeekDay: day=%d, state=%d\n", day, state);
+    }
+};
+
+screen.visible = TRUE;
+

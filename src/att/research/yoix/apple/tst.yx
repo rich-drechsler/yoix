@@ -1,0 +1,17 @@
+import yoix.*.*;
+import yoix.apple.*;
+
+aboutHandler(ev) {
+    stderr.nextline = "Nothing to say about this test application.";
+    ev.handled = true;
+}
+
+quitHandler(ev) {
+    ev.handled = showConfirmDialog(jf, "Really quit?", "Quit Check", YES_NO_OPTION);
+}
+
+appleApplication("about", "add", aboutHandler);
+appleApplication("quit", "add", quitHandler);
+
+JFrame jf;
+jf.visible = 1;

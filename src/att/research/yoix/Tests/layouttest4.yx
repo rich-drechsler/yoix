@@ -1,0 +1,60 @@
+//
+// Very old CardLayout test.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    CardLayout layoutmanager = {
+	int hgap = 36;
+	int vgap = 18;
+    };
+
+    Array layout = {
+	new JButton {
+	    String tag = "$_first";
+	    String text = "Next";
+
+	    actionPerformed(ActionEvent e) {
+		root.nextcard = 1;
+	    }
+	},
+
+	new JPanel {
+	    Array layout = {
+		new JButton {
+		    String text = "Next";
+
+		    actionPerformed(ActionEvent e) {
+			root.nextcard = 1;
+		    }
+		},
+		new JButton {
+		    String text = "Quit";
+
+		    actionPerformed(ActionEvent e) {
+			exit(0);
+		    }
+		},
+		new JButton {
+		    String text = "Previous";
+
+		    actionPerformed(ActionEvent e) {
+			root.nextcard = -1;
+		    }
+		},
+	    };
+	},
+
+	new JButton {
+	    String text = "First";
+
+	    actionPerformed(ActionEvent e) {
+		root.nextcard = "$_first";
+	    }
+	},
+    };
+};
+
+f.visible = TRUE;
+

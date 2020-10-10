@@ -1,0 +1,188 @@
+//
+// An old yoix.xcolor example.
+//
+
+import yoix.*.*;
+
+addColor();
+
+Adjust(JScrollbar bar, int first, int last, int incr) {
+    AdjustmentEvent event;
+    int index = bar.value;
+
+    index += incr;
+    if (index >= last) {
+	index = first;
+    } else if (index <= first) {
+	index = last;
+    }
+
+    bar.value = index;
+    event = new AdjustmentEvent {
+	String  id = "adjustmentValueChanged";
+	int     type = BLOCK_INCREMENT;
+	int     value = index;
+    };
+
+    postEvent(event, bar);
+
+}
+
+Array allcolors = getDictionaryNames(Color, TRUE);
+
+JFrame f = {
+    String title = "Color Viewer";
+    String font = "Helvetica-bold-10";
+
+    Dimension size = {
+	double height = 4*72;		// 4 inches
+	double width = VM.screen.width/2;
+    };
+
+    Point location = {
+	double x = 2*72;		// 2 inches
+	double y = 1*72;		// 1 inches
+    };
+
+    Array layout = {
+	new JLabel {
+	    String tag = "$_colorname";
+	    String font = "Helvetica-bold-12";
+	    String text = "Testing...";
+	    int    alignment = CENTER;
+	}, NORTH,
+
+	new JCanvas {
+	    String  tag = "$_colordisplay";
+	    Color   background = Color.white;
+	}, CENTER,
+
+	new JPanel {
+	    FlowLayout  layoutmanager = {
+		int  vgap = 72/12;
+	    };
+
+	    Array layout = {
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String text = "Cycle Up";
+
+			    actionPerformed(e) {
+				root.runner.alive = 0;
+				sleep(.25);
+				root.runner.run(
+				    root.components.$_colorindex,
+				    0,
+				    allcolors@sizeof - 1,
+				    -1
+				    );
+			    }
+			},
+
+			new JButton {
+			    String text = "Step Up";
+
+			    actionPerformed(e) {
+				root.runner.alive = 0;
+				sleep(.25);
+				Adjust(
+				    root.components.$_colorindex,
+				    0,
+				    allcolors@sizeof - 1,
+				    -1
+				);
+			    }
+			},
+
+			new JButton {
+			    String text = "Stop";
+			    Color  foreground = Color.red;
+
+			    actionPerformed(e) {
+				root.runner.alive = 0;
+			    }
+			},
+
+			new JButton {
+			    String text = "Step Down";
+
+			    actionPerformed(e) {
+				root.runner.alive = 0;
+				sleep(.25);
+				Adjust(
+				    root.components.$_colorindex,
+				    0,
+				    allcolors@sizeof - 1,
+				    1
+				);
+			    }
+			},
+
+			new JButton {
+			    String text = "Cycle Down";
+
+			    actionPerformed(e) {
+				root.runner.alive = 0;
+				sleep(.25);
+				root.runner.run(
+				    root.components.$_colorindex,
+				    0,
+				    allcolors@sizeof - 1,
+				    1
+				    );
+			    }
+			},
+		    };
+		},
+	    };
+	}, SOUTH,
+
+	new JScrollbar {
+	    String tag = "$_colorindex";
+	    int    orientation = VERTICAL;
+	    int    unitincrement = 1;
+	    int    minimum = 0;
+	    int    maximum = allcolors@sizeof;
+	    int    visibleamount = 1;
+
+	    adjustmentValueChanged(e) {
+		String name = allcolors[value];
+		String rgb;
+		Color  color = Color[allcolors[value]];
+
+		rgb = strfmt("%.2f, %.2f, %.2f", color.red, color.green, color.blue);
+		root.components.$_colordisplay.background = color;
+		root.components.$_colorname.text = name + ", rgb=" + rgb;
+	    }
+	}, EAST,
+
+	new JCanvas {
+	    Dimension size = {
+		int width = 72/8;
+		int height = 72/8;
+	    };
+	}, WEST,
+    };
+
+    Thread runner = {
+	run(...) {
+	    AdjustmentEvent event;
+	    JScrollbar      bar = argv[1];
+	    int             first = argv[2];
+	    int             last = argv[3];
+	    int             incr = argv[4];
+
+
+	    while(1) {
+		Adjust(bar, first, last, incr);
+		sleep(1);
+	    }
+	}
+    };
+};
+
+f.visible = TRUE;
+

@@ -1,0 +1,90 @@
+import yoix.*.*;
+
+Color   pixel;
+Image   image;
+Stream  output;
+String  spixel;
+int     row;
+int     col;
+int     rows;
+int     cols;
+int     alpha = FALSE;
+int     type;
+
+final String USAGE = strfmt("USAGE: %s [-a(lpha)] [-c(ompress)] image_file_path > hexed_image.txt\n", argv[0]);
+
+output = stdout;
+
+Option option;
+int    ch;
+
+while ((ch = option.getopt(global.argv, "ac")) != -1) {
+    switch (ch) {
+        case 'a':
+	    alpha = TRUE;
+	    break;
+
+        case 'c':
+            output = new StringStream {
+		int mode = WRITE;
+		int filters = HEXCODER|GZIP;
+		int open = 1;
+	    };
+            break;
+
+        case '?':
+            fprintf(stderr, "Error: %s\n", option.opterror);
+	    fprintf(stderr, USAGE);
+	    exit(1);
+    }
+}
+
+
+if (argc != (option.optind + 1)) {
+    fprintf(stderr, "ERROR: missing argument\n");
+    fprintf(stderr, USAGE);
+    exit(1);
+}
+
+image = new Image {
+    String source = argv[option.optind];
+};
+
+if (image == NULL || image.size == NULL) {
+    fprintf(stderr, "ERROR: supplied argument (%s) is not a valid image\n", argv[option.optind]);
+    exit(2);
+}
+
+cols = image.columns;
+rows  = image.rows;
+
+type = image.type;
+
+if ((pixel = image.background) == NULL) {
+    spixel = "00000000";
+} else {
+    spixel = strfmt("01%02X%02X%02X", 255*pixel.red, 255*pixel.green, 255*pixel.blue);
+    if (alpha && type == TYPE_RGB)
+	type = TYPE_RGBA;
+}
+
+fprintf(output, "%d %d %d %d %d %s\n", image.size.width, image.size.height, cols, rows, type, spixel);
+
+
+for (row = 0; row < rows; row++) {
+    for (col = 0; col < cols; col++) {
+	if ((pixel = image.getpixel(col, row)) == NULL) {
+	    fprintf(stderr, "ERROR: missing pixel at (%d, %d)\n", col, row);
+	    exit(2);
+	}
+	fprintf(output, "%02X%02X%02X", 255*pixel.red, 255*pixel.green, 255*pixel.blue);
+    }
+    fprintf(output, "\n");
+}
+
+if (output != stdout) {
+    close(output);
+    stdout.nextbuf = output.name;
+}
+
+exit(0);

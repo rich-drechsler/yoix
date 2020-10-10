@@ -1,0 +1,28 @@
+import yoix.*.*;
+
+JFrame f = {
+    Graphics graphics = {
+        Color foreground = Color.blue;
+        int   linewidth = 72/8;
+        int   linecap = yoix.graphics.CAP_ROUND;
+    };
+
+    paint(Rectangle rect) {
+        int n;
+
+        graphics {          // "named block"
+            translate(size.width/2, size.height/2);
+            scale(2, .5);
+            for (n = 0; n < 12; n++) {
+                moveto(0, 0);
+                rlineto(1.5*72, 0);
+                rotate(30);
+            }
+            initmatrix();
+            stroke();
+        }
+    }
+};
+
+f.visible = TRUE;
+

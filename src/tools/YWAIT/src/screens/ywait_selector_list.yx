@@ -1,0 +1,173 @@
+//
+// A screen that displays values in a JList and automatically updates the
+// string that is either defined in the supplied parent or is a text field
+// in one of the parent's component that is tagged by destination.
+// Pressing a button in the parent usually triggers a call of
+// Global.ShowSelectorList(), which handles the job of initializing parent,
+// destination, and any other important fields before this screen is shown.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+ValueChanged(e) {
+    if (root.parent != NULL) {
+	if (defined(root.destination, root.parent))
+	    root.parent[root.destination] = strjoin(selected, root.separator);
+	else root.parent.components[root.destination].text = strjoin(selected, root.separator);
+    }
+}
+
+int forcemodal = FALSE;
+
+Builder(String name, Array args) {
+
+    for (; args@sizeof > 1; args += 2) {
+	if (args[0] instanceof String && args[0] === "forcemodal") {
+	    global[args[0]] = args[1];
+	    break;
+	}
+    }
+
+    JDialog screen = {
+	Dimension size = NULL;
+	Insets    border = Global.GetLabeledScreenInsets();
+	Font      font = Global.GetPreferredLabelFont();
+	int       opaque = TRUE;
+	int       modal = forcemodal;
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = FALSE;
+	int    savestate = FALSE;   // save screen-specific info within session
+	int    retainstate = FALSE; // save screen-class info across sessions
+	int    reloadargs = FALSE;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	String destination = NULL;
+	String label = NULL;
+	String separator = ",";
+	Array  items = NULL;
+	Array  labels = NULL;
+	int    multiplemode = FALSE;
+
+	int    forcemodal; // dummy, but necessary because of LoadArgs
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    Global.NewJActiveHeadingLabel("$_selectorlabel", NULL, FALSE),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+	    },
+
+	    Global.NewJList("$_selector", NULL, 10, NULL, "valueChanged", ValueChanged),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = BOTH;
+	    },
+
+	    new JPanel {
+		GridLayout layoutmanager;
+
+		Array layout = {
+		    new JButton {
+			String text = "Clear";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    root.ClearScreen();
+			}
+		    },
+
+		    new JButton {
+			String text = global.forcemodal ? "OK" : "Dismiss";
+			Font   font = Global.GetPreferredButtonFont();
+			int    requestfocus = TRUE;
+
+			actionPerformed(e) {
+			    Global.AltQueueCommand(root, &root.HideScreen);
+			}
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		//
+		// We're intentionally asking for a little extra space on
+		// left and right sides of the buttons.
+		//
+		Insets insets = Global.GetInsets(72.0/8, 0, 72.0/4, 72.0/4);
+	    },
+
+	    Global.NewJProprietaryLabel(),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    components.$_selector.selected = NULL;
+	    if (parent != NULL) {
+		if (defined(destination, parent))
+		    parent[destination] = NULL;
+		else parent.components[destination].text = "";
+	    }
+	}
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+
+	InitializeScreen() {
+	    components.$_selectorlabel.text = label;
+	    if (labels != NULL)
+		components.$_selector.labels = labels;
+	    else components.$_selector.items = items;
+	    components.$_selector.multiplemode = multiplemode;
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+    };
+
+    return(screen);
+}
+
+return(Builder);

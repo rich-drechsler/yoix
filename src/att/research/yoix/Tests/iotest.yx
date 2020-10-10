@@ -1,0 +1,11 @@
+import yoix.*.*;
+
+URL    att = open("http://www.att.com", "r");
+String text;
+int    cnt;
+
+while (cnt >= 0) {
+    if ((cnt = fscanf(att, " <%[^>]>", &text)) > 0)
+	printf("<%s>\n", text);
+    else cnt = fscanf(att, " %*[^<]");
+}

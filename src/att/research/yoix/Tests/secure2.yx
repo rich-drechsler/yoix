@@ -1,0 +1,96 @@
+//
+// for this test to work, we need to have the bouncycastle jar, which should be placed
+// in a "Data" directory below the directory containing this test script.
+// Use bcjarfile to specify the jar file name (and maybe rename the sub-directory).
+// See: http://www.bouncycastle.org/ if it needs to be downloaded.
+//
+
+import yoix.*.*;
+
+String bcjarfile = "Data/bcprov-jdk14-129.jar";
+String fullpath = yoixPath(argv[0]);
+int last = lastIndexOf(fullpath, '/');
+String jarpath = substring(fullpath, 0, last+1) + bcjarfile;
+
+String certfile = "Data/dukecertfile.cer";
+String certpath = substring(fullpath, 0, last+1) + certfile;
+
+String ksfile = "Data/dukekeystore";
+String kspath = substring(fullpath, 0, last+1) + ksfile;
+
+String provname;
+Array encrypted;
+
+Certificate cert;
+Cipher ciph;
+File fl;
+
+int n;
+Array textvals = {
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+};
+
+String step2_out = "";
+
+String output;
+String NL = getProperty("line.separator");
+
+if ((provname = adjustSecurity(ADDPROVIDER, "org.bouncycastle.jce.provider.BouncyCastleProvider", jarpath)) == null) {
+    fprintf(stderr, "ERROR: could not load provider: %s\n", errordict.message);
+    exit(1);
+}
+
+stdout.nextline = "==============================";
+if ((provider_info = getProviders(provname)) != null) {
+    fprintf(stdout, "Check: added provider '%s' successfully\n", provname);
+
+    fl = fopen(certpath, "r");
+    cert.specification = "X509";
+    cert.source = fl;
+
+    ciph = new Cipher {
+	String specification = "RSA";
+	int opmode = ENCRYPT_MODE;
+	Certificate initializer = cert;
+    };
+
+    for (n=0; n<textvals@length; n++)
+	step2_out += textvals[n] + NL;
+
+    ciph.text = step2_out;
+
+    encrypted = ciph.text;
+    
+    output = btoh(encrypted);
+    stdout.nextline = output;
+
+    KeyStore ks = {
+	String type = "JKS";
+	String password = "dukekeystorepassword";
+	String file = kspath;
+    };
+
+    ciph = new Cipher {
+	String specification = "RSA";
+	int opmode = DECRYPT_MODE;
+	String initializer = ks.key("duke", "dukekeypasswd");
+    };
+
+    ciph.text = encrypted;
+
+    output = ciph.text;
+
+    stdout.nextline = "=========== Check ===========";
+
+    if (output === step2_out)
+	stdout.nextline = "Check: de-coding succeeded.";
+    else stdout.nextline = "Check: de-coding failed.";
+    stdout.nextline = "==============================";
+
+    stdout.nextbuf = output;
+
+} else fprintf(stdout, "Check: failed to add provider '%s'\n", provname);
+stdout.nextline = "==============================";

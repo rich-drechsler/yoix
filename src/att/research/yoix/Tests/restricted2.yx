@@ -1,0 +1,15 @@
+import yoix.*.*;
+
+Dictionary d[0, ...];
+
+restricted d {
+        int n = 12;
+        global;
+	String qwert = "poiuy";
+
+	Dictionary dd[0, ...];
+
+	dd;
+        exit(n);
+}
+

@@ -1,0 +1,601 @@
+//
+// A custom installer for Yoix that's also written in Yoix.
+//
+
+import yoix.*.*;
+
+//
+// Fonts
+//
+
+Font TextFontSmall = {String name = "Lucida-bold-10";};
+Font TextFontMedium = {String name = "Lucida-bold-12";};
+Font TextFontLarge = {String name = "Lucida-bold-14";};
+Font TextFontHuge = {String name = "Lucida-plain-18";};
+
+//
+// Colors
+//
+
+Color FrameColor = {
+    double red = 0.75;
+    double green = 0.75;
+    double blue = 0.85;
+};
+
+Color PanelColor = FrameColor;
+Color AxisColor = Color.blue;
+
+//
+// Insets
+//
+
+Insets BorderInsets = {
+    double left = 72.0/16;
+    double bottom = 72.0/16;
+    double right = 72.0/16;
+};
+
+Insets TextAreaInsets = {
+    double top = 72.0/8;
+    double left = 72.0/8;
+    double right = 72.0/8;
+};
+
+Insets SmallBottomInsets = {
+    double bottom = 72.0/8;
+};
+
+Insets SmallLeftInsets = {
+    double left = 72.0/8;
+};
+
+Insets SmallRightInsets = {
+    double right = 72.0/8;
+};
+
+Insets TinyBottomInsets = {
+    double bottom = 72.0/36;
+};
+
+Insets TinyLeftInsets = {
+    double left = 72.0/36;
+};
+
+Insets TinyRightInsets = {
+    double right = 72.0/36;
+};
+
+//
+// Images
+//
+
+Image BackgroundImage;
+Image TileImage;
+
+//
+// Function that reads files from a web site.
+//
+
+WebSiteFile(String site, String name) {
+    Stream stream;
+    String text;
+    String content;
+
+    if (site@sizeof > 0) {
+	if ((stream = open(site + name, "r", URL)) != NULL) {
+	    if ((text = readStream(stream)) != NULL) {
+		content = trim(text);
+		if (content@sizeof > 0) {
+		    if (endsWith(name, ".txt")) {
+			//
+			// In this case HTML probably is an error from
+			// from the server that we don't care about, so
+			// we toss it.
+			//
+			content = toLowerCase(content);
+			if (indexOf(content, "<html>") >= 0)
+			    text = NULL;
+		    }
+		} else text = NULL;
+	    }
+	    close(stream);
+	}
+    }
+    return(text);
+}
+
+//
+// Messages displayed by the installation panels.
+//
+
+String  MessageOptions = "\
+The long ticks marks drawn on the two axes in the upper left corner are supposed to\n\
+be separated by one inch. If they don't look right adjust the resolution slider until\n\
+you're satisfied, make sure the slider's checkbox is selected, and we'll add the option\n\
+that you see at the right side of the screen to the scripts that are installed on your\n\
+system. Incidentally, the number in the option will often end up close to the length, in\n\
+inches, of your screen's diagonal.\n\n\
+Take a close look at this message. The font is supposed to be point size 12, but if\n\
+you think it's too big or too small adjust the magnification slider until you're happy,\n\
+make sure the slider's checkbox is selected, and we'll add the option that you see at\n\
+the right side of the screen to the scripts that we install on your system.\n\
+";
+
+JPanel OptionsPanel = {
+    GridBagLayout layoutmanager;
+    String        message = MessageOptions;
+    String        tag = "$_optionspanel";
+
+    BevelBorder border = {
+	String title = "Special Options";
+	EmptyBorder child = {
+	    Insets insets = BorderInsets;
+	};
+    };
+
+    Array layout = {
+	new JTextArea {
+	    String text = message;
+	    Insets insets = TextAreaInsets;
+	    String tag = "$_options_message";
+	    Color  background = Color.white;
+	    int    opaque = TRUE;
+	    int    edit = FALSE;
+	    int    scroll = BOTH;
+	    int    caret = 0;
+	    int    rows = 0;
+	    int    columns = 0;
+
+	},
+	new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    int    weightx = 100;
+	    int    weighty = 100;
+	    int    fill = BOTH;
+	    Insets insets = TinyBottomInsets;
+	},
+
+	new JPanel {
+	    BorderLayout layoutmanager;
+
+	    Border border = {
+		int type = ETCHED|LOWERED;
+	    };
+
+	    Array layout = {
+		new JPanel {
+		    String tag = "$_options";
+
+		    GridBagLayout layoutmanager;
+		    Array layout = {
+			new JCheckbox {
+			    String tag = "$_resolution";
+			    String text = "Resolution";
+			    int    state = TRUE;
+
+			    itemStateChanged(e) {
+				root.components.$_resolutionslider.ShowOption();
+			    }
+			},
+			new GridBagConstraints {
+			    int gridx = 1;
+			    int gridy = 1;
+			    int anchor = WEST;
+			},
+
+			new JLabel {
+			    String tag = "$_resolutionoption";
+			    int    alignment = RIGHT;
+			},
+			new GridBagConstraints {
+			    int gridx = 3;
+			    int gridy = 1;
+			    int anchor = EAST;
+	    		    Insets insets = SmallRightInsets;
+			},
+
+			new JSlider {
+			    String tag = "$_resolutionslider";
+			    double scale = 1.0;
+			    int    orientation = HORIZONTAL;
+			    int    maximum = 400;
+			    int    minimum = 100;
+			    int    value = 200.0;
+
+			    stateChanged(e) {
+				scale = value/200.0;
+				ShowOption();
+				if (defined("ShowAxes", root))
+				    root.ShowAxes(scale);
+			    }
+
+			    mouseWheelMoved(e) {
+				value += e.wheelrotation;
+			    }
+
+			    ShowOption() {
+				String option = "";
+				double diagonal;
+
+				if (scale > 0) {
+				    diagonal = VM.screen.diagonal/scale;
+				    if (root.components.$_resolution.state)
+					option += strfmt("-D%.1f", diagonal);
+				}
+				root.components.$_resolutionoption.text = option;
+			    }
+
+			    Reset() {
+				value = 200.0;
+			    }
+			},
+			new GridBagConstraints {
+			    int gridx = 1;
+			    int gridy = 1;
+			    int gridwidth = 3;
+			    int weightx = 100;
+			    int anchor = CENTER;
+			},
+
+			new JCheckbox {
+			    String tag = "$_magnification";
+			    String text = "Magnification";
+			    int    state = TRUE;
+
+			    itemStateChanged(e) {
+				root.components.$_magnificationslider.ShowOption();
+			    }
+			},
+			new GridBagConstraints {
+			    int gridx = 1;
+			    int gridy = 2;
+			    int anchor = WEST;
+			},
+
+			new JLabel {
+			    String tag = "$_magnificationoption";
+			    int    alignment = RIGHT;
+			},
+			new GridBagConstraints {
+			    int gridx = 3;
+			    int gridy = 2;
+			    int anchor = EAST;
+	    		    Insets insets = SmallRightInsets;
+			},
+
+			new JSlider {
+			    String tag = "$_magnificationslider";
+			    double magnification = 1.0;
+			    int    orientation = HORIZONTAL;
+			    int    maximum = 30;
+			    int    minimum = 10;
+			    int    value = 20;
+
+			    stateChanged(e) {
+				magnification = value/20.0;
+				ShowOption();
+				root.components.$_options_message.font = root.components.$_options_message.font.scalefont(magnification);
+			    }
+
+			    mouseWheelMoved(e) {
+				value += e.wheelrotation;
+			    }
+
+			    ShowOption() {
+				String option = "";
+
+				if (root.components.$_magnification.state)
+				    option += strfmt("-m%.2f", magnification);
+				root.components.$_magnificationoption.text = option;
+			    }
+
+			    Reset() {
+				value = 20;
+			    }
+			},
+			new GridBagConstraints {
+			    int gridx = 1;
+			    int gridy = 2;
+			    int gridwidth = 3;
+			    int weightx = 100;
+			    int anchor = CENTER;
+			},
+		    };
+
+		    GetOptions() {
+			String text;
+
+			if (root.components.$_resolution.state)
+			    text = root.components.$_resolutionoption.text;
+			if (root.components.$_magnification.state) {
+			    if (text != NULL)
+				text += " ";
+			    text += root.components.$_magnificationoption.text;
+			}
+			return(text);
+		    }
+
+		    Reset() {
+			root.components.$_resolutionslider.Reset();
+			root.components.$_magnificationslider.Reset();
+		    }
+
+		    ShowOptions() {
+			root.components.$_resolutionslider.ShowOption();
+			root.components.$_magnificationslider.ShowOption();
+		    }
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    int    fill = HORIZONTAL;
+	    Insets insets = SmallBottomInsets;
+	},
+
+	new JPanel {
+	    GridBagLayout layoutmanager;
+
+	    Array layout = {
+		new JButton {
+		    String text = "Quit";
+		    Color  foreground = Color.red;
+
+		    actionPerformed(e) {
+			if (root.components.$_magnification.state) {
+			    if (root.components.$_magnificationslider.magnification != 1) {
+				fprintf(stdout, "yoix.fixfonts = TRUE\nyoix.fontmagnification = %6.3f\n", root.components.$_magnificationslider.magnification);
+			    } else {
+				fprintf(stdout, "yoix.fixfonts = FALSE\nyoix.fontmagnification = 1\n");
+			    }
+			}
+			if (root.components.$_resolution.state) {
+			    String tag = "$_resolutionslider";
+			    double diagonal;
+			    double scale = root.components.$_resolutionslider.scale;
+
+			    if (scale > 0) {
+				diagonal = VM.screen.diagonal/scale;
+				fprintf(stdout, "yoix.diagonal = %6.3f\n", diagonal);
+			    }
+			}
+			exit(0);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 1;
+		    int anchor = WEST;
+		},
+
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String text = "Back";
+
+			    actionPerformed(e) {
+				root.components.$_cardpanel.nextcard = -1;
+			    }
+			},
+
+			new JButton {
+			    String text = "Next";
+
+			    actionPerformed(e) {
+				root.components.$_cardpanel.nextcard = 1;
+			    }
+			},
+		    };
+		},
+		new GridBagConstraints {
+		    int gridx = 1;
+		    int gridy = 1;
+		    int gridwidth = 3;
+		    int weightx = 100;
+		},
+
+		new JButton {
+		    String text = "Reset";
+
+		    actionPerformed(e) {
+			root.components.$_options.Reset();
+		    }
+		},
+		new GridBagConstraints {
+		    int gridx = 3;
+		    int gridy = 1;
+		    int gridwidth = 1;
+		    int anchor = EAST;
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int fill = HORIZONTAL;
+	},
+    };
+
+    componentHidden(e) {
+	if (defined("HideAxes", root))
+	    root.HideAxes();
+    }
+
+    componentShown(e) {
+	root.components.$_options_message.preferredsize = root.components.$_options_message.size;
+	root.components.$_options.ShowOptions();
+	if (defined("ShowAxes", root))
+	    root.ShowAxes(root.components.$_resolutionslider.scale);
+    }
+};
+
+//
+// Full screen frame - eventually maybe show an image etc.
+//
+
+JFrame InstallationScreen = {
+    BorderLayout layoutmanager;
+    Dimension    size = NULL;
+    String       title = "Yoix Installer";
+    Color        background = FrameColor;
+    Font         font = TextFontMedium;
+    int          opaque = TRUE;
+
+    Array layout = {
+	new JLabel {
+	    String text = "Yoix Screen Calibration";
+	    Font   font = TextFontHuge;
+	    int    alignment = CENTER;
+	}, NORTH,
+
+	new JPanel {
+	    GridBagLayout layoutmanager;
+	    String        tag = "$_paintpanel";
+	    double        axisscale = 0;
+
+	    Array layout = {
+		new JPanel {
+		    GridBagLayout layoutmanager;
+		    Color         background = PanelColor;
+
+		    Array layout = {
+			new JPanel {
+			    CardLayout layoutmanager;
+			    String     tag = "$_cardpanel";
+
+			    Array layout = {
+				//
+				// Primary panels that are listed in order of
+				// their appearance. A panel that's NULL will
+				// be skipped (by the Yoix layout machinery).
+				//
+				OptionsPanel,
+			    };
+			},
+		    };
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 100;
+		    int weighty = 100;
+		    int anchor = SOUTHEAST;
+
+		    Insets insets = {
+			double right = 72.0/2;
+			double bottom = 72.0/2;
+		    };
+		},
+	    };
+
+	    paint(Rectangle r) {
+		if (axisscale > 0) {
+		    graphics {
+			gsave();
+			translate(36, 18);
+			scale(axisscale, axisscale);
+			foreground = AxisColor;
+			DrawAxis(graphics);
+			rotate(90);
+			scale(1, -1);
+			DrawAxis(graphics);
+			grestore();
+		    }
+		}
+	    }
+
+	    DrawAxis(Graphics graphics) {
+		int axislength = 3*72;
+		int ticklength = 72/16;
+		int delta = 72/8;
+		int x;
+
+		graphics {
+		    gsave();
+		    moveto(0, 0);
+		    lineto(axislength, 0);
+		    for (x = delta; x <= axislength; x += delta) {
+			moveto(x, 0);
+			if (x%72 == 0)
+			    rlineto(0, 2.0*ticklength);
+			else rlineto(0, 1.0*ticklength);
+		    }
+		    stroke();
+		    grestore();
+		}
+	    }
+
+	    PaintAxes(double scale) {
+		axisscale = scale;
+		repaint();
+	    }
+
+	}, CENTER,
+    };
+
+    itemStateChanged(Event e) {
+	switch (e.item) {
+	    case "options_opaque":
+		opaque = e.state;
+		break;
+
+	    default:
+		break;
+	}
+    }
+
+    HideAxes() {
+	components.$_paintpanel.PaintAxes(0);
+    }
+
+    ShowAxes(scale) {
+	components.$_paintpanel.PaintAxes(scale);
+    }
+
+    ShowFinished() {
+	components.$_status_next.enabled = TRUE;
+	validate = TRUE;
+    }
+
+    ShowScreen() {
+	Dimension size = this.size;
+	Point     location;
+	JPanel    optpanel;
+	Array     optlayout;
+
+	size.width = min(size.width + 3*72.0 + 72.0/2, VM.screen.width - 72);
+	size.height = min(size.height + 1.5*72.0, VM.screen.height - 72);
+	location.x = (VM.screen.width - size.width)/2;
+	location.y = (VM.screen.height - size.height)/2 - 72/2;
+	this.size = size;
+	this.location = location;
+	if (TileImage.flags & IMAGE_ALLBITS) {
+	    this.backgroundimage = TileImage;
+	    this.backgroundhints = SCALE_TILE;
+	} else if (BackgroundImage.flags & IMAGE_ALLBITS) {
+	    this.backgroundimage = BackgroundImage;
+	    this.backgroundhints = SCALE_NONE;
+	}
+	ShowAxes(1);
+	components.$_resolutionslider.ShowOption();
+	components.$_magnificationslider.ShowOption();
+	optpanel = components.$_optionspanel;
+	optlayout = optpanel.layout;
+	size = optlayout[0].size;
+	optlayout[0].preferredsize = size;
+	optlayout[1] = new GridBagConstraints {
+	    int    gridwidth = REMAINDER;
+	    Insets insets = TinyBottomInsets;
+	};
+	optpanel.layout = optlayout;
+	this.visible = TRUE;
+    }
+};
+
+//
+// Start the installation.
+//
+
+InstallationScreen.ShowScreen();

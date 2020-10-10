@@ -1,0 +1,38 @@
+import yoix.graph.*;
+import yoix.stdio.*;
+
+graph_str = "\
+<graph name=g directed=1 strict=1 color=white label=Example>\n\
+    <node_attributes color=blue />\n\
+    <node name=node_0000 color=red />\n\
+    <node name=node_0001 />\n\
+    <node name=node_0002 color=green />\n\
+    <node name=node_0003 />\n\
+    <node name=node_0004 color=orange />\n\
+    <edge name=edge_0003_0000 tail=node_0003 head=node_0000 color=yellow />\n\
+    <edge name=edge_0000_0002 tail=node_0000 head=node_0002 color=green />\n\
+    <edge name=edge_0002_0000 tail=node_0002 head=node_0000 color=red />\n\
+    <edge name=edge_0001_0002 tail=node_0001 head=node_0002 color=blue />\n\
+    <edge name=edge_0004_0000 tail=node_0004 head=node_0000 color=red />\n\
+    <edge name=edge_0001_0004 tail=node_0001 head=node_0004 color=blue />\n\
+</graph>\n\
+";
+
+g = xmlGraph(graph_str);
+
+stdout.nextline = g.text();
+
+stopColor(String col) {
+    String color = attribute("color");
+    printf("%s is %s\n", name, color);
+    if(color === col) {
+	printf("Found %s... stopping.\n", col);
+	return(true);
+    }
+}
+
+e = g.element("edge_0001_0004");
+printf("First try 'grey':\n");
+e.bfs(stopColor, "grey");
+printf("Second try 'red':\n");
+e.bfs(stopColor, "red");

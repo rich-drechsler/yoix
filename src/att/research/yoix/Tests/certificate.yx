@@ -1,0 +1,26 @@
+import yoix.*.*;
+
+String fullpath = yoixPath(argv[0]);
+int last = lastIndexOf(fullpath, '/');
+
+String certfile = "Data/dukecertfile.cer";
+String certpath = substring(fullpath, 0, last+1) + certfile;
+
+File fl;
+Certificate cert;
+
+cert.specification = "X509";
+fl = fopen(certpath, "r");
+cert.source = fl;
+
+fprintf(stdout, "Keystring:\n%s\n", cert.keystring);
+fprintf(stdout, "\n");
+fprintf(stdout, "Source:\n%s\n", btoh(cert.source));
+fprintf(stdout, "\n");
+fprintf(stdout, "Summary:\n%s\n", cert.parameters.summary);
+
+Array certs = getCertificates("X.509", certpath);
+
+if (btoh(certs[0].source) === btoh(cert.source))
+    fprintf(stdout, "\nAlternate load succeeded.\n");
+else fprintf(stdout, "\nAlternate load failed.\n");

@@ -1,0 +1,96 @@
+# This function should examine its one argument, which is a command
+# keyword ($COMMAND from ywait_exec._PL), and determine if it should
+# be handled by returning a string which will be eval'ed. Otherwise,
+# return an empty string. Arguments to the command should be expressed
+# in the form of "@args". 
+sub peer_usercommand {
+    my ( $COMMAND, @args ) = @_;
+    my $cmd = "";
+
+    if ($COMMAND eq "SERVERDEMO1") {
+	#
+	# The following is purely an illustrative example of what a response
+	# to a client request involves. The actual perl code that handles the
+	# response doesn't normally go here, but instead it's usually stored
+	# in a perl script that can be found in the ../subs directory, as is
+	# shown in the SERVERDEMO2b and SERVERDEMO3 examples. The subroutine
+	# approach is strongly recommended and means this script won't grow
+	# to a ridiculous size as it is loaded and run by perl in response to
+	# EVERY client request (after login).
+	#
+	# Every response first needs to write out a header. In the simplest
+	# case the WriteHeader() call involves no arguments, which means the
+	# default values are used.
+	#
+	WriteHeader();
+	#
+	# Arguments sent from the client end up in @args. If the information
+	# to return to the client is a single unit, then "magic separators"
+	# aren't needed and a simple print handles the job.
+	#
+	print "The server got\n\n     $args[0]\n\nas the argument that you typed.";
+	#
+	# Use a zero string to indicate a no-op on the ywait_exec._PL end.
+	#
+	$cmd = "0";
+    } elsif ($COMMAND eq "SERVERDEMO2a") {
+	#
+	# The following is purely an illustrative example of what a response
+	# to a client request involves. The actual perl code that handles the
+	# response doesn't normally go here, but instead it's usually stored
+	# in a perl script that can be found in the ../subs directory, as is
+	# shown in the SERVERDEMO2b and SERVERDEMO3 examples. The subroutine
+	# approach is strongly recommended and means this script won't grow
+	# to a ridiculous size as it is loaded an run by perl in response to
+	# EVERY client request (after login). Moreover, using complicated
+	# eval requests is just asking for trouble.
+	#
+	# Every response first needs to write out a header. In the simplest
+	# case the WriteHeader() call involves no arguments, which means the
+	# default values are used.
+	#
+	WriteHeader();
+	#
+	# Arguments sent from the client end up in @args. If the information
+	# to return to the client is a single unit, then "magic separators"
+	# aren't needed and a simple print handles the job.
+	#
+	print "The server got\n\n     $args[0]\n\nas the first argument that you typed.\nVersion A ignores the other arguments.";
+	#
+	# Use a zero string to indicate a no-op on the ywait_exec._PL end.
+	#
+	$cmd = "0";
+    } elsif ($COMMAND eq "SERVERDEMO2b") {
+	#
+	# The best way to handle SERVERDEMO2a is with a separate script
+	# that's installed ../subs (look for ../subs/*_serverdemo.pl). We
+	# do more in the script than you might expect, including option
+	# processing that means we can use it to handle SERVERDEMO3 below.
+	# You should take a quick look at the serverdemo script, but don't
+	# be intimidated by  the code - it's just an example and we wanted
+	# to show how you would thoroughly handle a client's request. The
+	# script approach is strongly recommended over the inline method
+	# that we used in SERVERDEMO2a, but it only works if the serverdemo
+	# script is installed in ../subs and "serverdemo" is mentioned in
+	# the list of scripts to be loaded on-demand (look for "serverdemo"
+	# near line 137 above). This on-demand loading means perl doesn't
+	# have to waste time reading and parsing script text that it won't
+	# be using in a particular invocation.
+	#
+	$cmd = "serverdemo(\@args)";
+    } elsif ($COMMAND eq "SERVERDEMO3") {
+	#
+	# This example expands on SERVERDEMO2b and shows how additional
+	# arguments (e.g., "-d" and "2") can be passed to the serverdemo
+	# script and used to control how the script handles the arguments
+	# stored in @args that came from the client. It's an example that
+	# illustrates how a script can handle related client requests.
+	#
+	$cmd = "serverdemo(\"-d\", \"2\", \@args)";
+    }
+
+    return($cmd);
+}
+
+return 1;
+#

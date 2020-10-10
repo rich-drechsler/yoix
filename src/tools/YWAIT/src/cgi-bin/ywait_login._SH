@@ -1,0 +1,103 @@
+#!/bin/sh
+#
+# Front-end that you can use for debugging or to protect your web server
+# by setting resource limits before the perl script that does the real work
+# is kicked off. We decided to comment most of this out because some of it,
+# like the except function, only works with ksh and we figured you should
+# be the one to officially set the resource limits for your system. Here's
+# an example of how you might set resource limits:
+# 
+#	ulimit -c 0      # no core files
+#	ulimit -t 5      # CPU seconds max
+#	ulimit -v 50000  # 50 megs of virtual memory
+#	ulimit -f 4096   # 4096 * 512 = 2meg files
+#
+# In addition if you're using ksh then something like,
+#
+#	function except {
+#	    code=$(kill -l $?)
+#	    case $code in
+#		EXIT|HUP|INT|QUIT|TERM)
+#		    exit;;
+#	
+#		XCPU|XFSZ)
+#		    #
+#		    # Content-type should already have been written to stdout.
+#		    # The following lines say: Server resource limit exceeded.
+#		    #
+#		    echo "STATUS=7265736f757263656c696d6974"
+#		    echo "REASON=536572766572207265736f75726365206c696d69742065786365656465642e"
+#	            exit;;
+#	    esac
+#	}
+#	
+#	trap "except; exit;" XCPU XFSZ EXIT HUP INT QUIT TERM
+#
+# can be used to return some information to the user when one a resource
+# limit is exceeded. The hex strings are part of the error message that's
+# sent back to the Yoix script that the client is using to talk to the
+# server.
+#
+# We recently added some code that automatically adds a Content-Length to
+# the HTTP header that we send back to the client, but only when you set
+# ADD_CONTENT_LENGTH to TRUE. It's code that you may find useful if your
+# web server supports persistent connections, particularly if you're using
+# https. Our implementation should run under most shells, which means it's
+# not as efficient as it could be, but there are comments in the code that
+# tell to improve things when you're using a shell like bash or ksh.
+#
+# NOTE - right now when we add Content-Length we redirect standard output
+# before calling the program that does the work. There could be problems
+# creating that file if we're counting on a setuid program to give us write
+# access in the temporary directory. A workaround is to manually change the
+# permissions assigned to that directory so this script can create the file
+# that's used for the redirection. We eventually will address this problem,
+# but it's currently not a high priority.
+#
+
+ADD_CONTENT_LENGTH=<_ADD_CONTENT_LENGTH_>
+
+if [ "$ADD_CONTENT_LENGTH" = "TRUE" ]
+    then
+	TMPFILE=<_SERVER_HOMEDIR_>/tmp/login_`date +'%j%H%M'`.$$
+	trap "rm -f $TMPFILE; exit" 0 1 2 3 15
+	#
+	# There's a chance the redirection will fail because the user or
+	# group running this script can't write in $TMPDIR.
+	#
+	<_SERVER_HOMEDIR_>/bin/<_BETA_PREFIX_><_ACRONYM_LOWER_>_login >$TMPFILE
+
+	if [ -s $TMPFILE ]; then
+	    #
+	    # If you have a stat command on your system you probably should
+	    # use it in place of our portable approach. For example
+	    #
+	    #    CONTENT_LENGTH=`stat -c%s TMPFILE`
+	    #
+	    # works with GNU versions of stat.
+	    #
+	    CONTENT_LENGTH=`cat $TMPFILE | wc -c | sed 's/^  *//'`
+	    exec <$TMPFILE
+	    while IFS= read LINE; do
+		#
+		# If this script is using a shell like bash or ksh then you
+		# probably should replace the next two lines with
+		#
+		#    CONTENT_LENGTH=$(($CONTENT_LENGTH - 1 - ${#LINE}))
+		#
+		# because it's much more efficient.
+		#
+		LINE_LENGTH=`echo $LINE | wc -c | sed 's/^  *//'`
+		CONTENT_LENGTH=`expr $CONTENT_LENGTH - 1 - $LINE_LENGTH - 1`
+		if [ -z "$LINE" ]
+		    then
+			echo "Content-Length: $CONTENT_LENGTH"
+			echo
+			cat -
+		    else echo $LINE
+		fi
+	    done
+	fi
+    else <_SERVER_HOMEDIR_>/bin/<_BETA_PREFIX_><_ACRONYM_LOWER_>_login
+fi
+

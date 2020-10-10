@@ -1,0 +1,24 @@
+import yoix.*.*;
+
+Key k = {
+    Dictionary specification = {
+	int type = SYMMETRIC_KEY;
+	String transformation = "DES";
+    };
+};
+
+Cipher c = {
+    String specification = "DES";
+    int opmode = ENCRYPT_MODE;
+    String initializer = k.keystring();
+};
+
+c.text = "Try encrypting this text.";
+
+Array encrypted = c.text;
+
+c.opmode = DECRYPT_MODE;
+c.text = encrypted;
+
+fprintf(stdout, "Encrypted text:\n%s\n\n", btoh(encrypted));
+fprintf(stdout, "Decrypted text:\n%s\n\n", c.text);

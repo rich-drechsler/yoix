@@ -1,0 +1,204 @@
+//
+// Simple example of a component that can be used as a custom slider.
+// Incidentally, we handle the slider as a path that we erase, fill,
+// and translate whenever it's dragged. It's not unreasonable for
+// such a simple path, but other obvious approaches, like using an
+// would perform better.
+//
+
+import yoix.*.*;
+
+BuildCustomSlider(Object owner, double height) {
+    JPanel panel = {
+	EtchedBorder border;
+
+	Dimension minimumsize = {
+	    double height = height > 0 ? height : 72.0/4;
+	    double width = height > 0 ? height : 72.0/4;
+	};
+
+	BorderLayout layoutmanager;
+	Array layout = {
+	    new JCanvas {
+
+		////////////////////////////
+		//
+		// Custom Variables
+		//
+		////////////////////////////
+
+		Object owner = owner;
+		double slidervalue = owner.GetValue();
+		double deltax;
+		double startx;
+		Color  slidercolor = Color.darkGray;
+		Color  sliderdragcolor = Color.gray;
+		Point  dragstart = NULL;
+		Path   sliderpath = NULL;
+		int    dragging = FALSE;
+
+		////////////////////////////
+		//
+		// Event Handlers
+		//
+		////////////////////////////
+
+		componentResized(e) {
+		    EraseSlider();
+		    MakeSlider();
+		    DrawSlider();
+		}
+
+		componentShown(e) {
+		    EraseSlider();
+		    MakeSlider();
+		    DrawSlider();
+		}
+
+		mousePressed(e) {
+		    Rectangle bbox;
+
+		    if (HitSlider(e.location)) {
+			bbox = sliderpath.pathbbox();
+			dragstart = e.location;
+			dragging = TRUE;
+			startx = e.location.x;
+			deltax = startx - (bbox.x + bbox.width/2.0);
+			DrawSlider();
+		    }
+		}
+
+		mouseDragged(e) {
+		    double dx;
+
+		    if (dragging) {
+			if (e.location.x < deltax)
+			    e.location.x = deltax;
+			if (e.location.x > size.width + deltax)
+			    e.location.x = size.width + deltax;
+			if ((dx = e.location.x - dragstart.x) != 0) {
+			    EraseSlider();
+			    dragstart.x = e.location.x;
+			    sliderpath.translatepath(dx, 0);
+			    SetSliderValue(ReadSlider());
+			}
+		    }
+		}
+
+		mouseReleased(e) {
+		    dragging = FALSE;
+		    DrawSlider();
+		}
+
+		paint(r) {
+		    DrawSlider();
+		}
+
+		////////////////////////////
+		//
+		// Support Functions
+		//
+		////////////////////////////
+
+		DrawSlider() {
+		    if (sliderpath != NULL) {
+			graphics {
+			    foreground = dragging ? sliderdragcolor : slidercolor;
+			    setpath(sliderpath);
+			    fill();
+			}
+		    }
+		}
+
+		EraseSlider() {
+		    if (sliderpath != NULL) {
+			graphics {
+			    setpath(sliderpath);
+			    erase();
+			}
+		    }
+		}
+
+		HitSlider(Point p) {
+		    int result = FALSE;
+
+		    if (sliderpath != NULL) {
+			graphics {
+			    setpath(sliderpath);
+			    result = infill(p);
+			    newpath();
+			}
+		    }
+		    return(result);
+		}
+
+		MakeSlider() {
+		    double delta;
+		    Path   path;
+
+		    delta = size.height/2;
+
+		    path {
+			moveto(0, 0);
+			rmoveto(delta, 0);
+			rlineto(-delta, -delta);
+			rlineto(-delta, delta);
+			rlineto(delta, delta);
+			closepath();
+			moveto(0, 0);
+			scalepath(1.5, 0.8);
+		    }
+		    sliderpath = path;
+		    sliderpath.translatepath(size.width*slidervalue, delta);
+		}
+
+		ReadSlider() {
+		    Rectangle bbox;
+		    double    value = slidervalue;
+
+		    if (sliderpath != NULL) {
+			bbox = sliderpath.pathbbox();
+			value = (bbox.x + bbox.width/2.0)/size.width;
+		    }
+		    return(value);
+		}
+
+		SetSliderValue(double value) {
+		    slidervalue = (value >= 0 && value <= 1) ? value : (value < 0 ? 0 : 1);
+		    DrawSlider();
+		    if (defined("SetValue", owner))
+			owner.SetValue(slidervalue);
+		}
+	    }, CENTER,
+	};
+    };
+
+    return(panel);
+}
+
+JFrame jf = {
+    int visible = TRUE;
+
+    JCanvas slidercanvas = {
+	Color background = {
+	    double red = 0.5;
+	};
+
+	GetValue() {
+	    return(background.red);
+	}
+
+	SetValue(double value) {
+	    Color color = background;
+	
+	    color.red = value;
+	    background = color;
+	}
+    };
+
+    Array layout = {
+	slidercanvas, CENTER,
+	BuildCustomSlider(slidercanvas, 72.0/4), SOUTH,
+    };
+};
+

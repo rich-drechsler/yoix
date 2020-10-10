@@ -1,0 +1,252 @@
+//
+// A fairly simple splash screen that's distributed in the official yoix jar
+// file and is designed to be executed (via the execute builtin) in its own
+// global context. The return value is the splash screen, and functions in
+// that screen can be used manipulate the screen.
+//
+
+import yoix.*.*;
+
+//
+// Initializations using argv pretty much assume this script is executed.
+//
+
+int    SPLASH_SHOWSCREEN = (argc > 1 && argv[1] instanceof Number) ? argv[1] : FALSE;
+String SPLASH_TITLE = (argc > 2 && argv[2] instanceof String) ? argv[2] : NULL;
+Color  SPLASH_BACKGROUND = getRGBColor(argc > 3 ? argv[3] : NULL, Color.white);
+Color  SPLASH_FOREGROUND = getRGBColor(argc > 4 ? argv[4] : NULL, Color.black);
+Font   SPLASH_FONT;
+
+for (ptr in new Array {"ClearviewATT-plain-72", "Helvetica-plain-72", "SanSerif-plain-72"}) {
+    SPLASH_FONT = new Font {String name = *ptr;};
+    if (SPLASH_FONT.fontfacename === strsplit(*ptr,"-")[0])
+	break;
+}
+
+Insets TB_INSETS = {
+    double top = 2*VM.screen.pixelheight + VM.screen.uimanager.get("TitledBorder.font").ascent/2.0;
+    double bottom = 2*VM.screen.pixelheight;
+    double left = 2*VM.screen.pixelwidth;
+    double right = 2*VM.screen.pixelwidth;
+};
+
+Insets TB2_INSETS = {
+    double top = 4*VM.screen.pixelheight + VM.screen.uimanager.get("TitledBorder.font").ascent/2.0;
+    double bottom = 2*VM.screen.pixelheight;
+    double left = 2*VM.screen.pixelwidth;
+    double right = 2*VM.screen.pixelwidth;
+};
+
+JDialog splashscreen = {
+    Dimension size = NULL;
+    String    border = SPLASH_TITLE;
+    Color     background = SPLASH_BACKGROUND;
+    Color     foreground = SPLASH_FOREGROUND;
+    int       autodispose = TRUE;
+    int       resizable = FALSE;
+
+    ////////////////////////////
+    //
+    // Screen Variables
+    //
+    ////////////////////////////
+
+    int initialized = FALSE;
+
+    ////////////////////////////
+    //
+    // Custom Variables
+    //
+    ////////////////////////////
+
+    Thread spinthread = {
+	int daemon = TRUE;
+	int priority = MIN_PRIORITY + 1;
+    };
+
+    ////////////////////////////
+    //
+    // Screen Layout
+    //
+    ////////////////////////////
+
+    Array layout = {
+	new JPanel {
+	    String    tag = "$_logo";
+	    Rectangle textrect;
+	    Rectangle rect;
+	    Dimension delta;
+	    Font      regfont;
+	    double    radius;
+	    int       type = TYPE_RGB;
+	    int       offset = 0;
+	    int       limit = 12;
+	    int       spin = 30;	// limit*spin = 360
+
+	    rect = stringBounds(SPLASH_FONT, "\xAE", TRUE);
+	    delta = SPLASH_FONT.matrix.idtransform(0, rect.y);
+	    regfont = SPLASH_FONT.scalefont(0.5, 0.5).translatefont(0.0, delta.height);
+
+	    rect = stringBounds(SPLASH_FONT, "Y");
+	    radius = sqrt(rect.width*rect.width + rect.height*rect.height);
+
+	    textrect = stringBounds(SPLASH_FONT, "Yoix");
+	    textrect.width += radius + stringWidth(regfont, "\xAE");
+	    textrect.height = 2.0 * radius;
+
+	    Graphics graphics = {
+		Color foreground = SPLASH_FOREGROUND;
+		Font  font = SPLASH_FONT;
+		int   textantialiasing = TRUE;
+	    };
+
+	    Dimension size = {
+		double width = textrect.width + 72.0;
+		double height = textrect.height;
+	    };
+
+	    Rotator(Rectangle r, int init, int limit) {
+		double alpha = 0.3333;
+		double fraction = 0.75;
+		int    n;
+
+		Kerner(int c0, int c1) {
+		    String str[1];
+		    double width;
+
+		    switch(c0) {
+			case 'Y':
+			    *str = c0;
+			    width = stringBounds(font, str, TRUE).width;
+			    rmoveto(-0.30*width, 0.0);
+			    break;
+
+			case 'o':
+			    *str = c1;
+			    width = stringBounds(font, str, TRUE).width;
+			    rmoveto(-0.5*width, 0.0);
+			    break;
+
+			case 'i':
+			    *str = c0;
+			    width = stringBounds(font, str, TRUE).width;
+			    rmoveto(-0.1 * width, 0.0);
+			    break;
+		    }
+		}
+
+                graphics {
+                    gsave();
+                    erasedrawable(0.0);
+                    rectclip(r);
+		    translate(radius, radius);
+		    gsave();
+		    rotate(init*spin);
+                    for (n = 1; n < limit; n++) {
+			rotate(spin);
+			alpha *= fraction;
+                        moveto(0.0, 0.0);
+			show("Y", alpha);
+                    } 
+                    grestore();
+		    moveto(0.0, 0.0);
+		    kshow(Kerner, "Yoix", 1.0);
+		    setfont(regfont);
+		    show("\xAE", 1.0);
+                    grestore();
+                }
+	    }
+
+	    paint(Rectangle r) {
+		Rotator(r, offset, limit);
+	    }
+
+	    Reset() {
+		offset = 0;
+		repaint();
+	    }
+	},
+	CENTER,
+    };
+
+    ////////////////////////////
+    //
+    // Event Handlers
+    //
+    ////////////////////////////
+
+    windowClosing(e) {
+	HideScreen();
+	exit(0);
+    }
+
+    ////////////////////////////
+    //
+    // Screen Functions
+    //
+    ////////////////////////////
+
+    HideScreen() {
+	visible = FALSE;
+	spinthread.alive = FALSE;	// should be unnecessary
+    }
+
+    ShowScreen() {
+	if (!initialized) {
+	    this.location = new Point {
+	        int x = (VM.screen.width - size.width)/2.0;
+	        int y = (VM.screen.height - size.height)/2.0;
+	    };
+	    StartSpinner();
+	    initialized = TRUE;
+	}
+	visible = TRUE;
+    }
+
+    ////////////////////////////
+    //
+    // Miscellaneous Functions
+    //
+    ////////////////////////////
+
+    PauseSpinner() {
+	spinthread.alive = FALSE;
+	components.$_logo.Reset();
+    }
+
+    SetTitle(String title) {
+	if (title@sizeof == 0) {
+	    border = new EmptyBorder {
+		Insets insets = TB_INSETS;
+		Border child = new EtchedBorder {
+		    Border child = new EmptyBorder {
+			Insets insets = TB2_INSETS;
+		    };
+		};
+	    };
+	} else border = title;
+    }
+
+    Spinner(JPanel logo) {
+	double delay = 1.0/logo.limit;
+	int    offset = 1;
+
+	while (!logo.root.dispose) {
+	    logo.offset = offset++;
+	    logo.repaint();
+	    if (offset > logo.limit)
+		offset = 1;
+	    sleep(delay);
+	}
+    }
+
+    StartSpinner() {
+	spinthread.queueOnce(Spinner, components.$_logo);
+    }
+};
+
+if (SPLASH_SHOWSCREEN)
+    splashscreen.ShowScreen();
+
+return(splashscreen);
+

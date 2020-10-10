@@ -1,0 +1,41 @@
+import yoix.*.*;
+
+Path p1;
+Path p2;
+
+p1 {        // "named block"
+    moveto(0, 0);
+    rlineto(72, 0);
+    rlineto(0, 36);
+    closepath();
+    rmoveto(72, 36);
+}
+
+p2 {        // "named block"
+    moveto(0, 0);
+    rlineto(72, -36);
+}
+
+JFrame f = {
+    Color background = Color.white;
+
+    paint(Rectangle r) {
+	graphics {        // "named block"
+	    gsave();
+	    moveto(72, 72);
+	    appendpath(p1);
+	    appendpath(p2);
+	    appendpath(p1);
+	    gsave();
+	    setrgbcolor(0, 0, 1);
+	    fill();
+	    grestore();
+	    setrgbcolor(1, 0, 0);
+	    stroke();
+	    grestore();
+	}
+    }
+};
+
+f.visible = TRUE;
+

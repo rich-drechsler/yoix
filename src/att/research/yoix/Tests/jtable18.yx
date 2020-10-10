@@ -1,0 +1,224 @@
+import yoix.*.*;
+
+String basefont = "sansserif-plain-12";
+
+ColumnWidth(Object font, Object info) {
+
+    double   width = 72;
+    double   sw;
+    Pointer  ptr;
+
+    if (info instanceof String)
+	width = stringWidth(font, info);
+    else if (info instanceof Number)
+	width = info * stringWidth(font, "m");
+    else if (info instanceof Array) {
+	width = 0;
+	for (ptr in info) {
+	    sw = stringWidth(font, *ptr);
+	    width = (width < sw) ? sw : width;
+	}
+    }
+
+    return(width + 3.0 * VM.screen.pixelwidth); // border + rounding
+}
+
+TableSorter(e) {
+    int idx;
+    int len;
+    int off;
+    int i;
+    int j;
+
+    //
+    // A generic invocationAction() event handler that can be used
+    // by the JTable component. It uses the spare "etc" field in
+    // JTable to store sort column info across invocations.
+    // 
+
+    save this.root.cursor = Cursor.WAIT_CURSOR;
+
+    if (e == NULL) {
+	if (this.etc != NULL && this.etc@sizeof > 0) {
+	    this.action(TABLE_SORT, this.etc + off);
+	}
+    } else if (e.valuesColumn >= 0) {
+	if ((e.modifiers&CTRL_MASK) == 0) {
+	    this.etc = new Array[0,...] {};
+	    len = 0;
+	} else {
+	    e.modifiers &= ~CTRL_MASK;
+	    if (this.etc == NULL)
+		this.etc = new Array[0,...] {};
+	    len = this.etc@length;
+	}
+
+	if (e.modifiers == BUTTON1_MASK) {
+	    if (len == 0 && this.columns[e.valuesColumn].state > 0)
+		idx = 0;
+	    else idx = 1 + e.valuesColumn;
+	} else {
+	    if (len == 0 && this.columns[e.valuesColumn].state < 0)
+		idx = 0;
+	    else idx = -(1 + e.valuesColumn);
+	}
+	for (i=0; i<len; i++) {
+	    if (idx == this.etc[i]) {
+		for (j=i; j>0; j--)
+		    this.etc[j] = this.etc[j-1];
+		this.etc[0] = 0;
+		idx = 0;
+		break;
+	    } else if (-idx == this.etc[i]) {
+		this.etc[i] = idx;
+		idx = 0;
+		break;
+	    }
+	}
+	for (off=0; off<len; off++) {
+	    if (this.etc[off] != 0)
+		break;
+	}
+	if (idx != 0) {
+	    this.etc[len] = idx;
+	    len++;
+	}
+
+	if (len == off) {
+	    this.action(TABLE_SORT, NULL);
+	    this.etc = new Array[0,...] {};
+	} else this.action(TABLE_SORT, this.etc + off);
+
+	if (defined("dfltcellcolors", this)) {
+	    if (len == off) {
+		this.cellcolors = this.dfltcellcolors;
+	    } else {
+		Array  values;
+		Array  cols;
+		Array  etc;
+
+		cols = new Array[len-off];
+		etc = (this.etc + off);
+		for (m = 0; m < cols@length; m++) {
+		    cols[m] = abs(etc[m]) - 1;
+		}
+		this.cellcolors = getArrayBands(
+		    this.action(TABLE_JOIN, cols, TRUE, TRUE, 1),
+		    unroll(this.dfltcellcolors)
+		    );
+	    }
+	}
+    }
+}
+
+JTable jt = {
+    int reorder = 1;
+    int resize = 1;
+    int scroll = VERTICAL_ALWAYS|HORIZONTAL_AS_NEEDED;
+    int scrolltolastrow = 1;
+    int rowheightadjustment = -1;
+    Color background = Color.blue;
+    int  edit = 1;
+
+    int multiplemode = MULTIPLE_INTERVAL_SELECTION;
+    
+    Array altbackground = {
+	Color.orange,
+	Color.red,
+	Color.green,
+    };
+    Array altforeground = {
+	Color.black,
+	Color.pink,
+	Color.magenta,
+    };
+    Array cellcolors = {
+	new Array[] { Color.yellow, Color.yellow, Color.orange, Color.orange },
+	Color.red,
+    };
+    Array columns = {
+	new JTableColumn {
+	    String header = "First Name";
+	    int type = TEXT_TYPE;
+	    String text = "Mary has a few lines\nAlison^has^fixed^lines\nKathy\nSharon\nAngela\n";
+	    int alignment = RIGHT;
+	    //Dictionary attributes = {
+		//String inputFormat = "^";
+	    //};
+	},
+	new JTableColumn {
+	    String header = "Last Name";
+	    int type = TEXT_TYPE;
+	    String text = "Lih has many more lines as a test\nHuml\nWalrath\nZakhour\nWalrath\n";
+	},
+	new JTableColumn {
+	    String header = "Sport";
+	    //String text = "Snowboarding\nRowing\nChasing toddlers\nSpeed Reading\nTeaching high school\n";
+	    int type = TEXT_TYPE;
+	    String text = "Snowboarding\nRowing\nChasing toddlers\n<b>Speed Reading</b>: An <i>interesting</i> passtime for people of all ages\nTeaching high school\n";
+	    double width = ColumnWidth(basefont, 15);
+	    Dictionary attributes = {
+		String format = "html";
+	    };
+	},
+	new JTableColumn {
+	    String header = "Factor";
+	    int type = DOUBLE_TYPE;
+	    String text = "11.23\n155\n2134.57\n2\n16543";
+	    Dictionary attributes = {
+		String inputLocale = "en_US"; // input data in US format
+	    };
+	},
+	new JTableColumn {
+	    String header = "Percent";
+	    int type = PERCENT_TYPE;
+	    String text = "0.17\n0.173\n0.178\n0.5\n1.234\n";
+	},
+	new JTableColumn {
+	    String header = "Date";
+	    int type = DATE_TYPE;
+	    Dictionary attributes = {
+		String inputLocale = "en_US"; // input data in US format
+	    };
+	    double width = ColumnWidth(basefont, "EEE MMM dd HH:mm:ss zzz yyyy");
+	    String text = "Fri Jun  6 11:56:58 EDT 2003\nFri Jun  6 13:46:58 EDT 2003\nFri Jun  6 11:46:57 EDT 2003\nFri Jun  6 11:46:59 EDT 2003\nFri Jun  6 11:46:58 EDT 2003\n";
+	},
+	new JTableColumn {
+	    String header = "Salary";
+	    int type = MONEY_TYPE;
+	    String text = "143.1234\n1923.321\n12.5\n-142\n123.123\n";
+	},
+	new JTableColumn {
+	    String header = "# of Years";
+	    int type = INTEGER_TYPE;
+	    String text = "5\n3\n2\n20\n4\n";
+	},
+	new JTableColumn {
+	    String header = "Vegetarian";
+	    int type = BOOLEAN_TYPE;
+	    String text = "0\nyes\nno\ntrue\nfalse\n";
+	},
+	new JTableColumn {
+	    String header = "Timer";
+	    int type = TIMER_TYPE;
+	    String text = "1d2m\n23h12m\n23h11m59s\n2d\n5m\n";
+	    double width = ColumnWidth(basefont, 11);
+	},
+    };
+
+    
+    Function invocationAction  = TableSorter;
+};
+
+//jt.action(CELL_SELECTION, TRUE);
+//jt.action(SET_FIELD, 1, 0, "Alison\r\nhas\r\nsome\r\nfixed\r\nlines");
+
+JFrame f = {
+    int visible = 1;
+    Dimension size = NULL;
+
+    Array layout = {
+	jt,
+	CENTER,
+    };
+};

@@ -1,0 +1,271 @@
+import yoix.*.*;
+
+final int CONTROL_BACK = 1;
+final int CONTROL_EJECT = 2;
+final int CONTROL_FASTBACK = 3;
+final int CONTROL_FASTFORWARD = 4;
+final int CONTROL_FORWARD = 5;
+final int CONTROL_FRAMEBACK = 6;
+final int CONTROL_FRAMEFORWARD = 7;
+final int CONTROL_PAUSE = 8;
+final int CONTROL_REFRESH = 9;
+final int CONTROL_STOP = 10;
+
+Dimension iconsize = {
+    int width = 0.25 * 72;
+    int height = 0.25 * 72;
+};
+
+
+
+BuildControlIcon(int icontype, Object size, Color iconcolor, int smooth, int addshadow) {
+    Image image = {
+	Dimension size = PickIconSize(size);
+	int       type = TYPE_RGB_ALPHA;
+
+	Point midpoint = {
+	    double x = size.width/2;
+	    double y = size.height/2;
+	};
+
+	Graphics graphics = {
+	    int    linejoin = (smooth ? JOIN_ROUND : JOIN_MITER);
+	    int    linecap = (smooth ? CAP_ROUND : CAP_BUTT);
+	    int    antialiasing = TRUE;
+	};
+
+	Color  iconcolor = iconcolor;
+	int    icontype = icontype;
+	int    smooth = smooth;
+	int    addshadow = addshadow;
+
+	int    sz;
+
+	if (midpoint.x > midpoint.y)
+	    sz = midpoint.y;
+	else sz = midpoint.x;
+
+	paint(Rectangle r) {
+
+	    double side = 0.9 * sz;;
+	    double shadow = side / 20;
+
+	    graphics {
+		erasedrawable(0.0);	// make a transparent image
+
+		switch(icontype) {
+		case CONTROL_BACK:
+		    moveto(midpoint.x - side / 2, midpoint.y);
+		    appendpath(DrawTriangle(side, 1, 1, -90));
+		    moveto(midpoint.x + 3 * side / 8, midpoint.y);
+		    appendpath(DrawSquare(side, 1, 0.4));
+		    break;
+
+		case CONTROL_EJECT:
+		    moveto(midpoint.x, midpoint.y - (side/3));
+		    appendpath(DrawTriangle(side, 1, 0.5, 0));
+		    moveto(midpoint.x, midpoint.y + (side/3));
+		    appendpath(DrawSquare(side, 1, 0.3, 0));
+		    break;
+
+		case CONTROL_FASTBACK:
+		    moveto(midpoint.x - 5 * side / 8, midpoint.y);
+		    appendpath(DrawTriangle(side, 1, 0.67, -90));
+		    moveto(midpoint.x - side / 4, midpoint.y);
+		    appendpath(DrawTriangle(side, 1, 1, -90));
+		    moveto(midpoint.x + 3 * side / 8, midpoint.y);
+		    appendpath(DrawSquare(side, 1, 0.4));
+		    break;
+
+		case CONTROL_FASTFORWARD:
+		    moveto(midpoint.x - 3 * side / 8, midpoint.y);
+		    appendpath(DrawSquare(side, 1, 0.4));
+		    moveto(midpoint.x + side / 4, midpoint.y);
+		    appendpath(DrawTriangle(side, 1, 1, 90));
+		    moveto(midpoint.x + 5 * side / 8, midpoint.y);
+		    appendpath(DrawTriangle(side, 1, 0.67, 90));
+		    break;
+
+		case CONTROL_FORWARD:
+		    moveto(midpoint.x - 3 * side / 8, midpoint.y);
+		    appendpath(DrawSquare(side, 1, 0.4));
+		    moveto(midpoint.x + side / 2, midpoint.y);
+		    appendpath(DrawTriangle(side, 1, 1, 90));
+		    break;
+
+		case CONTROL_FRAMEBACK:
+		    moveto(midpoint.x - (side/3), midpoint.y);
+		    appendpath(DrawTriangle(side, 1, 0.5, -90));
+		    moveto(midpoint.x + (side/3), midpoint.y);
+		    appendpath(DrawSquare(side, 1, 0.3, -90));
+		    break;
+
+		case CONTROL_FRAMEFORWARD:
+		    moveto(midpoint.x - (side/3), midpoint.y);
+		    appendpath(DrawSquare(side, 1, 0.3, 90));
+		    moveto(midpoint.x + (side/3), midpoint.y);
+		    appendpath(DrawTriangle(side, 1, 0.5, 90));
+		    break;
+
+		case CONTROL_PAUSE:
+		    moveto(midpoint.x - (7*side/24), midpoint.y);
+		    appendpath(DrawSquare(side, 1, 0.3, 90));
+		    moveto(midpoint.x + (7*side/24), midpoint.y);
+		    appendpath(DrawSquare(side, 1, 0.3, 90));
+		    break;
+
+		case CONTROL_REFRESH:
+		    moveto(midpoint.x, midpoint.y);
+		    appendpath(DrawArc(side/2, 270, side * 0.15));
+		    moveto(midpoint.x + (0.6*sqrt(3)*side/4), midpoint.y - side/2);
+		    appendpath(DrawTriangle(side * 0.6, 1, 1, 90));
+		    break;
+
+		case CONTROL_STOP:
+		    moveto(midpoint.x, midpoint.y);
+		    appendpath(DrawSquare(side, 0.8, 0.8));
+		    break;
+		}
+		Draw(graphics, iconcolor, shadow);
+	    }
+	}
+
+	DrawArc(double radius, double angle, double width, ...) {
+	    Path   retpath;
+	    double dx = width / 2;
+	    double xscale = (argc > 4 && argv[4] instanceof Number) ? argv[4] : 1;
+	    double yscale = (argc > 5 && argv[5] instanceof Number) ? argv[5] : 1;
+	    double altangle = (argc > 6 && argv[6] instanceof Number) ? argv[6] : 0;
+
+	    retpath {
+		moveto(0, -(radius - dx));
+		arcn(0, 0, radius+dx, angle, 0);
+		arc(0, 0, radius-dx, 0, angle);
+		closepath();
+		moveto(0, 0);
+		// could do these directly in "arc" call, but more consistent this way
+		if (xscale != 1 || yscale != 1)
+		    scalepath(xscale, yscale);
+		if (altangle != 0)
+		    rotatepath(altangle);
+	    }
+	    return(retpath);
+	}
+
+	DrawSquare(double side, ...) {
+	    double dx = side / 2;
+	    Path   retpath;
+	    double xscale = (argc > 2 && argv[2] instanceof Number) ? argv[2] : 1;
+	    double yscale = (argc > 3 && argv[3] instanceof Number) ? argv[3] : 1;
+	    double angle = (argc > 4 && argv[4] instanceof Number) ? argv[4] : 0;
+
+	    retpath {
+		moveto(dx, dx);
+		rlineto(-side, 0);
+		rlineto(0, -side);
+		rlineto(side, 0);
+		rlineto(0, side);
+		closepath();
+		moveto(0, 0);
+		if (xscale != 1 || yscale != 1)
+		    scalepath(xscale, yscale);
+		if (angle != 0)
+		    rotatepath(angle);
+	    }
+	    return(retpath);
+	}
+
+	DrawTriangle(double side, ...) {
+	    double dx = side / 2;
+	    double dy = sqrt(3) * side / 4;
+	    Path   retpath;
+	    double xscale = (argc > 2 && argv[2] instanceof Number) ? argv[2] : 1;
+	    double yscale = (argc > 3 && argv[3] instanceof Number) ? argv[3] : 1;
+	    double angle = (argc > 4 && argv[4] instanceof Number) ? argv[4] : 0;
+
+	    retpath {
+		moveto(dx, dy);
+		rlineto(-side, 0);
+		rlineto(dx, -2 * dy);
+		rlineto(dx, 2 * dy);
+		closepath();
+		moveto(0, 0);
+		if (xscale != 1 || yscale != 1)
+		    scalepath(xscale, yscale);
+		if (angle != 0)
+		    rotatepath(angle);
+	    }
+	    return(retpath);
+	}
+
+	Draw(Graphics graphics, Color iconcolor, double shadow) {
+	    graphics {
+		if (addshadow && shadow > 0.001) {
+		    gsave();
+		    path.translatepath(shadow, shadow);
+		    setgray(.5);
+		    linewidth = shadow * 2;
+		    strokepath();
+		    fill(.4);
+		    grestore();
+		}
+		foreground = iconcolor;
+		gsave();
+		linewidth = shadow;
+		stroke();
+		grestore();
+		fill();
+	    }
+	}
+    };
+    return(image);
+}
+
+PickIconSize(Object size) {
+    if (!(size instanceof Dimension)) {
+	if (size instanceof Number) {
+	    size = new Dimension {
+		double width = size;
+		double height = size;
+	    };
+	} else {
+	    size = new Dimension {
+		double width = 72.0/3;
+		double height = 72.0/3;
+	    };
+	}
+    }
+    return(size);
+}
+
+
+int smooth = FALSE;
+int addshadow = FALSE;
+
+MakeButton(int type) {
+    return(new JButton {
+	Image icon = BuildControlIcon(type, iconsize, Color.black, smooth, addshadow);
+	actionPerformed(e) { exit(0); }
+    });
+}
+
+
+JFrame jf = {
+    Dimension size = NULL;
+    int visible = TRUE;
+    GridLayout layoutmanager = {
+	int rows = 2;
+    };
+    Array layout = {
+	MakeButton(CONTROL_BACK),
+	MakeButton(CONTROL_EJECT),
+	MakeButton(CONTROL_FASTBACK),
+	MakeButton(CONTROL_FASTFORWARD),
+	MakeButton(CONTROL_FORWARD),
+	MakeButton(CONTROL_FRAMEBACK),
+	MakeButton(CONTROL_FRAMEFORWARD),
+	MakeButton(CONTROL_PAUSE),
+	MakeButton(CONTROL_REFRESH),
+	MakeButton(CONTROL_STOP),
+    };
+};

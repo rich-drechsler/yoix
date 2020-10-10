@@ -1,0 +1,28 @@
+import yoix.*.*;
+
+JFrame f = {
+    Dimension size = NULL;
+
+    Array layout = {
+        new JTextArea {
+            String tag = "textarea";
+	    String text = "Spam, spam, spam, spam, baked beans, sausage and spam";
+	    int    caret = text@length;
+            int    rows = 8;
+            int    columns = 50;
+	    int    textwrap = 1;
+            int    scroll = AS_NEEDED;
+        }, CENTER,
+
+	new JButton {
+	    String text = "More Spam";
+
+	    actionPerformed(ActionEvent ev) {
+		appendText(root.components["textarea"], ", spam");
+	    }
+	}, SOUTH,
+    };
+};
+
+f.visible = TRUE;
+

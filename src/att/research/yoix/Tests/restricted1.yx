@@ -1,0 +1,31 @@
+import yoix.*.*;
+
+Dictionary d[0, ...] = {
+    int n = 12;
+    String s = "testing";
+    Builtin printf = printf;
+    ////Stream fp_in = stdin;
+
+    //
+    // Include these types in addition to the (small) core set.
+    //
+    Array typenames = {"File", "Thread"};
+};
+
+restricted d {
+    ////printf("global=%O\n", global);
+    printf("n=%d\n", n++);
+    double x = 100;
+    printf("execute=%O\n", execute);
+    printf("&eval=%O\n", &eval);
+    printf("typedict=%O\n", typedict);
+
+    File file;
+    printf("file=%O\n", file);
+    Thread thread;
+    printf("thread=%O\n", thread);
+    printf("=== exiting restricted block ===\n");
+};
+
+printf("execute=%O\n", execute);
+

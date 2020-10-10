@@ -1,0 +1,49 @@
+import yoix.*.*;
+import yoix.module.att.research.yoix.jvma.JVMTestModule.*;
+
+//
+// An intentional error
+//
+
+assembleClass(@<<
+    public class ZZZ {
+	extern public static java.io.PrintStream java.lang.System.out
+	extern public void java.lang.System.out.println(java.lang.String)
+	extern public static void ZZZ.say(java.lang.String)
+	extern public java.lang.String(java.lang.String)
+
+	static java.lang.String message = "Testing 1, 2, 3, 4"
+
+	ZZZ(int one) {
+	    push java.lang.System.out
+	    push "Called constructor"
+	    invoke java.lang.System.out.println(java.lang.String)
+	}
+
+	public static void main(java.lang.String[] args) {
+	    new ZZZ
+	    push 1
+	    invoke ZZZ(int)
+	    push message
+	    invoke ZZZ.say
+	    push java.lang.System.out
+	    /////push "Hello, world"
+	    new java.lang.String
+	    dup
+	    push "Hello again"
+	    invoke java.lang.String(java.lang.String)
+	    invoke java.lang.System.out.println(java.lang.String)
+	    return
+	}
+
+	public static void say(java.lang.String message) {
+	    push java.lang.System.out
+	    push message
+	    invoke java.lang.System.out.println(java.lang.String)
+	}
+    }
+>>@);
+
+fprintf(stderr, "%s", dumpClassFile());
+writeClassFile("/tmp/xxx");
+

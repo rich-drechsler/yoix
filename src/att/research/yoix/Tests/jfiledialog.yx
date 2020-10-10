@@ -1,0 +1,18 @@
+//
+// Simple JFileDialog test.
+//
+
+import yoix.*.*;
+
+JFileDialog dialog = {
+    String title = "FileDialog Test";
+    String file = "xxx.yoix";
+    Color  background = Color.green;
+    int    mode = SAVE;
+    Color foreground = Color.red;
+};
+
+dialog.visible = TRUE;
+printf("you selected file: %s\n", dialog.file);
+printf("current directory: %s\n", dialog.directory);
+

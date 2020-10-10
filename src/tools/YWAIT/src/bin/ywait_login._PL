@@ -1,0 +1,345 @@
+#!<_PERL_PATH_> -T -w
+#
+# A rather complicated script that handles user logins, reconnects, and
+# session id generation, so everyone must come through here before they
+# can do any real work. The session id is built by makeid(), but only
+# after we're really convinced the user is legit.
+#
+# A subroutine named validation() that's defined in the subs directory
+# is called to validate each user. We've supplied a default validation()
+# function that looks through a password file that can be found in the
+# etc directory, however it's designed to be customized so it shouldn't
+# be too hard to hookup your own authentication mechanism if you don't
+# want to use our password file.
+#
+
+use strict;
+use vars qw(<_PERL_GLOBAL_VARIABLES_>);
+
+my $argc = 0;
+my $slot = 0;
+my @argv;
+my $arg;
+my @flds;
+my $newpassword = "false";
+my $user;
+
+my $validation_status = "invalid";
+my $validation_arg = "syserror";
+my $validation_group = "";
+my $validation_number = -1;
+my $validation_featureset = "";
+
+#
+# Don't rearrange these unless you also change the login and reconnect
+# screens that run on the client. They define the order of the arguments
+# that we expect to receive from the client, one per line.
+#
+
+my $USER_SLOT = $slot++;
+my $PASSWORD_SLOT = $slot++;
+my $GROUP_SLOT = $slot++;
+my $RELEASE_SLOT = $slot++;
+my $VMRELEASE_SLOT = $slot++;
+my $USER_TZ_SLOT = $slot++;
+my $OSNAME_SLOT = $slot++;
+my $CLIENTID_SLOT = $slot++;
+my $USERPID_SLOT = $slot++;
+my $USERPROPERTIES_SLOT = $slot++;
+
+#
+# Output the URL header before anything else!!
+#
+
+print "Content-type: text/plain\n\n";
+
+#
+# Try to read the setup file from the etc directory. Nothing much we can
+# do if it's not there, so in that case output something that the client
+# will think looks like a server header and exit.
+#
+
+$SERVERHOMEDIR = "<_SERVER_HOMEDIR_DQ_>";
+$SERVERSETUP = $SERVERHOMEDIR . "/etc/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_rc.pl";
+
+if (! -r "$SERVERSETUP" ) {
+    print "STATUS=" . unpack("H*", "internalerror") . "\n";
+    print "REASON=" . unpack("H*", "server cannot find or read setup file") . "\n";
+    exit(1);
+}
+
+require $SERVERSETUP;
+
+#
+# The startup file is in, so we can use the variables and subroutines
+# defined in that file.
+#
+
+$ARGCOUNT = 0;
+$SESSIONID = "";
+$LOGFILE = $LOGINLOG;
+
+$OUTFILE = "$TMPDIR/login_$$.out";
+$ERRFILE = "$TMPDIR/login_$$.err";
+$TMPFILE = "$TMPDIR/login_$$.tmp";
+@CLEANUP_FILES = ($ERRFILE, $OUTFILE, $TMPFILE);
+
+$USERFLAGS = 0;
+
+#
+# Loaders for function files - just supply function name, fullpath is
+# derived from that (as shown) file with actual function (peer) only
+# loaded as needed. The validation() subroutine does much of the work.
+# We've supplied one that uses a password file contained in the etc
+# directory, but you can replace ours and handle user authentication
+# any way you want.
+#
+
+foreach $TMPTXT (qw(
+	isavailable
+	makeid
+	makepid
+	validation
+    )) {
+    eval "sub $TMPTXT {
+	require \"$SUBSDIR/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_$TMPTXT.pl\";
+	peer_$TMPTXT(\@_);
+    }";
+}
+
+#
+# There's no session id yet, so we skip the first line, which currently
+# should be blank. Could require something someday, but not right now.
+# 
+
+<STDIN>; 
+
+#
+# The next line is supposed to contain the name of the command and the
+# number of arguments that we should expect, one per line. If the line
+# doesn't look right we quit.
+#
+
+if (defined($_ = <STDIN>)) {
+    s/\s+$//o;
+    @flds = split(/\s+/);
+    if ($#flds != 1) {
+	print "STATUS=" . unpack("H*", "internalerror") . "\n";
+	$TMPTXT = sprintf("command line contained %d instead of 2 arguments", (1+$#flds));
+	print "REASON=" . unpack("H*", $TMPTXT) . "\n";
+	exit(1);
+    }
+    $COMMAND = $flds[0];
+    $ARGCOUNT = $flds[1];
+} else {
+    print "STATUS=" . unpack("H*", "internalerror") . "\n";
+    print "REASON=" . unpack("H*", "no input supplied") . "\n";
+    exit(1);
+}
+
+#
+# There should be $ARGCOUNT hex-encoded arguments, one per line, so read
+# them and make sure each one is assigned to the right variable.
+#
+
+while ($ARGCOUNT > $argc && defined($_ = <STDIN>)) {
+    $_ =~ s/\s+$//o;
+    $arg = pack("H*", $_);
+    if ($argc != $USERPROPERTIES_SLOT) {
+	#
+	# Eliminating white space was originally done to clean $OSNAME up
+	# (e.g., Windows 95 -> Windows_95), but it's probably a good idea
+	# for all fields. The subroutine that builds sessionids now splits
+	# the sessionid up and verifies there are $SESSIONIDFIELDS space
+	# separated fields before returning control to us.
+	# 
+    	$arg =~ s/\s/_/go;
+	if ($argc == $USER_SLOT) {
+	    $USER = $arg;
+	} elsif ($argc == $PASSWORD_SLOT) {
+	    $PASSWORD = $arg;
+	} elsif ($argc == $GROUP_SLOT) {
+	    $GROUP = $arg;
+	} elsif ($argc == $RELEASE_SLOT) {
+	    $RELEASE = $arg;
+	} elsif ($argc == $VMRELEASE_SLOT) {
+	    $VMRELEASE = $arg;
+	} elsif ($argc == $USER_TZ_SLOT) {
+	    $USER_TZ = $arg;
+	} elsif ($argc == $OSNAME_SLOT) {
+	    $OSNAME = $arg;
+	} elsif ($argc == $CLIENTID_SLOT) {
+	    $CLIENTID = $arg;
+	} elsif ($argc == $USERPID_SLOT) {
+	    $USERPID = $arg;
+	}
+    } else {
+	$USERPROPERTIES = $arg;		# was: maintain encoding; now: decode
+    }
+    $argc++;
+}
+
+if ($slot != $argc) {
+    print "STATUS=" . unpack("H*", "internalerror") . "\n";
+    $TMPTXT = sprintf("expected %d arguments, found %d", $slot, $argc);
+    print "REASON=" . unpack("H*", $TMPTXT) . "\n";
+    exit(1);
+}
+
+if ($COMMAND eq "LOGIN" || $COMMAND eq "RECONNECT" || $COMMAND eq "LOGID" || $COMMAND eq  "RECONID") {
+    $user = $USER;
+    $user =~ s/[^a-zA-Z0-9]+//go;
+    if ($USER ne "" && $USER_TZ ne "" && $USER eq $user) {
+	if (isavailable()) {
+	    @flds = validation($USER, $PASSWORD, $COMMAND, $REMOTE_HOST);
+
+	    $validation_status = "bad_result";
+
+	    if ($#flds >= 0) {
+		$validation_status = $flds[0];
+		if ($#flds >= 1) {
+		    $validation_arg = $flds[1];
+		    if ($#flds >= 2) {
+			$validation_group = $flds[2];
+			if ($#flds >= 3) {
+			    $validation_number = $flds[3];
+			    if ($#flds >= 4) {
+				$validation_featureset = $flds[4];
+			    } else {
+				$validation_featureset = "";
+			    }
+			} else {
+			    $validation_number = -1;
+			    $validation_featureset = "";
+			}
+		    } else {
+			$validation_group = "";
+			$validation_number = -1;
+			$validation_featureset = "";
+		    }
+		} else {
+		    $validation_arg = "";
+		    $validation_group = "";
+		    $validation_number = -1;
+		    $validation_featureset = "";
+		}
+
+		if ($validation_status eq "expired") {
+		    $newpassword = "true";
+		    $validation_status = "ok";
+		}
+		if ($validation_status eq "ok") {
+		    $validation_arg =~ s/[\s]+/,/g;
+		    if (!defined($validation_arg) || $validation_arg eq "") {
+			$COMMANDSET = "*";
+		    } else {
+			$COMMANDSET = $validation_arg;
+		    }
+		    if (!defined($validation_group) || $validation_group eq "") {
+			if (!$GROUP || $GROUP eq "default") {
+			    $GROUP = "none";
+			}
+		    } else {
+			$GROUP = $validation_group;
+		    }
+		    $FEATURESET = $validation_featureset;
+		    $USERHOME = "$HOMEDIR/$USER";
+		    if (! -d $USERHOME) {
+			mkdir($USERHOME, 0775);
+		    }
+		    if (ValidateHome($USER)) {
+			makeid();
+			UserInit($SESSIONID);
+			if (open(ULOG, ">>" . UntaintedPath($USERLOGINS))) {
+			    print ULOG "$USERDATE from $REMOTE_HOST [$COMMAND $USERPID]";
+			    # encode USERPROPERTIES to keep on one line (just in case)
+			    print ULOG " # " . uri_escape($USERPROPERTIES) . "\n";
+			    close(ULOG);
+			}
+			WriteHeader("SESSIONID",$SESSIONID,"LOGINNAME",$USER,"GROUPNAME",$GROUP,"PID",$USERPID,"NEWPASSWORD",$newpassword,"FEATURESET",$FEATURESET);
+			WriteLog("-d1","$COMMAND succeeded from $REMOTE_HOST (expired=$newpassword)");
+			WriteLog("-d4","SessionId=$SESSIONID");
+			WriteLog("-d3","EXIT 0");
+			Cleanup(0);
+		    }
+		} elsif ($validation_status eq "lapsed") {
+		    WriteLog("-d1","[login] WARNING: disabled ($validation_number)");
+		    $WARNINGMESSAGE = "Your ID has been disabled due to inactivty.\nYour last login was: " . GetFormattedUserTime("%a %b %e %T %Z %Y", time() - $validation_number) . ".\nContact the <_ACRONYM_DQ_> administrator.";
+		    WriteHeader("-lapsed");
+		} elsif ($validation_status eq "security") {
+		    WriteLog("-d1","[login] WARNING: too many failures ($validation_number)");
+		    $WARNINGMESSAGE = "Your ID has been disabled due to $validation_number consecutive login failure attempts.\nContact the <_ACRONYM_DQ_> administrator.";
+		    WriteHeader("-security");
+		} elsif ($validation_status eq "failed") {
+		    WriteLog("-d1","[login] FYI: failed login attempt");
+		    if ($PASSWORD eq "<system>") {
+			# If this error shows up, check the installed etc/passwd
+			# and make sure it is really set-up the way you intended.
+			$WARNINGMESSAGE = "The available account information supplied by your computer did not pass the validation check or the system has not yet been properly configured by the administrator. If you feel the information supplied is correct, contact the <_ACRONYM_DQ_> administrator.";
+			WriteHeader("-validation");
+		    } else {
+			if ($validation_number == 1) {
+			    WriteHeader("-failed","REASON","Invalid id or password","MESSAGE","You have one try remaining before lock-out.");
+			} else {
+			    WriteHeader("-failed","REASON","invalid id or password");
+			}
+			Cleanup(1);
+		    }
+		} elsif ($validation_status eq "bad_result") {
+		    WriteLog("-d1","[login] ERROR: bad output from login script (" . uri_escape($TMPTXT) . ")");
+		    $WARNINGMESSAGE = "Login access was denied due to an error in the validation script. Contact the <_ACRONYM_DQ_> administrator.";
+		    WriteHeader("-internalerror");
+		} else {
+		    WriteLog("-d1","[login] ERROR: status value ($validation_status) unrecognized or missing");
+		    print "STATUS=" . unpack("H*", "internalerror") . "\n";
+		    print "REASON=" . unpack("H*", "status value ($validation_status) unrecognized or missing") . "\n";
+		    Cleanup(1);
+		}
+	    } else {
+		WriteLog("-d1","[login] ERROR: login validation function supplied no result");
+		print "STATUS=" . unpack("H*", "internalerror") . "\n";
+		print "REASON=" . unpack("H*", "login validation function supplied no result") . "\n";
+		Cleanup(1);
+	    }
+
+	} else {
+	    eval "\$WARNINGMESSAGE = \"$UNAVAILABLEMESSAGE\"";
+	    WriteHeader("-failed", "REASON", "System is temporarily unavailable");
+	    WriteLog("-d1","[login] ADMIN: System is temporarily unavailable");
+	    Cleanup(1);
+	}
+    } else {
+	WriteLog("-d1","[login] ERROR: bad id ($USER) or TZ ($USER_TZ)");
+    }
+}
+
+#
+# Looks like we can get here after a WriteHeader(), which seems a little
+# strange. Suspect we need a few more Cleanup() calls, but it probably
+# isn't a big deal - we will investigate later.
+#
+
+WriteLog("-d0","$COMMAND failed from $REMOTE_HOST");
+
+sleep(2);
+
+if ($RUNSTATE =~ /^[01][.]/) {
+    print "STATUS=" . unpack("H*", "disabled") . "\n";
+    eval "\$TMPTXT = \"$MAINTENANCEMESSAGE\"";
+    print "MESSAGE=" . unpack("H*", $TMPTXT) . "\n";
+    if (-s "$BROADCASTMESSAGE" && -r "$BROADCASTMESSAGE") {
+	$TMPTXT = "";
+	if (open(BMSG, "< " . $BROADCASTMESSAGE)) {
+	    while (<BMSG>) {
+		$TMPTXT .= $_;
+	    }
+	    close(BMSG);
+	    print "BROADCAST=" . unpack("H*", $TMPTXT) . "\n";
+	}
+    }
+} else {
+    print "STATUS=" . unpack("H*", "failed") . "\n";
+}
+
+Cleanup(0);
+

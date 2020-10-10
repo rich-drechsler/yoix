@@ -1,0 +1,22 @@
+import yoix.*.*;
+import yoix.module.att.research.yoix.jvma.JVMTestModule.*;
+
+assembleClass(@<<
+    public class XXX extends YYY {
+        final static int QWERT = 0
+        static java.lang.String poiuy  = "Now is the time"
+
+	private int test(int arg1, double arg2) {
+	    push 1.5
+	    ifgt DONE
+LABEL1:
+	    store arg1
+LABEL2:
+DONE:
+	    push 1.5
+	}
+    }
+>>@);
+
+fprintf(stderr, "%s", dumpClassFile());
+

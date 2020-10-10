@@ -1,0 +1,38 @@
+import yoix.*.*;
+
+Image img = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+    Array  metrics = {-0.5, -.5, 0.0, 0.0};
+    int    type = TYPE_GRAY;
+};
+
+JFrame f = {
+    Color background = Color.black;
+
+    paint(Rectangle r) {
+	graphics {
+	    gsave();
+	    rectclip(r);
+	    recterase(r);
+	    translate(144, 144);
+	    rotate(15);
+	    setrgbcolor(1, 0, 0);
+	    linewidth = 2;
+	    moveto(0, 0);
+	    rlineto(300, 0);
+	    moveto(0, 0);
+	    rlineto(0, 300);
+	    stroke();
+	    moveto(0, 0);
+	    gsave();
+	    showimage(img, .8);
+	    grestore();
+	    imagepath(img);
+	    stroke();
+	    grestore();
+	}
+    }
+};
+
+f.visible = TRUE;
+

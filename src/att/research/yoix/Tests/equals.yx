@@ -1,0 +1,60 @@
+//
+// Bunch of string comparisons.
+//
+
+import yoix.*.*;
+
+String s1 = "A test string";
+String s2 = s1;
+String s3 = "A test string";
+String s4[] = s1;
+String s5[30] = s1;
+
+printf("Testing the == operator\n");
+printf("  s1 == s2 is %s\n", s1 == s2 ? "true" : "false");
+printf("  s1 == s3 is %s\n", s1 == s3 ? "true" : "false");
+printf("  s1 == s4 is %s\n", s1 == s4 ? "true" : "false");
+printf("  s1 == s5 is %s\n", s1 == s5 ? "true" : "false");
+printf("  s2 == s3 is %s\n", s2 == s3 ? "true" : "false");
+printf("  s2 == s4 is %s\n", s2 == s4 ? "true" : "false");
+printf("  s2 == s5 is %s\n", s2 == s5 ? "true" : "false");
+printf("  s3 == s4 is %s\n", s3 == s4 ? "true" : "false");
+printf("  s3 == s5 is %s\n", s3 == s5 ? "true" : "false");
+printf("  s4 == s5 is %s\n", s4 == s5 ? "true" : "false");
+
+printf("\nTesting the === operator\n");
+printf("  s1 === s2 is %s\n", s1 === s2 ? "true" : "false");
+printf("  s1 === s3 is %s\n", s1 === s3 ? "true" : "false");
+printf("  s1 === s4 is %s\n", s1 === s4 ? "true" : "false");
+printf("  s1 === s5 is %s\n", s1 === s5 ? "true" : "false");
+printf("  s2 === s3 is %s\n", s2 === s3 ? "true" : "false");
+printf("  s2 === s4 is %s\n", s2 === s4 ? "true" : "false");
+printf("  s2 === s5 is %s\n", s2 === s5 ? "true" : "false");
+printf("  s3 === s4 is %s\n", s3 === s4 ? "true" : "false");
+printf("  s3 === s5 is %s\n", s3 === s5 ? "true" : "false");
+printf("  s4 === s5 is %s\n", s4 === s5 ? "true" : "false");
+
+printf("\nTesting strcmp() builtin\n");
+printf("  strcmp(s1, s2) is %s\n", strcmp(s1, s2) == 0 ? "true" : "false");
+printf("  strcmp(s1, s3) is %s\n", strcmp(s1, s3) == 0 ? "true" : "false");
+printf("  strcmp(s1, s4) is %s\n", strcmp(s1, s4) == 0 ? "true" : "false");
+printf("  strcmp(s1, s5) is %s\n", strcmp(s1, s5) == 0 ? "true" : "false");
+printf("  strcmp(s2, s3) is %s\n", strcmp(s2, s3) == 0 ? "true" : "false");
+printf("  strcmp(s2, s4) is %s\n", strcmp(s2, s4) == 0 ? "true" : "false");
+printf("  strcmp(s2, s5) is %s\n", strcmp(s2, s5) == 0 ? "true" : "false");
+printf("  strcmp(s3, s4) is %s\n", strcmp(s3, s4) == 0 ? "true" : "false");
+printf("  strcmp(s3, s5) is %s\n", strcmp(s3, s5) == 0 ? "true" : "false");
+printf("  strcmp(s4, s5) is %s\n", strcmp(s4, s5) == 0 ? "true" : "false");
+
+printf("\nTesting compareTo() builtin\n");
+printf("  compareTo(s1, s2) is %s\n", compareTo(s1, s2) == 0 ? "true" : "false");
+printf("  compareTo(s1, s3) is %s\n", compareTo(s1, s3) == 0 ? "true" : "false");
+printf("  compareTo(s1, s4) is %s\n", compareTo(s1, s4) == 0 ? "true" : "false");
+printf("  compareTo(s1, s5) is %s\n", compareTo(s1, s5) == 0 ? "true" : "false");
+printf("  compareTo(s2, s3) is %s\n", compareTo(s2, s3) == 0 ? "true" : "false");
+printf("  compareTo(s2, s4) is %s\n", compareTo(s2, s4) == 0 ? "true" : "false");
+printf("  compareTo(s2, s5) is %s\n", compareTo(s2, s5) == 0 ? "true" : "false");
+printf("  compareTo(s3, s4) is %s\n", compareTo(s3, s4) == 0 ? "true" : "false");
+printf("  compareTo(s3, s5) is %s\n", compareTo(s3, s5) == 0 ? "true" : "false");
+printf("  compareTo(s4, s5) is %s\n", compareTo(s4, s5) == 0 ? "true" : "false");
+

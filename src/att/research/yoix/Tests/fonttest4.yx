@@ -1,0 +1,41 @@
+import yoix.*.*;
+
+Font SHEAR0 = {
+    String name = "Lucida-plain-30";
+};
+
+Font SHEAR1 = SHEAR0.shearfont(-.5, 0);
+Font SHEAR2 = SHEAR1.shearfont(-.5, 0);
+Font SHEAR3 = SHEAR2.shearfont(-.5, 0);
+
+JFrame f = {
+    Color background = Color.white;
+
+    Graphics graphics = {
+	int textantialiasing = TRUE;
+    };
+
+    paint(Rectangle rect) {
+	graphics {
+	    gsave();
+	    stroke();
+	    rectclip(rect);
+	    moveto(36, 144);
+	    rlineto(72*5, 0);
+	    stroke();
+	    moveto(36, 144);
+	    setfont(SHEAR0);
+	    show("It's ");
+	    setfont(SHEAR1);
+	    show("getting ");
+	    setfont(SHEAR2);
+	    show("very ");
+	    setfont(SHEAR3);
+	    show("windy");
+	    grestore();
+	}
+    }
+};
+
+f.visible = TRUE;
+

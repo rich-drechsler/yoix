@@ -1,0 +1,12 @@
+A miscellaneous collection of example screens that are used by the the main
+application screen that that YWAIT generates. The Makefile in this directory
+is also a pretty good one to copy if you're adding new source directories.
+Also notice that the INSTALLDIR definition in Makefile determines where the
+files are installed. In other words, the name of the source directory has
+nothing to do with where the files are installed.
+
+The "server" examples include lots of comments and are really "hooked" up to
+the main Perl script (i.e., ../bin/ywait_exec._PL). They're definitely worth
+a close look when you're ready to start building screens that really talk to
+your server.
+

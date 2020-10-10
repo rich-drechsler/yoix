@@ -1,0 +1,32 @@
+import yoix.*.*;
+
+String xml = @<<
+<message>
+    <line attr1="value 1" attr2="value 2">
+	<![CDATA[   Now is the]]> time
+    </line>
+    <line>
+	for all good men
+    </line>
+    <line>
+    to come to the aid of their party.
+    </line>
+</message>
+>>@;
+
+int model = 1;
+int flags = TOSS_ATTRIBUTES|TOSS_WS_CHARDATA;
+
+printf("model=1, flags=TOSS_ATTRIBUTES|TOSS_WS_CHARDATA\n");
+printf("%.5O\n", xmlToYoix(xml, model, flags));
+
+model = 1;
+flags = TOSS_WS_CHARDATA;
+printf("\nmodel=1, flags=TOSS_WS_CHARDATA\n");
+printf("%.5O\n", xmlToYoix(xml, model, flags));
+
+model = 0;
+flags = TOSS_WS_CHARDATA;
+printf("\nmodel=0, flags=TOSS_WS_CHARDATA\n");
+printf("%.5O\n", xmlToYoix(xml, model, flags));
+

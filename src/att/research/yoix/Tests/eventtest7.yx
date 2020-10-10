@@ -1,0 +1,39 @@
+import yoix.*.*;
+
+VM.exitmodel = 0;      // so main thread does not exit
+
+Button b = {
+    actionPerformed(Event e) {
+	printf("actionPerformed: sleep for 1 second\n");
+	sleep(1);
+    }
+
+    invocationRun(Event e) {
+	printf("invocationRun: sleep for 1 second\n");
+	sleep(1);
+    }
+};
+
+ActionEvent ae = {
+    String id = "actionPerformed";
+};
+
+InvocationEvent ie = {
+    String id = "invocationRun";
+};
+
+f(double secs, int quit) {
+    printf("invokeLater: sleep for %.1g seconds\n", secs);
+    sleep(secs);
+    if (quit)
+	exit(0);
+}
+
+postEvent(ae, b);
+postEvent(ie, b);
+invokeLater(f, 2.1, FALSE);
+postEvent(ae, b);
+invokeLater(f, 1.5, TRUE);
+
+printf("Main thread is done\n");
+

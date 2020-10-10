@@ -1,0 +1,120 @@
+//
+// Broadcast dialog - the message is always filled in using data returned
+// by the server in the header (see the server file).
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+Builder(String name, Array args) {
+
+    JDialog screen = {
+	Insets border = Global.GetLabeledScreenInsets();
+	Font   font = Global.GetPreferredLabelFont();
+	int    modal = TRUE;
+	int    autoraise = TRUE;
+	int    opaque = TRUE;
+
+	Dimension size = {
+	    double width = 7.0*72;
+	    double height = 3.0*72;
+	};
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = FALSE;
+	int    savestate = FALSE;   // save screen-specific info within session
+	int    retainstate = FALSE; // save screen-class info across sessions
+	int    reloadargs = FALSE;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    Global.NewJHeadingLabel(NULL, Global.ACRONYM + " BROADCAST MESSAGE", "foreground", Global.GetPreferredWarningColor()),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+	    },
+
+	    Global.NewJTextArea("$_message", NULL, 0, 0, AS_NEEDED, "edit", FALSE),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = BOTH;
+	    },
+
+	    new JButton {
+		String text = "Continue";
+		Font   font = Global.GetPreferredButtonFont();
+		int    requestfocus = TRUE;
+
+		actionPerformed(e) {
+		    Global.AltQueueCommand(root, &root.HideScreen);
+		}
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    Global.NewJProprietaryLabel(),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    components.$_message.text = "";
+	}
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+
+	ShowScreen() {
+	    Global.SoundBeeps(2);	// modal so it should not be visible
+	    visible = Global.ScreenVisibility;
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	SetText(String text) {
+	    components.$_message.text = trim(text);
+	    components.$_message.caret = 0;
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);

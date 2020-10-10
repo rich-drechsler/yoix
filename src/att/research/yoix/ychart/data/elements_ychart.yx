@@ -1,0 +1,5887 @@
+//
+// This is the ychart data file that displays several interactive versions
+// of the periodic table, including one puzzle, a chart of the naturally
+// occurring isotopes, and a fairly simple chart of the nuclides that lists
+// no more than one decay mode per isotope. The command line used to run
+// this file should look something like,
+//
+//	yoix ychart.yx [options] elements_ychart.yx
+//
+// where options are parsed by the Options() function (define in ychart.yx)
+// and ychart.yx and elements_ychart.yx should be pathnames or URLs that point
+// to ychart.yx and this file.
+//
+
+SetFrameTitle("Yoix\x00ae YChart: Elements");
+
+CELLDETAILWIDTH = 3.0*72.0;
+INITIALCELL = "Hydrogen";
+
+//
+// This section contains information about elements and their isotopes in a
+// format that can be used to build the four (or five) different tables that
+// we can display.
+//
+
+final String YES = "Yes";
+final String NO = "No";
+final String TRACE = "Trace";
+
+final String NONMETAL = "Nonmetal";
+final String SEMIMETAL = "Semimetal";
+final String METAL = "Metal";
+final String UNKNOWN = "Unknown";
+
+final String SOLID = "Solid";
+final String GAS = "Gas";
+final String LIQUID = "Liquid";
+
+//
+// These are indices into an array named properties that's defined in the
+// dictionary that describes each element. So you would find an element's
+// melting point at properties[MELTING_POINT].
+//
+
+final int GROUP = 0;
+final int BLOCK = 1;
+final int CLASSIFICATION = 2;
+final int STATE = 3;
+final int ATOMIC_WEIGHT = 4;
+final int ELECTRONEGATIVITY = 5;
+final int IONIZATION_ENERGY = 6;
+final int ATOMIC_RADIUS = 7;
+final int ATOMIC_RADIUS_CALCULATED = 8;
+final int MELTING_POINT = 9;
+final int BOILING_POINT = 10;
+final int DENSITY = 11;
+final int MOLAR_VOLUME = 12;
+final int ELECTRON_CONFIGURATION = 13;
+final int RADIOACTIVE = 14;
+final int TEMPORARYNAME = 15;
+
+//
+// Every isotopes array can be partitioned into groups of FIELDS_PER_ISOTOPE
+// entries and each of the groups describes an isotope. The other constants
+// are the indices in each group where a particular property of the isotope
+// can be found.
+//
+
+final int NEUTRON_NUMBER = 0;
+final int ABUNDANCE = 1;
+final int DECAY_MODE = 2;
+final int HALF_LIFE = 3;
+final int FIELDS_PER_ISOTOPE = 4;
+
+//
+// These are the supported decay modes that we recognize, but at least one,
+// namely SF, isn't currently used. The values are the strings that end up
+// being displayed in cells. We use DecayModeTips to map the strings back
+// words that provide a more complete description.
+//
+
+final String STABLE = "Stable";
+
+final String ALPHA = "\x03B1";
+final String BETA = "\x03B2\x207B";
+final String EC = "\x03BA";
+final String NEUTRON = "n";
+final String POSITRON = "\x03B2\x207A";
+final String PROTON = "p";
+final String SF = "sf";
+
+Dictionary DecayModeTips[] = {
+    ALPHA, "alpha",
+    BETA, "beta",
+    EC, "electron capture",
+    NEUTRON, "neutron",
+    POSITRON, "positron",
+    PROTON, "proton",
+    SF, "spontaneous fission",
+
+    UNKNOWN, UNKNOWN,
+};
+
+//
+// Convenient definitions of strings that are used in various cell labels.
+//
+
+final String DEGREESKELVIN = "\x00B0K";
+final String PICOMETER = "pm";
+final String CHECKMARK = "\x2713";
+
+//
+// ElementData contains information about the elements. It's organized as
+// an array of dictionaries and each dictionary describes one element. The
+// element dictionaries happen to be sorted by atomic number, but it's not
+// a requirement.
+//
+
+Array ElementData = {
+    new Dictionary {
+	String name = "Hydrogen";
+	String symbol = "H";
+	int    Z = 1;
+	int    period = 1;
+
+	Array properties = {"1", "s", NONMETAL, GAS, "1.00794(7)", "2.20", "1312.0", "25", "53", "14.01", "20.28", "", "11.42", "1s\x00B9", NO, NO};
+
+	Array isotopes = {
+	    0, "99.9885", NULL, NULL,
+	    1, "0.0115", NULL, NULL,
+	    2, NULL, BETA, "12.33y",
+	};
+	int primary_isotope = 0;
+    },
+    new Dictionary {
+	String name = "Helium";
+	String symbol = "He";
+	int    Z = 2;
+	int    period = 1;
+
+	Array properties = {"18", "s", NONMETAL, GAS, "4.002602(2)", "", "2372.3", "", "31", "0.95", "4.22", "", "21.0", "1s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    1, "0.000137", NULL, NULL,
+	    2, "99.999863", NULL, NULL,
+	    3, NULL, NEUTRON, "7\x00D710\x207B\x00B2\x00B2s",
+	    4, NULL, BETA, "807ms",
+	    6, NULL, BETA, "119ms",
+	};
+	int primary_isotope = 2;
+    },
+    new Dictionary {
+	String name = "Lithium";
+	String symbol = "Li";
+	int    Z = 3;
+	int    period = 2;
+
+	Array properties = {"1", "s", METAL, SOLID, "[6.941(2)]", "0.98", "520.2", "145", "167", "453.69", "1615", "535", "13.02", "[He]2s\x00B9", NO, NO};
+
+	Array isotopes = {
+	    2, NULL, PROTON, "3\x00D710\x207B\x00B2\x00B2s",
+	    3, "7.59", NULL, NULL,
+	    4, "92.41", NULL, NULL,
+	    5, NULL, BETA, "840ms",
+	    6, NULL, BETA, "178ms",
+	    8, NULL, BETA, "8.6ms",
+	};
+	int primary_isotope = 4;
+    },
+    new Dictionary {
+	String name = "Beryllium";
+	String symbol = "Be";
+	int    Z = 4;
+	int    period = 2;
+
+	Array properties = {"2", "s", METAL, SOLID, "9.012182(3)", "1.57", "899.5", "105", "112", "1560", "2742", "1848", "4.85", "[He]2s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    2, NULL, PROTON, "3\x00D710\x207B\x00B2\x00B9s",
+	    3, NULL, EC, "53.3d",
+	    4, NULL, ALPHA, "7\x00D710\x207B\x00B9\x2077s",
+	    5, "100", NULL, NULL,
+	    6, NULL, BETA, "1.5\x00D710\x2076y",
+	    7, NULL, BETA, "13.8s",
+	    8, NULL, BETA, "21.5ms",
+	    10, NULL, BETA, "4.6ms",
+	};
+	int primary_isotope = 5;
+    },
+    new Dictionary {
+	String name = "Boron";
+	String symbol = "B";
+	int    Z = 5;
+	int    period = 2;
+
+	Array properties = {"13", "p", SEMIMETAL, SOLID, "10.811(7)", "2.04", "800.6", "85", "87", "2349", "4200", "2460", "4.39", "[He]2s\x00B22p\x00B9", NO, NO};
+
+	Array isotopes = {
+	    3, NULL, POSITRON, "770ms",
+	    4, NULL, PROTON, "8\x00D710\x207B\x00B9\x2079s",
+	    5, "19.9", NULL, NULL,
+	    6, "80.1", NULL, NULL,
+	    7, NULL, BETA, "20.2ms",
+	    8, NULL, BETA, "17.4ms",
+	    9, NULL, BETA, "13ms",
+	    10, NULL, BETA, "10ms",
+	    12, NULL, BETA, "5ms",
+	    14, NULL, BETA, "3ms",
+	};
+	int primary_isotope = 6;
+    },
+    new Dictionary {
+	String name = "Carbon";
+	String symbol = "C";
+	int    Z = 6;
+	int    period = 2;
+
+	Array properties = {"14", "p", NONMETAL, SOLID, "12.0107(8)", "2.55", "1086.5", "70", "67", "3800", "4300", "2267", "5.29", "[He]2s\x00B22p\x00B2", NO, NO};
+
+	Array isotopes = {
+	    3, NULL, POSITRON, "127ms",
+	    4, NULL, POSITRON, "19.3s",
+	    5, NULL, POSITRON, "20.4m",
+	    6, "98.93", NULL, NULL,
+	    7, "1.07", NULL, NULL,
+	    8, NULL, BETA, "5715y",
+	    9, NULL, BETA, "2.45s",
+	    10, NULL, BETA, "750ms",
+	    11, NULL, BETA, "190ms",
+	    12, NULL, BETA, "92ms",
+	    13, NULL, BETA, "50ms",
+	    14, NULL, BETA, "10ms",
+	    16, NULL, BETA, "9ms",
+	};
+	int primary_isotope = 6;
+    },
+    new Dictionary {
+	String name = "Nitrogen";
+	String symbol = "N";
+	int    Z = 7;
+	int    period = 2;
+
+	Array properties = {"15", "p", NONMETAL, GAS, "14.0067(2)", "3.04", "1402.3", "65", "56", "63.05", "77.36", "", "13.54", "[He]2s\x00B22p\x00B3", NO, NO};
+
+	Array isotopes = {
+	    5, NULL, POSITRON, "11ms",
+	    6, NULL, POSITRON, "10ms",
+	    7, "99.63", NULL, NULL,
+	    8, "0.37", NULL, NULL,
+	    9, NULL, BETA, "7.13s",
+	    10, NULL, BETA, "4.17s",
+	    11, NULL, BETA, "620ms",
+	    12, NULL, BETA, "280ms",
+	    13, NULL, BETA, "133ms",
+	    14, NULL, BETA, "80ms",
+	    15, NULL, BETA, "28ms",
+	    16, NULL, BETA, "14ms",
+	};
+	int primary_isotope = 7;
+    },
+    new Dictionary {
+	String name = "Oxygen";
+	String symbol = "O";
+	int    Z = 8;
+	int    period = 2;
+
+	Array properties = {"16", "p", NONMETAL, GAS, "15.9994(3)", "3.44", "1313.9", "60", "48", "54.8", "90.2", "", "17.36", "[He]2s\x00B22p\x2074", NO, NO};
+
+	Array isotopes = {
+	    5, NULL, POSITRON, "9ms",
+	    6, NULL, POSITRON, "70.6s",
+	    7, NULL, POSITRON, "122s",
+	    8, "99.757", NULL, NULL,
+	    9, "0.038", NULL, NULL,
+	    10, "0.205", NULL, NULL,
+	    11, NULL, BETA, "26.9s",
+	    12, NULL, BETA, "13.5s",
+	    13, NULL, BETA, "3.4s",
+	    14, NULL, BETA, "2.2s",
+	    15, NULL, BETA, "80ms",
+	    16, NULL, BETA, "65ms",
+	};
+	int primary_isotope = 8;
+    },
+    new Dictionary {
+	String name = "Fluorine";
+	String symbol = "F";
+	int    Z = 9;
+	int    period = 2;
+
+	Array properties = {"17", "p", NONMETAL, GAS, "18.9984032(5)", "3.98", "1681.0", "50", "42", "53.53", "85.03", "", "11.20", "[He]2s\x00B22p\x2075", NO, NO};
+
+	Array isotopes = {
+	    7, NULL, PROTON, "1\x00D710\x207B\x00B9\x2079s",
+	    8, NULL, POSITRON, "66.0s",
+	    9, NULL, POSITRON, "109.8m",
+	    10, "100", NULL, NULL,
+	    11, NULL, BETA, "11.1s",
+	    12, NULL, BETA, "4.16s",
+	    13, NULL, BETA, "4.23s",
+	    14, NULL, BETA, "2.2s",
+	    15, NULL, BETA, "36ms",
+	    16, NULL, BETA, "60ms",
+	    17, NULL, BETA, "10ms",
+	    18, NULL, BETA, "5ms",
+	    20, NULL, BETA, "2.5ms",
+	};
+	int primary_isotope = 10;
+    },
+    new Dictionary {
+	String name = "Neon";
+	String symbol = "Ne";
+	int    Z = 10;
+	int    period = 2;
+
+	Array properties = {"18", "p", NONMETAL, GAS, "20.1797(6)", "", "2080.7", "", "38", "24.56", "27.07", "", "13.23", "[He]2s\x00B22p\x2076", NO, NO};
+
+	Array isotopes = {
+	    7, NULL, POSITRON, "109ms",
+	    8, NULL, POSITRON, "1.67s",
+	    9, NULL, POSITRON, "17.2s",
+	    10, "90.48", NULL, NULL,
+	    11, "0.27", NULL, NULL,
+	    12, "9.25", NULL, NULL,
+	    13, NULL, BETA, "37.2s",
+	    14, NULL, BETA, "3.38m",
+	    15, NULL, BETA, "610ms",
+	    16, NULL, BETA, "197ms",
+	    17, NULL, BETA, "31ms",
+	    18, NULL, BETA, "17ms",
+	    19, NULL, BETA, "16ms",
+	    20, NULL, BETA, "6ms",
+	    21, NULL, BETA, "3ms",
+	    22, NULL, BETA, "4ms",
+	};
+	int primary_isotope = 10;
+    },
+    new Dictionary {
+	String name = "Sodium";
+	String symbol = "Na";
+	int    Z = 11;
+	int    period = 3;
+
+	Array properties = {"1", "s", METAL, SOLID, "22.98976928(2)", "0.93", "495.8", "180", "190", "370.87", "1156", "968", "23.78", "[Ne]3s\x00B9", NO, NO};
+
+	Array isotopes = {
+	    9, NULL, POSITRON, "448ms",
+	    10, NULL, POSITRON, "22.5s",
+	    11, NULL, POSITRON, "2.604y",
+	    12, "100", NULL, NULL,
+	    13, NULL, BETA, "14.95h",
+	    14, NULL, BETA, "59.3s",
+	    15, NULL, BETA, "1.07s",
+	    16, NULL, BETA, "290ms",
+	    17, NULL, BETA, "31ms",
+	    18, NULL, BETA, "44ms",
+	    19, NULL, BETA, "50ms",
+	    20, NULL, BETA, "17ms",
+	    21, NULL, BETA, "13ms",
+	    22, NULL, BETA, "8ms",
+	    23, NULL, BETA, "5ms",
+	    24, NULL, BETA, "1.5ms",
+	};
+	int primary_isotope = 12;
+    },
+    new Dictionary {
+	String name = "Magnesium";
+	String symbol = "Mg";
+	int    Z = 12;
+	int    period = 3;
+
+	Array properties = {"2", "s", METAL, SOLID, "24.3050(6)", "1.31", "737.7", "150", "145", "923", "1363", "1738", "14.00", "[Ne]3s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    8, NULL, POSITRON, "91ms",
+	    9, NULL, POSITRON, "122ms",
+	    10, NULL, POSITRON, "3.86s",
+	    11, NULL, POSITRON, "11.32s",
+	    12, "78.99", NULL, NULL,
+	    13, "10.00", NULL, NULL,
+	    14, "11.01", NULL, NULL,
+	    15, NULL, BETA, "9.45m",
+	    16, NULL, BETA, "21.0h",
+	    17, NULL, BETA, "1.3s",
+	    18, NULL, BETA, "320ms",
+	    19, NULL, BETA, "240ms",
+	    20, NULL, BETA, "100ms",
+	    21, NULL, BETA, "90ms",
+	    22, NULL, BETA, "20ms",
+	    23, NULL, BETA, "70ms",
+	};
+	int primary_isotope = 12;
+    },
+    new Dictionary {
+	String name = "Aluminum";
+	String symbol = "Al";
+	int    Z = 13;
+	int    period = 3;
+
+	Array properties = {"13", "p", METAL, SOLID, "26.9815386(8)", "1.61", "577.5", "125", "118", "933.47", "2792", "2700", "10.00", "[Ne]3s\x00B23p\x00B9", NO, NO};
+
+	Array isotopes = {
+	    9, NULL, POSITRON, "59ms",
+	    10, NULL, POSITRON, "0.47s",
+	    11, NULL, POSITRON, "2.07s",
+	    12, NULL, POSITRON, "7.17s",
+	    13, NULL, POSITRON, "6.35s",
+	    14, "100", NULL, NULL,
+	    15, NULL, BETA, "2.25m",
+	    16, NULL, BETA, "6.5m",
+	    17, NULL, BETA, "3.7s",
+	    18, NULL, BETA, "640ms",
+	    19, NULL, BETA, "32ms",
+	    20, NULL, BETA, "40ms",
+	    21, NULL, BETA, "56ms",
+	    22, NULL, BETA, "39ms",
+	    23, NULL, BETA, "90ms",
+	};
+	int primary_isotope = 14;
+    },
+    new Dictionary {
+	String name = "Silicon";
+	String symbol = "Si";
+	int    Z = 14;
+	int    period = 3;
+
+	Array properties = {"14", "p", SEMIMETAL, SOLID, "28.0855(3)", "1.90", "786.5", "110", "111", "1687", "3173", "2330", "12.06", "[Ne]3s\x00B23p\x00B2", NO, NO};
+
+	Array isotopes = {
+	    8, NULL, POSITRON, "29ms",
+	    9, NULL, POSITRON, "42ms",
+	    10, NULL, POSITRON, "140ms",
+	    11, NULL, POSITRON, "220ms",
+	    12, NULL, POSITRON, "2.23s",
+	    13, NULL, POSITRON, "4.14s",
+	    14, "92.2297", NULL, NULL,
+	    15, "4.6832", NULL, NULL,
+	    16, "3.0872", NULL, NULL,
+	    17, NULL, BETA, "2.62h",
+	    18, NULL, BETA, "160y",
+	    19, NULL, BETA, "6.1s",
+	    20, NULL, BETA, "2.8s",
+	    21, NULL, BETA, "800ms",
+	    22, NULL, BETA, "500ms",
+	    23, NULL, BETA, "90ms",
+	    28, NULL, BETA, "20ms",
+	};
+	int primary_isotope = 14;
+    },
+    new Dictionary {
+	String name = "Phosphorus";
+	String symbol = "P";
+	int    Z = 15;
+	int    period = 3;
+
+	Array properties = {"15", "p", NONMETAL, SOLID, "30.973762(2)", "2.19", "1011.8", "100", "98", "317.3", "550", "1823", "17.02", "[Ne]3s\x00B23p\x00B3", NO, NO};
+
+	Array isotopes = {
+	    11, NULL, POSITRON, "200ms",
+	    12, NULL, POSITRON, "300ms",
+	    13, NULL, POSITRON, "270ms",
+	    14, NULL, POSITRON, "4.14s",
+	    15, NULL, POSITRON, "2.50m",
+	    16, "100", NULL, NULL,
+	    17, NULL, BETA, "14.28d",
+	    18, NULL, BETA, "25.3d",
+	    19, NULL, BETA, "12.4s",
+	    20, NULL, BETA, "47s",
+	    21, NULL, BETA, "5.7s",
+	    22, NULL, BETA, "2.3s",
+	    23, NULL, BETA, "600ms",
+	    24, NULL, BETA, "300ms",
+	    25, NULL, BETA, "150ms",
+	    26, NULL, BETA, "140ms",
+	    27, NULL, BETA, "110ms",
+	    28, NULL, BETA, "33ms",
+	};
+	int primary_isotope = 16;
+    },
+    new Dictionary {
+	String name = "Sulfur";
+	String symbol = "S";
+	int    Z = 16;
+	int    period = 3;
+
+	Array properties = {"16", "p", NONMETAL, SOLID, "32.065(5)", "2.58", "999.6", "100", "88", "388.36", "717.87", "1960", "15.53", "[Ne]3s\x00B23p\x2074", NO, NO};
+
+	Array isotopes = {
+	    11, NULL, POSITRON, "16ms",
+	    12, NULL, POSITRON, "120ms",
+	    13, NULL, POSITRON, "188ms",
+	    14, NULL, POSITRON, "1.18s",
+	    15, NULL, POSITRON, "2.56s",
+	    16, "94.93", NULL, NULL,
+	    17, "0.76", NULL, NULL,
+	    18, "4.29", NULL, NULL,
+	    19, NULL, BETA, "87.2d",
+	    20, "0.02", NULL, NULL,
+	    21, NULL, BETA, "5.05m",
+	    22, NULL, BETA, "2.84h",
+	    23, NULL, BETA, "11.5s",
+	    24, NULL, BETA, "9s",
+	    25, NULL, BETA, "2s",
+	    26, NULL, BETA, "1s",
+	    27, NULL, BETA, "260ms",
+	    28, NULL, BETA, "120ms",
+	    29, NULL, BETA, "80ms",
+	};
+	int primary_isotope = 16;
+    },
+    new Dictionary {
+	String name = "Chlorine";
+	String symbol = "Cl";
+	int    Z = 17;
+	int    period = 3;
+
+	Array properties = {"17", "p", NONMETAL, GAS, "35.453(2)", "3.16", "1251.2", "100", "79", "171.6", "239.11", "", "17.39", "[Ne]3s\x00B23p\x2075", NO, NO};
+
+	Array isotopes = {
+	    14, NULL, POSITRON, "150ms",
+	    15, NULL, POSITRON, "297ms",
+	    16, NULL, POSITRON, "2.51s",
+	    17, NULL, POSITRON, "32.2m",
+	    18, "75.78", NULL, NULL,
+	    19, NULL, BETA, "3.01\x00D710\x2075y",
+	    20, "24.22", NULL, NULL,
+	    21, NULL, BETA, "37.2m",
+	    22, NULL, BETA, "55.6m",
+	    23, NULL, BETA, "1.38m",
+	    24, NULL, BETA, "34s",
+	    25, NULL, BETA, "6.8s",
+	    26, NULL, BETA, "3.1s",
+	    27, NULL, BETA, "560ms",
+	    28, NULL, BETA, "410ms",
+	    29, NULL, BETA, "220ms",
+	};
+	int primary_isotope = 18;
+    },
+    new Dictionary {
+	String name = "Argon";
+	String symbol = "Ar";
+	int    Z = 18;
+	int    period = 3;
+
+	Array properties = {"18", "p", NONMETAL, GAS, "39.948(1)", "", "1520.6", "", "71", "83.8", "87.3", "", "22.56", "[Ne]3s\x00B23p\x2076", NO, NO};
+
+	Array isotopes = {
+	    13, NULL, POSITRON, "15ms",
+	    14, NULL, POSITRON, "98ms",
+	    15, NULL, POSITRON, "174ms",
+	    16, NULL, POSITRON, "844ms",
+	    17, NULL, POSITRON, "1.77s",
+	    18, "0.3365", NULL, NULL,
+	    19, NULL, EC, "35.0d",
+	    20, "0.0632", NULL, NULL,
+	    21, NULL, BETA, "269y",
+	    22, "99.6003", NULL, NULL,
+	    23, NULL, BETA, "1.83h",
+	    24, NULL, BETA, "33y",
+	    25, NULL, BETA, "5.4m",
+	    26, NULL, BETA, "11.9m",
+	    27, NULL, BETA, "21.5s",
+	    28, NULL, BETA, "8,4s",
+	    29, NULL, BETA, "600ms",
+	};
+	int primary_isotope = 22;
+    },
+    new Dictionary {
+	String name = "Potassium";
+	String symbol = "K";
+	int    Z = 19;
+	int    period = 4;
+
+	Array properties = {"1", "s", METAL, SOLID, "39.0983(1)", "0.82", "418.8", "220", "243", "336.53", "1032", "856", "45.94", "[Ar]4s\x00B9", TRACE, NO};
+
+	Array isotopes = {
+	    16, NULL, POSITRON, "190ms",
+	    17, NULL, POSITRON, "342ms",
+	    18, NULL, POSITRON, "1.23s",
+	    19, NULL, POSITRON, "7.63m",
+	    20, "93.258", NULL, NULL,
+	    21, "0.012", BETA, "1.27\x00D710\x2079y",
+	    22, "6.730", NULL, NULL,
+	    23, NULL, BETA, "12.36h",
+	    24, NULL, BETA, "22.3h",
+	    25, NULL, BETA, "22.1m",
+	    26, NULL, BETA, "17.8m",
+	    27, NULL, BETA, "1.8m",
+	    28, NULL, BETA, "18s",
+	    29, NULL, BETA, "6.8s",
+	    30, NULL, BETA, "1.3s",
+	    31, NULL, BETA, "470ms",
+	    32, NULL, BETA, "365ms",
+	    33, NULL, BETA, "105ms",
+	    34, NULL, BETA, "30ms",
+	    35, NULL, BETA, "10ms",
+	};
+	int primary_isotope = 20;
+    },
+    new Dictionary {
+	String name = "Calcium";
+	String symbol = "Ca";
+	int    Z = 20;
+	int    period = 4;
+
+	Array properties = {"2", "s", METAL, SOLID, "40.078(4)", "1.00", "589.8", "180", "194", "1115", "1757", "1550", "26.20", "[Ar]4s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    15, NULL, POSITRON, "26ms",
+	    16, NULL, POSITRON, "102ms",
+	    17, NULL, POSITRON, "181ms",
+	    18, NULL, POSITRON, "440ms",
+	    19, NULL, POSITRON, "861ms",
+	    20, "96.941", NULL, NULL,
+	    21, NULL, EC, "1.03\x00D710\x2075y",
+	    22, "0.647", NULL, NULL,
+	    23, "0.135", NULL, NULL,
+	    24, "2.086", NULL, NULL,
+	    25, NULL, BETA, "162.7d",
+	    26, "0.004", NULL, NULL,
+	    27, NULL, BETA, "4.54d",
+	    28, "0.187", NULL, NULL,
+	    29, NULL, BETA, "8.72m",
+	    30, NULL, BETA, "14s",
+	    31, NULL, BETA, "10s",
+	    32, NULL, BETA, "4.6s",
+	    33, NULL, BETA, "90ms",
+	};
+	int primary_isotope = 20;
+    },
+    new Dictionary {
+	String name = "Scandium";
+	String symbol = "Sc";
+	int    Z = 21;
+	int    period = 4;
+
+	Array properties = {"3", "d", METAL, SOLID, "44.955912(6)", "1.36", "633.1", "160", "184", "1814", "3103", "2985", "15.00", "[Ar]3d\x00B94s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    19, NULL, POSITRON, "182ms",
+	    20, NULL, POSITRON, "596ms",
+	    21, NULL, POSITRON, "682ms",
+	    22, NULL, POSITRON, "3.90h",
+	    23, NULL, POSITRON, "3.93h",
+	    24, "100", NULL, NULL,
+	    25, NULL, BETA, "83.8d",
+	    26, NULL, BETA, "3.35d",
+	    27, NULL, BETA, "43.7h",
+	    28, NULL, BETA, "57.3m",
+	    29, NULL, BETA, "1.71m",
+	    30, NULL, BETA, "12.4s",
+	    31, NULL, BETA, "8.2s",
+	};
+	int primary_isotope = 24;
+    },
+    new Dictionary {
+	String name = "Titanium";
+	String symbol = "Ti";
+	int    Z = 22;
+	int    period = 4;
+
+	Array properties = {"4", "d", METAL, SOLID, "47.867(1)", "1.54", "658.8", "140", "176", "1941", "3560", "4507", "10.64", "[Ar]3d\x00B24s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    17, NULL, POSITRON, "29ms",
+	    18, NULL, POSITRON, "53ms",
+	    19, NULL, POSITRON, "80ms",
+	    20, NULL, POSITRON, "200ms",
+	    21, NULL, POSITRON, "500ms",
+	    22, NULL, POSITRON, "59,9y",
+	    23, NULL, POSITRON, "3.08h",
+	    24, "8.25", NULL, NULL,
+	    25, "7.44", NULL, NULL,
+	    26, "73.72", NULL, NULL,
+	    27, "5.41", NULL, NULL,
+	    28, "5.18", NULL, NULL,
+	    29, NULL, BETA, "5.76m",
+	    30, NULL, BETA, "1.7m",
+	    31, NULL, BETA, "33s",
+	    32, NULL, BETA, "1.5s",
+	    33, NULL, BETA, "400ms",
+	    34, NULL, BETA, "160ms",
+	    35, NULL, BETA, "100ms",
+	    36, NULL, BETA, "47ms",
+	    37, NULL, BETA, "58ms",
+	};
+	int primary_isotope = 26;
+    },
+    new Dictionary {
+	String name = "Vanadium";
+	String symbol = "V";
+	int    Z = 23;
+	int    period = 4;
+
+	Array properties = {"5", "d", METAL, SOLID, "50.9415(1)", "1.63", "650.9", "135", "171", "2183", "3680", "6110", "8.32", "[Ar]3d\x00B34s\x00B2", TRACE, NO};
+
+	Array isotopes = {
+	    20, NULL, POSITRON, "800ms",
+	    21, NULL, POSITRON, "150ms",
+	    22, NULL, POSITRON, "550ms",
+	    23, NULL, POSITRON, "422ms",
+	    24, NULL, POSITRON, "32.6m",
+	    25, NULL, POSITRON, "15.98d",
+	    26, NULL, EC, "331d",
+	    27, "0.250", EC, "1.4\x00D710\x00B9\x2077y",
+	    28, "99.750", NULL, NULL,
+	    29, NULL, BETA, "3.76m",
+	    30, NULL, BETA, "1.54m",
+	    31, NULL, BETA, "50s",
+	    32, NULL, BETA, "6.5s",
+	    33, NULL, BETA, "230ms",
+	    34, NULL, BETA, "330ms",
+	    35, NULL, BETA, "210ms",
+	    36, NULL, BETA, "100ms",
+	    37, NULL, BETA, "100ms",
+	    38, NULL, BETA, "43ms",
+	    39, NULL, BETA, "60ms",
+	};
+	int primary_isotope = 28;
+    },
+    new Dictionary {
+	String name = "Chromium";
+	String symbol = "Cr";
+	int    Z = 24;
+	int    period = 4;
+
+	Array properties = {"6", "d", METAL, SOLID, "51.9961(6)", "1.66", "652.9", "140", "166", "2180", "2944", "7140", "7.23", "[Ar]3d\x20754s\x00B9", NO, NO};
+
+	Array isotopes = {
+	    18, NULL, POSITRON, "13ms",
+	    19, NULL, POSITRON, "21ms",
+	    20, NULL, POSITRON, "53ms",
+	    21, NULL, POSITRON, "50ms",
+	    22, NULL, POSITRON, "300ms",
+	    23, NULL, POSITRON, "500ms",
+	    24, NULL, EC, "21.6h",
+	    25, NULL, POSITRON, "42.3m",
+	    26, "4.345", NULL, NULL,
+	    27, NULL, EC, "27.7d",
+	    28, "83.789", NULL, NULL,
+	    29, "9.501", NULL, NULL,
+	    30, "2.365", NULL, NULL,
+	    31, NULL, BETA, "3.5m",
+	    32, NULL, BETA, "5.9m",
+	    33, NULL, BETA, "21s",
+	    34, NULL, BETA, "7s",
+	    35, NULL, BETA, "500ms",
+	    36, NULL, BETA, "600ms",
+	    37, NULL, BETA, "260ms",
+	    38, NULL, BETA, "190ms",
+	    39, NULL, BETA, "110ms",
+	    40, NULL, BETA, "400ms",
+	};
+	int primary_isotope = 28;
+    },
+    new Dictionary {
+	String name = "Manganese";
+	String symbol = "Mn";
+	int    Z = 25;
+	int    period = 4;
+
+	Array properties = {"7", "d", METAL, SOLID, "54.938045(5)", "1.55", "717.3", "140", "161", "1519", "2334", "7470", "7.35", "[Ar]3d\x20754s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    21, NULL, POSITRON, "30ms",
+	    22, NULL, POSITRON, "100ms",
+	    23, NULL, POSITRON, "158ms",
+	    24, NULL, POSITRON, "380ms",
+	    25, NULL, POSITRON, "1.74m",
+	    26, NULL, POSITRON, "46.2m",
+	    27, NULL, POSITRON, "21.1m",
+	    28, NULL, EC, "3.7\x00D710\x2076y",
+	    29, NULL, EC, "312.1d",
+	    30, "100", NULL, NULL,
+	    31, NULL, BETA, "2.58h",
+	    32, NULL, BETA, "1.45m",
+	    33, NULL, BETA, "65s",
+	    34, NULL, BETA, "4.6s",
+	    35, NULL, BETA, "1.8s",
+	    36, NULL, BETA, "670ms",
+	    37, NULL, BETA, "670ms",
+	    38, NULL, BETA, "276ms",
+	    39, NULL, BETA, "88ms",
+	    40, NULL, BETA, "91ms",
+	    41, NULL, BETA, "67ms",
+	    42, NULL, BETA, "42ms",
+	    43, NULL, BETA, "28ms",
+	    44, NULL, BETA, "14ms",
+	};
+	int primary_isotope = 30;
+    },
+    new Dictionary {
+	String name = "Iron";
+	String symbol = "Fe";
+	int    Z = 26;
+	int    period = 4;
+
+	Array properties = {"8", "d", METAL, SOLID, "55.845(2)", "1.83", "762.5", "140", "156", "1811", "3134", "7874", "7.09", "[Ar]3d\x20764s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    19, NULL, POSITRON, "5ms",
+	    20, NULL, POSITRON, "12ms",
+	    21, NULL, POSITRON, "22ms",
+	    22, NULL, POSITRON, "44ms",
+	    23, NULL, POSITRON, "70ms",
+	    24, NULL, POSITRON, "150ms",
+	    25, NULL, POSITRON, "310ms",
+	    26, NULL, POSITRON, "46s",
+	    27, NULL, POSITRON, "2.6m",
+	    28, "5.845", NULL, NULL,
+	    29, NULL, EC, "2.73y",
+	    30, "91.754", NULL, NULL,
+	    31, "2.119", NULL, NULL,
+	    32, "0.282", NULL, NULL,
+	    33, NULL, BETA, "44.5d",
+	    34, NULL, BETA, "1.5\x00D710\x2076y",
+	    35, NULL, BETA, "6.0m",
+	    36, NULL, BETA, "68s",
+	    37, NULL, BETA, "6s",
+	    38, NULL, BETA, "2s",
+	    39, NULL, BETA, "400ms",
+	    40, NULL, BETA, "440ms",
+	    41, NULL, BETA, "480ms",
+	    42, NULL, BETA, "130ms",
+	    43, NULL, BETA, "170ms",
+	};
+	int primary_isotope = 30;
+    },
+    new Dictionary {
+	String name = "Cobalt";
+	String symbol = "Co";
+	int    Z = 27;
+	int    period = 4;
+
+	Array properties = {"9", "d", METAL, SOLID, "58.933195(5)", "1.88", "760.4", "135", "152", "1768", "3200", "8900", "6.67", "[Ar]3d\x20774s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    23, NULL, POSITRON, "44ms",
+	    25, NULL, POSITRON, "120s",
+	    26, NULL, POSITRON, "0.24s",
+	    27, NULL, POSITRON, "193ms",
+	    28, NULL, POSITRON, "17.53h",
+	    29, NULL, EC, "77.3d",
+	    30, NULL, EC, "271.8d",
+	    31, NULL, EC, "70.88d",
+	    32, "100", NULL, NULL,
+	    33, NULL, BETA, "5.271y",
+	    34, NULL, BETA, "1.65h",
+	    35, NULL, BETA, "1.5m",
+	    36, NULL, BETA, "27.5s",
+	    37, NULL, BETA, "300ms",
+	    38, NULL, BETA, "1.17s",
+	    39, NULL, BETA, "190ms",
+	    40, NULL, BETA, "430ms",
+	    41, NULL, BETA, "200ms",
+	    42, NULL, BETA, "220ms",
+	    43, NULL, BETA, "130ms",
+	    44, NULL, BETA, "210ms",
+	    45, NULL, BETA, "90ms",
+	};
+	int primary_isotope = 32;
+    },
+    new Dictionary {
+	String name = "Nickel";
+	String symbol = "Ni";
+	int    Z = 28;
+	int    period = 4;
+
+	Array properties = {"10", "d", METAL, SOLID, "58.6934(2)", "1.91", "737.1", "135", "149", "1728", "3186", "8908", "6.59", "[Ar]3d\x20784s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    24, NULL, POSITRON, "40ms",
+	    25, NULL, POSITRON, "50ms",
+	    26, NULL, POSITRON, "100ms",
+	    27, NULL, POSITRON, "202ms",
+	    28, NULL, EC, "5.9d",
+	    29, NULL, POSITRON, "35.6h",
+	    30, "68.077", NULL, NULL,
+	    31, NULL, EC, "7.6\x00D710\x2074y",
+	    32, "26.223", NULL, NULL,
+	    33, "1.140", NULL, NULL,
+	    34, "3.634", NULL, NULL,
+	    35, NULL, BETA, "101y",
+	    36, "0.926", NULL, NULL,
+	    37, NULL, BETA, "2.52h",
+	    38, NULL, BETA, "2.28d",
+	    39, NULL, BETA, "21s",
+	    40, NULL, BETA, "29s",
+	    41, NULL, BETA, "3.5s",
+	    42, NULL, BETA, "6s",
+	    43, NULL, BETA, "2.6s",
+	    44, NULL, BETA, "1.6s",
+	    45, NULL, BETA, "600ms",
+	    46, NULL, BETA, "700ms",
+	    47, NULL, BETA, "600ms",
+	    48, NULL, BETA, "200ms",
+	};
+	int primary_isotope = 30;
+    },
+    new Dictionary {
+	String name = "Copper";
+	String symbol = "Cu";
+	int    Z = 29;
+	int    period = 4;
+
+	Array properties = {"11", "d", METAL, SOLID, "63.546(3)", "1.90", "745.5", "135", "145", "1357.77", "3200", "8920", "7.11", "[Ar]3d\x00B9\x20704s\x00B9", NO, NO};
+
+	Array isotopes = {
+	    27, NULL, POSITRON, "93ms",
+	    28, NULL, POSITRON, "196ms",
+	    29, NULL, POSITRON, "3.21s",
+	    30, NULL, POSITRON, "1.36m",
+	    31, NULL, POSITRON, "23.7m",
+	    32, NULL, POSITRON, "3.35h",
+	    33, NULL, POSITRON, "9.74m",
+	    34, "69.17", NULL, NULL,
+	    35, NULL, EC, "12.70h",
+	    36, "30.83", NULL, NULL,
+	    37, NULL, BETA, "5.10m",
+	    38, NULL, BETA, "2.58d",
+	    39, NULL, BETA, "31s",
+	    40, NULL, BETA, "2.85m",
+	    41, NULL, BETA, "5s",
+	    42, NULL, BETA, "20s",
+	    43, NULL, BETA, "6.6s",
+	    44, NULL, BETA, "4.2s",
+	    45, NULL, BETA, "1.6s",
+	    46, NULL, BETA, "1.2s",
+	    47, NULL, BETA, "640ms",
+	    48, NULL, BETA, "470ms",
+	    49, NULL, BETA, "340ms",
+	    50, NULL, BETA, "190ms",
+	};
+	int primary_isotope = 34;
+    },
+    new Dictionary {
+	String name = "Zinc";
+	String symbol = "Zn";
+	int    Z = 30;
+	int    period = 4;
+
+	Array properties = {"12", "d", METAL, SOLID, "65.409(4)", "1.65", "906.4", "135", "142", "692.68", "1180", "7140", "9.16", "[Ar]3d\x00B9\x20704s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    27, NULL, POSITRON, "38ms",
+	    28, NULL, POSITRON, "80ms",
+	    29, NULL, POSITRON, "183ms",
+	    30, NULL, POSITRON, "2.40m",
+	    31, NULL, POSITRON, "1.48m",
+	    32, NULL, POSITRON, "9.22h",
+	    33, NULL, POSITRON, "38.5m",
+	    34, "48.63", NULL, NULL,
+	    35, NULL, EC, "243.8d",
+	    36, "27.90", NULL, NULL,
+	    37, "4.10", NULL, NULL,
+	    38, "18.75", NULL, NULL,
+	    39, NULL, BETA, "56m",
+	    40, "0.62", NULL, NULL,
+	    41, NULL, BETA, "2.4m",
+	    42, NULL, BETA, "46.5h",
+	    43, NULL, BETA, "6s",
+	    44, NULL, BETA, "1.60m",
+	    45, NULL, BETA, "10.2s",
+	    46, NULL, BETA, "5.7s",
+	    47, NULL, BETA, "2.1s",
+	    48, NULL, BETA, "1.5s",
+	    49, NULL, BETA, "1.0s",
+	    50, NULL, BETA, "540ms",
+	    51, NULL, BETA, "290ms",
+	};
+	int primary_isotope = 34;
+    },
+    new Dictionary {
+	String name = "Gallium";
+	String symbol = "Ga";
+	int    Z = 31;
+	int    period = 4;
+
+	Array properties = {"13", "p", METAL, SOLID, "69.723(1)", "1.81", "578.8", "130", "136", "302.91", "2477", "5904", "11.80", "[Ar]3d\x00B9\x20704s\x00B24p\x00B9", NO, NO};
+
+	Array isotopes = {
+	    29, NULL, POSITRON, "70ms",
+	    30, NULL, POSITRON, "168ms",
+	    31, NULL, POSITRON, "116ms",
+	    32, NULL, POSITRON, "32s",
+	    33, NULL, POSITRON, "2.63m",
+	    34, NULL, POSITRON, "15.2m",
+	    35, NULL, POSITRON, "9.5h",
+	    36, NULL, EC, "3.26d",
+	    37, NULL, POSITRON, "1.13h",
+	    38, "60.11", NULL, NULL,
+	    39, NULL, BETA, "21.1m",
+	    40, "39.89", NULL, NULL,
+	    41, NULL, BETA, "14.1h",
+	    42, NULL, BETA, "4.87h",
+	    43, NULL, BETA, "8.1m",
+	    44, NULL, BETA, "2.1m",
+	    45, NULL, BETA, "29s",
+	    46, NULL, BETA, "13s",
+	    47, NULL, BETA, "5.1s",
+	    48, NULL, BETA, "2.8s",
+	    49, NULL, BETA, "1.7s",
+	    50, NULL, BETA, "1.2s",
+	    51, NULL, BETA, "600ms",
+	    52, NULL, BETA, "310ms",
+	    53, NULL, BETA, "90ms",
+	};
+	int primary_isotope = 38;
+    },
+    new Dictionary {
+	String name = "Germanium";
+	String symbol = "Ge";
+	int    Z = 32;
+	int    period = 4;
+
+	Array properties = {"14", "p", SEMIMETAL, SOLID, "72.64(1)", "2.01", "762", "125", "125", "1211.4", "3093", "5323", "13.63", "[Ar]3d\x00B9\x20704s\x00B24p\x00B2", NO, NO};
+
+	Array isotopes = {
+	    29, NULL, POSITRON, "40ms",
+	    30, NULL, POSITRON, "130ms",
+	    31, NULL, POSITRON, "140ms",
+	    32, NULL, POSITRON, "1.06m",
+	    33, NULL, POSITRON, "31s",
+	    34, NULL, POSITRON, "2.26h",
+	    35, NULL, POSITRON, "19.0m",
+	    36, NULL, EC, "270.8d",
+	    37, NULL, EC, "1.63d",
+	    38, "20.84", NULL, NULL,
+	    39, NULL, EC, "11.4d",
+	    40, "27.54", NULL, NULL,
+	    41, "7.73", NULL, NULL,
+	    42, "36.28", NULL, NULL,
+	    43, NULL, BETA, "1.38d",
+	    44, "7.61", NULL, NULL,
+	    45, NULL, BETA, "53s",
+	    46, NULL, BETA, "1.45h",
+	    47, NULL, BETA, "19s",
+	    48, NULL, BETA, "29.5s",
+	    49, NULL, BETA, "7.6s",
+	    50, NULL, BETA, "4.6s",
+	    51, NULL, BETA, "1.9s",
+	    52, NULL, BETA, "960ms",
+	    53, NULL, BETA, "540ms",
+	};
+	int primary_isotope = 42;
+    },
+    new Dictionary {
+	String name = "Arsenic";
+	String symbol = "As";
+	int    Z = 33;
+	int    period = 4;
+
+	Array properties = {"15", "p", SEMIMETAL, SOLID, "74.92160(2)", "2.18", "947.0", "115", "114", "1090", "887", "5727", "12.95", "[Ar]3d\x00B9\x20704s\x00B24p\x00B3", NO, NO};
+
+	Array isotopes = {
+	    31, NULL, POSITRON, "18ms",
+	    32, NULL, POSITRON, "130ms",
+	    33, NULL, POSITRON, "96ms",
+	    34, NULL, POSITRON, "42s",
+	    35, NULL, POSITRON, "2.53m",
+	    36, NULL, POSITRON, "15.2m",
+	    37, NULL, POSITRON, "52.6m",
+	    38, NULL, EC, "2.72d",
+	    39, NULL, EC, "26.0h",
+	    40, NULL, EC, "80.3d",
+	    41, NULL, EC, "17.78d",
+	    42, "100", NULL, NULL,
+	    43, NULL, BETA, "26.3h",
+	    44, NULL, BETA, "38.8h",
+	    45, NULL, BETA, "1.51h",
+	    46, NULL, BETA, "9.0m",
+	    47, NULL, BETA, "16s",
+	    48, NULL, BETA, "33s",
+	    49, NULL, BETA, "13.7s",
+	    50, NULL, BETA, "13.4s",
+	    51, NULL, BETA, "600ms",
+	    52, NULL, BETA, "2.03s",
+	    53, NULL, BETA, "900ms",
+	    54, NULL, BETA, "600ms",
+	};
+	int primary_isotope = 42;
+    },
+    new Dictionary {
+	String name = "Selenium";
+	String symbol = "Se";
+	int    Z = 34;
+	int    period = 4;
+
+	Array properties = {"16", "p", NONMETAL, SOLID, "78.96(3)", "2.55", "941.0", "115", "103", "494", "958", "4819", "16.42", "[Ar]3d\x00B9\x20704s\x00B24p\x2074", NO, NO};
+
+	Array isotopes = {
+	    32, NULL, POSITRON, "300ms",
+	    33, NULL, POSITRON, "130ms",
+	    34, NULL, POSITRON, "36s",
+	    35, NULL, POSITRON, "27.4s",
+	    36, NULL, POSITRON, "41.1m",
+	    37, NULL, POSITRON, "4.7m",
+	    38, NULL, EC, "8.5d",
+	    39, NULL, POSITRON, "40m",
+	    40, "0.89", NULL, NULL,
+	    41, NULL, EC, "119.8d",
+	    42, "9.37", NULL, NULL,
+	    43, "7.63", NULL, NULL,
+	    44, "23.77", NULL, NULL,
+	    45, NULL, BETA, "2.9\x00D710\x2075y",
+	    46, "49.61", NULL, NULL,
+	    47, NULL, BETA, "18.5m",
+	    48, "8.73", NULL, NULL,
+	    49, NULL, BETA, "1.17m",
+	    50, NULL, BETA, "3.2m",
+	    51, NULL, BETA, "32s",
+	    52, NULL, BETA, "15s",
+	    53, NULL, BETA, "5.8s",
+	    54, NULL, BETA, "1.5s",
+	    55, NULL, BETA, "410ms",
+	    57, NULL, BETA, "270ms",
+	};
+	int primary_isotope = 46;
+    },
+    new Dictionary {
+	String name = "Bromine";
+	String symbol = "Br";
+	int    Z = 35;
+	int    period = 4;
+
+	Array properties = {"17", "p", NONMETAL, LIQUID, "79.904(1)", "2.96", "1139.9", "115", "94", "265.8", "332", "", "19.78", "[Ar]3d\x00B9\x20704s\x00B24p\x2075", NO, NO};
+
+	Array isotopes = {
+	    34, NULL, POSITRON, "1.21m",
+	    35, NULL, POSITRON, "1.21m",
+	    36, NULL, POSITRON, "1.21m",
+	    37, NULL, POSITRON, "1.21m",
+	    38, NULL, POSITRON, "3.3m",
+	    39, NULL, POSITRON, "4m",
+	    40, NULL, POSITRON, "97m",
+	    41, NULL, POSITRON, "15.9h",
+	    42, NULL, EC, "34.9h",
+	    43, NULL, POSITRON, "6.4m",
+	    44, "50.69", NULL, NULL,
+	    45, NULL, BETA, "17.4m",
+	    46, "49.31", NULL, NULL,
+	    47, NULL, BETA, "35.4h",
+	    48, NULL, BETA, "2.40h",
+	    49, NULL, BETA, "6.0m",
+	    50, NULL, BETA, "2.87m",
+	    51, NULL, BETA, "55s",
+	    52, NULL, BETA, "55.7s",
+	    53, NULL, BETA, "15.9s",
+	    54, NULL, BETA, "4.5s",
+	    55, NULL, BETA, "1.6s",
+	    56, NULL, BETA, "0.6s",
+	    57, NULL, BETA, "0.3s",
+	};
+	int primary_isotope = 44;
+    },
+    new Dictionary {
+	String name = "Krypton";
+	String symbol = "Kr";
+	int    Z = 36;
+	int    period = 4;
+
+	Array properties = {"18", "p", NONMETAL, GAS, "83.798(2)", "3.00", "1350.8", "", "88", "115.79", "119.93", "", "27.99", "[Ar]3d\x00B9\x20704s\x00B24p\x2076", NO, NO};
+
+	Array isotopes = {
+	    33, NULL, POSITRON, "30ms",
+	    34, NULL, POSITRON, "60ms",
+	    35, NULL, POSITRON, "100ms",
+	    36, NULL, POSITRON, "17s",
+	    37, NULL, POSITRON, "28s",
+	    38, NULL, POSITRON, "11.4m",
+	    39, NULL, POSITRON, "4.3m",
+	    40, NULL, POSITRON, "14.8h",
+	    41, NULL, POSITRON, "1.24h",
+	    42, "0.35", NULL, NULL,
+	    43, NULL, POSITRON, "1.45d",
+	    44, "2.28", NULL, NULL,
+	    45, NULL, EC, "2.3\x00D710\x2075y",
+	    46, "11.58", NULL, NULL,
+	    47, "11.49", NULL, NULL,
+	    48, "57.00", NULL, NULL,
+	    49, NULL, BETA, "4.48h",
+	    50, "17.30", NULL, NULL,
+	    51, NULL, BETA, "1.27h",
+	    52, NULL, BETA, "2.84h",
+	    53, NULL, BETA, "3.15m",
+	    54, NULL, BETA, "32.3s",
+	    55, NULL, BETA, "8.6s",
+	    56, NULL, BETA, "1.84s",
+	    57, NULL, BETA, "1.29s",
+	    58, NULL, BETA, "210ms",
+	    59, NULL, BETA, "780ms",
+	    61, NULL, BETA, "100ms",
+	};
+	int primary_isotope = 48;
+    },
+    new Dictionary {
+	String name = "Rubidium";
+	String symbol = "Rb";
+	int    Z = 37;
+	int    period = 5;
+
+	Array properties = {"1", "s", METAL, SOLID, "85.4678(3)", "0.82", "403.0", "235", "265", "312.46", "961", "1532", "55.76", "[Kr]5s\x00B9", YES, NO};
+
+	Array isotopes = {
+	    37, NULL, POSITRON, "65ms",
+	    38, NULL, POSITRON, "19s",
+	    39, NULL, POSITRON, "37s",
+	    40, NULL, POSITRON, "3.78m",
+	    41, NULL, POSITRON, "5.7m",
+	    42, NULL, POSITRON, "23.2m",
+	    43, NULL, POSITRON, "33s",
+	    44, NULL, POSITRON, "4.57h",
+	    45, NULL, POSITRON, "1.26m",
+	    46, NULL, EC, "86.2d",
+	    47, NULL, EC, "32.9d",
+	    48, "72.17", NULL, NULL,
+	    49, NULL, BETA, "18.65d",
+	    50, "27.83", BETA, "4.88\x00D710\x00B9\x2070y",
+	    51, NULL, BETA, "17.7m",
+	    52, NULL, BETA, "15.4m",
+	    53, NULL, BETA, "2.6m",
+	    54, NULL, BETA, "58s",
+	    55, NULL, BETA, "4.48s",
+	    56, NULL, BETA, "5.85s",
+	    57, NULL, BETA, "2.71s",
+	    58, NULL, BETA, "377ms",
+	    59, NULL, BETA, "199ms",
+	    60, NULL, BETA, "169ms",
+	    61, NULL, BETA, "107ms",
+	    62, NULL, BETA, "55ms",
+	    63, NULL, BETA, "53ms",
+	    64, NULL, BETA, "30ms",
+	    65, NULL, BETA, "40ms",
+	};
+	int primary_isotope = 48;
+    },
+    new Dictionary {
+	String name = "Strontium";
+	String symbol = "Sr";
+	int    Z = 38;
+	int    period = 5;
+
+	Array properties = {"2", "s", METAL, SOLID, "87.62(1)", "0.95", "549.5", "200", "219", "1050", "1655", "2630", "33.94", "[Kr]5s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    37, NULL, POSITRON, "70ms",
+	    38, NULL, POSITRON, "8.9s",
+	    39, NULL, POSITRON, "9.0s",
+	    40, NULL, POSITRON, "2.6m",
+	    41, NULL, POSITRON, "2.1m",
+	    42, NULL, POSITRON, "1.77h",
+	    43, NULL, POSITRON, "22.3m",
+	    44, NULL, EC, "25.4d",
+	    45, NULL, EC, "1.35d",
+	    46, "0.56", NULL, NULL,
+	    47, NULL, EC, "64.8d",
+	    48, "9.86", NULL, NULL,
+	    49, "7.00", NULL, NULL,
+	    50, "82.58", NULL, NULL,
+	    51, NULL, BETA, "50.5d",
+	    52, NULL, BETA, "28.78y",
+	    53, NULL, BETA, "9.5h",
+	    54, NULL, BETA, "2.71h",
+	    55, NULL, BETA, "7.4m",
+	    56, NULL, BETA, "1.25m",
+	    57, NULL, BETA, "25s",
+	    58, NULL, BETA, "1.1s",
+	    59, NULL, BETA, "430ms",
+	    60, NULL, BETA, "650ms",
+	    61, NULL, BETA, "260ms",
+	    62, NULL, BETA, "201ms",
+	    63, NULL, BETA, "116ms",
+	    64, NULL, BETA, "68ms",
+	};
+	int primary_isotope = 50;
+    },
+    new Dictionary {
+	String name = "Yttrium";
+	String symbol = "Y";
+	int    Z = 39;
+	int    period = 5;
+
+	Array properties = {"3", "d", METAL, SOLID, "88.90585(2)", "1.22", "600", "180", "212", "1799", "3609", "4472", "19.88", "[Kr]4d\x00B95s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    38, NULL, POSITRON, "60ms",
+	    39, NULL, POSITRON, "50ms",
+	    40, NULL, POSITRON, "15s",
+	    41, NULL, POSITRON, "30s",
+	    42, NULL, POSITRON, "1.21m",
+	    43, NULL, POSITRON, "8.6s",
+	    44, NULL, POSITRON, "2.85m",
+	    45, NULL, POSITRON, "4.6s",
+	    46, NULL, POSITRON, "2.6h",
+	    47, NULL, EC, "14.74h",
+	    48, NULL, EC, "13.4h",
+	    49, NULL, EC, "106.65d",
+	    50, "100", NULL, NULL,
+	    51, NULL, BETA, "3.19h",
+	    52, NULL, BETA, "58.5d",
+	    53, NULL, BETA, "3.54h",
+	    54, NULL, BETA, "10.2h",
+	    55, NULL, BETA, "18.7m",
+	    56, NULL, BETA, "10.3m",
+	    57, NULL, BETA, "5.3s",
+	    58, NULL, BETA, "1.21s",
+	    59, NULL, BETA, "590ms",
+	    60, NULL, BETA, "1.5s",
+	    61, NULL, BETA, "730ms",
+	    62, NULL, BETA, "430ms",
+	    63, NULL, BETA, "300ms",
+	    64, NULL, BETA, "220ms",
+	    65, NULL, BETA, "200ms",
+	};
+	int primary_isotope = 50;
+    },
+    new Dictionary {
+	String name = "Zirconium";
+	String symbol = "Zr";
+	int    Z = 40;
+	int    period = 5;
+
+	Array properties = {"4", "d", METAL, SOLID, "91.224(2)", "1.33", "640.1", "155", "206", "2128", "4682", "6511", "14.02", "[Kr]4d\x00B25s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    39, NULL, POSITRON, "60ms",
+	    40, NULL, POSITRON, "5s",
+	    41, NULL, POSITRON, "5.5s",
+	    42, NULL, POSITRON, "32s",
+	    43, NULL, POSITRON, "44s",
+	    44, NULL, POSITRON, "26m",
+	    45, NULL, POSITRON, "10.9s",
+	    46, NULL, EC, "16.5h",
+	    47, NULL, POSITRON, "1.71h",
+	    48, NULL, EC, "83.4d",
+	    49, NULL, EC, "3.27d",
+	    50, "51.45", NULL, NULL,
+	    51, "11.22", NULL, NULL,
+	    52, "17.15", NULL, NULL,
+	    53, NULL, BETA, "1.5\x00D710\x2076y",
+	    54, "17.38", NULL, NULL,
+	    55, NULL, BETA, "64.0d",
+	    56, "2.80", NULL, NULL,
+	    57, NULL, BETA, "16.8h",
+	    58, NULL, BETA, "30.7s",
+	    59, NULL, BETA, "2.2s",
+	    60, NULL, BETA, "7.1s",
+	    61, NULL, BETA, "2.4s",
+	    62, NULL, BETA, "2.9s",
+	    63, NULL, BETA, "1.3s",
+	    64, NULL, BETA, "1.2s",
+	    65, NULL, BETA, "600ms",
+	};
+	int primary_isotope = 50;
+    },
+    new Dictionary {
+	String name = "Niobium";
+	String symbol = "Nb";
+	int    Z = 41;
+	int    period = 5;
+
+	Array properties = {"5", "d", METAL, SOLID, "92.90638(2)", "1.6", "652.1", "145", "198", "2750", "5017", "8570", "10.83", "[Kr]4d\x20745s\x00B9", NO, NO};
+
+	Array isotopes = {
+	    41, NULL, POSITRON, "50ms",
+	    42, NULL, POSITRON, "4.1s",
+	    43, NULL, POSITRON, "12s",
+	    44, NULL, POSITRON, "21s",
+	    45, NULL, POSITRON, "56s",
+	    46, NULL, POSITRON, "2.6m",
+	    47, NULL, POSITRON, "7.7m",
+	    48, NULL, POSITRON, "1.1h",
+	    49, NULL, POSITRON, "14.6h",
+	    50, NULL, EC, "62d",
+	    51, NULL, EC, "10.1d",
+	    52, "100", NULL, NULL,
+	    53, NULL, BETA, "6.26m",
+	    54, NULL, BETA, "3.61d",
+	    55, NULL, BETA, "23.4h",
+	    56, NULL, BETA, "1.23h",
+	    57, NULL, BETA, "2.9s",
+	    58, NULL, BETA, "15s",
+	    59, NULL, BETA, "1.5s",
+	    60, NULL, BETA, "7.1s",
+	    61, NULL, BETA, "1.3s",
+	    62, NULL, BETA, "1.5s",
+	    63, NULL, BETA, "920ms",
+	    64, NULL, BETA, "2.9s",
+	    65, NULL, BETA, "920ms",
+	    66, NULL, BETA, "310ms",
+	    67, NULL, BETA, "190ms",
+	    68, NULL, BETA, "190ms",
+	    69, NULL, BETA, "170ms",
+	};
+	int primary_isotope = 52;
+    },
+    new Dictionary {
+	String name = "Molybdenum";
+	String symbol = "Mo";
+	int    Z = 42;
+	int    period = 5;
+
+	Array properties = {"6", "d", METAL, SOLID, "95.94(2)", "2.16", "684.3", "145", "190", "2896", "4912", "10280", "9.38", "[Kr]4d\x20755s\x00B9", NO, NO};
+
+	Array isotopes = {
+	    41, NULL, POSITRON, "6ms",
+	    42, NULL, POSITRON, "3.7s",
+	    43, NULL, POSITRON, "3.2s",
+	    44, NULL, POSITRON, "20s",
+	    45, NULL, POSITRON, "14s",
+	    46, NULL, POSITRON, "8.0m",
+	    47, NULL, POSITRON, "2.0m",
+	    48, NULL, POSITRON, "5.7h",
+	    49, NULL, POSITRON, "15.5m",
+	    50, "14.84", NULL, NULL,
+	    51, NULL, EC, "3500y",
+	    52, "9.25", NULL, NULL,
+	    53, "15.92", NULL, NULL,
+	    54, "16.68", NULL, NULL,
+	    55, "9.55", NULL, NULL,
+	    56, "24.13", NULL, NULL,
+	    57, NULL, BETA, "2.75d",
+	    58, "9.63", NULL, NULL,
+	    59, NULL, BETA, "14.6m",
+	    60, NULL, BETA, "11.3m",
+	    61, NULL, BETA, "1.13m",
+	    62, NULL, BETA, "1.0m",
+	    63, NULL, BETA, "36s",
+	    64, NULL, BETA, "8.7s",
+	    65, NULL, BETA, "3.5s",
+	    66, NULL, BETA, "1.1s",
+	    67, NULL, BETA, "500ms",
+	    68, NULL, BETA, "300ms",
+	};
+	int primary_isotope = 56;
+    },
+    new Dictionary {
+	String name = "Technetium";
+	String symbol = "Tc";
+	int    Z = 43;
+	int    period = 5;
+
+	Array properties = {"7", "d", METAL, SOLID, "[98]", "1.9", "702", "135", "183", "2430", "4538", "11500", "8.63", "[Kr]4d\x20765s\x00B9", YES, NO};
+
+	Array isotopes = {
+	    43, NULL, POSITRON, "50ms",
+	    44, NULL, POSITRON, "2.2s",
+	    45, NULL, POSITRON, "5.8s",
+	    46, NULL, POSITRON, "13s",
+	    47, NULL, POSITRON, "8.3s",
+	    48, NULL, POSITRON, "3.14m",
+	    49, NULL, POSITRON, "4.2m",
+	    50, NULL, EC, "2.73h",
+	    51, NULL, POSITRON, "52m",
+	    52, NULL, EC, "20.0h",
+	    53, NULL, EC, "52m",
+	    54, NULL, EC, "4.2\x00D710\x2076y",
+	    55, NULL, BETA, "4.2\x00D710\x2076y",
+	    56, NULL, BETA, "2.13\x00D710\x2075y",
+	    57, NULL, POSITRON, "15.8s",
+	    58, NULL, BETA, "14.2m",
+	    59, NULL, BETA, "4.4s",
+	    60, NULL, BETA, "54s",
+	    61, NULL, BETA, "18.2m",
+	    62, NULL, BETA, "7.6m",
+	    63, NULL, BETA, "36s",
+	    64, NULL, BETA, "21s",
+	    65, NULL, BETA, "5.1s",
+	    66, NULL, BETA, "870ms",
+	    67, NULL, BETA, "870ms",
+	    68, NULL, BETA, "300ms",
+	    69, NULL, BETA, "260ms",
+	    70, NULL, BETA, "150ms",
+	    71, NULL, BETA, "150ms",
+	};
+	int primary_isotope = 54;
+    },
+    new Dictionary {
+	String name = "Ruthenium";
+	String symbol = "Ru";
+	int    Z = 44;
+	int    period = 5;
+
+	Array properties = {"8", "d", METAL, SOLID, "101.07(2)", "2.2", "710.2", "130", "178", "2607", "4423", "12370", "8.17", "[Kr]4d\x20775s\x00B9", NO, NO};
+
+	Array isotopes = {
+	    44, NULL, POSITRON, "1.2s",
+	    45, NULL, POSITRON, "1.3s",
+	    46, NULL, POSITRON, "11s",
+	    47, NULL, POSITRON, "9s",
+	    48, NULL, POSITRON, "3.7m",
+	    49, NULL, POSITRON, "10.8s",
+	    50, NULL, EC, "52m",
+	    51, NULL, EC, "1.64h",
+	    52, "5.54", NULL, NULL,
+	    53, NULL, EC, "2.89d",
+	    54, "1.87", NULL, NULL,
+	    55, "12.76", NULL, NULL,
+	    56, "12.60", NULL, NULL,
+	    57, "17.06", NULL, NULL,
+	    58, "31.55", NULL, NULL,
+	    59, NULL, BETA, "39.3d",
+	    60, "18.62", NULL, NULL,
+	    61, NULL, BETA, "4.44h",
+	    62, NULL, BETA, "1.02y",
+	    63, NULL, BETA, "3.8m",
+	    64, NULL, BETA, "4.5m",
+	    65, NULL, BETA, "34.5s",
+	    66, NULL, BETA, "12s",
+	    67, NULL, BETA, "2.1s",
+	    68, NULL, BETA, "1.8s",
+	    69, NULL, BETA, "510ms",
+	    70, NULL, BETA, "570ms",
+	    71, NULL, BETA, "740ms",
+	};
+	int primary_isotope = 58;
+    },
+    new Dictionary {
+	String name = "Rhodium";
+	String symbol = "Rh";
+	int    Z = 45;
+	int    period = 5;
+
+	Array properties = {"9", "d", METAL, SOLID, "102.90550(2)", "2.28", "719.7", "135", "173", "2237", "3968", "12450", "8.28", "[Kr]4d\x20785s\x00B9", NO, NO};
+
+	Array isotopes = {
+	    45, NULL, POSITRON, "120ms",
+	    46, NULL, POSITRON, "1.7s",
+	    47, NULL, POSITRON, "5s",
+	    48, NULL, POSITRON, "14s",
+	    49, NULL, POSITRON, "25.8s",
+	    50, NULL, POSITRON, "1.96m",
+	    51, NULL, POSITRON, "1.51m",
+	    52, NULL, POSITRON, "31m",
+	    53, NULL, POSITRON, "3.5m",
+	    54, NULL, EC, "4.7h",
+	    55, NULL, EC, "20.8h",
+	    56, NULL, EC, "4.35d",
+	    57, NULL, EC, "207d",
+	    58, "100", NULL, NULL,
+	    59, NULL, BETA, "42.3s",
+	    60, NULL, BETA, "35.4h",
+	    61, NULL, BETA, "29.9s",
+	    62, NULL, BETA, "21.7m",
+	    63, NULL, BETA, "17s",
+	    64, NULL, BETA, "1.34m",
+	    65, NULL, BETA, "3.1s",
+	    66, NULL, BETA, "11s",
+	    67, NULL, BETA, "2.1s",
+	    68, NULL, BETA, "2.8s",
+	    69, NULL, BETA, "1.8s",
+	    70, NULL, BETA, "990ms",
+	    71, NULL, BETA, "600ms",
+	    72, NULL, BETA, "440ms",
+	    73, NULL, BETA, "300ms",
+	};
+	int primary_isotope = 58;
+    },
+    new Dictionary {
+	String name = "Palladium";
+	String symbol = "Pd";
+	int    Z = 46;
+	int    period = 5;
+
+	Array properties = {"10", "d", METAL, SOLID, "106.42(1)", "2.20", "804.4", "140", "169", "1828.05", "3236", "12023", "8.56", "[Kr]4d\x00B9\x2070", NO, NO};
+
+	Array isotopes = {
+	    46, NULL, POSITRON, "1.0s",
+	    47, NULL, POSITRON, "1.1s",
+	    48, NULL, EC, "9s",
+	    49, NULL, EC, "4s",
+	    50, NULL, EC, "2.03m",
+	    51, NULL, POSITRON, "3.1m",
+	    52, NULL, EC, "17.7m",
+	    53, NULL, POSITRON, "21.4m",
+	    54, NULL, EC, "3.7d",
+	    55, NULL, EC, "8.4h",
+	    56, "1.02", NULL, NULL,
+	    57, NULL, EC, "17.0d",
+	    58, "11.14", NULL, NULL,
+	    59, "22.33", NULL, NULL,
+	    60, "27.33", NULL, NULL,
+	    61, NULL, BETA, "6.5\x00D710\x2076y",
+	    62, "26.46", NULL, NULL,
+	    63, NULL, BETA, "13.46h",
+	    64, "11.72", NULL, NULL,
+	    65, NULL, BETA, "23.4m",
+	    66, NULL, BETA, "21.04h",
+	    67, NULL, BETA, "1.53m",
+	    68, NULL, BETA, "2.48m",
+	    69, NULL, BETA, "25s",
+	    70, NULL, BETA, "12s",
+	    71, NULL, BETA, "4.4s",
+	    72, NULL, BETA, "2.1s",
+	    73, NULL, BETA, "900ms",
+	    74, NULL, BETA, "500ms",
+	};
+	int primary_isotope = 60;
+    },
+    new Dictionary {
+	String name = "Silver";
+	String symbol = "Ag";
+	int    Z = 47;
+	int    period = 5;
+
+	Array properties = {"11", "d", METAL, SOLID, "107.8682(2)", "1.93", "731.0", "160", "165", "1234.93", "2435", "10490", "10.27", "[Kr]4d\x00B9\x20705s\x00B9", NO, NO};
+
+	Array isotopes = {
+	    47, NULL, POSITRON, "300ms",
+	    48, NULL, POSITRON, "1.9s",
+	    49, NULL, POSITRON, "5.1s",
+	    50, NULL, POSITRON, "25.4s",
+	    51, NULL, POSITRON, "47.4s",
+	    52, NULL, POSITRON, "2.07m",
+	    53, NULL, POSITRON, "2.0m",
+	    54, NULL, POSITRON, "11.1m",
+	    55, NULL, POSITRON, "7.8m",
+	    56, NULL, EC, "1.10h",
+	    57, NULL, POSITRON, "33m",
+	    58, NULL, EC, "41.3d",
+	    59, NULL, EC, "24.0m",
+	    60, "51.84", NULL, NULL,
+	    61, NULL, BETA, "2.39m",
+	    62, "48.16", NULL, NULL,
+	    63, NULL, BETA, "24.6s",
+	    64, NULL, BETA, "1.08m",
+	    65, NULL, BETA, "3.13h",
+	    66, NULL, BETA, "1.14m",
+	    67, NULL, BETA, "4.6s",
+	    68, NULL, BETA, "18.7s",
+	    69, NULL, BETA, "9s",
+	    70, NULL, BETA, "5.3s",
+	    71, NULL, BETA, "2.4s",
+	    72, NULL, BETA, "6s",
+	    73, NULL, BETA, "320ms",
+	    74, NULL, BETA, "780ms",
+	    75, NULL, BETA, "530ms",
+	    76, NULL, BETA, "300ms",
+	    77, NULL, BETA, "170ms",
+	    78, NULL, BETA, "170ms",
+	    79, NULL, BETA, "100ms",
+	    80, NULL, BETA, "790ms",
+	    81, NULL, BETA, "60ms",
+	    82, NULL, BETA, "50ms",
+	};
+	int primary_isotope = 60;
+    },
+    new Dictionary {
+	String name = "Cadmium";
+	String symbol = "Cd";
+	int    Z = 48;
+	int    period = 5;
+
+	Array properties = {"12", "d", METAL, SOLID, "112.411(8)", "1.69", "867.8", "155", "161", "594.22", "1040", "8650", "13.00", "[Kr]4d\x00B9\x20705s\x00B2", TRACE, NO};
+
+	Array isotopes = {
+	    49, NULL, POSITRON, "3s",
+	    50, NULL, POSITRON, "9.2s",
+	    51, NULL, POSITRON, "16s",
+	    52, NULL, POSITRON, "49.1s",
+	    53, NULL, POSITRON, "1.36m",
+	    54, NULL, POSITRON, "5.8m",
+	    55, NULL, POSITRON, "7.5m",
+	    56, NULL, EC, "58m",
+	    57, NULL, EC, "55.5m",
+	    58, "1.25", NULL, NULL,
+	    59, NULL, EC, "6.52h",
+	    60, "0.89", NULL, NULL,
+	    61, NULL, EC, "1.26y",
+	    62, "12.49", NULL, NULL,
+	    63, "12.80", NULL, NULL,
+	    64, "24.13", NULL, NULL,
+	    65, "12.22", BETA, "7.7\x00D710\x00B9\x2075y",
+	    66, "28.73", NULL, NULL,
+	    67, NULL, BETA, "2.23d",
+	    68, "7.49", BETA, "3\x00D710\x00B9\x2079y",
+	    69, NULL, BETA, "3.4h",
+	    70, NULL, BETA, "50.3m",
+	    71, NULL, BETA, "2.2m",
+	    72, NULL, BETA, "50.8s",
+	    73, NULL, BETA, "8s",
+	    74, NULL, BETA, "5.3s",
+	    75, NULL, BETA, "1.84s",
+	    76, NULL, BETA, "1.24s",
+	    77, NULL, BETA, "600ms",
+	    78, NULL, BETA, "520ms",
+	    79, NULL, BETA, "400ms",
+	    80, NULL, BETA, "280ms",
+	    81, NULL, BETA, "270ms",
+	    82, NULL, BETA, "160ms",
+	    83, NULL, BETA, "68ms",
+	    84, NULL, BETA, "10ms",
+	};
+	int primary_isotope = 66;
+    },
+    new Dictionary {
+	String name = "Indium";
+	String symbol = "In";
+	int    Z = 49;
+	int    period = 5;
+
+	Array properties = {"13", "p", METAL, SOLID, "114.818(3)", "1.78", "558.3", "155", "156", "429.75", "2345", "7310", "15.76", "[Kr]4d\x00B9\x20705s\x00B25p\x00B9", TRACE, NO};
+
+	Array isotopes = {
+	    49, NULL, POSITRON, "1s",
+	    50, NULL, POSITRON, "3s",
+	    51, NULL, POSITRON, "6s",
+	    52, NULL, POSITRON, "15s",
+	    53, NULL, POSITRON, "22s",
+	    54, NULL, POSITRON, "34s",
+	    55, NULL, POSITRON, "16s",
+	    56, NULL, POSITRON, "43s",
+	    57, NULL, POSITRON, "5.3m",
+	    58, NULL, POSITRON, "32.4m",
+	    59, NULL, POSITRON, "40m",
+	    60, NULL, EC, "4.2h",
+	    61, NULL, POSITRON, "1.15h",
+	    62, NULL, EC, "2.80d",
+	    63, NULL, BETA, "14.4m",
+	    64, "4.29", NULL, NULL,
+	    65, NULL, BETA, "1.2m",
+	    66, "95.71", BETA, "5.4\x00D710\x00B9\x2074y",
+	    67, NULL, BETA, "14.1s",
+	    68, NULL, BETA, "44m",
+	    69, NULL, BETA, "5.0s",
+	    70, NULL, BETA, "2.3m",
+	    71, NULL, BETA, "3.1s",
+	    72, NULL, BETA, "23s",
+	    73, NULL, BETA, "1.5s",
+	    74, NULL, BETA, "6.0s",
+	    75, NULL, BETA, "3.18s",
+	    76, NULL, BETA, "2.36s",
+	    77, NULL, BETA, "1.53s",
+	    78, NULL, BETA, "1.14s",
+	    79, NULL, BETA, "700ms",
+	    80, NULL, BETA, "630ms",
+	    81, NULL, BETA, "290ms",
+	    82, NULL, BETA, "280ms",
+	    83, NULL, BETA, "200ms",
+	    84, NULL, BETA, "165ms",
+	    85, NULL, BETA, "140ms",
+	    86, NULL, BETA, "90ms",
+	};
+	int primary_isotope = 66;
+    },
+    new Dictionary {
+	String name = "Tin";
+	String symbol = "Sn";
+	int    Z = 50;
+	int    period = 5;
+
+	Array properties = {"14", "p", METAL, SOLID, "118.710(7)", "1.96", "708.6", "145", "145", "505.08", "2875", "7310", "16.29", "[Kr]4d\x00B9\x20705s\x00B25p\x00B2", NO, NO};
+
+	Array isotopes = {
+	    50, NULL, POSITRON, "1s",
+	    51, NULL, POSITRON, "3s",
+	    52, NULL, POSITRON, "4.5s",
+	    53, NULL, POSITRON, "7s",
+	    54, NULL, POSITRON, "20.8s",
+	    55, NULL, POSITRON, "34s",
+	    56, NULL, EC, "2.0m",
+	    57, NULL, POSITRON, "2.9m",
+	    58, NULL, EC, "10.3m",
+	    59, NULL, POSITRON, "18m",
+	    60, NULL, EC, "4.1h",
+	    61, NULL, EC, "35m",
+	    62, "0.97", NULL, NULL,
+	    63, NULL, EC, "115.1d",
+	    64, "0.66", NULL, NULL,
+	    65, "0.34", NULL, NULL,
+	    66, "14.54", NULL, NULL,
+	    67, "7.68", NULL, NULL,
+	    68, "24.22", NULL, NULL,
+	    69, "8.59", NULL, NULL,
+	    70, "32.58", NULL, NULL,
+	    71, NULL, BETA, "1.13d",
+	    72, "4.63", NULL, NULL,
+	    73, NULL, BETA, "129.2d",
+	    74, "5.79", NULL, NULL,
+	    75, NULL, BETA, "9.5m",
+	    76, NULL, BETA, "2.3\x00D710\x2075y",
+	    77, NULL, BETA, "4.15m",
+	    78, NULL, BETA, "59.1m",
+	    79, NULL, BETA, "2.4m",
+	    80, NULL, BETA, "1.7m",
+	    81, NULL, BETA, "56s",
+	    82, NULL, BETA, "40s",
+	    83, NULL, BETA, "1.44s",
+	    84, NULL, BETA, "1.04s",
+	    85, NULL, BETA, "530ms",
+	    86, NULL, BETA, "260ms",
+	    87, NULL, BETA, "240ms",
+	};
+	int primary_isotope = 70;
+    },
+    new Dictionary {
+	String name = "Antimony";
+	String symbol = "Sb";
+	int    Z = 51;
+	int    period = 5;
+
+	Array properties = {"15", "p", SEMIMETAL, SOLID, "121.760(1)", "2.05", "834", "145", "133", "903.78", "1860", "6697", "18.19", "[Kr]4d\x00B9\x20705s\x00B25p\x00B3", NO, NO};
+
+	Array isotopes = {
+	    53, NULL, POSITRON, "400ms",
+	    54, NULL, POSITRON, "1.3s",
+	    55, NULL, POSITRON, "600ms",
+	    56, NULL, POSITRON, "4.0s",
+	    57, NULL, POSITRON, "7.4s",
+	    58, NULL, POSITRON, "17s",
+	    59, NULL, POSITRON, "24s",
+	    60, NULL, EC, "1.25m",
+	    61, NULL, POSITRON, "51.4s",
+	    62, NULL, POSITRON, "6.7m",
+	    63, NULL, POSITRON, "3.5m",
+	    64, NULL, EC, "32.1m",
+	    65, NULL, EC, "16m",
+	    66, NULL, EC, "2.80h",
+	    67, NULL, POSITRON, "3.6m",
+	    68, NULL, EC, "38.1h",
+	    69, NULL, EC, "15.9m",
+	    70, "57.21", NULL, NULL,
+	    71, NULL, BETA, "2.72d",
+	    72, "42.79", NULL, NULL,
+	    73, NULL, BETA, "60.2d",
+	    74, NULL, BETA, "2.76y",
+	    75, NULL, BETA, "12.4d",
+	    76, NULL, BETA, "3.84d",
+	    77, NULL, BETA, "10.1m",
+	    78, NULL, BETA, "17.7m",
+	    79, NULL, BETA, "6.3m",
+	    80, NULL, BETA, "23.0m",
+	    81, NULL, BETA, "2.8m",
+	    82, NULL, BETA, "2.5m",
+	    83, NULL, BETA, "800ms",
+	    84, NULL, BETA, "1.7s",
+	    85, NULL, BETA, "920ms",
+	    86, NULL, BETA, "900ms",
+	};
+	int primary_isotope = 70;
+    },
+    new Dictionary {
+	String name = "Tellurium";
+	String symbol = "Te";
+	int    Z = 52;
+	int    period = 5;
+
+	Array properties = {"16", "p", SEMIMETAL, SOLID, "127.60(3)", "2.1", "869.3", "140", "123", "722.66", "1261", "6240", "20.46", "[Kr]4d\x00B9\x20705s\x00B25p\x2074", NO, NO};
+
+	Array isotopes = {
+	    54, NULL, ALPHA, "0.06ms",
+	    55, NULL, ALPHA, "3.1ms",
+	    56, NULL, ALPHA, "2.1s",
+	    57, NULL, POSITRON, "4.6s",
+	    58, NULL, POSITRON, "19s",
+	    59, NULL, POSITRON, "19.3s",
+	    60, NULL, POSITRON, "2.0m",
+	    61, NULL, POSITRON, "1.7m",
+	    62, NULL, POSITRON, "15m",
+	    63, NULL, POSITRON, "5.8m",
+	    64, NULL, EC, "2.49h",
+	    65, NULL, EC, "1.03h",
+	    66, NULL, EC, "6.00d",
+	    67, NULL, EC, "16h",
+	    68, "0.09", NULL, NULL,
+	    69, NULL, EC, "16.8d",
+	    70, "2.55", NULL, NULL,
+	    71, "0.89", NULL, NULL,
+	    72, "4.74", NULL, NULL,
+	    73, "7.07", NULL, NULL,
+	    74, "18.84", NULL, NULL,
+	    75, NULL, BETA, "9.4h",
+	    76, "31.74", NULL, NULL,
+	    77, NULL, BETA, "1.16h",
+	    78, "34.08", NULL, NULL,
+	    79, NULL, BETA, "25.0m",
+	    80, NULL, BETA, "3.20d",
+	    81, NULL, BETA, "12.4m",
+	    82, NULL, BETA, "42m",
+	    83, NULL, BETA, "19.0s",
+	    84, NULL, BETA, "17.5s",
+	    85, NULL, BETA, "2.5s",
+	    86, NULL, BETA, "1.4s",
+	};
+	int primary_isotope = 78;
+    },
+    new Dictionary {
+	String name = "Iodine";
+	String symbol = "I";
+	int    Z = 53;
+	int    period = 5;
+
+	Array properties = {"17", "p", NONMETAL, SOLID, "126.90447(3)", "2.66", "1008.4", "140", "115", "386.85", "457.4", "4940", "25.72", "[Kr]4d\x00B9\x20705s\x00B25p\x2075", NO, NO};
+
+	Array isotopes = {
+	    55, NULL, ALPHA, "36ms",
+	    56, NULL, PROTON, "0.1ms",
+	    57, NULL, EC, "650ms",
+	    58, NULL, EC, "2.5s",
+	    59, NULL, EC, "3.4s",
+	    60, NULL, EC, "5.9s",
+	    61, NULL, EC, "2.1s",
+	    62, NULL, EC, "1.3m",
+	    63, NULL, POSITRON, "2.9s",
+	    64, NULL, POSITRON, "2.22m",
+	    65, NULL, EC, "8.5m",
+	    66, NULL, POSITRON, "19.1m",
+	    67, NULL, POSITRON, "53m",
+	    68, NULL, EC, "2.12h",
+	    69, NULL, POSITRON, "3.6m",
+	    70, NULL, EC, "13.2h",
+	    71, NULL, EC, "4.176d",
+	    72, NULL, EC, "59.4d",
+	    73, NULL, EC, "13.0d",
+	    74, "100", NULL, NULL,
+	    75, NULL, BETA, "25.0m",
+	    76, NULL, BETA, "1.57\x00D710\x2077y",
+	    77, NULL, BETA, "12.36h",
+	    78, NULL, BETA, "8.02d",
+	    79, NULL, BETA, "2.285h",
+	    80, NULL, BETA, "20.8h",
+	    81, NULL, BETA, "3.7m",
+	    82, NULL, BETA, "6.57h",
+	    83, NULL, BETA, "47s",
+	    84, NULL, BETA, "24.5s",
+	    85, NULL, BETA, "6.5s",
+	    86, NULL, BETA, "2.3s",
+	    87, NULL, BETA, "860ms",
+	    88, NULL, BETA, "450ms",
+	    89, NULL, BETA, "200ms",
+	};
+	int primary_isotope = 74;
+    },
+    new Dictionary {
+	String name = "Xenon";
+	String symbol = "Xe";
+	int    Z = 54;
+	int    period = 5;
+
+	Array properties = {"18", "p", NONMETAL, GAS, "131.293(6)", "2.6", "1170.4", "", "108", "161.4", "165.1", "", "35.92", "[Kr]4d\x00B9\x20705s\x00B25p\x2076", NO, NO};
+
+	Array isotopes = {
+	    56, NULL, EC, "200ms",
+	    57, NULL, EC, "700ms",
+	    58, NULL, EC, "3s",
+	    59, NULL, EC, "2.8s",
+	    60, NULL, EC, "10.0s",
+	    61, NULL, EC, "18s",
+	    62, NULL, EC, "56s",
+	    63, NULL, EC, "1.02m",
+	    64, NULL, EC, "4m",
+	    65, NULL, EC, "5.8m",
+	    66, NULL, EC, "40m",
+	    67, NULL, POSITRON, "39m",
+	    68, NULL, EC, "20.1h",
+	    69, NULL, EC, "2.0h",
+	    70, "0.09", NULL, NULL,
+	    71, NULL, EC, "17.1h",
+	    72, "0.09", NULL, NULL,
+	    73, NULL, EC, "36.4d",
+	    74, "1.92", NULL, NULL,
+	    75, "26.44", NULL, NULL,
+	    76, "4.08", NULL, NULL,
+	    77, "21.18", NULL, NULL,
+	    78, "26.89", NULL, NULL,
+	    79, NULL, BETA, "5.24d",
+	    80, "10.44", NULL, NULL,
+	    81, NULL, BETA, "9.1h",
+	    82, "8.87", NULL, NULL,
+	    83, NULL, BETA, "3.82m",
+	    84, NULL, BETA, "14.1m",
+	    85, NULL, BETA, "39.7s",
+	    86, NULL, BETA, "13.6s",
+	    87, NULL, BETA, "1.72s",
+	    88, NULL, BETA, "1.22s",
+	    89, NULL, BETA, "300ms",
+	    90, NULL, BETA, "1.2s",
+	    91, NULL, BETA, "900ms",
+	};
+	int primary_isotope = 78;
+    },
+    new Dictionary {
+	String name = "Caesium";
+	String symbol = "Cs";
+	int    Z = 55;
+	int    period = 6;
+
+	Array properties = {"1", "s", METAL, SOLID, "132.9054519(2)", "0.79", "375.7", "260", "298", "301.59", "944", "1879", "70.94", "[Xe]6s\x00B9", NO, NO};
+
+	Array isotopes = {
+	    57, NULL, PROTON, "0.5ms",
+	    58, NULL, PROTON, "17us",
+	    59, NULL, POSITRON, "580s",
+	    60, NULL, EC, "1.4s",
+	    61, NULL, POSITRON, "700ms",
+	    62, NULL, POSITRON, "6.5s",
+	    63, NULL, POSITRON, "14s",
+	    64, NULL, POSITRON, "30.4s",
+	    65, NULL, POSITRON, "57s",
+	    66, NULL, POSITRON, "2.0m",
+	    67, NULL, POSITRON, "21s",
+	    68, NULL, POSITRON, "5.94m",
+	    69, NULL, POSITRON, "30s",
+	    70, NULL, EC, "45m",
+	    71, NULL, POSITRON, "1.64m",
+	    72, NULL, EC, "6.2h",
+	    73, NULL, POSITRON, "3.62m",
+	    74, NULL, EC, "1.34d",
+	    75, NULL, EC, "29.2m",
+	    76, NULL, EC, "9.69d",
+	    77, NULL, EC, "6.48d",
+	    78, "100", NULL, NULL,
+	    79, NULL, BETA, "2.065y",
+	    80, NULL, BETA, "2.3\x00D710\x2076y",
+	    81, NULL, BETA, "13.2d",
+	    82, NULL, BETA, "30.1y",
+	    83, NULL, BETA, "32.2m",
+	    84, NULL, BETA, "9.3m",
+	    85, NULL, BETA, "1.06m",
+	    86, NULL, BETA, "25s",
+	    87, NULL, BETA, "1.8s",
+	    88, NULL, BETA, "1.8s",
+	    89, NULL, BETA, "1.01s",
+	    90, NULL, BETA, "590ms",
+	    91, NULL, BETA, "322ms",
+	    92, NULL, BETA, "227ms",
+	    93, NULL, BETA, "150ms",
+	};
+	int primary_isotope = 78;
+    },
+    new Dictionary {
+	String name = "Barium";
+	String symbol = "Ba";
+	int    Z = 56;
+	int    period = 6;
+
+	Array properties = {"2", "s", METAL, SOLID, "137.327(7)", "0.89", "502.9", "215", "253", "1000", "2143", "3510", "38.16", "[Xe]6s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    58, NULL, POSITRON, "400ms",
+	    59, NULL, POSITRON, "450ms",
+	    60, NULL, POSITRON, "1.3s",
+	    61, NULL, POSITRON, "1.8s",
+	    62, NULL, POSITRON, "5.2s",
+	    63, NULL, POSITRON, "5.4s",
+	    64, NULL, POSITRON, "24s",
+	    65, NULL, POSITRON, "30s",
+	    66, NULL, POSITRON, "2.0m",
+	    67, NULL, POSITRON, "2.7m",
+	    68, NULL, EC, "12m",
+	    69, NULL, POSITRON, "3.5m",
+	    70, NULL, EC, "1.65h",
+	    71, NULL, POSITRON, "12.9m",
+	    72, NULL, EC, "2.43d",
+	    73, NULL, POSITRON, "2.2h",
+	    74, "0.106", NULL, NULL,
+	    75, NULL, EC, "11.5d",
+	    76, "0.101", NULL, NULL,
+	    77, NULL, EC, "10.53y",
+	    78, "2.417", NULL, NULL,
+	    79, "6.592", NULL, NULL,
+	    80, "7.854", NULL, NULL,
+	    81, "11.232", NULL, NULL,
+	    82, "71.698", NULL, NULL,
+	    83, NULL, BETA, "1.4h",
+	    84, NULL, BETA, "12.75d",
+	    85, NULL, BETA, "18.3m",
+	    86, NULL, BETA, "10.7m",
+	    87, NULL, BETA, "14.3s",
+	    88, NULL, BETA, "11.4s",
+	    89, NULL, BETA, "4.0s",
+	    90, NULL, BETA, "2.2s",
+	    91, NULL, BETA, "892ms",
+	    92, NULL, BETA, "640ms",
+	    93, NULL, BETA, "340ms",
+	    94, NULL, BETA, "300ms",
+	};
+	int primary_isotope = 82;
+    },
+    new Dictionary {
+	String name = "Lanthanum";
+	String symbol = "La";
+	int    Z = 57;
+	int    period = 6;
+
+	Array properties = {"3", "d", METAL, SOLID, "138.90547(7)", "1.10", "538.1", "195", "", "1193", "3743", "6146", "22.39", "[Xe]5d\x00B96s\x00B2", TRACE, NO};
+
+	Array isotopes = {
+	    63, NULL, EC, "2.8s",
+	    64, NULL, POSITRON, "5.3s",
+	    65, NULL, EC, "9s",
+	    66, NULL, EC, "17s",
+	    67, NULL, POSITRON, "21s",
+	    68, NULL, POSITRON, "1.2m",
+	    69, NULL, POSITRON, "50s",
+	    70, NULL, POSITRON, "3.7m",
+	    71, NULL, POSITRON, "4.6m",
+	    72, NULL, POSITRON, "11.6m",
+	    73, NULL, POSITRON, "8.7m",
+	    74, NULL, EC, "59m",
+	    75, NULL, POSITRON, "4.8h",
+	    76, NULL, EC, "3.9h",
+	    77, NULL, POSITRON, "6.5m",
+	    78, NULL, EC, "19.5h",
+	    79, NULL, EC, "9.87m",
+	    80, NULL, POSITRON, "6\x00D710\x2074y",
+	    81, "0.090", EC, "1.05\x00D710\x00B9\x00B9y",
+	    82, "99.910", NULL, NULL,
+	    83, NULL, BETA, "1.68d",
+	    84, NULL, BETA, "3.90h",
+	    85, NULL, BETA, "1.54h",
+	    86, NULL, BETA, "14.2m",
+	    87, NULL, BETA, "40.7s",
+	    88, NULL, BETA, "24s",
+	    89, NULL, BETA, "6.3s",
+	    90, NULL, BETA, "4.02s",
+	    91, NULL, BETA, "1.1s",
+	    92, NULL, BETA, "1.05s",
+	    93, NULL, BETA, "510ms",
+	};
+	int primary_isotope = 82;
+    },
+    new Dictionary {
+	String name = "Cerium";
+	String symbol = "Ce";
+	int    Z = 58;
+	int    period = 6;
+
+	Array properties = {"", "f", METAL, SOLID, "140.116(1)", "1.12", "534.4", "185", "", "1068", "3633", "6689", "20.69", "[Xe]4f\x00B95d\x00B96s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    63, NULL, POSITRON, "1.1s",
+	    65, NULL, EC, "3.8s",
+	    66, NULL, EC, "6s",
+	    67, NULL, EC, "9s",
+	    68, NULL, EC, "50s",
+	    69, NULL, POSITRON, "34s",
+	    70, NULL, EC, "4m",
+	    71, NULL, EC, "3.5m",
+	    72, NULL, EC, "23m",
+	    73, NULL, EC, "5m",
+	    74, NULL, EC, "3.5h",
+	    75, NULL, EC, "1.6h",
+	    76, NULL, EC, "3.16d",
+	    77, NULL, EC, "17.7h",
+	    78, "0.185", NULL, NULL,
+	    79, NULL, EC, "9.0h",
+	    80, "0.251", NULL, NULL,
+	    81, NULL, EC, "137.6d",
+	    82, "88.450", NULL, NULL,
+	    83, NULL, BETA, "32.5d",
+	    84, "11.114", NULL, NULL,
+	    85, NULL, BETA, "1.38d",
+	    86, NULL, BETA, "284.6d",
+	    87, NULL, BETA, "3.0m",
+	    88, NULL, BETA, "13.5m",
+	    89, NULL, BETA, "56s",
+	    90, NULL, BETA, "56s",
+	    91, NULL, BETA, "5.2s",
+	    92, NULL, BETA, "4.4s",
+	    93, NULL, BETA, "1.0s",
+	    94, NULL, BETA, "1.4s",
+	};
+	int primary_isotope = 82;
+    },
+    new Dictionary {
+	String name = "Praseodymium";
+	String symbol = "Pr";
+	int    Z = 59;
+	int    period = 6;
+
+	Array properties = {"", "f", METAL, SOLID, "140.90765(2)", "1.13", "527", "185", "247", "1208", "3563", "6640", "20.80", "[Xe]4f\x00B36s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    65, NULL, EC, "1.2s",
+	    66, NULL, POSITRON, "3s",
+	    67, NULL, EC, "3.1s",
+	    68, NULL, EC, "8s",
+	    69, NULL, POSITRON, "2.8s",
+	    70, NULL, POSITRON, "30s",
+	    71, NULL, POSITRON, "40s",
+	    72, NULL, POSITRON, "1.53m",
+	    73, NULL, POSITRON, "1.7m",
+	    74, NULL, POSITRON, "6.5m",
+	    75, NULL, POSITRON, "11m",
+	    76, NULL, POSITRON, "24m",
+	    77, NULL, EC, "13.1m",
+	    78, NULL, EC, "1.28h",
+	    79, NULL, POSITRON, "1.45m",
+	    80, NULL, EC, "4.41h",
+	    81, NULL, EC, "3.39m",
+	    82, "100", NULL, NULL,
+	    83, NULL, BETA, "19.12h",
+	    84, NULL, BETA, "13.57d",
+	    85, NULL, BETA, "17.28m",
+	    86, NULL, BETA, "5.98h",
+	    87, NULL, BETA, "24.2m",
+	    88, NULL, BETA, "13.4m",
+	    89, NULL, BETA, "2.0m",
+	    90, NULL, BETA, "2.3m",
+	    91, NULL, BETA, "6.2s",
+	    92, NULL, BETA, "19s",
+	    93, NULL, BETA, "3.2s",
+	    94, NULL, BETA, "4.3s",
+	    95, NULL, BETA, "2.3s",
+	};
+	int primary_isotope = 82;
+    },
+    new Dictionary {
+	String name = "Neodymium";
+	String symbol = "Nd";
+	int    Z = 60;
+	int    period = 6;
+
+	Array properties = {"", "f", METAL, SOLID, "144.242(3)", "1.14", "533.1", "185", "206", "1297", "3373", "6800", "20.59", "[Xe]4f\x20746s\x00B2", TRACE, NO};
+
+	Array isotopes = {
+	    65, NULL, POSITRON, "600ms",
+	    67, NULL, EC, "1.8s",
+	    69, NULL, EC, "4.9s",
+	    70, NULL, POSITRON, "21s",
+	    71, NULL, EC, "28s",
+	    72, NULL, POSITRON, "1.5m",
+	    73, NULL, POSITRON, "1.2m",
+	    74, NULL, EC, "8.5m",
+	    75, NULL, POSITRON, "5.5m",
+	    76, NULL, EC, "50.6m",
+	    77, NULL, EC, "38m",
+	    78, NULL, EC, "5.1h",
+	    79, NULL, EC, "30m",
+	    80, NULL, EC, "3.37d",
+	    81, NULL, EC, "2.49h",
+	    82, "27.2", NULL, NULL,
+	    83, "12.2", NULL, NULL,
+	    84, "23.8", ALPHA, "2.4\x00D710\x00B9\x2075y",
+	    85, "8.3", NULL, NULL,
+	    86, "17.2", NULL, NULL,
+	    87, NULL, BETA, "10.98d",
+	    88, "5.7", NULL, NULL,
+	    89, NULL, BETA, "1.73h",
+	    90, "5.6", NULL, NULL,
+	    91, NULL, BETA, "12.4m",
+	    92, NULL, BETA, "11.4m",
+	    93, NULL, BETA, "32s",
+	    94, NULL, BETA, "26s",
+	    95, NULL, BETA, "8.9s",
+	    96, NULL, BETA, "5.5s",
+	};
+	int primary_isotope = 82;
+    },
+    new Dictionary {
+	String name = "Promethium";
+	String symbol = "Pm";
+	int    Z = 61;
+	int    period = 6;
+
+	Array properties = {"", "f", METAL, SOLID, "[145]", "", "540", "185", "205", "1373", "3273", "7264", "20.23", "[Xe]4f\x20756s\x00B2", YES, NO};
+
+	Array isotopes = {
+	    67, NULL, POSITRON, "1.0s",
+	    69, NULL, POSITRON, "2.5s",
+	    70, NULL, POSITRON, "6s",
+	    71, NULL, POSITRON, "6s",
+	    72, NULL, POSITRON, "14s",
+	    73, NULL, POSITRON, "5s",
+	    74, NULL, POSITRON, "45s",
+	    75, NULL, POSITRON, "47s",
+	    76, NULL, POSITRON, "2.4m",
+	    77, NULL, POSITRON, "10s",
+	    78, NULL, POSITRON, "4.14m",
+	    79, NULL, EC, "9.2s",
+	    80, NULL, EC, "20.9m",
+	    81, NULL, POSITRON, "40.5s",
+	    82, NULL, EC, "265d",
+	    83, NULL, EC, "360d",
+	    84, NULL, EC, "17.7y",
+	    85, NULL, EC, "5.53y",
+	    86, NULL, BETA, "2.62y",
+	    87, NULL, BETA, "5.37d",
+	    88, NULL, BETA, "2.21d",
+	    89, NULL, BETA, "2.68h",
+	    90, NULL, BETA, "1.18d",
+	    91, NULL, BETA, "4.1m",
+	    92, NULL, BETA, "5.4m",
+	    93, NULL, BETA, "1.7m",
+	    94, NULL, BETA, "42s",
+	    95, NULL, BETA, "26.7s",
+	    96, NULL, BETA, "10.9s",
+	    97, NULL, BETA, "5s",
+	    98, NULL, BETA, "2s",
+	};
+	int primary_isotope = 84;
+    },
+    new Dictionary {
+	String name = "Samarium";
+	String symbol = "Sm";
+	int    Z = 62;
+	int    period = 6;
+
+	Array properties = {"", "f", METAL, SOLID, "150.36(2)", "1.17", "544.5", "185", "238", "1345", "2076", "7353", "19.98", "[Xe]4f\x20766s\x00B2", TRACE, NO};
+
+	Array isotopes = {
+	    67, NULL, POSITRON, "600ms",
+	    69, NULL, POSITRON, "1.6s",
+	    71, NULL, EC, "2.9s",
+	    72, NULL, POSITRON, "11s",
+	    73, NULL, POSITRON, "10s",
+	    74, NULL, POSITRON, "47s",
+	    75, NULL, POSITRON, "45s",
+	    76, NULL, POSITRON, "3.1m",
+	    77, NULL, POSITRON, "2.6m",
+	    78, NULL, EC, "14.8m",
+	    79, NULL, POSITRON, "10.2m",
+	    80, NULL, EC, "1.21h",
+	    81, NULL, EC, "8.83m",
+	    82, "3.07", NULL, NULL,
+	    83, NULL, EC, "340d",
+	    84, NULL, ALPHA, "1.0\x00D710\x2078y",
+	    85, "14.99", ALPHA, "1.1\x00D710\x00B9\x00B9y",
+	    86, "11.24", ALPHA, "7\x00D710\x00B9\x2075y",
+	    87, "13.82", NULL, NULL,
+	    88, "7.38", NULL, NULL,
+	    89, NULL, BETA, "90y",
+	    90, "26.75", NULL, NULL,
+	    91, NULL, BETA, "1.93d",
+	    92, "22.75", NULL, NULL,
+	    93, NULL, BETA, "22.2m",
+	    94, NULL, BETA, "9.4h",
+	    95, NULL, BETA, "8m",
+	    96, NULL, BETA, "5.3m",
+	    97, NULL, BETA, "11.4s",
+	    98, NULL, BETA, "9.6s",
+	    99, NULL, BETA, "5s",
+	};
+	int primary_isotope = 90;
+    },
+    new Dictionary {
+	String name = "Europium";
+	String symbol = "Eu";
+	int    Z = 63;
+	int    period = 6;
+
+	Array properties = {"", "f", METAL, SOLID, "151.964(1)", "", "547.1", "185", "231", "1099", "1800", "5244", "28.97", "[Xe]4f\x20776s\x00B2", TRACE, NO};
+
+	Array isotopes = {
+	    71, NULL, EC, "500ms",
+	    72, NULL, EC, "1.5s",
+	    73, NULL, EC, "3.7s",
+	    75, NULL, EC, "12.1s",
+	    76, NULL, POSITRON, "18s",
+	    77, NULL, EC, "1.51s",
+	    78, NULL, POSITRON, "40s",
+	    79, NULL, POSITRON, "2.4s",
+	    80, NULL, POSITRON, "2.62m",
+	    81, NULL, POSITRON, "10.2s",
+	    82, NULL, EC, "5.93d",
+	    83, NULL, EC, "4.57d",
+	    84, NULL, EC, "24.4d",
+	    85, NULL, EC, "54.5d",
+	    86, NULL, EC, "93.1d",
+	    87, NULL, BETA, "12.8h",
+	    88, "47.81", ALPHA, "5\x00D710\x00B9\x2078y",
+	    89, NULL, EC, "13.54y",
+	    90, "52.19", NULL, NULL,
+	    91, NULL, BETA, "8.59y",
+	    92, NULL, BETA, "4.75y",
+	    93, NULL, BETA, "15.2d",
+	    94, NULL, BETA, "15.18h",
+	    95, NULL, BETA, "45.9m",
+	    96, NULL, BETA, "18.1m",
+	    97, NULL, BETA, "38s",
+	    98, NULL, BETA, "26s",
+	    99, NULL, BETA, "11s",
+	};
+	int primary_isotope = 90;
+    },
+    new Dictionary {
+	String name = "Gadolinium";
+	String symbol = "Gd";
+	int    Z = 64;
+	int    period = 6;
+
+	Array properties = {"", "f", METAL, SOLID, "157.25(3)", "1.20", "593.4", "180", "233", "1585", "3523", "7901", "19.90", "[Xe]4f\x20775d\x00B96s\x00B2", TRACE, NO};
+
+	Array isotopes = {
+	    71, NULL, POSITRON, "1.1s",
+	    73, NULL, EC, "2.2s",
+	    74, NULL, EC, "5s",
+	    75, NULL, EC, "5s",
+	    76, NULL, EC, "16.2s",
+	    77, NULL, EC, "14s",
+	    78, NULL, POSITRON, "1.17m",
+	    79, NULL, POSITRON, "39s",
+	    80, NULL, POSITRON, "4.5m",
+	    81, NULL, EC, "23.4m",
+	    82, NULL, EC, "48.3d",
+	    83, NULL, EC, "1.59d",
+	    84, NULL, ALPHA, "75y",
+	    85, NULL, EC, "9.3d",
+	    86, NULL, ALPHA, "1.8\x00D710\x2076y",
+	    87, NULL, EC, "124d",
+	    88, "0.20", ALPHA, "1.1\x00D710\x00B9\x2074y",
+	    89, NULL, EC, "241.6d",
+	    90, "2.18", NULL, NULL,
+	    91, "14.80", NULL, NULL,
+	    92, "20.47", NULL, NULL,
+	    93, "15.65", NULL, NULL,
+	    94, "24.84", NULL, NULL,
+	    95, NULL, BETA, "18.5h",
+	    96, "21.86", NULL, NULL,
+	    97, NULL, BETA, "3.66m",
+	    98, NULL, BETA, "8.4m",
+	    99, NULL, BETA, "1.13m",
+	    100, NULL, BETA, "45s",
+	    101, NULL, BETA, "10s",
+	};
+	int primary_isotope = 94;
+    },
+    new Dictionary {
+	String name = "Terbium";
+	String symbol = "Tb";
+	int    Z = 65;
+	int    period = 6;
+
+	Array properties = {"", "f", METAL, SOLID, "158.92535(2)", "", "565.8", "175", "225", "1629", "3503", "8219", "19.30", "[Xe]4f\x20796s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    74, NULL, EC, "1.6s",
+	    75, NULL, EC, "2.2s",
+	    76, NULL, EC, "3.5s",
+	    77, NULL, POSITRON, "600ms",
+	    78, NULL, EC, "12s",
+	    79, NULL, EC, "1s",
+	    80, NULL, POSITRON, "30s",
+	    81, NULL, POSITRON, "8s",
+	    82, NULL, POSITRON, "1.8m",
+	    83, NULL, EC, "2.3m",
+	    84, NULL, EC, "4.16m",
+	    85, NULL, POSITRON, "6.0m",
+	    86, NULL, EC, "17.6h",
+	    87, NULL, EC, "4.2m",
+	    88, NULL, EC, "2.34d",
+	    89, NULL, EC, "21.5h",
+	    90, NULL, EC, "5.3d",
+	    91, NULL, EC, "5.3d",
+	    92, NULL, EC, "70y",
+	    93, NULL, EC, "180y",
+	    94, "100", NULL, NULL,
+	    95, NULL, BETA, "72.3d",
+	    96, NULL, BETA, "6.91d",
+	    97, NULL, BETA, "7.6m",
+	    98, NULL, BETA, "19.5m",
+	    99, NULL, BETA, "3.0m",
+	    100, NULL, BETA, "2.1m",
+	    101, NULL, BETA, "20s",
+	    102, NULL, BETA, "19s",
+	    103, NULL, BETA, "8s",
+	};
+	int primary_isotope = 94;
+    },
+    new Dictionary {
+	String name = "Dysprosium";
+	String symbol = "Dy";
+	int    Z = 66;
+	int    period = 6;
+
+	Array properties = {"", "f", METAL, SOLID, "162.500(1)", "1.22", "573.0", "175", "228", "1680", "2840", "8551", "19.01", "[Xe]4f\x00B9\x20706s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    73, NULL, POSITRON, "600ms",
+	    75, NULL, EC, "900ms",
+	    76, NULL, POSITRON, "2.3s",
+	    77, NULL, EC, "3.9s",
+	    78, NULL, EC, "9.1s",
+	    79, NULL, EC, "14s",
+	    80, NULL, EC, "33.2s",
+	    81, NULL, EC, "56s",
+	    82, NULL, EC, "3.1m",
+	    83, NULL, EC, "4.2m",
+	    84, NULL, POSITRON, "7.18m",
+	    85, NULL, POSITRON, "18m",
+	    86, NULL, EC, "2.37h",
+	    87, NULL, EC, "6.3h",
+	    88, NULL, ALPHA, "3\x00D710\x2076y",
+	    89, NULL, POSITRON, "9.9h",
+	    90, "0.06", NULL, NULL,
+	    91, NULL, EC, "8.1h",
+	    92, "0.10", NULL, NULL,
+	    93, NULL, EC, "144.4d",
+	    94, "2.34", NULL, NULL,
+	    95, "18.91", NULL, NULL,
+	    96, "25.51", NULL, NULL,
+	    97, "24.90", NULL, NULL,
+	    98, "28.18", NULL, NULL,
+	    99, NULL, BETA, "2.33h",
+	    100, NULL, BETA, "3.40d",
+	    101, NULL, BETA, "6.2m",
+	    102, NULL, BETA, "8.8m",
+	    103, NULL, BETA, "39s",
+	};
+	int primary_isotope = 98;
+    },
+    new Dictionary {
+	String name = "Holmium";
+	String symbol = "Ho";
+	int    Z = 67;
+	int    period = 6;
+
+	Array properties = {"", "f", METAL, SOLID, "164.93032(2)", "1.23", "581.0", "175", "226", "1734", "2993", "8795", "18.74", "[Xe]4f\x00B9\x00B96s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    73, NULL, PROTON, "6ms",
+	    74, NULL, PROTON, "7us",
+	    75, NULL, POSITRON, "400ms",
+	    77, NULL, EC, "700ms",
+	    78, NULL, EC, "2.4s",
+	    79, NULL, EC, "3.3s",
+	    80, NULL, EC, "5.8s",
+	    81, NULL, POSITRON, "2s",
+	    82, NULL, POSITRON, "21.1s",
+	    83, NULL, POSITRON, "23.3s",
+	    84, NULL, POSITRON, "35.2s",
+	    85, NULL, POSITRON, "50.3s",
+	    86, NULL, EC, "2.0m",
+	    87, NULL, EC, "3.1m",
+	    88, NULL, EC, "48m",
+	    89, NULL, EC, "5.8m",
+	    90, NULL, EC, "12.6m",
+	    91, NULL, EC, "11.3m",
+	    92, NULL, EC, "33m",
+	    93, NULL, EC, "25.6m",
+	    94, NULL, EC, "2.48h",
+	    95, NULL, EC, "15m",
+	    96, NULL, EC, "4570y",
+	    97, NULL, BETA, "29m",
+	    98, "100", NULL, NULL,
+	    99, NULL, BETA, "1200y",
+	    100, NULL, BETA, "3.1h",
+	    101, NULL, BETA, "3.0m",
+	    102, NULL, BETA, "4.7m",
+	    103, NULL, BETA, "43s",
+	    104, NULL, BETA, "53s",
+	    105, NULL, BETA, "25s",
+	};
+	int primary_isotope = 98;
+    },
+    new Dictionary {
+	String name = "Erbium";
+	String symbol = "Er";
+	int    Z = 68;
+	int    period = 6;
+
+	Array properties = {"", "f", METAL, SOLID, "167.259(3)", "1.24", "589.3", "175", "226", "1770", "3141", "9066", "18.46", "[Xe]4f\x00B9\x00B26s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    78, NULL, EC, "2s",
+	    79, NULL, POSITRON, "2.5s",
+	    80, NULL, POSITRON, "4.7s",
+	    81, NULL, EC, "4s",
+	    82, NULL, EC, "18s",
+	    83, NULL, POSITRON, "23s",
+	    84, NULL, ALPHA, "10.3s",
+	    85, NULL, ALPHA, "37.1s",
+	    86, NULL, EC, "3.7m",
+	    87, NULL, EC, "5.3m",
+	    88, NULL, EC, "20m",
+	    89, NULL, EC, "18.6m",
+	    90, NULL, EC, "2.29h",
+	    91, NULL, EC, "36m",
+	    92, NULL, EC, "1.19d",
+	    93, NULL, EC, "3.21h",
+	    94, "0.14", NULL, NULL,
+	    95, NULL, EC, "1.25h",
+	    96, "1.61", NULL, NULL,
+	    97, NULL, EC, "10.36h",
+	    98, "33.61", NULL, NULL,
+	    99, "22.93", NULL, NULL,
+	    100, "26.78", NULL, NULL,
+	    101, NULL, BETA, "9.4d",
+	    102, "14.93", NULL, NULL,
+	    103, NULL, BETA, "7.52h",
+	    104, NULL, BETA, "2.05d",
+	    105, NULL, BETA, "1.4m",
+	    106, NULL, BETA, "3.2m",
+	    107, NULL, BETA, "1.2m",
+	};
+	int primary_isotope = 98;
+    },
+    new Dictionary {
+	String name = "Thulium";
+	String symbol = "Tm";
+	int    Z = 69;
+	int    period = 6;
+
+	Array properties = {"", "f", METAL, SOLID, "168.93421(2)", "1.25", "596.7", "175", "222", "1818", "2223", "9321", "19.1", "[Xe]4f\x00B9\x00B36s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    77, NULL, EC, "240ms",
+	    78, NULL, EC, "580ms",
+	    79, NULL, EC, "700ms",
+	    80, NULL, EC, "900ms",
+	    81, NULL, EC, "2.2s",
+	    82, NULL, EC, "4.1s",
+	    83, NULL, EC, "5s",
+	    84, NULL, ALPHA, "1.5s",
+	    85, NULL, ALPHA, "3.3s",
+	    86, NULL, POSITRON, "22s",
+	    87, NULL, POSITRON, "1.4m",
+	    88, NULL, POSITRON, "3.6m",
+	    89, NULL, POSITRON, "4m",
+	    90, NULL, EC, "9.1m",
+	    91, NULL, EC, "9.4m",
+	    92, NULL, EC, "31m",
+	    93, NULL, EC, "21.7m",
+	    94, NULL, EC, "1.8h",
+	    95, NULL, EC, "2.0m",
+	    96, NULL, EC, "1.25d",
+	    97, NULL, EC, "7.70h",
+	    98, NULL, EC, "9.24d",
+	    99, NULL, EC, "93.1d",
+	    100, "100", NULL, NULL,
+	    101, NULL, BETA, "128.6d",
+	    102, NULL, BETA, "1.92y",
+	    103, NULL, BETA, "2.65d",
+	    104, NULL, BETA, "8.2h",
+	    105, NULL, BETA, "5.4m",
+	    106, NULL, BETA, "15m",
+	    107, NULL, BETA, "1.9m",
+	    108, NULL, BETA, "1.4m",
+	};
+	int primary_isotope = 100;
+    },
+    new Dictionary {
+	String name = "Ytterbium";
+	String symbol = "Yb";
+	int    Z = 70;
+	int    period = 6;
+
+	Array properties = {"", "f", METAL, SOLID, "173.04(3)", "", "603.4", "175", "222", "1097", "1469", "6570", "24.84", "[Xe]4f\x00B9\x20746s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    81, NULL, POSITRON, "1.6s",
+	    82, NULL, POSITRON, "3.1s",
+	    83, NULL, ALPHA, "4s",
+	    84, NULL, ALPHA, "409ms",
+	    85, NULL, ALPHA, "1.7s",
+	    86, NULL, EC, "26s",
+	    87, NULL, EC, "39s",
+	    88, NULL, EC, "1.5m",
+	    89, NULL, EC, "1.5m",
+	    90, NULL, EC, "4.8m",
+	    91, NULL, EC, "4.2m",
+	    92, NULL, EC, "18.9m",
+	    93, NULL, EC, "11.1m",
+	    94, NULL, EC, "1.26h",
+	    95, NULL, EC, "9.9m",
+	    96, NULL, EC, "2.36d",
+	    97, NULL, EC, "17.5m",
+	    98, "0.13", NULL, NULL,
+	    99, NULL, EC, "32.0d",
+	    100, "3.04", NULL, NULL,
+	    101, "14.28", NULL, NULL,
+	    102, "21.83", NULL, NULL,
+	    103, "16.13", NULL, NULL,
+	    104, "31.83", NULL, NULL,
+	    105, NULL, BETA, "4.19d",
+	    106, "12.76", NULL, NULL,
+	    107, NULL, BETA, "1.9h",
+	    108, NULL, BETA, "1.23h",
+	    109, NULL, BETA, "8m",
+	    110, NULL, BETA, "2m",
+	};
+	int primary_isotope = 104;
+    },
+    new Dictionary {
+	String name = "Lutetium";
+	String symbol = "Lu";
+	int    Z = 71;
+	int    period = 6;
+
+	Array properties = {"", "f", METAL, SOLID, "174.967(1)", "1.27", "523.5", "175", "217", "1925", "3675", "9841", "17.78", "[Xe]4f\x00B9\x20745d\x00B96s\x00B2", TRACE, NO};
+
+	Array isotopes = {
+	    81, NULL, EC, "700ms",
+	    82, NULL, POSITRON, "900ms",
+	    83, NULL, EC, "1.1s",
+	    84, NULL, ALPHA, "69ms",
+	    85, NULL, ALPHA, "198ms",
+	    86, NULL, ALPHA, "10s",
+	    87, NULL, EC, "10.4s",
+	    88, NULL, EC, "12.3s",
+	    89, NULL, EC, "36.1s",
+	    90, NULL, EC, "1.28m",
+	    91, NULL, EC, "1.37m",
+	    92, NULL, POSITRON, "4.0m",
+	    93, NULL, EC, "3.14m",
+	    94, NULL, EC, "10.7m",
+	    95, NULL, EC, "2.1m",
+	    96, NULL, EC, "52m",
+	    97, NULL, EC, "5.5m",
+	    98, NULL, EC, "1.42d",
+	    99, NULL, EC, "2.01d",
+	    100, NULL, EC, "8.24d",
+	    101, NULL, EC, "6.70d",
+	    102, NULL, EC, "1.37y",
+	    103, NULL, EC, "3.3y",
+	    104, "97.41", NULL, NULL,
+	    105, "2.59", BETA, "3.7\x00D710\x00B9\x2070y",
+	    106, NULL, BETA, "6.65d",
+	    107, NULL, BETA, "23.1m",
+	    108, NULL, BETA, "4.6h",
+	    109, NULL, BETA, "5.7m",
+	    110, NULL, BETA, "3.5m",
+	    111, NULL, BETA, "2.0m",
+	    112, NULL, BETA, "58s",
+	    113, NULL, BETA, "20s",
+	};
+	int primary_isotope = 104;
+    },
+    new Dictionary {
+	String name = "Hafnium";
+	String symbol = "Hf";
+	int    Z = 72;
+	int    period = 6;
+
+	Array properties = {"4", "d", METAL, SOLID, "178.49(2)", "1.3", "658.5", "155", "208", "2506", "4876", "13310", "13.44", "[Xe]4f\x00B9\x20745d\x00B26s\x00B2", TRACE, NO};
+
+	Array isotopes = {
+	    82, NULL, EC, "2s",
+	    83, NULL, EC, "900ms",
+	    84, NULL, ALPHA, "500us",
+	    85, NULL, ALPHA, "115ms",
+	    86, NULL, EC, "2.86s",
+	    87, NULL, EC, "5.2s",
+	    88, NULL, EC, "13s",
+	    89, NULL, ALPHA, "17s",
+	    90, NULL, EC, "38s",
+	    91, NULL, EC, "40s",
+	    92, NULL, EC, "1.9m",
+	    93, NULL, EC, "1.26m",
+	    94, NULL, EC, "6.8m",
+	    95, NULL, EC, "2.0m",
+	    96, NULL, EC, "25.9m",
+	    97, NULL, EC, "3.25m",
+	    98, NULL, EC, "16.0h",
+	    99, NULL, EC, "12.2h",
+	    100, NULL, EC, "1.87y",
+	    101, NULL, EC, "23.6h",
+	    102, "0.16", ALPHA, "2\x00D710\x00B9\x2075y",
+	    103, NULL, EC, "70d",
+	    104, "5.26", NULL, NULL,
+	    105, "18.60", NULL, NULL,
+	    106, "27.28", NULL, NULL,
+	    107, "13.62", NULL, NULL,
+	    108, "35.08", NULL, NULL,
+	    109, NULL, BETA, "42.4d",
+	    110, NULL, BETA, "62m",
+	    111, NULL, BETA, "1.07h",
+	    112, NULL, BETA, "4.1h",
+	    113, NULL, BETA, "3.5m",
+	    114, NULL, BETA, "2.6m",
+	};
+	int primary_isotope = 108;
+    },
+    new Dictionary {
+	String name = "Tantalum";
+	String symbol = "Ta";
+	int    Z = 73;
+	int    period = 6;
+
+	Array properties = {"5", "d", METAL, SOLID, "180.94788(2)", "1.5", "761", "145", "200", "3290", "5731", "16650", "10.85", "[Xe]4f\x00B9\x20745d\x00B36s\x00B2", TRACE, NO};
+
+	Array isotopes = {
+	    82, NULL, PROTON, "12us",
+	    83, NULL, PROTON, "300ms",
+	    84, NULL, ALPHA, "1.7ms",
+	    85, NULL, ALPHA, "36ms",
+	    86, NULL, ALPHA, "520ms",
+	    87, NULL, EC, "1.55s",
+	    88, NULL, EC, "2.9s",
+	    89, NULL, EC, "3.5s",
+	    90, NULL, EC, "10.6s",
+	    91, NULL, POSITRON, "14.2s",
+	    92, NULL, EC, "31s",
+	    93, NULL, POSITRON, "34s",
+	    94, NULL, EC, "1.4m",
+	    95, NULL, POSITRON, "2.4m",
+	    96, NULL, EC, "4.9m",
+	    97, NULL, POSITRON, "6.8m",
+	    98, NULL, EC, "23.3m",
+	    99, NULL, EC, "36.8m",
+	    100, NULL, EC, "3.4h",
+	    101, NULL, EC, "1.14h",
+	    102, NULL, EC, "10.5h",
+	    103, NULL, EC, "8.1h",
+	    104, NULL, EC, "2.36d",
+	    105, NULL, EC, "9.29m",
+	    106, NULL, EC, "1.82y",
+	    107, "0.012", EC, "1.2\x00D710\x00B9\x2075y",
+	    108, "99.988", NULL, NULL,
+	    109, NULL, BETA, "114.4d",
+	    110, NULL, BETA, "5.1d",
+	    111, NULL, BETA, "8.7h",
+	    112, NULL, BETA, "49m",
+	    113, NULL, BETA, "10.4m",
+	};
+	int primary_isotope = 108;
+    },
+    new Dictionary {
+	String name = "Tungsten";
+	String symbol = "W";
+	int    Z = 74;
+	int    period = 6;
+
+	Array properties = {"6", "d", METAL, SOLID, "183.84(1)", "2.36", "770", "135", "193", "3695", "5828", "19250", "9.47", "[Xe]4f\x00B9\x20745d\x20746s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    84, NULL, ALPHA, "150us",
+	    85, NULL, ALPHA, "8ms",
+	    86, NULL, ALPHA, "91ms",
+	    87, NULL, ALPHA, "410ms",
+	    88, NULL, EC, "1.39s",
+	    89, NULL, EC, "2.8s",
+	    90, NULL, EC, "7s",
+	    91, NULL, EC, "5.1s",
+	    92, NULL, EC, "19.9s",
+	    93, NULL, EC, "20s",
+	    94, NULL, EC, "52s",
+	    95, NULL, EC, "1.3m",
+	    96, NULL, EC, "2.4m",
+	    97, NULL, EC, "2.4m",
+	    98, NULL, EC, "6.6m",
+	    99, NULL, EC, "7m",
+	    100, NULL, EC, "34m",
+	    101, NULL, EC, "35m",
+	    102, NULL, EC, "2.5h",
+	    103, NULL, EC, "2.2h",
+	    104, NULL, EC, "21.6d",
+	    105, NULL, EC, "37.8m",
+	    106, "0.12", NULL, NULL,
+	    107, NULL, EC, "121.2d",
+	    108, "26.50", NULL, NULL,
+	    109, "14.31", NULL, NULL,
+	    110, "30.64", NULL, NULL,
+	    111, NULL, BETA, "74.8d",
+	    112, "28.43", NULL, NULL,
+	    113, NULL, BETA, "23.9h",
+	    114, NULL, BETA, "69.8d",
+	    115, NULL, BETA, "11.6m",
+	    116, NULL, BETA, "30m",
+	};
+	int primary_isotope = 110;
+    },
+    new Dictionary {
+	String name = "Rhenium";
+	String symbol = "Re";
+	int    Z = 75;
+	int    period = 6;
+
+	Array properties = {"7", "d", METAL, SOLID, "186.207(1)", "1.9", "760", "135", "188", "3459", "5869", "21020", "8.86", "[Xe]4f\x00B9\x20745d\x20756s\x00B2", TRACE, NO};
+
+	Array isotopes = {
+	    85, NULL, PROTON, "800us",
+	    86, NULL, ALPHA, "15ms",
+	    87, NULL, ALPHA, "76ms",
+	    88, NULL, ALPHA, "214ms",
+	    89, NULL, ALPHA, "500ms",
+	    90, NULL, EC, "2s",
+	    91, NULL, EC, "2.4s",
+	    92, NULL, ALPHA, "3.4s",
+	    93, NULL, EC, "4s",
+	    94, NULL, EC, "8.1s",
+	    95, NULL, POSITRON, "9.2s",
+	    96, NULL, EC, "15.2s",
+	    97, NULL, POSITRON, "15s",
+	    98, NULL, EC, "2.0m",
+	    99, NULL, POSITRON, "2.4m",
+	    100, NULL, EC, "5.9m",
+	    101, NULL, EC, "5.3m",
+	    102, NULL, EC, "14m",
+	    103, NULL, EC, "13.2m",
+	    104, NULL, EC, "19.6m",
+	    105, NULL, EC, "2.45m",
+	    106, NULL, EC, "20h",
+	    107, NULL, EC, "12.7h",
+	    108, NULL, EC, "70d",
+	    109, NULL, EC, "38d",
+	    110, "37.40", NULL, NULL,
+	    111, NULL, BETA, "3.72d",
+	    112, "62.60", BETA, "4.1\x00D710\x00B9\x2070y",
+	    113, NULL, BETA, "17.0h",
+	    114, NULL, BETA, "24h",
+	    115, NULL, BETA, "3.0m",
+	    116, NULL, BETA, "9.7m",
+	    117, NULL, BETA, "16s",
+	};
+	int primary_isotope = 112;
+    },
+    new Dictionary {
+	String name = "Osmium";
+	String symbol = "Os";
+	int    Z = 76;
+	int    period = 6;
+
+	Array properties = {"8", "d", METAL, SOLID, "190.23(3)", "2.2", "840", "130", "185", "3306", "5285", "22610", "8.42", "[Xe]4f\x00B9\x20745d\x20766s\x00B2", TRACE, NO};
+
+	Array isotopes = {
+	    86, NULL, ALPHA, "1.9ms",
+	    87, NULL, ALPHA, "6ms",
+	    88, NULL, ALPHA, "21ms",
+	    89, NULL, ALPHA, "71ms",
+	    90, NULL, ALPHA, "220ms",
+	    91, NULL, ALPHA, "800ms",
+	    92, NULL, EC, "2.1s",
+	    93, NULL, EC, "3.3s",
+	    94, NULL, EC, "7.1s",
+	    95, NULL, EC, "8s",
+	    96, NULL, EC, "18s",
+	    97, NULL, EC, "16s",
+	    98, NULL, EC, "44s",
+	    99, NULL, EC, "1.4m",
+	    100, NULL, EC, "3.6m",
+	    101, NULL, EC, "2.8m",
+	    102, NULL, EC, "5.0m",
+	    103, NULL, EC, "6.5m",
+	    104, NULL, EC, "21.5m",
+	    105, NULL, EC, "2.7m",
+	    106, NULL, EC, "21.5h",
+	    107, NULL, EC, "9.9h",
+	    108, "0.02", NULL, NULL,
+	    109, NULL, EC, "93.6d",
+	    110, "1.59", ALPHA, "2\x00D710\x00B9\x2075y",
+	    111, "1.96", NULL, NULL,
+	    112, "13.24", NULL, NULL,
+	    113, "16.15", NULL, NULL,
+	    114, "26.26", NULL, NULL,
+	    115, NULL, BETA, "15.4d",
+	    116, "40.78", NULL, NULL,
+	    117, NULL, BETA, "30.1h",
+	    118, NULL, BETA, "6.0y",
+	    119, NULL, BETA, "6.5m",
+	    120, NULL, BETA, "34.9m",
+	};
+	int primary_isotope = 116;
+    },
+    new Dictionary {
+	String name = "Iridium";
+	String symbol = "Ir";
+	int    Z = 77;
+	int    period = 6;
+
+	Array properties = {"9", "d", METAL, SOLID, "192.217(3)", "2.20", "880", "135", "180", "2739", "4701", "22650", "8.52", "[Xe]4f\x00B9\x20745d\x20776s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    88, NULL, ALPHA, "30ms",
+	    89, NULL, ALPHA, "12ms",
+	    90, NULL, ALPHA, "30ms",
+	    91, NULL, ALPHA, "125ms",
+	    92, NULL, ALPHA, "300ms",
+	    93, NULL, ALPHA, "400ms",
+	    94, NULL, ALPHA, "1.4s",
+	    95, NULL, EC, "2.0s",
+	    96, NULL, EC, "2.3s",
+	    97, NULL, EC, "4.9s",
+	    98, NULL, EC, "8s",
+	    99, NULL, EC, "8s",
+	    100, NULL, POSITRON, "30s",
+	    101, NULL, EC, "12s",
+	    102, NULL, EC, "1.32m",
+	    103, NULL, EC, "1.5m",
+	    104, NULL, EC, "4.9m",
+	    105, NULL, EC, "15m",
+	    106, NULL, EC, "57m",
+	    107, NULL, EC, "3.04h",
+	    108, NULL, EC, "14.4h",
+	    109, NULL, EC, "1.9h",
+	    110, NULL, EC, "10.5h",
+	    111, NULL, EC, "1.72d",
+	    112, NULL, EC, "13.2d",
+	    113, NULL, EC, "3.2h",
+	    114, "37.3", NULL, NULL,
+	    115, NULL, BETA, "73.83d",
+	    116, "62.7", NULL, NULL,
+	    117, NULL, BETA, "19.3h",
+	    118, NULL, BETA, "2.5h",
+	    119, NULL, BETA, "52s",
+	    120, NULL, BETA, "5.8m",
+	    121, NULL, BETA, "8s",
+	};
+	int primary_isotope = 116;
+    },
+    new Dictionary {
+	String name = "Platinum";
+	String symbol = "Pt";
+	int    Z = 78;
+	int    period = 6;
+
+	Array properties = {"10", "d", METAL, SOLID, "195.084(9)", "2.28", "870", "135", "177", "2041.4", "4098", "21090", "9.09", "[Xe]4f\x00B9\x20745d\x20796s\x00B9", TRACE, NO};
+
+	Array isotopes = {
+	    88, NULL, ALPHA, "300us",
+	    89, NULL, ALPHA, "700us",
+	    90, NULL, ALPHA, "2.0ms",
+	    91, NULL, ALPHA, "4ms",
+	    92, NULL, ALPHA, "14ms",
+	    93, NULL, ALPHA, "44ms",
+	    94, NULL, ALPHA, "98ms",
+	    95, NULL, ALPHA, "370ms",
+	    96, NULL, ALPHA, "890ms",
+	    97, NULL, ALPHA, "2.5s",
+	    98, NULL, EC, "6.5s",
+	    99, NULL, EC, "11s",
+	    100, NULL, EC, "21s",
+	    101, NULL, EC, "21.2s",
+	    102, NULL, EC, "52s",
+	    103, NULL, EC, "52s",
+	    104, NULL, EC, "2.7m",
+	    105, NULL, EC, "43s",
+	    106, NULL, EC, "17.3m",
+	    107, NULL, EC, "33m",
+	    108, NULL, EC, "2.08h",
+	    109, NULL, POSITRON, "2.35h",
+	    110, NULL, EC, "10.2d",
+	    111, NULL, EC, "10.9h",
+	    112, "0.014", ALPHA, "6.5\x00D710\x00B9\x00B9y",
+	    113, NULL, EC, "2.88d",
+	    114, "0.782", NULL, NULL,
+	    115, NULL, EC, "50y",
+	    116, "32.967", NULL, NULL,
+	    117, "33.832", NULL, NULL,
+	    118, "25.242", NULL, NULL,
+	    119, NULL, BETA, "19.96h",
+	    120, "7.163", NULL, NULL,
+	    121, NULL, BETA, "30.8m",
+	    122, NULL, BETA, "12.5h",
+	    123, NULL, BETA, "2.5m",
+	};
+	int primary_isotope = 117;
+    },
+    new Dictionary {
+	String name = "Gold";
+	String symbol = "Au";
+	int    Z = 79;
+	int    period = 6;
+
+	Array properties = {"11", "d", METAL, SOLID, "196.966569(4)", "2.54", "890.1", "135", "174", "1337.33", "3129", "19300", "10.21", "[Xe]4f\x00B9\x20745d\x00B9\x20706s\x00B9", NO, NO};
+
+	Array isotopes = {
+	    92, NULL, PROTON, "17us",
+	    93, NULL, ALPHA, "5ms",
+	    94, NULL, ALPHA, "14ms",
+	    95, NULL, ALPHA, "140ms",
+	    96, NULL, ALPHA, "160ms",
+	    97, NULL, ALPHA, "900ms",
+	    98, NULL, ALPHA, "1.22s",
+	    99, NULL, EC, "2.6s",
+	    100, NULL, EC, "7.1s",
+	    101, NULL, EC, "8.1s",
+	    102, NULL, EC, "14s",
+	    103, NULL, EC, "21s",
+	    104, NULL, EC, "42s",
+	    105, NULL, EC, "49s",
+	    106, NULL, EC, "4.3m",
+	    107, NULL, EC, "10.7m",
+	    108, NULL, EC, "8.3m",
+	    109, NULL, EC, "8.8m",
+	    110, NULL, EC, "4.6m",
+	    111, NULL, EC, "43m",
+	    112, NULL, EC, "3.2h",
+	    113, NULL, EC, "4.9h",
+	    114, NULL, EC, "17.6h",
+	    115, NULL, EC, "1.58d",
+	    116, NULL, EC, "186.1d",
+	    117, NULL, EC, "6.17d",
+	    118, "100", NULL, NULL,
+	    119, NULL, BETA, "2.695d",
+	    120, NULL, BETA, "3.14d",
+	    121, NULL, BETA, "48.4m",
+	    122, NULL, BETA, "26m",
+	    123, NULL, BETA, "29s",
+	    124, NULL, BETA, "56s",
+	    125, NULL, BETA, "40s",
+	    126, NULL, BETA, "31s",
+	};
+	int primary_isotope = 118;
+    },
+    new Dictionary {
+	String name = "Mercury";
+	String symbol = "Hg";
+	int    Z = 80;
+	int    period = 6;
+
+	Array properties = {"12", "d", METAL, LIQUID, "200.59(2)", "2.00", "1007.1", "150", "171", "234.32", "629.88", "", "14.09", "[Xe]4f\x00B9\x20745d\x00B9\x20706s\x00B2", NO, NO};
+
+	Array isotopes = {
+	    92, NULL, ALPHA, "250us",
+	    93, NULL, ALPHA, "930us",
+	    94, NULL, ALPHA, "1.9ms",
+	    95, NULL, ALPHA, "11ms",
+	    96, NULL, ALPHA, "20ms",
+	    97, NULL, ALPHA, "127ms",
+	    98, NULL, ALPHA, "270ms",
+	    99, NULL, ALPHA, "1.0s",
+	    100, NULL, EC, "2.6s",
+	    101, NULL, POSITRON, "3.6s",
+	    102, NULL, EC, "10.8s",
+	    103, NULL, EC, "9s",
+	    104, NULL, EC, "30.9s",
+	    105, NULL, EC, "51s",
+	    106, NULL, EC, "1.38m",
+	    107, NULL, EC, "1.7m",
+	    108, NULL, EC, "3.2m",
+	    109, NULL, EC, "7.6m",
+	    110, NULL, EC, "20m",
+	    111, NULL, EC, "50m",
+	    112, NULL, EC, "5.0h",
+	    113, NULL, EC, "3.8h",
+	    114, NULL, EC, "520y",
+	    115, NULL, EC, "10.5h",
+	    116, "0.15", NULL, NULL,
+	    117, NULL, EC, "2.67d",
+	    118, "9.97", NULL, NULL,
+	    119, "16.87", NULL, NULL,
+	    120, "23.10", NULL, NULL,
+	    121, "13.18", NULL, NULL,
+	    122, "29.86", NULL, NULL,
+	    123, NULL, BETA, "46.6d",
+	    124, "6.87", NULL, NULL,
+	    125, NULL, BETA, "5.2m",
+	    126, NULL, BETA, "8.2m",
+	    127, NULL, BETA, "3.0m",
+	    128, NULL, BETA, "41m",
+	    129, NULL, BETA, "35s",
+	};
+	int primary_isotope = 122;
+    },
+    new Dictionary {
+	String name = "Thallium";
+	String symbol = "Tl";
+	int    Z = 81;
+	int    period = 6;
+
+	Array properties = {"13", "p", METAL, SOLID, "204.3833(2)", "1.62", "589.4", "190", "156", "577", "1746", "11850", "17.22", "[Xe]4f\x00B9\x20745d\x00B9\x20706s\x00B26p\x00B9", NO, NO};
+
+	Array isotopes = {
+	    96, NULL, ALPHA, "230us",
+	    97, NULL, ALPHA, "254ms",
+	    98, NULL, ALPHA, "1.6ms",
+	    99, NULL, EC, "700ms",
+	    100, NULL, ALPHA, "1.4ms",
+	    101, NULL, EC, "3s",
+	    102, NULL, ALPHA, "60ms",
+	    103, NULL, POSITRON, "11s",
+	    104, NULL, EC, "19.5s",
+	    105, NULL, EC, "28s",
+	    106, NULL, EC, "50s",
+	    107, NULL, EC, "1.18m",
+	    108, NULL, EC, "1.4m",
+	    109, NULL, EC, "3.7m",
+	    110, NULL, EC, "5.2m",
+	    111, NULL, EC, "9.6m",
+	    112, NULL, EC, "22m",
+	    113, NULL, EC, "32.8m",
+	    114, NULL, EC, "1.16h",
+	    115, NULL, EC, "1.41h",
+	    116, NULL, EC, "2.83h",
+	    117, NULL, EC, "1.87h",
+	    118, NULL, EC, "7.4h",
+	    119, NULL, EC, "1.087d",
+	    120, NULL, EC, "3.039d",
+	    121, NULL, EC, "12.23d",
+	    122, "29.524", NULL, NULL,
+	    123, NULL, BETA, "3.78y",
+	    124, "70.476", NULL, NULL,
+	    125, NULL, BETA, "4.20m",
+	    126, NULL, BETA, "4.77m",
+	    127, NULL, BETA, "3.05m",
+	    128, NULL, BETA, "2.16m",
+	    129, NULL, BETA, "1.30m",
+	};
+	int primary_isotope = 124;
+    },
+    new Dictionary {
+	String name = "Lead";
+	String symbol = "Pb";
+	int    Z = 82;
+	int    period = 6;
+
+	Array properties = {"14", "p", METAL, SOLID, "207.2(1)", "2.33", "715.6", "180", "154", "600.61", "2022", "11340", "18.26", "[Xe]4f\x00B9\x20745d\x00B9\x20706s\x00B26p\x00B2", NO, NO};
+
+	Array isotopes = {
+	    98, NULL, ALPHA, "4ms",
+	    99, NULL, ALPHA, "50ms",
+	    100, NULL, ALPHA, "55ms",
+	    101, NULL, ALPHA, "420ms",
+	    102, NULL, ALPHA, "490ms",
+	    103, NULL, ALPHA, "4.2s",
+	    104, NULL, ALPHA, "4.83s",
+	    105, NULL, EC, "15.2s",
+	    106, NULL, EC, "25.5s",
+	    107, NULL, EC, "51s",
+	    108, NULL, EC, "1.2m",
+	    109, NULL, EC, "1.3m",
+	    110, NULL, EC, "3.5m",
+	    111, NULL, EC, "2m",
+	    112, NULL, EC, "12m",
+	    113, NULL, EC, "15m",
+	    114, NULL, EC, "37m",
+	    115, NULL, EC, "8m",
+	    116, NULL, EC, "2.4h",
+	    117, NULL, EC, "1.5h",
+	    118, NULL, EC, "21.5h",
+	    119, NULL, EC, "9.33h",
+	    120, NULL, EC, "5.3\x00D710\x2074y",
+	    121, NULL, EC, "2.162d",
+	    122, "1.4", NULL, NULL,
+	    123, NULL, EC, "1.5\x00D710\x2077y",
+	    124, "24.1", NULL, NULL,
+	    125, "22.1", NULL, NULL,
+	    126, "52.4", NULL, NULL,
+	    127, NULL, BETA, "3.25h",
+	    128, NULL, BETA, "22.3y",
+	    129, NULL, BETA, "36.1m",
+	    130, NULL, BETA, "10.64h",
+	    131, NULL, BETA, "10.2m",
+	    132, NULL, BETA, "27m",
+	    133, NULL, BETA, "36.5m",
+	};
+	int primary_isotope = 126;
+    },
+    new Dictionary {
+	String name = "Bismuth";
+	String symbol = "Bi";
+	int    Z = 83;
+	int    period = 6;
+
+	Array properties = {"15", "p", METAL, SOLID, "208.98040(1)", "2.02", "703", "160", "143", "544.4", "1837", "9780", "21.31", "[Xe]4f\x00B9\x20745d\x00B9\x20706s\x00B26p\x00B3", NO, NO};
+
+	Array isotopes = {
+	    102, NULL, PROTON, "44us",
+	    103, NULL, ALPHA, "10ms",
+	    104, NULL, ALPHA, "33ms",
+	    105, NULL, ALPHA, "220ms",
+	    106, NULL, ALPHA, "5ms",
+	    107, NULL, ALPHA, "6.3s",
+	    108, NULL, ALPHA, "150ms",
+	    109, NULL, EC, "37s",
+	    110, NULL, ALPHA, "3.2s",
+	    111, NULL, EC, "1.58m",
+	    112, NULL, EC, "1.45m",
+	    113, NULL, EC, "4m",
+	    114, NULL, EC, "5.0m",
+	    115, NULL, EC, "10.3m",
+	    116, NULL, ALPHA, "24.7m",
+	    117, NULL, EC, "36m",
+	    118, NULL, EC, "59m",
+	    119, NULL, EC, "1.72h",
+	    120, NULL, EC, "11.8h",
+	    121, NULL, EC, "11.2h",
+	    122, NULL, EC, "15.31d",
+	    123, NULL, EC, "6.243d",
+	    124, NULL, EC, "32y",
+	    125, NULL, EC, "3.68\x00D710\x2075y",
+	    126, "100", NULL, NULL,
+	    127, NULL, BETA, "5.01d",
+	    128, NULL, ALPHA, "2.14m",
+	    129, NULL, BETA, "7m",
+	    130, NULL, BETA, "45.6m",
+	    131, NULL, BETA, "19.9m",
+	    132, NULL, BETA, "7.6m",
+	    133, NULL, BETA, "2.18m",
+	    134, NULL, BETA, "93s",
+	};
+	int primary_isotope = 126;
+    },
+    new Dictionary {
+	String name = "Polonium";
+	String symbol = "Po";
+	int    Z = 84;
+	int    period = 6;
+
+	Array properties = {"16", "p", METAL, SOLID, "[209]", "2.0", "812.1", "190", "135", "527", "1235", "9196", "22.97", "[Xe]4f\x00B9\x20745d\x00B9\x20706s\x00B26p\x2074", YES, NO};
+
+	Array isotopes = {
+	    104, NULL, ALPHA, "400us",
+	    105, NULL, ALPHA, "5ms",
+	    106, NULL, ALPHA, "2.4ms",
+	    107, NULL, ALPHA, "22ms",
+	    108, NULL, ALPHA, "34ms",
+	    109, NULL, ALPHA, "300ms",
+	    110, NULL, ALPHA, "390ms",
+	    111, NULL, ALPHA, "1.92s",
+	    112, NULL, ALPHA, "5.5s",
+	    113, NULL, ALPHA, "29s",
+	    114, NULL, ALPHA, "1.78m",
+	    115, NULL, EC, "4.20m",
+	    116, NULL, EC, "11.5m",
+	    117, NULL, EC, "8.9m",
+	    118, NULL, EC, "44.7m",
+	    119, NULL, EC, "35m",
+	    120, NULL, EC, "3.53h",
+	    121, NULL, EC, "1.7h",
+	    122, NULL, EC, "8.8d",
+	    123, NULL, EC, "5.8h",
+	    124, NULL, ALPHA, "2.898y",
+	    125, NULL, ALPHA, "102y",
+	    126, NULL, ALPHA, "138.38d",
+	    127, NULL, ALPHA, "516ms",
+	    128, NULL, ALPHA, "0.3us",
+	    129, NULL, ALPHA, "3.8us",
+	    130, NULL, ALPHA, "163.7us",
+	    131, NULL, ALPHA, "1.78ms",
+	    132, NULL, ALPHA, "145ms",
+	    133, NULL, ALPHA, "1.46s",
+	    134, NULL, ALPHA, "3.10m",
+	};
+	int primary_isotope = 125;
+    },
+    new Dictionary {
+	String name = "Astatine";
+	String symbol = "At";
+	int    Z = 85;
+	int    period = 6;
+
+	Array properties = {"17", "p", SEMIMETAL, SOLID, "[210]", "2.2", "920", "", "127", "575", "", "", "", "[Xe]4f\x00B9\x20745d\x00B9\x20706s\x00B26p\x2075", YES, NO};
+
+	Array isotopes = {
+	    109, NULL, ALPHA, "200ms",
+	    110, NULL, ALPHA, "120ms",
+	    111, NULL, ALPHA, "390ms",
+	    112, NULL, ALPHA, "350ms",
+	    113, NULL, ALPHA, "1.2s",
+	    114, NULL, ALPHA, "7.3s",
+	    115, NULL, ALPHA, "3.7s",
+	    116, NULL, ALPHA, "1.41m",
+	    117, NULL, ALPHA, "460ms",
+	    118, NULL, EC, "7.4m",
+	    119, NULL, EC, "9.1m",
+	    120, NULL, EC, "26m",
+	    121, NULL, EC, "29.4m",
+	    122, NULL, EC, "1.81h",
+	    123, NULL, EC, "1.63h",
+	    124, NULL, EC, "5.4h",
+	    125, NULL, EC, "8.1h",
+	    126, NULL, EC, "7.21h",
+	    127, NULL, ALPHA, "119ms",
+	    128, NULL, ALPHA, "0.12us",
+	    129, NULL, ALPHA, "0.6us",
+	    130, NULL, ALPHA, "100us",
+	    131, NULL, ALPHA, "300us",
+	    132, NULL, ALPHA, "32ms",
+	    133, NULL, ALPHA, "1.5s",
+	    134, NULL, ALPHA, "56s",
+	    135, NULL, ALPHA, "3.71m",
+	    136, NULL, ALPHA, "2.3m",
+	    137, NULL, ALPHA, "54s",
+	    138, NULL, ALPHA, "50s",
+	};
+	int primary_isotope = 125;
+    },
+    new Dictionary {
+	String name = "Radon";
+	String symbol = "Rn";
+	int    Z = 86;
+	int    period = 6;
+
+	Array properties = {"18", "p", NONMETAL, GAS, "[222]", "", "1037", "", "120", "202", "211.3", "", "50.50", "[Xe]4f\x00B9\x20745d\x00B9\x20706s\x00B26p\x2076", YES, NO};
+
+	Array isotopes = {
+	    109, NULL, ALPHA, "5ms",
+	    110, NULL, ALPHA, "4ms",
+	    111, NULL, ALPHA, "60ms",
+	    112, NULL, ALPHA, "64ms",
+	    113, NULL, ALPHA, "320ms",
+	    114, NULL, ALPHA, "1.01s",
+	    115, NULL, ALPHA, "3.8s",
+	    116, NULL, ALPHA, "9.7s",
+	    117, NULL, ALPHA, "26.8s",
+	    118, NULL, ALPHA, "1.23m",
+	    119, NULL, EC, "2.8m",
+	    120, NULL, ALPHA, "5.7m",
+	    121, NULL, EC, "9.3m",
+	    122, NULL, ALPHA, "24.3m",
+	    123, NULL, EC, "29m",
+	    124, NULL, ALPHA, "2.4h",
+	    125, NULL, EC, "14.6h",
+	    126, NULL, ALPHA, "24m",
+	    127, NULL, ALPHA, "26ms",
+	    128, NULL, ALPHA, "0.27us",
+	    129, NULL, ALPHA, "2.3us",
+	    130, NULL, ALPHA, "45us",
+	    131, NULL, ALPHA, "600us",
+	    132, NULL, ALPHA, "35ms",
+	    133, NULL, ALPHA, "3.96s",
+	    134, NULL, ALPHA, "55.6s",
+	    135, NULL, BETA, "25m",
+	    136, NULL, ALPHA, "3.824d",
+	    137, NULL, BETA, "23m",
+	    138, NULL, BETA, "1.8h",
+	    139, NULL, BETA, "4.5m",
+	    140, NULL, BETA, "7.4m",
+	    141, NULL, BETA, "21s",
+	    142, NULL, BETA, "65s",
+	};
+	int primary_isotope = 136;
+    },
+    new Dictionary {
+	String name = "Francium";
+	String symbol = "Fr";
+	int    Z = 87;
+	int    period = 7;
+
+	Array properties = {"1", "s", METAL, SOLID, "[223]", "0.7", "380", "", "", "", "", "", "", "[Rn]7s\x00B9", YES, NO};
+
+	Array isotopes = {
+	    112, NULL, ALPHA, "12ms",
+	    113, NULL, ALPHA, "19ms",
+	    114, NULL, ALPHA, "60ms",
+	    115, NULL, ALPHA, "340ms",
+	    116, NULL, ALPHA, "550ms",
+	    117, NULL, ALPHA, "1s",
+	    118, NULL, ALPHA, "3.9s",
+	    119, NULL, ALPHA, "16.0s",
+	    120, NULL, ALPHA, "14.8s",
+	    121, NULL, ALPHA, "9.1s",
+	    122, NULL, ALPHA, "50s",
+	    123, NULL, ALPHA, "3.2m",
+	    124, NULL, ALPHA, "3.1m",
+	    125, NULL, EC, "20m",
+	    126, NULL, ALPHA, "34.6s",
+	    127, NULL, ALPHA, "3.4ms",
+	    128, NULL, ALPHA, "0.9us",
+	    129, NULL, ALPHA, "0.07us",
+	    130, NULL, ALPHA, "18us",
+	    131, NULL, ALPHA, "1ms",
+	    132, NULL, ALPHA, "21ms",
+	    133, NULL, ALPHA, "27.4s",
+	    134, NULL, ALPHA, "4.8m",
+	    135, NULL, BETA, "14.3m",
+	    136, NULL, BETA, "21.8m",
+	    137, NULL, BETA, "3.0m",
+	    138, NULL, BETA, "3.9m",
+	    139, NULL, BETA, "49s",
+	    140, NULL, BETA, "2.48m",
+	    141, NULL, BETA, "39s",
+	    142, NULL, BETA, "50s",
+	    143, NULL, BETA, "19s",
+	    144, NULL, BETA, "17.6s",
+	    145, NULL, BETA, "5s",
+	};
+	int primary_isotope = 136;
+    },
+    new Dictionary {
+	String name = "Radium";
+	String symbol = "Ra";
+	int    Z = 88;
+	int    period = 7;
+
+	Array properties = {"2", "s", METAL, SOLID, "[226]", "0.9", "509.3", "215", "", "973", "2010", "5000", "41.09", "[Rn]7s\x00B2", YES, NO};
+
+	Array isotopes = {
+	    114, NULL, ALPHA, "700us",
+	    115, NULL, ALPHA, "1.1ms",
+	    116, NULL, ALPHA, "58ms",
+	    117, NULL, ALPHA, "195ms",
+	    118, NULL, ALPHA, "240ms",
+	    119, NULL, ALPHA, "57ms",
+	    120, NULL, ALPHA, "1.4s",
+	    121, NULL, ALPHA, "4.6s",
+	    122, NULL, ALPHA, "3.7s",
+	    123, NULL, ALPHA, "13s",
+	    124, NULL, ALPHA, "13s",
+	    125, NULL, ALPHA, "2.7m",
+	    126, NULL, ALPHA, "2.46s",
+	    127, NULL, ALPHA, "1.68ms",
+	    128, NULL, ALPHA, "0.18us",
+	    129, NULL, ALPHA, "1.6us",
+	    130, NULL, ALPHA, "26us",
+	    131, NULL, ALPHA, "10ms",
+	    132, NULL, ALPHA, "18ms",
+	    133, NULL, ALPHA, "29s",
+	    134, NULL, ALPHA, "38s",
+	    135, NULL, ALPHA, "11.435d",
+	    136, NULL, ALPHA, "3.66d",
+	    137, NULL, BETA, "14.9d",
+	    138, "100", ALPHA, "1599y",
+	    139, NULL, BETA, "42m",
+	    140, NULL, BETA, "5.76y",
+	    141, NULL, BETA, "4m",
+	    142, NULL, BETA, "1.5h",
+	    143, NULL, BETA, "1.7m",
+	    144, NULL, BETA, "4m",
+	    145, NULL, BETA, "30s",
+	    146, NULL, BETA, "30s",
+	};
+	int primary_isotope = 138;
+    },
+    new Dictionary {
+	String name = "Actinium";
+	String symbol = "Ac";
+	int    Z = 89;
+	int    period = 7;
+
+	Array properties = {"3", "d", METAL, SOLID, "[227]", "1.1", "499", "195", "", "1323", "3573", "10070", "22.55", "[Rn]6d\x00B97s\x00B2", YES, NO};
+
+	Array isotopes = {
+	    117, NULL, ALPHA, "22ms",
+	    118, NULL, ALPHA, "20ms",
+	    119, NULL, ALPHA, "30ms",
+	    120, NULL, ALPHA, "80ms",
+	    121, NULL, ALPHA, "340ms",
+	    122, NULL, ALPHA, "210ms",
+	    123, NULL, ALPHA, "920ms",
+	    124, NULL, ALPHA, "740ms",
+	    125, NULL, ALPHA, "8.2s",
+	    126, NULL, ALPHA, "170ms",
+	    127, NULL, ALPHA, "440us",
+	    128, NULL, ALPHA, "0.07us",
+	    129, NULL, ALPHA, "1.1us",
+	    130, NULL, ALPHA, "11us",
+	    131, NULL, ALPHA, "26.4ms",
+	    132, NULL, ALPHA, "52ms",
+	    133, NULL, ALPHA, "5s",
+	    134, NULL, ALPHA, "2.1m",
+	    135, NULL, EC, "2.7h",
+	    136, NULL, ALPHA, "10.0d",
+	    137, NULL, BETA, "1.224d",
+	    138, NULL, BETA, "21.77y",
+	    139, NULL, BETA, "6.15h",
+	    140, NULL, BETA, "1.04h",
+	    141, NULL, BETA, "2.03m",
+	    142, NULL, BETA, "7.5m",
+	    143, NULL, BETA, "2m",
+	    144, NULL, BETA, "2.4m",
+	    145, NULL, BETA, "40s",
+	};
+	int primary_isotope = 138;
+    },
+    new Dictionary {
+	String name = "Thorium";
+	String symbol = "Th";
+	int    Z = 90;
+	int    period = 7;
+
+	Array properties = {"", "f", METAL, SOLID, "232.03806(2)", "1.3", "587", "180", "", "2115", "5093", "11724", "19.80", "[Rn]6d\x00B27s\x00B2", YES, NO};
+
+	Array isotopes = {
+	    119, NULL, ALPHA, "3.8ms",
+	    120, NULL, ALPHA, "11ms",
+	    121, NULL, ALPHA, "37ms",
+	    122, NULL, ALPHA, "30ms",
+	    123, NULL, ALPHA, "140ms",
+	    124, NULL, ALPHA, "100ms",
+	    125, NULL, ALPHA, "1.2s",
+	    126, NULL, ALPHA, "140us",
+	    127, NULL, ALPHA, "250us",
+	    128, NULL, ALPHA, "0.11us",
+	    129, NULL, ALPHA, "1.05us",
+	    130, NULL, ALPHA, "10us",
+	    131, NULL, ALPHA, "1.7ms",
+	    132, NULL, ALPHA, "2.2ms",
+	    133, NULL, ALPHA, "650ms",
+	    134, NULL, ALPHA, "1.05s",
+	    135, NULL, ALPHA, "8.72m",
+	    136, NULL, ALPHA, "30.6m",
+	    137, NULL, ALPHA, "18.68d",
+	    138, NULL, ALPHA, "1.912y",
+	    139, NULL, ALPHA, "7300y",
+	    140, NULL, ALPHA, "7.54\x00D710\x2074y",
+	    141, NULL, BETA, "1.063d",
+	    142, "100", ALPHA, "1.40\x00D710\x00B9\x2070y",
+	    143, NULL, BETA, "21.8m",
+	    144, NULL, BETA, "24.1d",
+	    145, NULL, BETA, "7.2m",
+	    146, NULL, BETA, "37.5m",
+	    147, NULL, BETA, "4.8m",
+	    148, NULL, BETA, "9.4m",
+	};
+	int primary_isotope = 142;
+    },
+    new Dictionary {
+	String name = "Protactinium";
+	String symbol = "Pa";
+	int    Z = 91;
+	int    period = 7;
+
+	Array properties = {"", "f", METAL, SOLID, "231.03588(2)", "1.5", "568", "180", "", "1841", "", "15370", "15.18", "[Rn]5f\x00B26d\x00B97s\x00B2", YES, NO};
+
+	Array isotopes = {
+	    121, NULL, ALPHA, "5.1ms",
+	    122, NULL, ALPHA, "5ms",
+	    123, NULL, ALPHA, "17ms",
+	    124, NULL, ALPHA, "14ms",
+	    125, NULL, ALPHA, "190ms",
+	    126, NULL, ALPHA, "1.5ms",
+	    127, NULL, ALPHA, "113us",
+	    128, NULL, ALPHA, "0.05us",
+	    130, NULL, ALPHA, "6us",
+	    131, NULL, ALPHA, "3ms",
+	    132, NULL, ALPHA, "5.1ms",
+	    133, NULL, ALPHA, "850ms",
+	    134, NULL, ALPHA, "1.8s",
+	    135, NULL, ALPHA, "1.8m",
+	    136, NULL, ALPHA, "38.3m",
+	    137, NULL, EC, "22h",
+	    138, NULL, EC, "1.5d",
+	    139, NULL, EC, "17.4d",
+	    140, "100", ALPHA, "3.28\x00D710\x2074y",
+	    141, NULL, BETA, "1.31d",
+	    142, NULL, BETA, "26.97d",
+	    143, NULL, BETA, "1.17h",
+	    144, NULL, BETA, "24.4m",
+	    145, NULL, BETA, "9.1m",
+	    146, NULL, BETA, "8.7m",
+	    147, NULL, BETA, "2.3m",
+	};
+	int primary_isotope = 140;
+    },
+    new Dictionary {
+	String name = "Uranium";
+	String symbol = "U";
+	int    Z = 92;
+	int    period = 7;
+
+	Array properties = {"", "f", METAL, SOLID, "238.02891(3)", "1.38", "597.6", "175", "", "1405.3", "4200", "19050", "12.49", "[Rn]5f\x00B36d\x00B97s\x00B2", YES, NO};
+
+	Array isotopes = {
+	    125, NULL, ALPHA, "16ms",
+	    126, NULL, ALPHA, "2ms",
+	    127, NULL, ALPHA, "42us",
+	    130, NULL, ALPHA, "1us",
+	    131, NULL, ALPHA, "18us",
+	    133, NULL, ALPHA, "59ms",
+	    134, NULL, ALPHA, "270ms",
+	    135, NULL, ALPHA, "1.1m",
+	    136, NULL, ALPHA, "9.1m",
+	    137, NULL, EC, "58m",
+	    138, NULL, ALPHA, "20.8d",
+	    139, NULL, EC, "4.2d",
+	    140, NULL, ALPHA, "69.8y",
+	    141, NULL, ALPHA, "1.59\x00D710\x2075y",
+	    142, "0.0055", ALPHA, "2.46\x00D710\x2075y",
+	    143, "0.7200", ALPHA, "7.04\x00D710\x2078y",
+	    144, NULL, ALPHA, "2.34\x00D710\x2077y",
+	    145, NULL, BETA, "6.75d",
+	    146, "99.2745", ALPHA, "4.47\x00D710\x2079y",
+	    147, NULL, BETA, "23.5m",
+	    148, NULL, BETA, "14.1h",
+	    150, NULL, BETA, "16.8m",
+	};
+	int primary_isotope = 146;
+    },
+    new Dictionary {
+	String name = "Neptunium";
+	String symbol = "Np";
+	int    Z = 93;
+	int    period = 7;
+
+	Array properties = {"", "f", METAL, SOLID, "[237]", "1.36", "604.5", "175", "", "910", "4273", "20450", "11.59", "[Rn]5f\x20746d\x00B97s\x00B2", YES, NO};
+
+	Array isotopes = {
+	    133, NULL, ALPHA, "30ms",
+	    134, NULL, ALPHA, "500ms",
+	    135, NULL, ALPHA, "1.0m",
+	    136, NULL, ALPHA, "4.0m",
+	    137, NULL, ALPHA, "4.6m",
+	    138, NULL, ALPHA, "48.8m",
+	    139, NULL, EC, "14.7m",
+	    140, NULL, EC, "36.2m",
+	    141, NULL, EC, "4.4d",
+	    142, NULL, EC, "1.085y",
+	    143, NULL, BETA, "22.5h",
+	    144, NULL, ALPHA, "2.14\x00D710\x2076y",
+	    145, NULL, BETA, "2.12d",
+	    146, NULL, BETA, "2.36d",
+	    147, NULL, BETA, "7.2m",
+	    148, NULL, BETA, "13.9m",
+	    149, NULL, BETA, "2.2m",
+	};
+	int primary_isotope = 144;
+    },
+    new Dictionary {
+	String name = "Plutonium";
+	String symbol = "Pu";
+	int    Z = 94;
+	int    period = 7;
+
+	Array properties = {"", "f", METAL, SOLID, "[244]", "1.28", "584.7", "175", "", "912.5", "3503", "19816", "12.29", "[Rn]5f\x20767s\x00B2", YES, NO};
+
+	Array isotopes = {
+	    137, NULL, EC, "8.6m",
+	    138, NULL, EC, "34m",
+	    139, NULL, EC, "20.9m",
+	    140, NULL, EC, "8.8h",
+	    141, NULL, EC, "25.3m",
+	    142, NULL, ALPHA, "2.87y",
+	    143, NULL, EC, "45.2d",
+	    144, NULL, ALPHA, "87.7y",
+	    145, NULL, ALPHA, "2.41\x00D710\x2074y",
+	    146, NULL, ALPHA, "6560y",
+	    147, NULL, BETA, "14.4y",
+	    148, NULL, ALPHA, "3.75\x00D710\x2075y",
+	    149, NULL, BETA, "4.96h",
+	    150, NULL, ALPHA, "8.0\x00D710\x2077y",
+	    151, NULL, BETA, "10.5h",
+	    152, NULL, BETA, "10.9d",
+	    153, NULL, BETA, "2.3d",
+	};
+	int primary_isotope = 150;
+    },
+    new Dictionary {
+	String name = "Americium";
+	String symbol = "Am";
+	int    Z = 95;
+	int    period = 7;
+
+	Array properties = {"", "f", METAL, SOLID, "[243]", "1.3", "578", "175", "", "1449", "2880", "", "17.63", "[Rn]5f\x20777s\x00B2", YES, NO};
+
+	Array isotopes = {
+	    137, NULL, EC, "79s",
+	    138, NULL, EC, "3m",
+	    139, NULL, EC, "2.3m",
+	    140, NULL, EC, "15m",
+	    141, NULL, EC, "4m",
+	    142, NULL, EC, "1.22h",
+	    143, NULL, EC, "1.63h",
+	    144, NULL, EC, "11.9h",
+	    145, NULL, EC, "2.12d",
+	    146, NULL, ALPHA, "432.7y",
+	    147, NULL, BETA, "16.0h",
+	    148, NULL, ALPHA, "7370y",
+	    149, NULL, BETA, "26m",
+	    150, NULL, ALPHA, "2.05h",
+	    151, NULL, BETA, "25m",
+	    152, NULL, ALPHA, "23m",
+	};
+	int primary_isotope = 148;
+    },
+    new Dictionary {
+	String name = "Curium";
+	String symbol = "Cm";
+	int    Z = 96;
+	int    period = 7;
+
+	Array properties = {"", "f", METAL, SOLID, "[247]", "1.3", "581", "", "", "1613", "3383", "13510", "18.05", "[Rn]5f\x20776d\x00B97s\x00B2", YES, NO};
+
+	Array isotopes = {
+	    142, NULL, EC, "2.4h",
+	    143, NULL, EC, "3h",
+	    144, NULL, ALPHA, "27d",
+	    145, NULL, EC, "32.8d",
+	    146, NULL, ALPHA, "162.8d",
+	    147, NULL, ALPHA, "29.1y",
+	    148, NULL, ALPHA, "18.1y",
+	    149, NULL, ALPHA, "8500y",
+	    150, NULL, ALPHA, "4760y",
+	    151, NULL, ALPHA, "1.56\x00D710\x2077y",
+	    152, NULL, ALPHA, "3.48\x00D710\x2075y",
+	    153, NULL, BETA, "1.07h",
+	    154, NULL, ALPHA, "8300y",
+	    155, NULL, BETA, "16.8m",
+	};
+	int primary_isotope = 151;
+    },
+    new Dictionary {
+	String name = "Berkelium";
+	String symbol = "Bk";
+	int    Z = 97;
+	int    period = 7;
+
+	Array properties = {"", "f", METAL, SOLID, "[247]", "1.3", "601", "", "", "1259", "", "14780", "16.84", "[Rn]5f\x20797s\x00B2", YES, NO};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Californium";
+	String symbol = "Cf";
+	int    Z = 98;
+	int    period = 7;
+
+	Array properties = {"", "f", METAL, SOLID, "[251]", "1.3", "608", "", "", "1173", "", "15100", "16.50", "[Rn]5f\x00B9\x20707s\x00B2", YES, NO};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Einsteinium";
+	String symbol = "Es";
+	int    Z = 99;
+	int    period = 7;
+
+	Array properties = {"", "f", METAL, SOLID, "[252]", "1.3", "619", "", "", "1133", "", "", "28.52", "[Rn]5f\x00B9\x00B97s\x00B2", YES, NO};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Fermium";
+	String symbol = "Fm";
+	int    Z = 100;
+	int    period = 7;
+
+	Array properties = {"", "f", METAL, SOLID, "[257]", "1.3", "627", "", "", "1800", "", "", "", "[Rn]5f\x00B9\x00B27s\x00B2", YES, NO};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Mendelevium";
+	String symbol = "Md";
+	int    Z = 101;
+	int    period = 7;
+
+	Array properties = {"", "f", METAL, SOLID, "[258]", "1.3", "635", "", "", "1100", "", "", "", "[Rn]5f\x00B9\x00B37s\x00B2", YES, NO};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Nobelium";
+	String symbol = "No";
+	int    Z = 102;
+	int    period = 7;
+
+	Array properties = {"", "f", METAL, SOLID, "[259]", "1.3", "642", "", "", "1100", "", "", "", "[Rn]5f\x00B9\x20747s\x00B2", YES, NO};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Lawrencium";
+	String symbol = "Lr";
+	int    Z = 103;
+	int    period = 7;
+
+	Array properties = {"", "f", METAL, SOLID, "[262]", "", "", "", "", "1900", "", "", "", "[Rn]5f\x00B9\x20746d\x00B97s\x00B2", YES, NO};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Rutherfordium";
+	String symbol = "Rf";
+	int    Z = 104;
+	int    period = 7;
+
+	Array properties = {"4", "d", METAL, SOLID, "[261]", "", "", "", "", "", "", "", "", "[Rn]5f\x00B9\x20746d\x00B27s\x00B2", YES, NO};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Dubnium";
+	String symbol = "Db";
+	int    Z = 105;
+	int    period = 7;
+
+	Array properties = {"5", "d", METAL, SOLID, "[262]", "", "", "", "", "", "", "", "", "[Rn]5f\x00B9\x20746d\x00B37s\x00B2", YES, NO};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Seaborgium";
+	String symbol = "Sg";
+	int    Z = 106;
+	int    period = 7;
+
+	Array properties = {"6", "d", METAL, SOLID, "[266]", "", "", "", "", "", "", "", "", "[Rn]5f\x00B9\x20746d\x20747s\x00B2", YES, NO};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Bohrium";
+	String symbol = "Bh";
+	int    Z = 107;
+	int    period = 7;
+
+	Array properties = {"7", "d", METAL, SOLID, "[264]", "", "", "", "", "", "", "", "", "[Rn]5f\x00B9\x20746d\x20757s\x00B2", YES, NO};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Hassium";
+	String symbol = "Hs";
+	int    Z = 108;
+	int    period = 7;
+
+	Array properties = {"8", "d", METAL, SOLID, "[269]", "", "", "", "", "", "", "", "", "[Rn]5f\x00B9\x20746d\x20767s\x00B2", YES, NO};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Meitnerium";
+	String symbol = "Mt";
+	int    Z = 109;
+	int    period = 7;
+
+	Array properties = {"9", "d", METAL, SOLID, "[268]", "", "", "", "", "", "", "", "", "[Rn]5f\x00B9\x20746d\x20777s\x00B2", YES, NO};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Darmstadtium";
+	String symbol = "Ds";
+	int    Z = 110;
+	int    period = 7;
+
+	Array properties = {"10", "d", METAL, SOLID, "[281]", "", "", "", "", "", "", "", "", "[Rn]5f\x00B9\x20746d\x20797s\x00B9", YES, NO};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Roentgenium";
+	String symbol = "Rg";
+	int    Z = 111;
+	int    period = 7;
+
+	Array properties = {"11", "d", METAL, SOLID, "[272]", "", "", "", "", "", "", "", "", "[Rn]5f\x00B9\x20746d\x00B9\x20707s\x00B9", YES, NO};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Ununbium";
+	String symbol = "Uub";
+	int    Z = 112;
+	int    period = 7;
+
+	Array properties = {"12", "d", METAL, LIQUID, "[285]", "", "", "", "", "", "", "", "", "[Rn]5f\x00B9\x20746d\x00B9\x20707s\x00B2", YES, YES};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Ununtrium";
+	String symbol = "Uut";
+	int    Z = 113;
+	int    period = 7;
+
+	Array properties = {"13", "p", METAL, SOLID, "[284]", "", "", "", "", "", "", "", "", "[Rn]5f\x00B9\x20746d\x00B9\x20707s\x00B27p\x00B9", YES, YES};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Ununquadium";
+	String symbol = "Uuq";
+	int    Z = 114;
+	int    period = 7;
+
+	Array properties = {"14", "p", METAL, SOLID, "[289]", "", "", "", "", "", "", "", "", "[Rn]5f\x00B9\x20746d\x00B9\x20707s\x00B27p\x00B2", YES, YES};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Ununpentium";
+	String symbol = "Uup";
+	int    Z = 115;
+	int    period = 7;
+
+	Array properties = {"15", "p", METAL, SOLID, "[288]", "", "", "", "", "", "", "", "", "[Rn]5f\x00B9\x20746d\x00B9\x20707s\x00B27p\x00B3", YES, YES};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Ununhexium";
+	String symbol = "Uuh";
+	int    Z = 116;
+	int    period = 7;
+
+	Array properties = {"16", "p", METAL, SOLID, "[292]", "", "", "", "", "", "", "", "", "[Rn]5f\x00B9\x20746d\x00B9\x20707s\x00B27p\x2074", YES, YES};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Ununseptium";
+	String symbol = "Uus";
+	int    Z = 117;
+	int    period = 7;
+
+	Array properties = {"17", "p", UNKNOWN, SOLID, "", "", "", "", "", "", "", "", "", "[Rn]5f\x00B9\x20746d\x00B9\x20707s\x00B27p\x2075", YES, YES};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+    new Dictionary {
+	String name = "Ununoctium";
+	String symbol = "Uuo";
+	int    Z = 118;
+	int    period = 7;
+
+	Array properties = {"18", "p", NONMETAL, GAS, "[294]", "", "", "", "", "", "", "", "", "[Rn]5f\x00B9\x20746d\x00B9\x20707s\x00B27p\x2076", YES, YES};
+
+	Array isotopes = NULL;
+	int primary_isotope = -1;
+    },
+};
+
+final Dictionary ChartData = {
+    //
+    // Constants that identify kind of tables that we support. They're used
+    // to make decisions in the code and also appear in labels and menus in
+    // the screen that displays the table.
+    //
+
+    final String PERIODIC_TABLE_STANDARD = "Periodic Table - Standard Version";
+    final String PERIODIC_TABLE_WIDE = "Periodic Table - Wide Version";
+    final String PERIODIC_PUZZLE = "Periodic Puzzle";
+    final String ISOTOPE_TABLE = "Naturally Occurring Isotopes";
+    final String NUCLIDE_TABLE = "Chart Of The Nuclides";
+
+    //
+    // Constants used to make coloring decisions.
+    //
+
+    final String COLORBY_CHECKERBOARD = "Checkerboard";
+    final String COLORBY_COLOR_TAN = "Tan";
+    final String COLORBY_COLOR_BROWN = "Brown";
+
+    final String COLORBY_ATOMIC_RADIUS = "Atomic Radius";
+    final String COLORBY_BLOCK = "Block";
+    final String COLORBY_BOILING_POINT = "Boiling Point";
+    final String COLORBY_CLASSIFICATION = "Classification";
+    final String COLORBY_DECAY_MODE = "Decay Mode";
+    final String COLORBY_ELECTRONEGATIVITY = "Electronegativity";
+    final String COLORBY_HALF_LIFE = "Half Life";
+    final String COLORBY_MELTING_POINT = "Melting Point";
+    final String COLORBY_RADIOACTIVE = "Radioactive";
+    final String COLORBY_STATE = "State";
+
+    //
+    // Constants used to make filtering decisions.
+    //
+
+    final String FILTERBY_CLASSIFICATION = "Classification";
+    final String FILTERBY_STATE = "State";
+    final String FILTERBY_TEMPORARYNAMES = "Temporary Names";
+
+    //
+    // Custom sorting constants.
+    //
+
+    final String SORTBY_GROUP = "Sort by Group";
+
+    //
+    // A cache for cell detail
+    //
+
+    Dictionary CellDetailCache = NULL;
+
+    ////////////////////////////
+    //
+    // Application Functions
+    //
+    ////////////////////////////
+
+    GetCellBackground(Dictionary cell, Dictionary dict) {
+	Object colors;
+	Object color;
+	Object value;
+	int    index;
+	int    n;
+
+	if (cell != NULL && dict != NULL) {		// probably unnecessary tests
+	    colors = dict.colors;
+	    if ((index = dict.index) >= 0) {
+		switch (chartmodel) {
+		    case ISOTOPE_TABLE:
+		    case NUCLIDE_TABLE:
+			switch (dict.text) {
+			    case COLORBY_DECAY_MODE:
+				if (value = cell.etc[DECAY_MODE])
+				    color = defined(value, colors) ? colors[value] : colors[UNKNOWN];
+				else color = colors[STABLE];
+				break;
+
+			    case COLORBY_RADIOACTIVE:
+				color = cell.etc[DECAY_MODE] ? colors[YES] : colors[NO];
+				break;
+
+			    case COLORBY_HALF_LIFE:
+				if (value = cell.etc[HALF_LIFE]) {
+				    value += value@sizeof - 1;		// point to last character
+				    color = defined(value, colors) ? colors[value] : colors[UNKNOWN];
+				} else color = colors[STABLE];
+				break;
+			}
+			break;
+
+		    case PERIODIC_PUZZLE:
+		    case PERIODIC_TABLE_STANDARD:
+		    case PERIODIC_TABLE_WIDE:
+			if (colors instanceof Array) {
+			    if ((value = atof(cell.data.properties[index])) > 0) {
+				for (n = 2; n < colors@sizeof - 2 && colors[n] < value; n += 2) ;
+				color = colors[n+1];
+			    } else color = colors[1];
+			} else color = colors[cell.data.properties[index]];
+			break;
+		}
+	    } else {
+		switch (dict.text) {
+		    case COLORBY_CHECKERBOARD:
+			color = colors[((cell.index/columns)%2 + cell.index%columns)%colors@sizeof];
+			break;
+
+		    case COLORBY_COLOR_TAN:
+		    case COLORBY_COLOR_BROWN:
+			color = colors;
+			break;
+		}
+	    }
+	}
+	return(color);
+    }
+
+    GetCellDetail(Dictionary cell) {
+	Dictionary element;
+	Array      properties;
+	String     result;
+
+	String template = @<<<HTML>
+	    <HEAD>
+	    <TITLE>%s</TITLE>
+	    </HEAD>
+	    <BODY>
+	    <table cellspacing=0 cellpadding=3 border=0 align=center>
+	    <tr>
+	    <td colspan=2 align=center><span style='font-size:150%%'><b>%s</b></span></td>
+	    </tr>
+	    <tr>
+	    <td colspan=2 align=center><span style='font-size:200%%'><b>%s</b></span></td>
+	    </tr>
+	    <tr>
+	    <td colspan=2 align=center><span style='font-size:160%%'><b>%s</b></span></td>
+	    </tr>
+	    <tr>
+	    <td colspan=2 align=center><b>%s</b></td>
+	    </tr>
+	    <tr>
+	    <td colspan=2 align=center>%s</td>
+	    </tr>
+	    <tr>
+	    <td colspan=2 align=center>Group <b>%s</b> Period <b>%s</b> Block <b>%s</b></td>
+	    </tr>
+	    <tr>
+	    <td colspan=2><hr></td>
+	    </tr>
+	    <tr>
+	    <td colspan=2 align=center><b>Radii</b></td>
+	    </tr>
+	    <tr>
+	    <td align='right'><b>Empirical</b> (picometers):</td><td>%s</td>
+	    </tr>
+	    <tr>
+	    <td align='right'><b>Calculated</b> (picometers):</td><td>%s</td>
+	    </tr>
+	    <tr>
+	    <td colspan=2><hr></td>
+	    </tr>
+	    <tr>
+	    <td colspan=2 align=center><b>Ionization Energies</b> (kJ/mole)</td>
+	    </tr>
+	    %s
+	    <tr>
+	    <td colspan=2><hr></td>
+	    </tr>
+	    <tr>
+	    <td colspan=2 align=center><b>Electronegativities</b></td>
+	    </tr>
+	    <tr>
+	    <td align='right'><b>Pauling</b>:</td><td>%s</td>
+	    </tr>
+	    <tr>
+	    <td colspan=2><hr></td>
+	    </tr>
+	    <tr>
+	    <td align='right'><b>State</b> (at STP):</td><td>%s</td>
+	    </tr>
+	    <tr>
+	    <td align='right'><b>Melting Point</b> (&deg;K):</td><td>%s</td>
+	    </tr>
+	    <tr>
+	    <td align='right'><b>Boiling Point</b> (&deg;K):</td><td>%s</td>
+	    </tr>
+	    <tr>
+	    <td align='right'><b>Density</b> (kg/cm<sup>3</sup>):</td><td valign="bottom">%s</td>
+	    </tr>
+	    <tr>
+	    <td align='right'><b>Classification</b>:</td><td>%s</td>
+	    </tr>
+	    <tr>
+	    <td align='right'><b>Radioactive</b>:</td><td>%s</td>
+	    </tr>
+	    </table>
+	    </BODY>
+	</HTML>%s>>@;
+
+	IonizationPotentials(String list) {
+	    Array ordinals = {"First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth"};
+	    Array values = strsplit(list, ",");
+
+	    for (ptr in values) {
+		if (ptr@offset < ordinals@length)
+		    *ptr = strfmt("  <tr>\n    <td align='right'><b>%s Electron</b>:</td><td>%s</td>\n  </tr>", ordinals[ptr@offset], *ptr);
+	    }
+	    return(strjoin(values, "\n"));
+	}
+
+	if (cell != NULL) {
+	    if (!defined(cell.name, CellDetailCache)) {
+		if (CellDetailCache == NULL)
+		    CellDetailCache = new Dictionary[cellcount, ...];
+		element = cell.data;
+		properties = element.properties;
+		CellDetailCache[cell.name] = strfmt(template,
+		    element.name,
+		    element.name,
+		    element.symbol,
+		    toString(element.Z),
+		    properties[ATOMIC_WEIGHT],
+		    properties[ELECTRON_CONFIGURATION],
+		    properties[GROUP] === "" ? "n/a" : properties[GROUP],
+		    toString(element.period),
+		    properties[BLOCK],
+
+		    properties[ATOMIC_RADIUS],
+		    properties[ATOMIC_RADIUS_CALCULATED],
+
+		    IonizationPotentials(properties[IONIZATION_ENERGY]),
+
+		    properties[ELECTRONEGATIVITY],
+		    properties[STATE],
+		    properties[MELTING_POINT],
+		    properties[BOILING_POINT],
+		    properties[DENSITY],
+		    properties[CLASSIFICATION],
+		    properties[RADIOACTIVE],
+		    "\n"
+		);
+	    }
+	    result = CellDetailCache[cell.name];
+	}
+	return(result);
+    }
+
+    GetCellDetailDividerModel() {
+	int model;
+
+	switch (chartmodel) {
+	    case PERIODIC_TABLE_STANDARD:
+		model = 1;
+		break;
+
+	    default:
+		model = 2;
+		break;
+	}
+	return(model);
+    }
+
+    GetCellLabelGenerators() {
+	Array generators;
+
+	switch (chartmodel) {
+	    case PERIODIC_TABLE_STANDARD:
+	    case PERIODIC_TABLE_WIDE:
+		generators = new Array {
+		    new Dictionary {
+			Font font = GetSmallCellFont();
+			int  baseline = TOP;
+
+			GetBackground(Dictionary cell) {
+			    Object color;
+			    switch (cell.data.properties[CLASSIFICATION]) {
+				case METAL:
+				    color = CellColors.LIGHTGRAY;
+				    break;
+
+				case NONMETAL:
+				    color = CellColors.DARKGRAY;
+				    break;
+
+				case SEMIMETAL:
+				    color = CellColors.GRAY;
+				    break;
+
+				default:
+				    color = NULL;
+				    break;
+			    }
+			    return(color);
+			}
+
+			Array layout = {
+			    new Dictionary {
+				int alignment = CENTER;
+
+				GetText(Dictionary cell) = cell.name;
+				GetMinimumSize() = GetFieldBounds(ElementData, "name");
+			    },
+			};
+		    },
+		    new Dictionary {
+			Font font = GetSmallCellFont();
+			int  baseline = BOTTOM;
+
+			GetBackground(Dictionary cell) = CellColors.GOLD;
+
+			Array layout = {
+			    new Dictionary {
+				int alignment = LEFT;
+
+				GetText(Dictionary cell) = toString(cell.data.Z);
+				GetTipText(Dictionary cell) = "Atomic Number = " + toString(cell.data.Z);
+				GetMinimumSize() = GetFieldBounds(ElementData, "Z");
+			    },
+			    new Dictionary {
+				int alignment = CENTER;
+
+				GetMinimumSize() = GetLineBounds(72.0/8);
+			    },
+			    new Dictionary {
+				int alignment = RIGHT;
+
+				GetText(Dictionary cell) {
+				    String text = cell.data.properties[ATOMIC_WEIGHT];
+				    int    index;
+
+				    if ((index = indexOf(text, "(")) > 0)
+					text = substring(text, 0, index);
+				    return(text);
+				}
+
+				GetTipText(Dictionary cell) = "Atomic Weight = " + toString(cell.data.properties[ATOMIC_WEIGHT]);
+				GetMinimumSize() = GetArrayElementBounds(ElementData, "properties", ATOMIC_WEIGHT);
+			    },
+			};
+		    },
+		    new Dictionary {
+			//
+			// Displaying values in Centigrade would save a little
+			// space, but it's not a big deal if we're displaying
+			// the temps at the right an left sides of the "line".
+			//
+			Font font = GetTinyCellFont();
+			int  baseline = BOTTOM;
+
+			Array layout = {
+			    new Dictionary {
+				int alignment = LEFT;
+
+				GetText(Dictionary cell) = cell.data.properties[MELTING_POINT]@sizeof ? cell.data.properties[MELTING_POINT] + DEGREESKELVIN : "";
+				GetTipText(Dictionary cell) = cell.data.properties[MELTING_POINT]@sizeof ? "Melting Point = " + cell.data.properties[MELTING_POINT] + DEGREESKELVIN : "";
+				GetMinimumSize() = GetArrayElementBounds(ElementData, "properties", MELTING_POINT);
+			    },
+			    new Dictionary {
+				int alignment = RIGHT;
+
+				GetText(Dictionary cell) = cell.data.properties[BOILING_POINT]@sizeof ? cell.data.properties[BOILING_POINT] + DEGREESKELVIN : "";
+				GetTipText(Dictionary cell) = cell.data.properties[BOILING_POINT]@sizeof ? "Boiling Point = " + cell.data.properties[BOILING_POINT] + DEGREESKELVIN : "";
+				GetMinimumSize() = GetArrayElementBounds(ElementData, "properties", BOILING_POINT);
+			    },
+			};
+		    },
+		    new Dictionary {
+			Font font = GetTinyCellFont();
+			int  baseline = BOTTOM;
+
+			Array layout = {
+			    new Dictionary {
+				int alignment = LEFT;
+
+				GetText(Dictionary cell) = cell.data.properties[ELECTRONEGATIVITY];
+				GetTipText(Dictionary cell) = "Electronegativity (Pauling) = " + cell.data.properties[ELECTRONEGATIVITY];
+				GetMinimumSize() = GetArrayElementBounds(ElementData, "properties", ELECTRONEGATIVITY);
+			    },
+			    new Dictionary {
+				int alignment = RIGHT;
+
+				GetText(Dictionary cell) = cell.data.properties[ATOMIC_RADIUS_CALCULATED]@sizeof ? cell.data.properties[ATOMIC_RADIUS_CALCULATED] + PICOMETER : "";
+				GetTipText(Dictionary cell) = cell.data.properties[ATOMIC_RADIUS_CALCULATED]@sizeof ? "Atomic Radius (calculated) = " + cell.data.properties[ATOMIC_RADIUS_CALCULATED] + PICOMETER : "";
+				GetMinimumSize() = GetArrayElementBounds(ElementData, "properties", ATOMIC_RADIUS_CALCULATED);
+			    },
+			};
+		    },
+		    new Dictionary {
+			double leading = 1.0;
+			Font   font = GetTinyCellFont();
+			int    baseline = BOTTOM;
+
+			Array layout = {
+			    new Dictionary {
+				int alignment = CENTER;
+
+				GetText(Dictionary cell) = cell.data.properties[ELECTRON_CONFIGURATION];
+				GetTipText(Dictionary cell) = "Electron Configuration = " + cell.data.properties[ELECTRON_CONFIGURATION];
+				GetMinimumSize() = GetArrayElementBounds(ElementData, "properties", ELECTRON_CONFIGURATION);
+			    },
+			};
+		    },
+		    new Dictionary {
+			Font font = GetLargeCellFont();
+			int  baseline = CENTER;
+
+			Array layout = {
+			    new Dictionary {
+				int  alignment = CENTER;
+
+				GetText(Dictionary cell) = cell.data.symbol;
+				GetMinimumSize() = GetFieldBounds(ElementData, "symbol");
+			    },
+			};
+		    },
+		};
+		break;
+
+	    case ISOTOPE_TABLE:
+	    case NUCLIDE_TABLE:
+		generators = new Array {
+		    new Dictionary {
+			Font font = GetSmallCellFont();
+			int  baseline = TOP;
+
+			Array layout = {
+			    new Dictionary {
+				int alignment = LEFT;
+
+				GetText(Dictionary cell) = toString(cell.data.Z + cell.etc[NEUTRON_NUMBER]);
+				GetTipText(Dictionary cell) = "Mass Number = " + toString(cell.data.Z + cell.etc[NEUTRON_NUMBER]);
+				GetMinimumSize() = GetLineBounds("000");
+			    },
+
+			    new Dictionary {
+				int alignment = RIGHT;
+				int selectable = TRUE;
+
+				GetText(Dictionary cell) = CHECKMARK;
+				GetMinimumSize() = GetLineBounds(CHECKMARK);
+			    },
+			};
+		    },
+		    new Dictionary {
+			Font font = GetSmallCellFont();
+			int  baseline = BOTTOM;
+
+			GetBackground(Dictionary cell) = CellColors.GOLD;
+
+			Array layout = {
+			    new Dictionary {
+				int alignment = LEFT;
+
+				GetText(Dictionary cell) = toString(cell.data.Z);
+				GetTipText(Dictionary cell) = "Atomic Number = " + toString(cell.data.Z);
+				GetMinimumSize() = GetFieldBounds(ElementData, "Z");
+			    },
+			    new Dictionary {
+				int alignment = CENTER;
+
+				GetMinimumSize() = GetLineBounds(72.0/8);
+			    },
+			    new Dictionary {
+				int alignment = RIGHT;
+
+				//
+				// Using ATOMIC_WEIGHT for our minimum size even though
+				// it's much bigger than we really need because it makes
+				// our cells more compatible with the standard periodic
+				// table cells.
+				//
+
+				GetText(Dictionary cell) = toString(cell.etc[NEUTRON_NUMBER]);
+				GetTipText(Dictionary cell) = "Neutron Number = " + toString(cell.etc[NEUTRON_NUMBER]);
+				GetMinimumSize() = GetArrayElementBounds(ElementData, "properties", ATOMIC_WEIGHT);	// bigger than we need
+			    },
+			};
+		    },
+		    new Dictionary {
+			Font font = GetSmallCellFont();
+			int  baseline = BOTTOM;
+
+			Array layout = {
+			    new Dictionary {
+				int alignment = LEFT;
+
+				GetText(Dictionary cell) = cell.etc[DECAY_MODE];
+				GetTipText(Dictionary cell) = "Decay Mode = " + DecayModeTips[cell.etc[DECAY_MODE]];
+				GetMinimumSize() = GetArrayOverlayBounds(ElementData, "isotopes", DECAY_MODE, FIELDS_PER_ISOTOPE);
+			    },
+			    new Dictionary {
+				int alignment = CENTER;
+
+				GetMinimumSize() = GetLineBounds(72.0/8);
+			    },
+			    new Dictionary {
+				int alignment = RIGHT;
+
+				GetText(Dictionary cell) = cell.etc[HALF_LIFE];
+				GetTipText(Dictionary cell) = cell.etc[HALF_LIFE] ? "Half Life = " + cell.etc[HALF_LIFE] : NULL;
+				GetMinimumSize() = GetArrayOverlayBounds(ElementData, "isotopes", HALF_LIFE, FIELDS_PER_ISOTOPE);
+			    },
+			};
+		    },
+		    new Dictionary {
+			double leading = 1.0;
+			Font   font = GetSmallCellFont();
+			int    baseline = BOTTOM;
+
+			Array layout = {
+			    new Dictionary {
+				int alignment = CENTER;
+
+				GetText(Dictionary cell) = cell.etc[ABUNDANCE] ? cell.etc[ABUNDANCE] + "%" : NULL;
+				GetTipText(Dictionary cell) = cell.etc[ABUNDANCE] ? "Abundance = " + cell.etc[ABUNDANCE] + "%" : NULL;
+				GetMinimumSize() = GetLineBounds(GetArrayOverlayBounds(ElementData, "isotopes", ABUNDANCE, FIELDS_PER_ISOTOPE), "%");
+			    },
+			};
+		    },
+		    new Dictionary {
+			Font font = GetLargeCellFont();
+			int  baseline = CENTER;
+
+			Array layout = {
+			    new Dictionary {
+				int  alignment = CENTER;
+
+				GetText(Dictionary cell) = cell.data.symbol;
+				GetMinimumSize() = GetFieldBounds(ElementData, "symbol");
+			    },
+			};
+		    },
+		};
+		break;
+
+	    case PERIODIC_PUZZLE:
+		generators = new Array {
+		    new Dictionary {
+			Font font = GetSmallCellFont();
+			int  baseline = TOP;
+
+			GetBackground(Dictionary cell) = CellColors.LIGHTGRAY;
+
+			Array layout = {
+			    new Dictionary {
+				int alignment = CENTER;
+
+				GetText(Dictionary cell) = cell.name;
+				GetMinimumSize() = GetFieldBounds(ElementData, "name");
+			    },
+			};
+		    },
+		    new Dictionary {
+			Font font = GetLargeCellFont();
+			int  baseline = CENTER;
+
+			Array layout = {
+			    new Dictionary {
+				int  alignment = CENTER;
+
+				GetText(Dictionary cell) = cell.data.symbol;
+				GetMinimumSize() = GetFieldBounds(ElementData, "symbol");
+			    },
+			};
+		    },
+		};
+		break;
+	}
+	return(generators);
+    }
+
+    GetColorMenuData() {
+	Array data;
+
+	switch (chartmodel) {
+	    case ISOTOPE_TABLE:
+	    case NUCLIDE_TABLE:
+		data = new Array[0, ...] {
+		    new Dictionary {
+			String text = COLORBY_RADIOACTIVE;
+			Object colors = PickColorsFor(COLORBY_RADIOACTIVE);
+			int    index = DECAY_MODE;
+		    },
+		    new Dictionary {
+			String text = COLORBY_DECAY_MODE;
+			Object colors = PickColorsFor(COLORBY_DECAY_MODE);
+			int    state = !puzzle;
+			int    index = DECAY_MODE;
+		    },
+		    new Dictionary {
+			String text = COLORBY_HALF_LIFE;
+			Object colors = PickColorsFor(COLORBY_HALF_LIFE);
+			int    index = HALF_LIFE;
+		    },
+		};
+		break;
+
+	    case PERIODIC_PUZZLE:
+	    case PERIODIC_TABLE_STANDARD:
+	    case PERIODIC_TABLE_WIDE:
+		data = new Array[0, ...] {
+		    new Dictionary {
+			String text = COLORBY_ATOMIC_RADIUS;
+			Object colors = PickColorsFor(COLORBY_ATOMIC_RADIUS);
+			int    index = ATOMIC_RADIUS_CALCULATED;
+			String suffix = PICOMETER;
+		    },
+		    new Dictionary {
+			String text = COLORBY_BLOCK;
+			Object colors = PickColorsFor(COLORBY_BLOCK);
+			int    state = !puzzle;
+			int    index = BLOCK;
+		    },
+		    new Dictionary {
+			String text = COLORBY_ELECTRONEGATIVITY;
+			Object colors = PickColorsFor(COLORBY_ELECTRONEGATIVITY);
+			int    index = ELECTRONEGATIVITY;
+		    },
+		    new Dictionary {
+			String text = COLORBY_RADIOACTIVE;
+			Object colors = PickColorsFor(COLORBY_RADIOACTIVE);
+			int    index = RADIOACTIVE;
+		    },
+		    NULL,
+		    new Dictionary {
+			String text = COLORBY_STATE;
+			Object colors = PickColorsFor(COLORBY_STATE);
+			int    index = STATE;
+		    },
+		    new Dictionary {
+			String text = COLORBY_MELTING_POINT;
+			Object colors = PickColorsFor(COLORBY_MELTING_POINT);
+			int    index = MELTING_POINT;
+			String suffix = DEGREESKELVIN;
+		    },
+		    new Dictionary {
+			String text = COLORBY_BOILING_POINT;
+			Object colors = PickColorsFor(COLORBY_BOILING_POINT);
+			int    index = BOILING_POINT;
+			String suffix = DEGREESKELVIN;
+		    },
+		    new Dictionary {
+			String text = COLORBY_CLASSIFICATION;
+			Object colors = PickColorsFor(COLORBY_CLASSIFICATION);
+			int    index = CLASSIFICATION;
+		    },
+		};
+		break;
+	}
+
+	if (data@sizeof > 0)
+	    data[data@sizeof] = NULL;	// means add separator to menu
+	else data = new Array[0, ...];
+
+	data[data@sizeof] = new Dictionary {
+	    String text = COLORBY_COLOR_TAN;
+	    Object colors = PickColorsFor(COLORBY_COLOR_TAN);
+	    int    state = puzzle;
+	    int    index = -1;
+	};
+	data[data@sizeof] = new Dictionary {
+	    String text = COLORBY_COLOR_BROWN;
+	    Object colors = PickColorsFor(COLORBY_COLOR_BROWN);
+	    int    index = -1;
+	};
+	data[data@sizeof] = new Dictionary {
+	    String text = COLORBY_CHECKERBOARD;
+	    Object colors = PickColorsFor(COLORBY_CHECKERBOARD);
+	    int    index = -1;
+	};
+	return(data);
+    }
+
+    GetColorTipText(Dictionary cell, Dictionary dict) {
+	String text;
+	Object colors;
+	Object value;
+	String suffix;
+	int    index;
+	int    limit;
+	int    n;
+
+	if (dict != NULL) {
+	    text = dict.text;
+	    index = dict.index;
+	    if (cell != NULL && index >= 0) {
+		colors = dict.colors;
+		suffix = defined("suffix", dict) ? dict.suffix : "";
+		switch (chartmodel) {
+		    case ISOTOPE_TABLE:
+		    case NUCLIDE_TABLE:
+			value = cell.etc[index];
+			switch (dict.text) {
+			    case COLORBY_DECAY_MODE:
+				text += value ? " = " + DecayModeTips[value] : " = " + STABLE;
+				break;
+
+			    case COLORBY_HALF_LIFE:
+				text += value ? " = " + value : " = " + STABLE;
+				break;
+
+			    case COLORBY_RADIOACTIVE:
+				text += value ? " = TRUE" : " = FALSE";
+				break;
+			}
+			break;
+
+		    case PERIODIC_PUZZLE:
+		    case PERIODIC_TABLE_STANDARD:
+		    case PERIODIC_TABLE_WIDE:
+			if (colors instanceof Array) {
+			    if ((value = atof(cell.data.properties[index])) > 0) {
+				colors = dict.colors;
+				limit = colors@sizeof - 2;
+				for (n = 2; n < limit && colors[n] < value; n += 2) ;
+				text += strfmt(" = %s%s, Color Range = [%d, %d)", cell.data.properties[index], suffix, colors[n - 2], colors[n]);
+			    } else text += " = UNKNOWN";
+			} else if (cell.data.properties[index]@sizeof > 0)
+			    text += " = " + cell.data.properties[index] + suffix;
+			break;
+		}
+	    }
+	}
+	return(text + " ");
+    }
+
+    GetExternalSiteData() {
+	Array items;
+
+	switch (chartmodel) {
+	    case ISOTOPE_TABLE:
+	    case NUCLIDE_TABLE:
+	    case PERIODIC_PUZZLE:
+	    case PERIODIC_TABLE_STANDARD:
+	    case PERIODIC_TABLE_WIDE:
+		items = new Array {
+		    "Wikipedia", "wikipedia",
+		    "WebElements", "webelements",
+		};
+		break;
+	}
+	return(items);
+    }
+
+    GetExternalSiteURL(Dictionary cell, String site) {
+	String url;
+
+	if (cell != NULL) {
+	    switch (site) {
+		case "webelements":
+		    url = "http://www.webelements.com/webelements/elements/text/" + cell.data.symbol + "/index.html";
+		    break;
+
+		case "wikipedia":
+		    url = "http://en.wikipedia.org/wiki/" + cell.name;
+		    break;
+	    }
+	}
+	return(url);
+    }
+
+    GetFilterMenuData() {
+	Array data = NULL;
+
+	switch (chartmodel) {
+	    case PERIODIC_PUZZLE:
+	    case PERIODIC_TABLE_STANDARD:
+	    case PERIODIC_TABLE_WIDE:
+		data = new Array {
+		    FILTERBY_CLASSIFICATION, new Array {
+			new Dictionary {
+			    String text = ALL_ON;
+			    String key = FILTERBY_CLASSIFICATION;
+			},
+			new Dictionary {
+			    String text = ALL_OFF;
+			    String key = FILTERBY_CLASSIFICATION;
+			},
+			NULL,
+	 		new Dictionary {
+			    String text = METAL;
+			    String key = FILTERBY_CLASSIFICATION;
+			    String value = METAL;
+			},
+			new Dictionary {
+			    String text = SEMIMETAL;
+			    String key = FILTERBY_CLASSIFICATION;
+			    String value = SEMIMETAL;
+			},
+			new Dictionary {
+			    String text = NONMETAL;
+			    String key = FILTERBY_CLASSIFICATION;
+			    String value = NONMETAL;
+			},
+			new Dictionary {
+			    String text = UNKNOWN;
+			    String key = FILTERBY_CLASSIFICATION;
+			    String value = UNKNOWN;
+			},
+		    },
+		    FILTERBY_STATE, new Array {
+			new Dictionary {
+			    String text = ALL_ON;
+			    String key = FILTERBY_STATE;
+			},
+			new Dictionary {
+			    String text = ALL_OFF;
+			    String key = FILTERBY_STATE;
+			},
+			NULL,
+	 		new Dictionary {
+			    String text = SOLID;
+			    String key = FILTERBY_STATE;
+			    String value = SOLID;
+			},
+			new Dictionary {
+			    String text = LIQUID;
+			    String key = FILTERBY_STATE;
+			    String value = LIQUID;
+			},
+			new Dictionary {
+			    String text = GAS;
+			    String key = FILTERBY_STATE;
+			    String value = GAS;
+			},
+		    },
+		    NULL,
+		    new Dictionary {
+			String text = FILTERBY_TEMPORARYNAMES;
+			String key = FILTERBY_TEMPORARYNAMES;
+			String value = YES;
+		    },
+		};
+		break;
+	}
+	return(data);
+    }
+
+    GetFilterValue(Dictionary cell, String key) {
+	int index = -1;
+
+	switch (key) {
+	    case FILTERBY_CLASSIFICATION:
+		index = CLASSIFICATION;
+		break;
+
+	    case FILTERBY_STATE:
+		index = STATE;
+		break;
+
+	    case FILTERBY_TEMPORARYNAMES:
+		index = TEMPORARYNAME;
+		break;
+	}
+	return(index >= 0 ? cell.data.properties[index] : NULL);
+    }
+
+    GetSelectionForCell(Dictionary cell, Array namevalues, int nameindex, Array neutronvalues, int neutronindex, ...) {
+	Array selection[0, ...] = {0, 0};
+
+	if (namevalues@sizeof > 0) {
+	    if (cell != NULL) {
+		selection[0] = indexOfObject(namevalues, cell.name);
+		if (neutronvalues != NULL)
+		    selection[1] = indexOfObject(neutronvalues, toString(cell.etc[0]));
+	    }
+	}
+	return(selection);
+    }
+
+    GetSelectionForRotation(Array namevalues, int nameindex, int namedirection, Array neutronvalues, int neutronindex, int neutrondirection, ...) {
+	Dictionary cell;
+	Array      selection[0, ...] = {0, 0};
+	int        length;
+	int        checked;
+	int        incr;
+	int        n;
+
+	if (namevalues@sizeof > 0) {
+	    if (namedirection != 0) {
+		incr = (namedirection > 0) ? 1 : -1;
+		length = namevalues@sizeof;
+		for (n = nameindex + incr, checked = 0; checked < length; n += incr, checked++) {
+		    if (n >= length)
+			n = 0;
+		    else if (n < 0)
+			n = length - 1;
+		    if (neutronvalues@sizeof > 0) {
+			if ((cell = GetSelectableCellNamed(namevalues[n])) != NULL) {
+			    selection[0] = n;
+			    selection[1] = indexOfObject(neutronvalues, toString(cell.etc[0]));
+			    break;
+			}
+		    } else {
+			if ((cell = GetSelectionAsVisibleCell(namevalues, n)) != NULL) {
+			    selection[0] = n;
+			    break;
+			}
+		    }
+		}
+	    } else if (neutrondirection != 0) {
+		selection[0] = nameindex;
+		if (neutronvalues@sizeof > 0) {
+		    if ((cell = GetNextSelectableCellNamed(namevalues[nameindex], neutrondirection)) != NULL)
+			selection[1] = indexOfObject(neutronvalues, toString(cell.etc[0]));
+		    else selection[0] = 0;
+		}
+	    }
+	}
+	return(selection);
+    }
+
+    GetSelectionForStateChanged(Array namevalues, int nameindex, int namechanged, Array neutronvalues, int neutronindex, int neutronchanged, ...) {
+	Dictionary cell;
+	Object     cells;
+	Array      selection[0, ...] = {0, 0};
+	int        neutrons;
+
+	if (namevalues@sizeof > 0) {
+	    if (namechanged) {
+		selection[0] = nameindex;
+		if (neutronvalues@sizeof > 0) {
+		    if ((cell = GetSelectableCellNamed(namevalues[nameindex])) != NULL)
+			selection[1] = indexOfObject(neutronvalues, toString(cell.etc[0]));
+		    else selection[0] = 0;
+		}
+	    } else if (neutronchanged) {
+		if (defined(namevalues[nameindex], namemap)) {
+		    if ((neutrons = atoi(neutronvalues[neutronindex], 10, -1)) >= 0) {
+			if ((cells = namemap[namevalues[nameindex]]) != NULL) {
+			    if (cells instanceof Array) {
+				for (ptr in cells) {
+				    if (ptr[0].etc[0] == neutrons) {
+					cell = ptr[0];
+					break;
+				    }
+				}
+			    } else if (cells.etc[0] == neutrons)
+				cell = cells;
+			    if (cell) {
+				MakeCellSelectable(cell);
+				selection[0] = nameindex;
+				selection[1] = indexOfObject(neutronvalues, toString(cell.etc[0]));
+			    }
+			}
+		    }
+		}
+	    }
+	    if ((cell = GetSelectionAsVisibleCell(namevalues, selection[0], neutronvalues, selection[1])) == NULL)
+		selection = new Array {0, 0};
+	}
+	return(selection);
+    }
+
+    GetSelectorData(int selector, String sortby) {
+	Array data;
+	int   n;
+
+	switch (selector) {
+	    case 0:
+		data = new Array[] allnames;
+		break;
+
+	    case 1:
+		switch (chartmodel) {
+		    case ISOTOPE_TABLE:
+		    case NUCLIDE_TABLE:
+			data = new Array[columns];
+			for (n = 0; n < columns; n++)
+			    data[n] = toString(n);
+			break;
+
+		    default:
+			data = NULL;
+		}
+		break;
+
+	    default:
+		data = NULL;
+		break;
+	}
+
+	if (data != NULL) {
+	    switch (sortby ? sortby : GetDefaultSortby(selector)) {
+		case SORTBY_INPUT_ORDER:
+		    SortByInputOrder(selector, data);
+		    break;
+
+		case SORTBY_NAME:
+		    SortByName(selector, data);
+		    break;
+
+		case SORTBY_ROWS:
+		    SortByRows(selector, data);
+		    break;
+
+		case SORTBY_GROUP:
+		    SortByGroup(selector, data);
+		    break;
+	    }
+	}
+	return(data);
+    }
+
+    GetSelectorMenuData(int selector) {
+	Array data;
+
+	switch (selector) {
+	    case 0:
+		data = new Array[0, ...] {
+		    new Dictionary {
+			String text = "Sort by Name";
+			String command = SORTBY_NAME;
+		    }
+		};
+
+		switch (chartmodel) {
+		    case ISOTOPE_TABLE:
+		    case NUCLIDE_TABLE:
+			data[data@sizeof] = new Dictionary {
+			    String text = "Sort by Atomic Number";
+			    String command = SORTBY_INPUT_ORDER;
+			    int    state = TRUE;
+			};
+			break;
+
+		    case PERIODIC_TABLE_STANDARD:
+		    case PERIODIC_TABLE_WIDE:
+			data[data@sizeof] = new Dictionary {
+			    String text = "Sort by Atomic Number";
+			    String command = SORTBY_INPUT_ORDER;
+			    int    state = TRUE;
+			};
+			data[data@sizeof] = new Dictionary {
+			    String text = "Sort by Group";
+			    String command = SORTBY_GROUP;
+			    int    state = FALSE;
+			};
+			break;
+		}
+		break;
+
+	    default:
+		data = NULL;
+		break;
+	}
+	return(data);
+    }
+
+    GetChartLabelGenerators() {
+	Array generators;
+
+	switch (chartmodel) {
+	    case PERIODIC_TABLE_STANDARD:
+		generators = new Array {
+		    new Dictionary {
+			String group = COLUMN_LABELS;
+			double xoffset = 0.0;
+			double yoffset = -0.2;
+			Array  columnends = columnends;
+			int    baseline = BOTTOM;
+			int    alignment = CENTER;
+
+			GetText(Array location) = toString(location[1]+1);
+
+			NextCellLocation(Array location) {
+			    if (location) {
+				if (location[1] < 17) {
+				    location[1]++;
+				    location[0] = columnends[location[1]][0] - 1;
+				} else location = NULL;
+			    } else location = new Array {-1, 0};
+			    return(location);
+			}
+		    },
+
+		    new Dictionary {
+			String group = ROW_LABELS;
+			double xoffset = -0.2;
+			double yoffset = 0.0;
+			int    baseline = CENTER;
+			int    alignment = RIGHT;
+
+			GetText(Array location) = toString(location[0]+1);
+
+			NextCellLocation(Array location) {
+			    if (location) {
+				if (location[0] < 6)
+				    location[0]++;
+				else location = NULL;
+			    } else location = new Array {0, -1};
+			    return(location);
+			}
+		    },
+
+		    new Dictionary {
+			String group = ROW_LABELS;
+			double xoffset = -0.2;
+			double yoffset = 0.0;
+			int    baseline = CENTER;
+			int    alignment = RIGHT;
+
+			GetText(Array location) = (location[0] == 8) ? "Lanthanides" : "Actinides";
+
+			NextCellLocation(Array location) {
+			    if (location) {
+				if (location[0] < 9)
+				    location[0]++;
+				else location = NULL;
+			    } else location = new Array {8, 1};
+			    return(location);
+			}
+		    },
+		};
+		break;
+
+	    case PERIODIC_TABLE_WIDE:
+		generators = new Array {
+		    new Dictionary {
+			String group = COLUMN_LABELS;
+			double xoffset = 0.0;
+			double yoffset = -0.2;
+			Array  columnends = columnends;
+			int    baseline = BOTTOM;
+			int    alignment = CENTER;
+
+			GetText(Array location) = (location[1] < 3) ? toString(location[1]+1) : (location[1] > 16 ? toString(location[1] - 13) : NULL);
+
+			NextCellLocation(Array location) {
+			    if (location) {
+				if (location[1] < 31) {
+				    if (location[1] == 2)
+					location[1] = 16;
+				    else location[1]++;
+				    location[0] = columnends[location[1]][0] - 1;
+				} else location = NULL;
+			    } else location = new Array {-1, 0};
+			    return(location);
+			}
+		    },
+
+		    new Dictionary {
+			String group = ROW_LABELS;
+			double xoffset = -0.2;
+			double yoffset = 0.0;
+			int    baseline = CENTER;
+			int    alignment = RIGHT;
+
+			GetText(Array location) = toString(location[0]+1);
+
+			NextCellLocation(Array location) {
+			    if (location) {
+				if (location[0] < 6)
+				    location[0]++;
+				else location = NULL;
+			    } else location = new Array {0, -1};
+			    return(location);
+			}
+		    },
+		};
+		break;
+
+	    case PERIODIC_PUZZLE:
+		generators = new Array {
+		    new Dictionary {
+			String group = COLUMN_LABELS;
+			double xoffset = 0.0;
+			double yoffset = -0.2;
+			int    baseline = BOTTOM;
+			int    alignment = CENTER;
+
+			GetText(Array location) = toString(location[1]+1);
+
+			NextCellLocation(Array location) {
+			    if (location) {
+				if (location[1] < 17)
+				    location[1]++;
+				else location = NULL;
+			    } else location = new Array {-1, 0};
+			    return(location);
+			}
+		    },
+
+		    new Dictionary {
+			String group = COLUMN_LABELS;
+			double xoffset = 0.0;
+			double yoffset = -0.2;
+			int    baseline = CENTER;
+			int    alignment = CENTER;
+
+			GetText(Array location) = toString(location[1]+1);
+
+			NextCellLocation(Array location) {
+			    if (location) {
+				if (location[1] < 17)
+				    location[1]++;
+				else location = NULL;
+			    } else location = new Array {10, 0};
+			    return(location);
+			}
+		    },
+
+		    new Dictionary {
+			String group = ROW_LABELS;
+			double xoffset = -0.2;
+			Font   font = GetChartFont();
+			int    baseline = CENTER;
+			int    alignment = RIGHT;
+
+			GetText(Array location) = toString(location[0]+1);
+
+			NextCellLocation(Array location) {
+			    if (location) {
+				if (location[0] < 9)
+				    location[0]++;
+				else location = NULL;
+			    } else location = new Array {0, -1};
+			    return(location);
+			}
+		    },
+
+		    new Dictionary {
+			String group = ROW_LABELS;
+			double xoffset = 0.2;
+			double yoffset = 0.0;
+			int    baseline = CENTER;
+			int    alignment = LEFT;
+
+			GetText(Array location) = toString(location[0]+1);
+
+			NextCellLocation(Array location) {
+			    if (location) {
+				if (location[0] < 9)
+				    location[0]++;
+				else location = NULL;
+			    } else location = new Array {0, 18};
+			    return(location);
+			}
+		    },
+		};
+		break;
+	}
+
+	return(generators);
+    };
+
+    GetChartMenuData() {
+	return(new Array {
+	    new Dictionary {
+		String text = PERIODIC_TABLE_STANDARD;
+		int    state = TRUE;
+		int    preload = FALSE;
+	    },
+	    new Dictionary {
+		String text = PERIODIC_TABLE_WIDE;
+		int    preload = TRUE;
+	    },
+	    NULL,
+	    new Dictionary {
+		String text = ISOTOPE_TABLE;
+		int    preload = TRUE;
+	    },
+	    new Dictionary {
+		String text = NUCLIDE_TABLE;
+		int    preload = TRUE;
+	    },
+	    NULL,
+	    new Dictionary {
+		String text = PERIODIC_PUZZLE;
+		int    preload = TRUE;
+	    },
+	});
+    }
+
+    GetVersion() {
+	return("Interactive Periodic Table - Version 1.0\nDeveloped by AT&T Labs - Research");
+    }
+
+    LoadChart() {
+	simplecellmodel = TRUE;
+	cellaspect = 3.0/4.0;
+
+	switch (chartmodel) {
+	    case ISOTOPE_TABLE:
+		LoadIsotopeTable();
+		break;
+
+	    case NUCLIDE_TABLE:
+		LoadNuclideTable();
+		break;
+
+	    case PERIODIC_PUZZLE:
+		LoadPeriodicPuzzle();
+		break;
+
+	    case PERIODIC_TABLE_STANDARD:
+		LoadPeriodicTableStandard();
+		break;
+
+	    case PERIODIC_TABLE_WIDE:
+		LoadPeriodicTableWide();
+		break;
+
+	    default:
+		Die("chart model %s is not supported", chartmodel);
+		break;
+	}
+    }
+
+    ////////////////////////////
+    //
+    // Support Functions
+    //
+    ////////////////////////////
+
+    LoadIsotopeTable() {
+	Dictionary element;
+	Dictionary cell;
+	Array      isotopes;
+	int        primary_isotope;
+	int        row;
+	int        column;
+
+	rows = 92;		// U 238 is heaviest naturally occurring isotope
+	columns = 147;
+	arrowselector = 0;
+	chartcells = new Array[rows*columns];
+
+	for (ptr in ElementData) {
+	    element = *ptr;
+	    if (element.Z <= rows) {
+		if ((primary_isotope = element.primary_isotope) >= 0) {
+		    for (ptr in element.isotopes by FIELDS_PER_ISOTOPE) {
+			if (ptr[1]) {
+			    row = rows - element.Z;
+			    column = ptr[0];
+			    cell = NewChartCell(element.name, row, column, 1, 1, element, ptr);
+			    cell.tip = cell.name;
+			    if (column == primary_isotope)
+				cell.selectable = TRUE;
+			}
+		    }
+		}
+	    } else break;
+	}
+    }
+
+    LoadNuclideTable() {
+	Dictionary element;
+	Dictionary cell;
+	Array      isotopes;
+	int        primary_isotope;
+	int        row;
+	int        column;
+
+	rows = 96;			// Curium is last one in our data
+	columns = 156;
+	arrowselector = 0;
+	chartcells = new Array[rows*columns];
+
+	for (ptr in ElementData) {
+	    element = *ptr;
+	    if (element.Z <= rows) {
+		if ((primary_isotope = element.primary_isotope) >= 0) {
+		    for (ptr in element.isotopes by FIELDS_PER_ISOTOPE) {
+			row = rows - element.Z;
+			column = ptr[0];
+			cell = NewChartCell(element.name, row, column, 1, 1, element, ptr);
+			cell.tip = cell.name;
+			if (column == primary_isotope)
+			    cell.selectable = TRUE;
+		    }
+		}
+	    } else break;
+	}
+    }
+
+    LoadPeriodicPuzzle() {
+	Dictionary element;
+	Dictionary cell;
+	int        row;
+	int        column;
+
+	rows = 10;
+	columns = 18;
+	arrowselector = -1;
+	chartcells = new Array[rows*columns];
+
+	puzzle = TRUE;
+	scatter = TRUE;
+	showgrid = TRUE;
+	snaptogrid = TRUE;
+	autocheck = TRUE;
+
+	scatterrects = new Array {
+	    new Rectangle {
+		double x = -5;
+		double y = -1;
+		double width = 4;
+		double height = 12;
+	    },
+
+	    new Rectangle {
+		double x = 19;
+		double y = -1;
+		double width = 4;
+		double height = 12;
+	    },
+
+	    new Rectangle {
+		double x = -5;
+		double y = -2.5;
+		double width = 28;
+		double height = 1.5;
+	    },
+
+	    new Rectangle {
+		double x = -5;
+		double y = 10.75;
+		double width = 28;
+		double height = 1.5;
+	    },
+	};
+
+	for (ptr in ElementData) {
+	    element = *ptr;
+	    row = element.period - 1;
+	    switch (element.period) {
+		case 1:
+		    column = element.Z == 1 ? 0 : 17;
+		    break;
+
+		case 2:
+		    if ((column = element.Z - 3) > 1)
+			column += 10;
+		    break;
+
+		case 3:
+		    if ((column = element.Z - 11) > 1)
+			column += 10;
+		    break;
+
+		case 4:
+		    column = element.Z - 19;
+		    break;
+
+		case 5:
+		    column = element.Z - 37;
+		    break;
+
+		case 6:
+		    if (element.Z < 58 || element.Z > 71) {
+			if ((column = element.Z - 55) > 2)
+			    column -= 14;
+		    } else {
+			row = 8;
+			column = element.Z - 58 + 2;	// put Ce under group 3
+		    }
+		    break;
+
+		case 7:
+		    if (element.Z < 90 || element.Z > 103) {
+			if ((column = element.Z - 87) > 2)
+			    column -= 14;
+		    } else {
+			row = 9;
+			column = element.Z - 90 + 2;	// put Th under group 3
+		    }
+		    break;
+	    }
+	    cell = NewChartCell(element.name, row, column, 1, 1, element, NULL);
+	    cell.tip = cell.name;
+	}
+    }
+
+    LoadPeriodicTableStandard() {
+	Dictionary element;
+	Dictionary cell;
+	int        row;
+	int        column;
+
+	rows = 10;
+	columns = 18;
+	arrowselector = -1;
+	chartcells = new Array[rows*columns];
+
+	for (ptr in ElementData) {
+	    element = *ptr;
+	    row = element.period - 1;
+	    switch (element.period) {
+		case 1:
+		    column = element.Z == 1 ? 0 : 17;
+		    break;
+
+		case 2:
+		    if ((column = element.Z - 3) > 1)
+			column += 10;
+		    break;
+
+		case 3:
+		    if ((column = element.Z - 11) > 1)
+			column += 10;
+		    break;
+
+		case 4:
+		    column = element.Z - 19;
+		    break;
+
+		case 5:
+		    column = element.Z - 37;
+		    break;
+
+		case 6:
+		    if (element.Z < 58 || element.Z > 71) {
+			if ((column = element.Z - 55) > 2)
+			    column -= 14;
+		    } else {
+			row = 8;
+			column = element.Z - 58 + 2;	// put Ce under group 3
+		    }
+		    break;
+
+		case 7:
+		    if (element.Z < 90 || element.Z > 103) {
+			if ((column = element.Z - 87) > 2)
+			    column -= 14;
+		    } else {
+			row = 9;
+			column = element.Z - 90 + 2;	// put Th under group 3
+		    }
+		    break;
+	    }
+	    cell = NewChartCell(element.name, row, column, 1, 1, element, NULL);
+	    cell.tip = cell.name;
+	}
+    }
+
+    LoadPeriodicTableWide() {
+	Dictionary element;
+	Dictionary cell;
+	int        row;
+	int        column;
+
+	//
+	// Wide version of the periodic table that places f block elements
+	// in the same row as the other elements in their period.
+	//
+
+	rows = 7;
+	columns = 32;
+	arrowselector = -1;
+	chartcells = new Array[rows*columns];
+
+	for (ptr in ElementData) {
+	    element = *ptr;
+	    row = element.period - 1;
+	    switch (element.period) {
+		case 1:
+		    column = element.Z == 1 ? 0 : 31;
+		    break;
+
+		case 2:
+		    if ((column = element.Z - 3) > 1)
+			column += 24;
+		    break;
+
+		case 3:
+		    if ((column = element.Z - 11) > 1)
+			column += 24;
+		    break;
+
+		case 4:
+		    if ((column = element.Z - 19) > 2)
+			column += 14;
+		    break;
+
+		case 5:
+		    if ((column = element.Z - 37) > 2)
+			column += 14;
+		    break;
+
+		case 6:
+		    column = element.Z - 55;
+		    break;
+
+		case 7:
+		    column = element.Z - 87;
+		    break;
+	    }
+	    cell = NewChartCell(element.name, row, column, 1, 1, element, NULL);
+	    cell.tip = cell.name;
+	}
+    }
+
+    PickColorsFor(String text) {
+	Object colors;
+
+	//
+	// The object that we build is handed back to GetCellBackground()
+	// whenever we need a cell's background color. In other words the
+	// only requirement for colors is that GetCellBackground() should
+	// be happy with it.
+	//
+
+	switch (text) {
+	    case COLORBY_ATOMIC_RADIUS:
+		colors = new Array {
+		    0, CellColors.UNKNOWN,
+		    75, CellColors.BLUE,
+		    150, CellColors.GREEN,
+		    225, CellColors.TAN,
+		    300, CellColors.BROWN,
+		};
+		break;
+
+	    case COLORBY_BLOCK:
+		colors = new Dictionary[] {
+		    "s", CellColors.BLUE,
+		    "p", CellColors.GREEN,
+		    "d", CellColors.TAN,
+		    "f", CellColors.BROWN,
+		};
+		break;
+
+	    case COLORBY_BOILING_POINT:
+		colors = new Array {
+		    0, CellColors.UNKNOWN,
+		    200, CellColors.BLUE,
+		    330, CellColors.GREEN,
+		    2000, CellColors.TAN,
+		    4000, CellColors.BROWN,
+		    6000, CellColors.RED,
+		};
+		break;
+
+	    case COLORBY_CHECKERBOARD:
+		colors = new Array[] {CellColors.TAN, CellColors.BROWN};
+		break;
+
+	    case COLORBY_CLASSIFICATION:
+		colors = new Dictionary[] {
+		    METAL, CellColors.LIGHTGRAY,
+		    SEMIMETAL, CellColors.GRAY,
+		    NONMETAL, CellColors.DARKGRAY,
+		    UNKNOWN, CellColors.TAN,
+		};
+		break;
+
+	    case COLORBY_COLOR_TAN:
+		colors = CellColors.TAN;
+		break;
+
+	    case COLORBY_COLOR_BROWN:
+		colors = CellColors.BROWN;
+		break;
+
+	    case COLORBY_DECAY_MODE:
+		colors = new Dictionary[] {
+		    ALPHA, CellColors.RED,
+		    BETA, CellColors.GREEN,
+		    POSITRON, CellColors.BLUE,
+		    EC, CellColors.CYAN,
+		    PROTON, CellColors.BROWN,
+		    NEUTRON, CellColors.YELLOW,
+		    SF, CellColors.MAGENTA,
+
+		    STABLE, CellColors.TAN,
+		    UNKNOWN, CellColors.UNKNOWN,
+		};
+		break;
+
+	    case COLORBY_ELECTRONEGATIVITY:
+		colors = new Array {
+		    0, CellColors.UNKNOWN,
+		    1, CellColors.BLUE,
+		    2, CellColors.GREEN,
+		    3, CellColors.TAN,
+		    4, CellColors.BROWN,
+		};
+		break;
+
+	    case COLORBY_HALF_LIFE:
+		colors = new Dictionary[] {
+		    "y", CellColors.BROWN,
+		    "d", CellColors.BLUE,
+		    "h", CellColors.CYAN,
+		    "m", CellColors.MAGENTA,
+		    "s", CellColors.RED,
+
+		    STABLE, CellColors.TAN,
+		    UNKNOWN, CellColors.UNKNOWN,
+		};
+		break;
+
+	    case COLORBY_MELTING_POINT:
+		colors = new Array {
+		    0, CellColors.UNKNOWN,
+		    200, CellColors.BLUE,
+		    330, CellColors.GREEN,
+		    1000, CellColors.TAN,
+		    3000, CellColors.BROWN,
+		    4000, CellColors.RED,
+		};
+		break;
+
+	    case COLORBY_RADIOACTIVE:
+		colors = new Dictionary[] {
+		    NO, CellColors.TAN,
+		    TRACE, CellColors.BROWN,
+		    YES, CellColors.RED,
+		};
+		break;
+
+	    case COLORBY_STATE:
+		colors = new Dictionary[] {
+		    SOLID, CellColors.TAN,
+		    LIQUID, CellColors.GREEN,
+		    GAS, CellColors.BLUE,
+		};
+		break;
+	}
+	return(colors);
+    }
+
+    SortByGroup(int selector, Array names) {
+	Dictionary cell;
+	Array      keys[names@sizeof];
+	int        index;
+
+	Compare(Object left, Object right) {
+	    int result;
+
+	    if (left[0] == right[0])
+		result = (left[1] < right[1]) ? -1 : (left[1] > right[1] ? 1 : 0);
+	    else result = (left[0] < right[0]) ? -1 : 1;
+	    return(result);
+	}
+
+	for (ptr in names) {
+	    if (defined(ptr) && defined(*ptr, namemap)) {
+		if (namemap[*ptr] instanceof Array)
+		    cell = namemap[*ptr][0];
+		else cell = namemap[*ptr];
+		keys[index++] = new Array {atoi(cell.data.properties[GROUP], 10, 1000), cell.index};
+	    } else keys[index++] = NULL;
+	}
+	qsort(keys, &Compare, names);
+    }
+};
+
+//
+// These are used to store string bounds measurements (currently only for
+// one font) that's filled in when we build the first table. The code is
+// confusing and it's probably not worth trying to understand. We'll take
+// another look at it all in the near future - we suspect we can simplify
+// some of the GetMinimumSize() functions that use them and perhaps even
+// eliminating some of these functions.
+//
+
+Dictionary FieldBoundsCache[0, ...];
+
+GetFieldBounds(Array data, String name) {
+    Object field;
+
+    if (!defined(name, FieldBoundsCache)) {
+	for (ptr in data) {
+	    if (defined(name, ptr[0])) {
+		field = ptr[0][name];
+		if (field instanceof Number)
+		    field = toString(field);
+		if (field instanceof String)
+		    FieldBoundsCache[name] = rectUnionRect(defined(name, FieldBoundsCache) ? FieldBoundsCache[name] : NULL, NormalCellFont.stringbounds(field, TRUE));
+	    }
+	}
+    }
+    return(FieldBoundsCache[name]);
+}
+
+GetArrayElementBounds(Array data, String name, int index) {
+    Object field;
+
+    if (!(defined(name, FieldBoundsCache) && defined(index, FieldBoundsCache[name]))) {
+	for (ptr in data) {
+	    if (defined(name, ptr[0])) {
+		field = ptr[0][name];
+		if (field instanceof Array) {
+		    if (defined(index, field)) {
+			if (!defined(name, FieldBoundsCache))
+			    FieldBoundsCache[name] = new Array[field@sizeof, ...];
+			field = field[index];
+			if (field instanceof Number)
+			    field = toString(field);
+			if (field instanceof String) {
+			    if (!defined(index, FieldBoundsCache[name]))
+				FieldBoundsCache[name][index] = NULL;
+			    FieldBoundsCache[name][index] = rectUnionRect(FieldBoundsCache[name][index], NormalCellFont.stringbounds(field, TRUE));
+			}
+		    }
+		}
+	    }
+	}
+    }
+    return(FieldBoundsCache[name][index]);
+}
+
+GetArrayOverlayBounds(Array data, String name, int index, int length) {
+    Object field;
+
+    if (!(defined(name, FieldBoundsCache) && defined(index, FieldBoundsCache[name]))) {
+	for (ptr in data) {
+	    if (defined(name, ptr[0])) {
+		field = ptr[0][name];
+		if (field instanceof Array) {
+		    for (ptr in field by length) {
+			if (defined(index, ptr)) {
+			    if (!defined(name, FieldBoundsCache))
+				FieldBoundsCache[name] = new Array[field@sizeof, ...];
+			    field = ptr[index];
+			    if (field instanceof Number)
+				field = toString(field);
+			    if (field instanceof String) {
+				if (!defined(index, FieldBoundsCache[name]))
+				    FieldBoundsCache[name][index] = NULL;
+				FieldBoundsCache[name][index] = rectUnionRect(FieldBoundsCache[name][index], NormalCellFont.stringbounds(field, TRUE));
+			    }
+			}
+		    }
+		}
+	    }
+	}
+    }
+    return(FieldBoundsCache[name][index]);
+}
+
+GetLineBounds(...) {
+    Rectangle bounds = NULL;
+    Rectangle rect = NULL;
+    Object    arg;
+
+    //
+    // Assumes the arguments represent "stuff" that's supposed to be laid
+    // out along the current baseline as a line of text and the rectangle
+    // that we return is supposed to cover all the "stuff".
+    //
+
+    if (argc > 1) {
+	for (ptr in &argv[1]) {
+	    if (arg = *ptr) {
+		if (arg instanceof String)
+		    rect = NormalCellFont.stringbounds(arg, TRUE);
+		else if (arg instanceof Number) {
+		    rect = new Rectangle {
+			double width = arg;
+		    };
+		} else if (arg instanceof Array) {
+		    if (arg@sizeof == 2)
+			rect = GetFieldBounds(unroll(arg));
+		    else if (arg@sizeof == 3)
+			rect = GetArrayElementBounds(unroll(arg));
+		    else if (arg@sizeof == 4)
+			rect = GetArrayOverlayBounds(unroll(arg));
+		} else if (arg instanceof Rectangle)
+		    rect = arg;
+		else rect = NULL;
+		if (rect != NULL) {
+		    if (bounds != NULL) {
+			bounds.width += rect.x + rect.width;
+			rect = rectUnionRect(rect, bounds);
+			bounds.y = rect.y;
+			bounds.height = rect.height;
+		    } else bounds = new Rectangle {unroll(rect)};	// don't change rect!!!
+		}
+	    }
+	}
+    }
+    return(bounds);
+}
+

@@ -1,0 +1,222 @@
+import yoix.*.*;
+
+String bcjarfile = "Data/bcprov-jdk14-129.jar";
+String fullpath = yoixPath(argv[0]);
+int last = lastIndexOf(fullpath, '/');
+String jarpath = substring(fullpath, 0, last+1) + bcjarfile;
+
+try {
+    adjustSecurity(ADDPROVIDER, "org.bouncycastle.jce.provider.BouncyCastleProvider", jarpath);
+}
+catch(e) {
+    stdout.nextline = e.message;
+    return(true);
+}
+
+Array sortcols = new Array[0,...] { 2, 4, 3, };
+
+JFrame screen = {
+    Dimension size = {
+	double width  = 7.5 * 72;
+	double height = 4.5 * 72;
+    };
+
+    Array layout = {
+	new JTable {
+	    String tag = "$_jt";
+	    int reorder = 0;
+	    int resize = 1;
+	    int scroll = AS_NEEDED;
+	    int edit = 0;
+	    Color background = Color.white;
+	    Array altbackground = {
+		Color.white,
+		new Color { double red = 1.; double green = 204./255.; double blue = 204./255.; },
+		new Color { double red = 204./255.; double green = 1.; double blue = 204./255.; },
+	    };
+
+	    invocationAction(InvocationEvent e) {
+
+		// over-engineered
+
+		if (e.valuesColumn >= 0) {
+
+		    int idx;
+		    int len;
+		    int sz;
+		    int off;
+		    int i, j;
+
+		    if ((e.modifiers&(CTRL_MASK|SHIFT_MASK)) != (CTRL_MASK|SHIFT_MASK)) {
+			if ((e.modifiers&CTRL_MASK) == 0) {
+			    sortcols = new Array[0,...] {};
+			    len = 0;
+			} else {
+			    e.modifiers &= ~CTRL_MASK;
+			    len = sortcols@length;
+			}
+	
+			if (e.modifiers == BUTTON1_MASK) {
+			    if (len == 0 && columns[e.valuesColumn].state > 0)
+				idx = 0;
+			    else
+				idx = 1 + e.valuesColumn;
+			} else {
+			    if (len == 0 && columns[e.valuesColumn].state < 0)
+				idx = 0;
+			    else
+				idx = -(1 + e.valuesColumn);
+			}
+			for (i=0; i<len; i++) {
+			    if (idx == sortcols[i]) {
+				for (j=i; j>0; j--) {
+				    sortcols[j] = sortcols[j-1];
+				}
+				sortcols[0] = 0;
+				idx = 0;
+				break;
+			    } else if (-idx == sortcols[i]) {
+				sortcols[i] = idx;
+				idx = 0;
+				break;
+			    }
+			}
+			for(off=0; off<len; off++) {
+			    if (sortcols[off] != 0) break;
+			}
+			if (idx != 0) {
+			    sortcols[len] = idx;
+			    len++;
+			}
+
+			//fprintf(stderr, "len=%d, idx=%d\n%O\n", len, off, sortcols);
+			if (len == off) {
+			    action(TABLE_SORT, null);
+			    sortcols = new Array[0,...] {};
+			} else {
+			    action(TABLE_SORT, sortcols + off);
+			}
+		    }
+		}
+	    }
+
+	    Array headers = {
+		"Provider", 
+		"Operation",
+		"Name",
+		"Value",
+	    };
+	    Array values = getProviderInfo();
+	    Array types = {
+		STRING_TYPE, STRING_TYPE, STRING_TYPE, STRING_TYPE,
+	    };
+	},
+	CENTER,
+	new JPanel {
+	    GridBagLayout layoutmanager;
+
+	    Array layout = {
+		new JPanel {
+		    GridLayout layoutmanager = {
+			int hgap = 0;
+			int vgap = 3;
+			int rows = 1;
+			int columns = 4;
+		    };
+		    Array layout = {
+			new JTextField {
+			    String tag = "$_pat1";
+			    String text = "*";
+			    int autotrim = true;
+			    actionPerformed(e) {
+				root.reload();
+			    }
+			},
+			new JTextField {
+			    String tag = "$_pat2";
+			    String text = "*";
+			    int autotrim = true;
+			    actionPerformed(e) {
+				root.reload();
+			    }
+			},
+			new JTextField {
+			    String tag = "$_pat3";
+			    String text = "*";
+			    int autotrim = true;
+			    actionPerformed(e) {
+				root.reload();
+			    }
+			},
+			new JTextField {
+			    String tag = "$_pat4";
+			    String text = "*";
+			    int autotrim = true;
+			    actionPerformed(e) {
+				root.reload();
+			    }
+			},
+		    };
+		},
+		new GridBagConstraints {
+		    int gridy = 1;
+		    int gridx = 1;
+		    int gridwidth = REMAINDER;
+		    int fill = HORIZONTAL;
+		    int weightx = 2;
+		},
+		new JButton {
+		    String text = "Exit";
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+		new GridBagConstraints {
+		    int gridy = 2;
+		    int gridx = 1;
+		    int anchor = CENTER;
+		    int gridwidth = REMAINDER;
+		    int insets = 9;
+		},
+		new JLabel {
+		    String text = "";
+		},
+		new GridBagConstraints {
+		    int gridy = 2;
+		    int gridx = 1;
+		    int fill = HORIZONTAL;
+		    int gridwidth = RELATIVE;
+		    int weightx = 2;
+		    int insets = 9;
+		},
+		new JCheckBox {
+		    String tag = "$_nodots";
+		    String text = "Filter Dotted Entries";
+		    int    selected = false;
+		    actionPerformed(e) {
+			root.reload();
+		    }
+		},
+		new GridBagConstraints {
+		    int gridy = 2;
+		    int gridx = 3;
+		    int anchor = RIGHT;
+		    int gridwidth = REMAINDER;
+		    int insets = 9;
+		},
+	    };
+	},
+	SOUTH,
+    };
+
+    reload() {
+	Dictionary cmp = components;
+	cmp.$_jt.values = getProviderInfo(cmp.$_pat1.text,cmp.$_pat2.text,cmp.$_pat3.text,cmp.$_pat4.text,cmp.$_nodots.selected);
+    }
+};
+
+screen.reload();
+screen.components.$_jt.action(TABLE_SORT, sortcols);
+screen.visible = 1;
+
+fprintf(stderr, "screen.font=%O\n", screen.font);

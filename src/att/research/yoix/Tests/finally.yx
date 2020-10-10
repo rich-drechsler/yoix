@@ -1,0 +1,28 @@
+//
+// Simple finally example - includes an intentional error just to
+// test flow control.
+//
+
+import yoix.stdio.*;
+
+{
+    int  m = 1;
+    {
+	int     n = 2;
+	n++;   
+	finally {
+	    printf("finally1: n=%d\n", n);
+	    n = x + 12;		// intentional error
+	    printf("this should not print\n");
+	}
+	n++;
+    }
+    m += 12;
+    finally {
+	yoix.stdio.printf("finally2: m=%d\n", m);
+    }
+    m += 3;
+}
+
+yoix.stdio.printf("outside compound statement\n");
+

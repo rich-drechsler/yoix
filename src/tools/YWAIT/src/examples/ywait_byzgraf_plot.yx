@@ -1,0 +1,256 @@
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Dimension size = {
+	    int width = 8 * 72;
+	    int height = 6 * 72;
+	};
+	Object    parent = Global.MainScreen;
+	Font      font = Global.GetPreferredLabelFont();
+	int       opaque = TRUE;
+
+	//Color     background = Color.white;
+
+	//
+	// set by arguments, along with title and location
+	//
+	Dictionary plotdict = NULL;
+
+	JPanel glasspane = {
+	    int visible = FALSE;
+	    int opaque = FALSE;
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		new JPanel {
+		    int opaque = TRUE;
+		    Border border = {
+			int type = BEVELED|RAISED;
+		    };
+		    Color background = Color.gray;
+		    Array layout = {
+			new JLabel {
+			    int border = 3;
+			    String tag = "$_sizeinfo";
+			    Color background = VM.screen.uimanager.get("ToolTip.background");
+			    Color foreground = VM.screen.uimanager.get("ToolTip.foreground");
+			    Font font = VM.screen.uimanager.get("ToolTip.font");
+			},
+		    };
+		},
+		CENTER,
+	    };
+	};
+
+	//
+	// additional items
+	//
+	Thread ResizeTimer = {
+	    int persistent = 1;
+	};
+
+	Thread SizeTimer = {
+	    int persistent = 1;
+	};
+
+	Dimension plotimage = NULL;
+	double    lasttime = 0;
+	Dictionary  plotargs = NULL;
+
+	FileDialog fd = {
+	    int mode = SAVE;
+	};
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+        String screenname = name;
+        String screentitle = NULL;
+        Object anchorpoint = NULL;
+        Color  screencolor = NULL;
+        int    anchorstyle = AUTOMATIC;
+        int    screenanchor = CENTER;
+        int    initialized = FALSE;
+        int    disposeonclose = TRUE;
+        int    savestate = TRUE;        // TRUE means remember size and location
+	int    retainstate = TRUE; // remember size and location across sessions
+        int    reloadargs = TRUE;
+
+        ////////////////////////////
+        //
+        // Menubar
+        //
+        ////////////////////////////
+
+
+	JMenuBar menubar = {
+	    Array items = {
+		new JMenu {
+		    String text = "File";
+		    Array items = {
+			new JMenu {
+			    String text = "Save As";
+			    Array items = {
+				new JMenuItem {
+				    String text = "JPEG...";
+				    String accelerator = "ctrl J";
+			
+				    actionPerformed(ActionEvent e) {
+					root.fd.file = "plot.jpg";
+					root.fd.visible = TRUE;
+					if (root.fd.file != NULL)
+					    encodeImage(root.components.$_plotpanel.backgroundimage, "jpg", root.fd.directory+root.fd.file);
+				    }
+				},
+				new JMenuItem {
+				    String text = "PNG...";
+				    String accelerator = "ctrl P";
+			
+				    actionPerformed(ActionEvent e) {
+					root.fd.file = "plot.png";
+					root.fd.visible = TRUE;
+					if (root.fd.file != NULL)
+					    encodeImage(root.components.$_plotpanel.backgroundimage, "png", root.fd.directory+root.fd.file);
+				    }
+				},
+			    };
+			},
+			NULL,
+			new JMenuItem {
+			    String text = "Dismiss";
+			    String command = "dismiss";
+			    String accelerator = "control shift D";
+			
+			    actionPerformed(ActionEvent e) {
+				root.HideScreen();
+			    }
+			},
+		    };
+		},
+	    };
+	};
+
+        ////////////////////////////
+        //
+        // Screen Layout
+        //
+        ////////////////////////////
+
+        BorderLayout layoutmanager;
+
+        Array layout = {
+	    new JPanel {
+		String tag = "$_plotpanel";
+		Color background = Color.white;
+		int   backgroundhints = SCALE_NONE;
+
+		mousePressed(e) {
+
+		    Dictionary found = Global.ByzCheckPointInPlot(e.location, root.plotargs);
+		    String     msg;
+
+		    if (found != NULL)  {
+			found {
+			    if (pt == NULL) // not likely
+				msg = strfmt("Selected:\n%10s Tag: %O\n%10s Tag: %O\n%10s Tag: %O\n\nData point: undefined\n", "Primary", descA, "Secondary", descB, "Terciary", descC, pt.x, pt.y);
+			    else msg = strfmt("Selected:\n%10s Tag: %O\n%10s Tag: %O\n%10s Tag: %O\n\nData point: (%g, %g)\n", "Primary", descA, "Secondary", descB, "Terciary", descC, pt.x, pt.y);
+
+			}
+		    } else {
+			Point pt = Global.ByzMapPointToData(e.location, root.plotargs);
+			if (pt == NULL) // not likely
+			    msg = strfmt("Data point: undefined\n");
+			else msg = strfmt("Data point: (%g, %g)\n", pt.x, pt.y);
+		    }
+		    Global.ShowMessage(root, msg, Global.ACRONYM + " Selection", TRUE, TRUE);
+		}
+	    },
+        };
+
+	componentResized(e) {} // just get listeners installed at first
+
+	HideScreen() {
+	    CleanUp();
+	    Global.HideScreen(this);
+	}
+
+        ////////////////////////////
+        //
+        // Screen Functions
+        //
+        ////////////////////////////
+
+	InitializeScreen() {
+	    UpdateImage("$_plotpanel");
+	}
+
+	SetScreenSize(Dimension sz) {
+	    size = NULL;
+	}
+
+	SetScreenLocation(Point loc) {
+	    location = new Point {
+		int x = location.x + min(0, VM.screen.width - (location.x + size.width)); 
+		int y = location.y + min(0, VM.screen.height - (location.y + size.height)); 
+	    };
+	}
+
+	ShowScreen() {
+	    visible = TRUE;
+	    componentResized = ComponentResized;
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	CleanUp() {
+	    ResizeTimer.alive = 0;
+	    SizeTimer.alive = 0;
+	}
+
+	ComponentResized(e) {
+	    ResizeTimer.queue(NULL);
+	    ResizeTimer.queue(Resizer, root);
+	    root.glasspane.components.$_sizeinfo.text = strfmt("<HTML><CENTER>%.1gin X %.1gin<BR>(%gpx X %gpx)\n", root.components.$_plotpanel.size.width/72.0, root.components.$_plotpanel.size.height/72.0, root.components.$_plotpanel.size.width/VM.screen.pixelwidth, root.components.$_plotpanel.size.height/VM.screen.pixelheight);
+	    root.glasspane.visible = TRUE;
+	    SizeTimer.queue(NULL);
+	    SizeTimer.queue(HideSize, root);
+	}
+
+	HideSize(Object root) {
+	    sleep(1);
+	    root {
+		if (SizeTimer.queuesize == 0)
+		    root.glasspane.visible = FALSE;
+	    }
+	}
+
+	Resizer(Object root) {
+	    sleep(0.1);
+	    root {
+		if (ResizeTimer.queuesize == 0)
+		    UpdateImage("$_plotpanel");
+	    }
+	}
+
+	UpdateImage(String tag) {
+	    plotargs = Global.ByzPlotImage(plotdict.type, plotdict.xdata, plotdict.ydata, plotdict.bounds, plotdict.title, "imagesize", new Dimension unroll(components[tag].size), plotdict.options);
+	    components[tag].backgroundimage = plotargs.plotimage;
+	    components[tag].preferredsize = components[tag].backgroundimage.size;
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);

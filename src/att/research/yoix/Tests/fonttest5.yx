@@ -1,0 +1,44 @@
+import yoix.*.*;
+
+Matrix MTX = {
+    double sx = 1.0;
+    double sy = 2.0;
+    double shx = -1.0;
+    double shy = 0.0;
+    double tx = 0.0;
+    double ty = 0.0;
+};
+
+Font FONT0 = {
+    String name = "Lucida-plain-30";
+};
+
+Font FONT1 = FONT0.transformfont(MTX);
+
+JFrame f = {
+    Color background = Color.white;
+
+    Graphics graphics = {
+	int textantialiasing = TRUE;
+    };
+
+    paint(Rectangle rect) {
+	graphics {
+	    gsave();
+	    stroke();
+	    rectclip(rect);
+	    moveto(36, 144);
+	    rlineto(72*3, 0);
+	    stroke();
+	    moveto(36, 144);
+	    setfont(FONT0);
+	    show("Hello ");
+	    setfont(FONT1);
+	    show("world ");
+	    grestore();
+	}
+    }
+};
+
+f.visible = TRUE;
+

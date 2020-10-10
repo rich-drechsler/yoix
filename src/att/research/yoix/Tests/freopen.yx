@@ -1,0 +1,31 @@
+import yoix.*.*;
+
+Thread ethr = {
+    run() {
+	int ch;
+	File fp;
+	String line;
+        String outputfile = "/tmp/text.out";
+        freopen(outputfile, "w", stdout);
+        fp = fopen(outputfile, "r");
+
+	//fp.autoready = 1;
+
+	while (1) {
+            if ((ch = fp.nextchar) != EOF)
+                fprintf(stderr, "%c\n", ch);
+	    else sleep(1);
+	}
+    }
+};
+
+ethr.run();
+
+fprintf(stdout,"t1\n");
+sleep(2);
+fprintf(stdout,"t2\n");
+sleep(2);
+fprintf(stdout,"t3\n");
+sleep(5);
+ethr.alive = 0;
+

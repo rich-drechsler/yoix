@@ -1,0 +1,26 @@
+//
+// An example of how you can set requestheader fields using open(). Note
+// that the 
+//
+// Reads the yoix index.html file and tries to leave an entry in the
+// httpd log file that includes trivial information about Yoix.
+//
+
+import yoix.*.*;
+
+u = open(
+    "http://www.research.att.com/sw/tools/yoix/",
+    "r",
+    //
+    // Everything else are key/value pairs that open() sets in the URL
+    // that's opened for reading and returned to tha caller. We've only
+    // included an example of how the "requestheader" field can be set.
+    //
+    "requestheader",
+    new Array {
+	"User-Agent", "YoixTest/" + VM.Version,
+    }
+);
+
+while ((stdout.nextbuf = u.nextbuf) != NULL) ;
+

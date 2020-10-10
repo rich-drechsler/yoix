@@ -1,0 +1,243 @@
+//
+// The login (without password) screen - it should be the only
+// way in (if used at all).
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+String LoginMessage;
+Color  MessageColor;
+
+switch (Global.ServerType) {
+    case "PRODUCTION":
+	VM.screen.background = Global.GetPreferredBackground();
+	LoginMessage = Global.AccessWarning + " <p> ";
+	MessageColor = NULL;
+	break;
+
+    default:
+	VM.screen.background = Global.GetPreferredBackground();
+	LoginMessage = Global.SystemWarning + " <p> " + Global.AccessWarning + " <p> ";
+	MessageColor = Global.GetPreferredWarningColor();
+	break;
+}
+
+//
+// Messages displayed after each unsuccessful login - length determines the
+// number of unsuccessful attemps that are allowed.
+//
+
+Array LoginFailed = {
+    "Login failed - try again",
+    "Login failed - try again",
+    "Login failed - last try",
+};
+
+//
+// Event handler used as an argument in constructor function calls.
+//
+
+TextValueChanged(e) {
+    root.components.$_failed.text = "";
+}
+
+Builder(String name, Array args) {
+
+    JDialog screen = {
+	Dimension size = NULL;
+	Insets    border = Global.GetLoginScreenInsets();
+	Font      font = Global.GetPreferredLabelFont();
+	int       modal = TRUE;
+	int       opaque = TRUE;
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = Color.lightGray;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = FALSE;   // save screen-specific info within session
+	int    retainstate = FALSE; // save screen-class info across sessions
+	int    reloadargs = FALSE;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	int failures = 0;		// login failures
+	int succeeded = FALSE;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    Global.NewJHeadingLabel(
+		NULL, Global.ACRONYM + " " + Global.ServerType + " SYSTEM",
+		"foreground", Global.GetPreferredWarningColor()
+	    ),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+	    },
+
+	    new JTextCanvas {
+		String text = LoginMessage;
+		Font   font = Global.GetPreferredMessageFont();
+		Color  foreground = MessageColor;
+		int    wrap = TRUE;
+		int    mode = WORDMODE;
+		int    state = TRUE;
+		Insets border = Global.GetLargeShadowInsets();
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "TBLR");
+
+		Dimension preferredsize = {
+		    double width = 8.0*72.0;
+		    double height = 0;
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = BOTH;
+	    },
+
+	    new JPanel {
+		GridBagLayout layoutmanager = {
+		    int    columns = 2;
+		    double vgap = 72.0/32;
+		};
+
+		Array layout = {
+		    Global.LoginLabel,
+		    RIGHT,
+		    Global.NewJTextField("$_username", NULL, 10, "requestfocus", TRUE, "textValueChanged", TextValueChanged),
+		    LEFT,
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/4, "T");
+	    },
+
+	    Global.NewJLabel("$_failed", NULL, "foreground", Global.GetPreferredWarningColor()),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/4, "TB");
+	    },
+
+	    new JPanel {
+		GridLayout layoutmanager;
+		Array layout = {
+		    new JButton {
+			String text = "OK";
+			Font   font = Global.GetPreferredButtonFont();
+
+			focusGained(e) {
+			    root.components.$_failed.text = "";
+			}
+
+			actionPerformed(e) {
+			    Dictionary cmpts = root.components;
+			    String     username = cmpts.$_username.text;
+			    String     password = "<none>";
+			    String     groupname = Global.GroupName;
+
+			    //
+			    // This event handler contacts the server and blocks
+			    // until it gets a response (because RunLoginCommand()
+			    // is called), so it intentionally behaves differently
+			    // than event handlers in most of the other screens.
+			    // Eventually may run some sanity checks on the input
+			    // fields, but server-side scripts should be running
+			    // their own checks on anything we send them.
+			    //
+
+			    requestfocus = FALSE;
+			    if (Global.RunLoginCommand(root, "LOGID", username, password, groupname) == NULL) {
+				if (root.failures < LoginFailed@sizeof) {
+				    cmpts.$_failed.text = LoginFailed[root.failures++];
+				    cmpts.$_username.requestfocus = TRUE;
+				} else Global.Quit(1);
+			    } else {
+				root.succeeded = (Global.SessionID != NULL);
+				Global.UserName = username;
+				Global.FirstLogin = FALSE;
+				Global.AltQueueCommand(root, &root.HideScreen);
+			    }
+			}
+		    },
+		    new JButton {
+			String text = "Quit";
+			Color  foreground = Global.GetPreferredWarningColor();
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    enabled = FALSE;
+			    Global.Quit(0);
+			}
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    Global.NewJProprietaryLabel(),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    components.$_username.text = "";
+	    components.$_failed.text = "";
+	}
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	    Global.StopPreloader();
+	    if (!this.succeeded)
+		Global.Quit(0);
+	}
+
+	LoadScreen() {
+	    Global.StartPreloader();
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+    };
+
+    return(screen);
+}
+
+return(Builder);

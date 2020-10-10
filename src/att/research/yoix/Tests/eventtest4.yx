@@ -1,0 +1,21 @@
+import yoix.*.*;
+
+JFrame f = {
+    Array layout = {
+	new JButton {
+	    String text = "Test Button";
+
+	    stateChanged(Event e) {
+		//
+		// AWT buttons never get here.
+		//
+		printf("stateChanged: e=%O\n", e);
+	    }
+	    actionPerformed(Event e) {
+		printf("actionPerformed: e=%O\n", e);
+	    }
+	}, SOUTH
+    };
+};
+
+f.visible = TRUE;

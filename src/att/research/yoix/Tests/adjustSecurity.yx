@@ -1,0 +1,50 @@
+//
+// for this test to work, we need to have the bouncycastle jar, which should be placed
+// in a "Data" directory below the directory containing this test script.
+// Use bcjarfile to specify the jar file name (and maybe rename the sub-directory).
+// See: http://www.bouncycastle.org/ if it needs to be downloaded.
+//
+
+import yoix.*.*;
+
+String bcjarfile = "Data/bcprov-jdk14-129.jar";
+String fullpath = yoixPath(argv[0]);
+int last = lastIndexOf(fullpath, '/');
+String jarpath = substring(fullpath, 0, last+1) + bcjarfile;
+String jarpath2 = "/some/bogus/path/file.jar|" + jarpath;
+
+String classname = "org.bouncycastle.jce.provider.BouncyCastleProvider";
+
+String name;
+String already;
+
+if (adjustSecurity(CHECKPROVIDER, classname, jarpath2, "|"))
+    already = " already";
+else already = "";
+
+if ((name = adjustSecurity(ADDPROVIDER, classname, jarpath2, "|", 0)) == null)
+    fprintf(stdout, "ERROR: %s\n", errordict.message);
+else fprintf(stdout, "FYI: provider %s%s loaded into slot %d\n",
+	     name, already, getProviders(name).slot);
+
+if (adjustSecurity(CHECKPROVIDER, classname, jarpath))
+    already = " already";
+else already = "";
+
+if ((name = adjustSecurity(ADDPROVIDER, classname, jarpath, 10)) == null)
+    fprintf(stdout, "ERROR: %s\n", errordict.message);
+else fprintf(stdout, "FYI: provider %s%s loaded into slot %d\n",
+	     name, already, getProviders(name).slot);
+
+if (adjustSecurity(REMOVEPROVIDER, name))
+    fprintf(stdout, "FYI: provider %s has been removed\n", name);
+else fprintf(stdout, "FYI: provider %s removal unsuccessful\n", name);
+
+if (adjustSecurity(CHECKPROVIDER, classname, jarpath))
+    already = " already";
+else already = "";
+
+if ((name = adjustSecurity(ADDPROVIDER, classname, jarpath, 10)) == null)
+    fprintf(stdout, "ERROR: %s\n", errordict.message);
+else fprintf(stdout, "FYI: provider %s%s loaded into slot %d\n",
+	     name, already, getProviders(name).slot);

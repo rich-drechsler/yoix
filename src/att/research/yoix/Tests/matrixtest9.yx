@@ -1,0 +1,32 @@
+import yoix.*.*;
+
+Dimension pixels = VM.screen.defaultmatrix.idtransform(120, 60);
+
+Image img = {
+    Dimension size = pixels;
+    Color     background = Color.blue;
+
+    paint() {
+        double cx = size.width/2;
+        double cy = size.height/2;
+
+        graphics {
+            initgraphics();
+	    antialiasing = TRUE;
+            translate(cx, cy);
+            arc(0, 0, 1, 0, 360, .8*cx, .8*cy);
+            setrgbcolor(1, 0, 0);
+            fill();
+        }
+    }
+};
+
+JFrame f = {
+    paint(Rectangle rect) {
+        graphics.moveto(36, 36);
+        graphics.showimage(img);
+    }
+};
+
+f.visible = TRUE;
+

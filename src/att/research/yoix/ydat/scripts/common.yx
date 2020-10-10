@@ -1,0 +1,1475 @@
+//
+// A collection of generally useful functions that include several that
+// make it easy to implement standard behavior in Swing event handlers.
+// Most of these are generic event handles that were borrowed from YWAIT.
+//
+
+Dictionary EVENT_HANDLERS = {
+    DragEnter(DropTargetEvent e) {
+	int accepted = FALSE;
+
+	//
+	// Only for indicating our willingness to accept an object that's
+	// being dragged, which is why the argument is explicitly declared
+	// as a DropTargetEvent. In other words, we don't have deal with
+	// DragSourceEvents, and that also guarantees there's a dragowner
+	// field in e.
+	//
+
+	if (this instanceof JTextArea || this instanceof JTextField || this instanceof JTextPane)
+	    accepted = this.edit;
+	else if (this instanceof JChoice || this instanceof JComboBox)
+	    accepted = !e.dragowner;
+	else if (this instanceof DataTable || this instanceof Histogram || this instanceof GraphPlot)
+	    accepted = this.issweepfilter;
+	return(accepted);
+    }
+
+    DragGestureRecognized(e) {
+	Dictionary cell;
+	Dictionary dict;
+	Object     transferable;
+	Array      ends;
+	Array      records;
+	int        index;
+
+	//
+	// A generic dragGestureRecognized() event handler that can be used
+	// by some Swing components. We haven't tried to support all Swing
+	// components, and some will probably always need their own custom
+	// implementations. Current versions of Yoix require that you store
+	// NULL in the component's transferhandler field before the custom
+	// dragGestureRecognized() event handler will be activated.
+	//
+
+	if (this instanceof JTextArea || this instanceof JTextField || this instanceof JTextPane) {
+	    //
+	    // The checks make sure we only start dragging (by returning
+	    // a non-NULL value) if the event happened inside the current
+	    // selection.
+	    //
+	    if (!(this instanceof JTextField) || this.echo == 0) {
+		if ((ends = this.selectedends) != NULL) {
+		    index = this.viewToModel(e.location);
+		    if (index >= ends[0] && index < ends[1])
+	    		e.visual = selected;
+		}
+	    }
+	} else if (this instanceof JTable || this instanceof DataTable) {
+	    if ((cell = action(FIND_CELL_AT, e.location)) != NULL) {
+		if (cell.valuesRow >= 0 && cell.valuesColumn >= 0) {
+		    e.visual = action(GET_FIELD, cell.valuesRow, cell.valuesColumn);
+		    if (e.visual instanceof String)
+			transferable = e.visual + this.droptextsuffix;
+		}
+	    }
+	} else if (this instanceof JChoice || this instanceof JComboBox) {
+	    if ((index = indexOfObject(mappings, selected)) >= 0) {
+		if (trim(labels[index])@sizeof > 0)
+		    e.visual = labels[index];
+	    }
+	} else if (this instanceof Histogram || this instanceof GraphPlot || this instanceof EventPlot) {
+	    if ((transferable = this.collectRecordsAt(e.location, true)) != NULL) {
+		dict = new Dictionary {
+		    Dictionary flavors = {
+			Object Object = transferable;
+			String String = this.getTipTextAt(e.location, this.droptextflags, FALSE) + this.droptextsuffix;
+			Array  Array = transferable instanceof Array ? transferable : NULL;
+		    };
+		    Object yoixflavor = transferable;
+		    String stringflavor = this.getTipTextAt(e.location, this.droptextflags, FALSE) + this.droptextsuffix;
+
+		    GetTransferData(int type) {
+			if (type == YoixConstants.STRING)
+			    return(flavors.String);
+			else return(flavors);
+		    }
+		};
+		if ((e.visual = this.getTipTextAt(e.location, TIP_SHOW_COUNT)) == NULL)
+		    e.visual = transferable;
+		transferable = &dict.GetTransferData;
+	    }
+	} else if (defined("text", this)) {
+	    //
+	    // This will cover quite a many other components, but it may not
+	    // be what you want. We look for a field named dragtext first and
+	    // use it if it's defined and not NULL, which gives the component
+	    // a way to drag something other than what's actually displayed.
+	    //
+	    e.visual = (defined("dragtext", this) && this.dragtext != NULL) ? this.dragtext : this.text;
+	    if (e.visual != NULL) {
+		if (defined("CancelMousePressed", this))
+		    this.CancelMousePressed();
+	    }
+	}
+	return(transferable == NULL ? e.visual : transferable);
+    }
+
+    Drop(e) {
+	int accepted = FALSE;
+	int index;
+
+	//
+	// A generic drop() event handler that currently just accepts strings
+	// and really only works well in a few Swing components.
+	//
+
+	if (this instanceof JTextArea || this instanceof JTextField || this instanceof JTextPane) {
+	    if (e.transferable instanceof String) {
+		insertText(this, e.transferable, viewToModel(e.location), TRUE);
+		this.requestfocus = TRUE;
+		accepted = TRUE;
+	    }
+	} else if (this instanceof JChoice || this instanceof JComboBox) {
+	    if (e.transferable instanceof String) {
+		if ((index = indexOfObject(labels, e.transferable)) >= 0) {
+		    this.selected = index;
+		    accepted = TRUE;
+		}
+	    }
+	} else if (this instanceof DataTable || this instanceof Histogram || this instanceof GraphPlot) {
+	    if (defined("Array", e.transferable)) {
+		if (this.issweepfilter) {
+		    if (e.action == COPY)	// CTLR key was down
+		        this.loadRecords(e.transferable.Array, TRUE);
+		    else this.loadRecords(e.transferable.Array);
+		    accepted = TRUE;
+		}
+	    }
+	} else if (defined("text", this)) {
+	    if (e.transferable instanceof String) {
+		this.text = e.transferable;
+		accepted = TRUE;
+	    }
+	}
+	return(accepted);
+    }
+
+    MouseWheelMoved(e) {
+	int index;
+
+	//
+	// A generic mouseWheelMoved() event handler.
+	//
+
+	if (this instanceof JChoice) {
+	    index = indexOfObject(this.mappings, this.selected);
+	    if (e.wheelrotation < 0) {
+		if (--index >= 0)
+		    this.selected = index;
+	    } else {
+		if (++index < this.mappings@length)
+		    this.selected = index;
+	    }
+	} else if (this instanceof JSlider || this instanceof JScrollBar)
+	    this.value += e.wheelrotation;
+    }
+};
+
+//
+// Browser support that was borrowed from YChart. Unfortunately some of this
+// is duplicated in TABLE_HELPERS, but this is a more recent implementation.
+// We eventually will try to claen things up.
+//
+
+Dictionary BROWSER_SUPPORT = {
+    String BROWSER_COMMAND = NULL;
+    int    SET_BROWSER_COMMAND = TRUE;
+
+    GetBrowserCommand() {
+	Process proc;
+	String  viewer;
+	Array   viewers;
+
+	//
+	// As rather complicated function that does a pretty good job picking
+	// the command for most operating systems. Picking the browser on Unix
+	// turns out to be the hardest.
+	//
+
+	if (BROWSER_COMMAND == NULL && SET_BROWSER_COMMAND) {
+	    if (ISMAC) {
+		if (checkExec("/usr/bin/open"))
+		    viewer = "/usr/bin/open %s";
+	    } else if (ISWIN) {
+		viewer = findPaths(
+		    new Array {"cmd.exe", "command.com"},
+		    "c:\\windows\\system32;c:\\winnt\\system32",
+		    -1
+		);
+		if (viewer && checkExec(viewer))
+		    viewer += " /c start \"\" \"%s\"";
+		else viewer = NULL;
+	    } else { // ISUNIX
+		if (checkReadEnvironment("PATH")) {
+		    viewers = findPaths(
+			new Array {"firefox", "mozilla", "netscape"},
+			getenv("PATH"),
+			0
+		    );
+		}
+		if (viewers == NULL) {
+		    viewers = new Array {
+			"/usr/bin/firefox",
+			"/usr/bin/mozilla",
+			"/usr/bin/netscape",
+		    };
+		}
+
+		for (ptr in viewers) {
+		    if (checkExec(*ptr)) {
+			try {
+			    if ((proc = exec(*ptr + " -v")) != NULL)
+				waitFor(proc);
+			}
+			catch(e) {
+			    proc = NULL;
+			}
+			//
+			// Looks like the interpreter currently won't let us
+			// break from inside a try/catch. We will investigate,
+			// but not right now. Anyway, we reorganized the code
+			// a bit and this now works.
+			//
+
+			if (proc && proc.exitvalue == 0) {
+			    viewer = *ptr + " -remote openURL(%s)";
+			    break;
+			}
+		    }
+		}
+	    }
+	    if (viewer != NULL && viewer@length > 0)
+		BROWSER_COMMAND = viewer;
+	    SET_BROWSER_COMMAND = FALSE;
+	}
+
+	return(BROWSER_COMMAND);
+    }
+
+    HaveAppleExtension() {
+	return(ISMAC && defined("apple", yoix) && defined("appleApplication", yoix.apple) && appleApplication());
+    }
+
+    HaveBrowserCommand() {
+	return(defined("checkJNLP", yoix.jnlp) && yoix.jnlp.checkJNLP() || GetBrowserCommand() != NULL);
+    }
+
+    OpenBrowser(String url) {
+	int     status = 0;
+	Array   exec_viewer;
+	File    fl;
+	Process proc;
+	String  content;
+	String  realpath;
+	String  type;
+	String  viewer;
+	String  errbuf;
+	URL     stream;
+	int     pexit;
+	int     idx;
+
+	//
+	// Returns a status of 0 if everything worked, 1 if we failed because
+	// of something other than a security check, and 2 if the failure was
+	// caused by a security check. We also show the security check error
+	// message, which pretty much comes from Java, but it should contain
+	// some useful information.
+	//
+
+	if (!(defined("showDocument", yoix.jnlp) && yoix.jnlp.showDocument(url))) {
+	    try {
+		if (HaveAppleExtension() && !VM.applet)
+		    appleOpenURL(url);
+		else if ((viewer = GetBrowserCommand()) != NULL) {
+		    proc = exec(strfmt(viewer, url));
+		    if (proc != NULL) {
+			errbuf = proc.error.nextbuf;
+			if (errbuf != NULL)
+			    trim(errbuf);
+			if (errbuf@length > 0) {
+			    //
+			    // Recent addition to try to reduce complaints on Unix since
+			    // we're going to try again below and there's another chance
+			    // to issue an error message.
+			    // 
+			    if (!(ISUNIX && proc.exitvalue)) {
+				if (proc.alive == 0)
+				    errbuf = strfmt("[exit=%d] %s", proc.exitvalue, errbuf);
+				status = 1;
+			    }
+			}
+			try {
+			    waitFor(proc);
+			    pexit = proc.exitvalue;
+			    if (ISUNIX && pexit) {
+				idx = indexOf(viewer, ' ');
+				if (idx < 0) // unlikely
+				    exec_viewer = new Array[] {viewer, url};
+				else exec_viewer = new Array[] {substring(viewer, 0, idx), url};
+				proc = exec(exec_viewer);
+				if (proc == NULL || (proc.alive == 0 && proc.exitvalue != 0))
+				    status = 1;
+				else {
+				    proc.persistent = TRUE;	// let browser live after we exit
+				    pexit = 0;
+				}
+			    }
+			}
+			catch(e) {
+			    status = 1;
+			    pexit = 1;
+			}
+		    } else pexit = -1;
+		    if (pexit != 0)
+			status = 1;
+		    if (status != 0)
+			SET_BROWSER_COMMAND = FALSE;
+		} else status = 1;
+	    }
+	    catch(e) {
+		if (e.name === "securitycheck") {
+		    Warn(e.message);
+		    status = 2;
+		} else status = 1;
+	    }
+	} else status = 0;
+
+	return(status);
+    }
+};
+
+//
+// Contents taken from YWAIT (comments included).
+//
+
+Dictionary TABLE_HELPERS = {
+    String ProprietaryLabel = NULL;
+    String ACRONYM = "YDAT";
+    String VIEWER = NULL;
+
+    CompareNumbers(a, b) = (a - b);
+    ShowError(String message, String title) = showMessageDialog(NULL, message, title, ERROR_MESSAGE);
+    ShowAlert(String message) = showMessageDialog(NULL, message, ACRONYM + " Messasge", INFORMATION_MESSAGE);
+
+    ShowConfirm(String message, ...) {
+	int ret = showConfirmDialog(NULL, message, ACRONYM + " Confirmation", YES_NO_OPTION);
+
+	if (ret < 0 && argc == 3)
+	    ret = argv[2];
+	return(new Dictionary { int confirmed = !ret; });
+    }
+
+    Array TempFileCache[0, ...];
+    int   NextTempFile = 0;
+
+    MakeTempFile(...) {
+	String path = tempnam(NULL, ACRONYM);
+
+	if (argc > 1)
+	    path += argv[1];
+
+	synchronized(TempFileCache) {
+	    TempFileCache[NextTempFile++] = path;
+	}
+	return(path);
+    }
+
+    FilterTableREFlags(Object root, String basetag) {
+	int flags = 0;
+
+	if (!root.components[basetag + "_case_sensitive"].state)
+	    flags |= CASE_INSENSITIVE;
+
+	if (!root.components[basetag + "_re_pattern"].state) {
+	    if (root.components[basetag + "_glob_pattern"].state)
+		flags |= SHELL_PATTERN;
+	    else flags |= TEXT_PATTERN;
+	}
+	return(flags);
+    }
+
+    GenerateTableHTML(Object table, Object root, String title, String extra, int include_hidden) {
+	Array    lines[5,...];
+	Pointer  ptr = lines;
+	Array    columns;
+	Array    alignments[0,...];
+	Array    halignments[0,...];
+	Array    headers[0,...];
+	Array    types[0,...];
+	Array    position[0,...];
+	Array    strdata;
+	Array    data;
+	String   autotitle = NULL;
+	String   tmpstr;
+	int      sz;
+	int      ln;
+	int      m, n;
+
+	if (defined("tabletitletag", table)) {
+	    if (table.tabletitletag instanceof String) {
+		if (defined(table.tabletitletag, root.components)) {
+		    if (defined("text", root.components[table.tabletitletag])) {
+			autotitle = trim(root.components[table.tabletitletag].text);
+		    }
+		}
+	    } else if (table.tabletitletag instanceof Array) {
+		autotitle = "";
+		for (tptr in table.tabletitletag) {
+		    if (*tptr instanceof String) {
+			if (defined(*tptr, root.components)) {
+			    if (defined("text", root.components[*tptr])) {
+				autotitle += htmlEncode(trim(root.components[*tptr].text));
+				if (tptr@sizeof > 1)
+				    autotitle += "<br>\n";
+			    }
+			}
+		    }
+		}
+	    }
+	}
+
+	if ((autotitle == NULL || autotitle@length == 0) && defined("title", root))
+	    autotitle = htmlEncode(root.title);
+
+	if (autotitle == NULL || autotitle@length == 0)
+	    autotitle = "Table Conversion to HTML";
+
+	columns = table.columns;
+
+	for (n=0, sz=0; n<columns@sizeof; n++) {
+	    if (columns[n].visible || include_hidden) {
+		types[sz] = columns[n].type;
+		alignments[sz] =  (columns[n].alignment == LEFT ? "LEFT" : (columns[n].alignment == RIGHT ? "RIGHT" : "CENTER"));
+		halignments[sz] =  (columns[n].altalignment == CENTER ? "CENTER" : (columns[n].altalignment == LEFT ? "LEFT" : "RIGHT"));
+		headers[sz] = columns[n].header;
+		position[sz] = columns[n].view;
+		sz++;
+	    }
+	}
+	qsort(position, CompareNumbers, types, headers, alignments, halignments);
+
+	strdata = table.action(TABLE_JOIN, position, true, true, -1, 0, new Array { "\t", "\n" });
+
+	data = new Array[sz];
+
+	for (n=0; n<sz; n++)
+	    data[n] = linesplit(strdata[n]); // OK to discard empty rows
+
+	ln = table.rows;
+
+	*ptr++ = strfmt(@<<
+			<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+			<html>
+			<head>
+			<title>%s: %s</title>
+			<style type="text/css">
+			body {
+			    font-family : Verdana, Geneva, Arial, Helvetica, sans-serif;
+			    font-size : 11px; 
+			    background-color:#FFFFFF;
+			}
+
+			P, TD {
+			    font-family : Verdana, Geneva, Arial, Helvetica, sans-serif;
+			    font-size : 11px; 
+			}
+
+			TH {
+			    font-family : Verdana, Geneva, Arial, Helvetica, sans-serif;
+			    font-size : 11px; 
+			    font-weight : bold;
+			}
+
+			H1 {
+			    font-family : Verdana, Geneva, Arial, Helvetica, sans-serif;
+			    font-size : 14px;
+			    font-weight : bold;
+			}
+
+			H2 {
+			    font-family : Verdana, Geneva, Arial, Helvetica, sans-serif;
+			    font-size : 12px;
+			    font-weight : bold;
+			}
+
+			H1 A { font-size: 14pt; }
+			H2 A { font-size: 12pt; }
+			SMALL { font-size: smaller; }
+			BIG { font-size: larger; }
+			STRONG { font-weight: bold; }
+			EM { font-style: italic; }
+			CODE { font-family: monospace; }
+			NORMAL { font-family: Verdana, Geneva, Arial, Helvetica, sans-serif;
+				 font-style: normal; font-weight: normal; }
+			SMALLPRINT { font-size: xx-small; }
+			SUB#opt { font-size: smaller; }
+			SUP#trademark { font-size: small; }
+			SUP#top { font-size: xx-small; }
+			TABLE#page { margin: 24px;
+				     border-collapse: collapse; }
+			TD#page    { border: 1px solid #000000;
+				     padding-left: 5px;
+				     padding-right: 5px; }
+			TH#page    { border: 1px solid #000000;
+			padding: 5px; }
+			TR#grey    { background-color: #EEEEEE; }
+			TD#box     { border: 1px solid #000000;
+			padding: 5px; }
+			</style>
+			</head>
+			<body bgcolor="#FFFFFF" leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" >
+			<center><h1>%s</h1></center>
+			%s
+			<table border=0 cellpadding=0 cellspacing=0 id=page>
+			>>@, 
+			htmlEncode(ACRONYM),
+			(autotitle@sizeof > 30 ? substring(autotitle, 0, 30)+"..." : autotitle),
+			(title == NULL ? (autotitle == NULL ? "" : autotitle) : title),
+			(extra == NULL ? "" : extra)
+	);
+
+	// ignores header icons currently (just need to do what ICON_TYPE, below, does)
+	for (n=0; n<sz; n++) {
+	    *ptr++ = strfmt("<th id=page valign=top nowrap align=%s>%s</th>", halignments[n], (strncasecmp(headers[n],"<html>",6) == 0 ? substring(headers[n],6) : htmlEncode(headers[n])));
+	}
+	*ptr++ = "\n";
+	for(m=0; m<ln; m++) {
+	    if (m%2)
+		*ptr++ = "<tr id=grey>";
+	    else *ptr++ = "<tr>";
+	    for (n=0; n<sz; n++) {
+		if (data[n]@sizeof > m) {
+		    switch (types[n]) {
+		    case ICON_TYPE:
+			// simple test for URL (could do better)
+			tmpstr = htmlEncode(data[n][m]);
+			if (strncasecmp(tmpstr,"http",4) == 0)
+			    *ptr++ = strfmt("<td id=page valign=top align=%s><img alt='%s' src='%s'></td>", alignments[n], tmpstr, tmpstr);
+			else {
+			    int row = table.action(GET_ROW_DATA_INDEX, m);
+			    int col = table.action(GET_COLUMN_DATA_INDEX, position[n]);
+			    Object img = table.action(GET_FIELD, row, col, "value");
+			    String jpg = NULL;
+
+			    if (img != NULL && img instanceof Image)
+				jpg = encodeImage(img, "jpg");
+
+			    if (jpg != NULL) {
+				String fname;
+				File fl;
+				int tries = 0;
+
+				fname = MakeTempFile(".jpg");
+
+				while(tries < 3 && (fl = fopen(fname,"w")) == null) {
+				    fname = MakeTempFile(".jpg");
+				    tries++;
+				}
+				if(fl == null) {
+				    fname = null;
+				    // we tried, give up
+				    *ptr++ = strfmt("<td id=page valign=top align=%s><img alt='%s' src='%s'></td>", alignments[n], tmpstr, tmpstr);
+				} else {
+				    fl.nextbuf = jpg;
+				    fclose(fl);
+				    *ptr++ = strfmt("<td id=page valign=top align=%s><img alt='%s' src='file://%s'></td>", alignments[n], tmpstr, htmlEncode(fname));
+				}
+			    } else {
+				// best we can do...
+				*ptr++ = strfmt("<td id=page valign=top align=%s><img src='%s'></td>", alignments[n], tmpstr, tmpstr);
+			    }
+			}
+			break;
+		    case DATE_TYPE:
+		    case OBJECT_TYPE: // maybe not a good idea?
+			*ptr++ = strfmt("<td id=page valign=top align=%s nowrap>%s</td>", alignments[n], htmlEncode(data[n][m]));
+			break;
+		    default:
+			*ptr++ = strfmt("<td id=page valign=top align=%s>%s</td>", alignments[n], htmlEncode(data[n][m]));
+			break;
+		    }
+		} else *ptr++ = "<td id=page></td>";
+	    }
+	    *ptr++ = "</tr>\n";
+	}
+	*ptr = @<<
+	</table>
+	</body>
+	</html>
+	>>@;
+	ViewFile(strjoin(lines, ""), ".html", FALSE);
+    }
+
+    GenerateTableCSV(Object table, Object root, String title, String extra, int include_hidden) { // comma-separated values
+	Array    lines[3,...];
+	Pointer  ptr = lines;
+	Array    columns;
+	Array    headers[0,...];
+	Array    position[0,...];
+	Regexp   re = null;
+	String   autotitle = NULL;
+	int      sz;
+	int      ln;
+	int      m, n;
+
+	if (defined("tabletitletag", table)) {
+	    if (table.tabletitletag instanceof String) {
+		if (defined(table.tabletitletag, root.components)) {
+		    if (defined("text", root.components[table.tabletitletag])) {
+			autotitle = trim(root.components[table.tabletitletag].text);
+		    }
+		}
+	    } else if (table.tabletitletag instanceof Array) {
+		autotitle = "";
+		for (tptr in table.tabletitletag) {
+		    if (*tptr instanceof String) {
+			if (defined(*tptr, root.components)) {
+			    if (defined("text", root.components[*tptr])) {
+				autotitle += trim(root.components[*tptr].text) + "\n";
+			    }
+			}
+		    }
+		}
+		autotitle = trim(autotitle);
+	    }
+	}
+
+	if ((autotitle == NULL || autotitle@length == 0) && defined("title", root))
+	    autotitle = root.title;
+
+	if (autotitle == NULL || autotitle@length == 0)
+	    autotitle = "Table Conversion to Comma-Separated Values";
+
+	title = (title == NULL ? autotitle : title) + (extra == NULL ? "" : "\n" + extra);
+
+	if (indexOf(title, '"') >= 0) {
+	    if (re == null)
+		re = regexp("\"", TEXT_PATTERN);
+	    title = gsubsti("\"\"", re, title);
+	}
+
+	*ptr++ = strfmt("\"\"\"%s\"\n", title);
+
+	columns = table.columns;
+
+	for (n=0, sz=0; n<columns@sizeof; n++) {
+	    if (columns[n].visible || include_hidden) {
+		if (
+		    defined("htmlmap", table)
+		    && (strncasecmp(columns[n].header, "<html>", 6) == 0)
+		    && table.htmlmap instanceof Hashtable
+		    && table.htmlmap.contains(columns[n].header)
+		    ) {
+		    headers[sz] = table.htmlmap.get(columns[n].header);
+		} else headers[sz] = columns[n].header;
+		position[sz] = columns[n].view;
+		sz++;
+	    }
+	}
+	qsort(position, CompareNumbers, headers);
+
+	for (n=0; n<sz; n++) {
+	    if (indexOf(headers[n], '"') >= 0) {
+		if (re == null)
+		    re = regexp("\"", TEXT_PATTERN);
+		headers[n] = gsubsti("\"\"", re, headers[n]);
+	    }
+	    if (n+1 == sz)
+		*ptr++ = strfmt("\"%s\"\n", headers[n]);
+	    else *ptr++ = strfmt("\"%s\",", headers[n]);
+	}
+
+	*ptr++ = table.action(TABLE_JOIN, position, true, true, 0, 0, new Array[] { ",", "\n" });
+    
+	//
+	// If we use ".csv" suffix, then Excel will autoload the data and stubbornly
+	// insist that long digit strings must be numbers thereby losing precision
+	// beyond 15 digits, using ".xls" keeps the CSV contents in the first column,
+	// whereupon the "Text to Columns" wizard can be invoked to load the data
+	// as desired (invoked from the Excel menubar as Data->"Text to Columns...")
+	//
+	ViewFile(strjoin(lines, ""), ".xls", FALSE);
+    }
+
+    GenerateTableTSV(Object table, Object root, String title, String extra, int include_hidden) { // tab-separated values
+	Array    lines[3,...];
+	Pointer  ptr = lines;
+	Array    columns;
+	Array    headers[0,...];
+	Array    position[0,...];
+	Regexp   re = null;
+	String   autotitle = NULL;
+	int      sz;
+	int      ln;
+	int      m, n;
+
+	if (defined("tabletitletag", table)) {
+	    if (table.tabletitletag instanceof String) {
+		if (defined(table.tabletitletag, root.components)) {
+		    if (defined("text", root.components[table.tabletitletag])) {
+			autotitle = trim(root.components[table.tabletitletag].text);
+		    }
+		}
+	    } else if (table.tabletitletag instanceof Array) {
+		autotitle = "";
+		for (tptr in table.tabletitletag) {
+		    if (*tptr instanceof String) {
+			if (defined(*tptr, root.components)) {
+			    if (defined("text", root.components[*tptr])) {
+				autotitle += trim(root.components[*tptr].text) + "\n";
+			    }
+			}
+		    }
+		}
+		autotitle = trim(autotitle);
+	    }
+	}
+
+	if ((autotitle == NULL || autotitle@length == 0) && defined("title", root))
+	    autotitle = root.title;
+
+	if (autotitle == NULL || autotitle@length == 0)
+	    autotitle = "Table Conversion to Tab-Separated Values";
+
+	title = (title == NULL ? autotitle : title) + (extra == NULL ? "" : "\n" + extra);
+
+	if (indexOf(title, '"') >= 0) {
+	    re = regexp("\"", TEXT_PATTERN);
+	    title = gsubsti("\"\"", re, title);
+	}
+
+	*ptr++ = strfmt("\"%s\"\n", title);
+
+	columns = table.columns;
+
+	for (n=0, sz=0; n<columns@sizeof; n++) {
+	    if (columns[n].visible || include_hidden) {
+		if (
+		    defined("htmlmap", table)
+		    && (strncasecmp(columns[n].header, "<html>", 6) == 0)
+		    && table.htmlmap instanceof Hashtable
+		    && table.htmlmap.contains(columns[n].header)
+		    ) {
+		    headers[sz] = table.htmlmap.get(columns[n].header);
+		} else headers[sz] = columns[n].header;
+		position[sz] = columns[n].view;
+		sz++;
+	    }
+	}
+	qsort(position, CompareNumbers, headers);
+
+	for (n=0; n<sz; n++) {
+	    if (n+1 == sz)
+		*ptr++ = strfmt("%s\n", headers[n]);
+	    else *ptr++ = strfmt("%s\t", headers[n]);
+	}
+
+	*ptr++ = table.action(TABLE_JOIN, position, true, true, 0, 0, new Array[] { "\t", "\n" });
+    
+	//
+	// Note: Excel will autoload the data and stubbornly insist that long digit
+	// strings must be numbers thereby losing precision beyond 15 digits. Use
+	// GenerateTableCSV if that behavior will present a problem. The advantage to
+	// this version is that the data loads automatically and, in most case (i.e.,
+	// those without long digit strings like credit card numbers), the autoloading
+	// works fine and is easier for the end-user.
+	//
+	ViewFile(strjoin(lines, ""), ".xls", FALSE);
+    }
+
+    GenerateTableTXT(Object table, Object root, String title, String extra, int include_hidden) {
+	Array    lines[3,...];
+	Pointer  ptr = lines;
+	Array    columns;
+	Array    headers[0,...];
+	Array    position[0,...];
+	Regexp   re = null;
+	String   autotitle = NULL;
+	int      sz;
+	int      ln;
+	int      m, n;
+	String   NL = getProperty("line.separator");
+
+	if (defined("tabletitletag", table)) {
+	    if (table.tabletitletag instanceof String) {
+		if (defined(table.tabletitletag, root.components)) {
+		    if (defined("text", root.components[table.tabletitletag])) {
+			autotitle = trim(root.components[table.tabletitletag].text);
+		    }
+		}
+	    } else if (table.tabletitletag instanceof Array) {
+		autotitle = "";
+		for (tptr in table.tabletitletag) {
+		    if (*tptr instanceof String) {
+			if (defined(*tptr, root.components)) {
+			    if (defined("text", root.components[*tptr])) {
+				autotitle += trim(root.components[*tptr].text) + NL;
+			    }
+			}
+		    }
+		}
+		autotitle = trim(autotitle);
+	    }
+	}
+
+	if ((autotitle == NULL || autotitle@length == 0) && defined("title", root))
+	    autotitle = root.title;
+
+	if (autotitle == NULL || autotitle@length == 0)
+	    autotitle = "Table Conversion to Tab-Separated Values";
+
+	title = (title == NULL ? autotitle : title) + (extra == NULL ? "" : NL + extra);
+
+	*ptr++ = strfmt("%s%s", title, NL);
+
+	columns = table.columns;
+
+	for (n=0, sz=0; n<columns@sizeof; n++) {
+	    if (columns[n].visible || include_hidden) {
+		if (
+		    defined("htmlmap", table)
+		    && (strncasecmp(columns[n].header, "<html>", 6) == 0)
+		    && table.htmlmap instanceof Hashtable
+		    && table.htmlmap.contains(columns[n].header)
+		    ) {
+		    headers[sz] = table.htmlmap.get(columns[n].header);
+		} else headers[sz] = columns[n].header;
+		position[sz] = columns[n].view;
+		sz++;
+	    }
+	}
+	qsort(position, CompareNumbers, headers);
+
+	for (n=0; n<sz; n++) {
+	    if (n+1 == sz)
+		*ptr++ = strfmt("%s%s", headers[n], NL);
+	    else *ptr++ = strfmt("%s\t", headers[n]);
+	}
+
+	*ptr++ = table.action(TABLE_JOIN, position, true, true, 0, 0, new Array[] { "\t", NL });
+    
+	ViewFile(strjoin(lines, ""), ".txt", FALSE);
+    }
+
+    GetTableRowFromColumn(DataTable table, int row, int col, int visible) {
+	Array cols[0, ...];
+	int   len = table.width;
+	int   vcol = table.action(GET_COLUMN_VIEW_INDEX, col);
+	int   dcol;
+	int   m;
+	int   n;
+
+	for (m = 0, n = vcol; n < len; n++) {
+	    dcol = table.action(GET_COLUMN_DATA_INDEX, n);
+	    if (!visible || table.action(GET_COLUMN_FIELD, dcol, "width") > 0) {
+		cols[m++] = table.action(GET_FIELD, row, dcol, "view");
+	    }
+	}
+	return(strjoin(cols, table.outputfilter[0]));
+    }
+
+    PickTableColumnWidth(String header, ...) {
+	double width;
+
+	//
+	// Function that can be used to pick widths for JTable columns. The
+	// first argument, if it's not NULL, is text that's measured using
+	// the header's font. The second argument, if supplied should be a
+	// string that's measured in using the column's font. Supplying an
+	// int as the second argument means we should meansure an arbitrary
+	// string that has that many characters. An optional third argument
+	// can also be supplied and is used to adjust the calculated width.
+	//
+
+	if (argc > 2) {
+	    if (argv[2] instanceof String)
+		width = stringWidth(GetPreferredTableFont(), argv[2]);
+	    else if (argv[2] instanceof Number)
+		width = argv[2]*stringWidth(GetPreferredTableFont(), "W");
+	    if (argc > 3) {
+		if (argv[3] instanceof String)
+		    width += stringWidth(GetPreferredTableFont(), argv[3]);
+		else if (argv[3] instanceof Number)
+		    width += argv[3];
+	    }
+	}
+	if (header@sizeof > 0)
+	    width = max(width, stringWidth(GetPreferredTableHeadingFont(), header + " "));
+	return(width + 3.0 * VM.screen.pixelwidth); // pixelwidth addition for cell pad and slop
+    }
+
+    SearchTableFindText(Object table, Object root, String basetag, String str, int forward) {
+	String match;
+	int    find_pattern;
+	int    find_ignorecase;
+	int    find_bycols;
+
+	find_bycols = root.components[basetag + "_colwise"].state;
+	find_ignorecase = !root.components[basetag + "_case_sensitive"].state;
+
+	if (root.components[basetag + "_re_pattern"].state)
+	    find_pattern = 1;
+	else if (root.components[basetag + "_glob_pattern"].state)
+	    find_pattern = -1;
+	else find_pattern = 0;
+
+	if (str@sizeof > 0) {
+	    match = table.findNextMatch(str, find_pattern, find_ignorecase, find_bycols, forward);
+	    if (match == NULL)
+		root.components[basetag + "_find_text"].foreground = Color.red;
+	}
+    }
+
+    SearchTableReset(Object table, Object root, String basetag) {
+	Pointer ptr;
+	Object  obj;
+
+	table.action(RESET_VIEW);
+	table.action(CLEAR_SELECTION);
+	table.action(MAKE_CELL_VISIBLE, 0, 0, TRUE);
+	if (basetag != NULL && defined(basetag + "_find_text", root.components)) {
+	    root.components[basetag + "_find_text"].text = "";
+	    root.components[basetag + "_case_sensitive"].state = 0;
+	    root.components[basetag + "_re_pattern"].state = 0;
+	    root.components[basetag + "_glob_pattern"].state = 0;
+	    root.components[basetag + "_colwise"].state = 0;
+	}
+
+	obj = NULL;
+	if (defined("vieworder", table))
+	    obj = table.vieworder;
+	for (ptr in obj)
+	    table.action(MOVE_COLUMN, table.modelToView(*ptr, "c"), ptr@offset);
+
+	obj = NULL;
+	if (defined("viewwidths", table))
+	    obj = table.viewwidths;
+	for (ptr in obj)
+	    table.action(SET_COLUMN_FIELD, ptr@offset, "width", *ptr);
+
+	obj = NULL;
+	if (defined("tablesort", table))
+	    obj = table.tablesort;
+	if (obj == NULL)
+	    table.etc = NULL;
+	else table.etc = new Array[obj@sizeof,...] obj;
+	if (table.action(GET_ROW_DATA_INDEX, 0) >= 0) // data is loaded
+	    table.action(TABLE_SORT, obj);
+
+	if (defined("SyncToolTipText", table))
+	    table.SyncToolTipText();
+
+	if (basetag != NULL && defined(ptr = basetag + "_filter", root.components)) {
+	    if (defined("ResetFilter", table))
+		table.ResetFilter();
+	    if (defined("SyncSizes", table))
+		table.SyncSizes(table, root.components[ptr]);
+	}
+    }
+
+    TableDragGestureRecognized(e) {
+	Dictionary cell;
+	Rectangle  rowrect;
+	Rectangle  winrect;
+	Pointer    ptr;
+	Pointer    cptr;
+	String     rowtext = NULL;
+	double     ht;
+	double     sc;
+	Array      rows;
+	Array      cols;
+	Image      img1;
+	Image      img2;
+	Image      img3;
+	int        ridx;
+	int        type;
+	int        n;
+
+	//
+	// Fancy DragGestureRecognized just for tables. Returns selected rows
+	// with all columns or just those specified, optionally, by a non-null
+	// dragcolumns value in the JTable. Supplies an image of a table row
+	// and a row count (when > 1) for the drag visual.
+	//
+
+	if (this instanceof JTable || this instanceof DataTable) {
+	    if (defined("dragcolumns", this)) {
+		if (this.dragcolumns instanceof int) {
+		    if (this.dragcolumns < 0) {
+			if ((cell = action(FIND_CELL_AT, e.location)) != NULL) {
+			    if (cell.valuesRow >= 0 && cell.valuesColumn >= 0)
+				cols = new Array[] { cell.valuesColumn };
+			    else return(e.visual);
+			} else return(e.visual);
+		    } else cols = new Array[] { this.dragcolumns };
+		} else cols = this.dragcolumns;
+	    } else cols = NULL;
+	    if ((cell = action(FIND_CELL_AT, e.location)) != NULL)
+		rows = new Array[] { cell };
+	    else rows = NULL;
+	    if (rows@length > 0) {
+		Array rdata[rows@length];
+		Array cdata[cols@length];
+		ridx = rows[0].viewRow;
+		if (cols == NULL || cols@length == 0)
+		    rdata[0] = TABLE_HELPERS.GetTableRowFromColumn(this, rows[0].valuesRow, this.action(GET_COLUMN_DATA_INDEX, 0), TRUE);
+		else {
+		    if (cols@length > 1) {
+			cptr = cdata;
+			for (ptr in cols) {
+			    *cptr++ = this.action(GET_FIELD, rows[0].valuesRow, *ptr);
+			}
+			rdata[0] = strjoin(cdata, this.outputfilter);
+		    } else rdata[0] = this.action(GET_FIELD, rows[0].valuesRow, cols[0]);
+		}
+		img2 = NULL;
+		if (rows@length > 1) {
+		    cell = this.action(FIND_CELL_AT, e.location);
+		    ridx = cell.valuesRow;
+		    rowrect = this.action(GET_ROW_RECT, ridx, true);
+		    winrect = this.action(GET_ROW_RECT, ridx);
+		    e.offset = new Point {
+			double x = winrect.x - e.location.x;
+			double y = winrect.y - e.location.y;
+		    };
+		    e.anchor = NONE;
+		    img1 = captureScreen(rowrect);
+		    if (cols == NULL || cols@length == 0) {
+			for (n=1; n<rows@length; n++)
+			    rdata[n] = this.action(GET_ROW, rows[n].valuesRow);
+		    } else if (cols@length == 1) {
+			for (n=1; n<rows@length; n++)
+			    rdata[n] = this.action(GET_FIELD, rows[n].valuesRow, cols[0]);
+		    } else {
+			for (n=1; n<rows@length; n++) {
+			    cptr = cdata;
+			    for (ptr in cols)
+				*cptr++ = this.action(GET_FIELD, rows[n].valuesRow, *ptr);
+			    rdata[n] = strjoin(cdata, this.outputfilter);
+			}
+		    }
+		    rowtext = strjoin(rdata, "\n");
+		    ht = rowrect.height;
+		    img3 = new Image {
+			int type = TYPE_RGB_ALPHA;
+			String nbr = toString(rows@length);
+			Graphics graphics = {
+			    String font = "Helvetica-plain-14";
+			};
+			double fwd = 1.4 * stringWidth(graphics.font, nbr);
+			double fht = 1.4 * graphics.font.height;
+			Dimension size = {
+			    double width = 1 + fwd;
+			    double height = 1 + fht;
+			};
+			sc = size.height;
+			paint(Rectangle r) {
+			    graphics.foreground = Color.red;
+			    fillOval(this, 0, 0, fwd, fht);
+			    graphics.foreground = Color.white;
+			    Rectangle bnds = graphics.stringbounds(nbr, TRUE);
+			    double x = ((fwd - bnds.width + 1) / 2.0);
+			    double y = ((fht + bnds.height - 1) / 2.0);
+			    drawString(this, nbr, x, y);
+			}
+		    };
+		    img2 = new Image {
+			Image img1 = img1;
+			Image img3 = img3;
+			double ioffx = 9 - e.offset.x;
+			if (ioffx + img3.size.width > img1.size.width)
+			    ioffx = -9 - img3.size.width - e.offset.x;
+			Dimension size = new Dimension {
+			    double width = img1.size.width;
+			    double height = sc;
+			};
+			double off = (sc - img1.size.height) / 2.0;
+			int type = TYPE_RGB_ALPHA;
+			paint(Rectangle r) {
+			    graphics {
+				gsave();
+				moveto(0,off);
+				showimage(img1, 0.6);
+				moveto(ioffx, 0);
+				showimage(img3);
+				grestore();
+			    }
+			}
+		    };
+		} else {
+		    rowtext = rdata[0];
+		    rowrect = this.action(GET_ROW_RECT, ridx, true);
+		    winrect = this.action(GET_ROW_RECT, ridx);
+		    e.offset = new Point {
+			double x = winrect.x - e.location.x;
+			double y = winrect.y - e.location.y;
+		    };
+		    e.anchor = NONE;
+		    img1 = captureScreen(rowrect);
+		    img2 = new Image{
+			Image img1 = img1;
+			Dimension size = img1.size;
+			int type = TYPE_RGB_ALPHA;
+			paint(Rectangle r) {
+			    graphics {
+				gsave();
+				moveto(0,0);
+				showimage(img1, 0.6);
+				grestore();
+			    }
+			}
+		    };
+		}
+		e.visual = img2;
+	    }
+
+	    if (defined("TableDragAdjustment", this)) {
+		rowtext = this.TableDragAdjustment(rowtext);
+	    }
+	}
+
+	if (rowtext != NULL) {
+	    if (defined("CancelMousePressed", this))
+		this.CancelMousePressed();
+	}
+
+	return(rowtext);
+    }
+
+    TableInitializer(Object table) {
+	if (defined("initialized", table) && !table.initialized) {
+	    table.initialized = TRUE;
+	    if (defined("basetag", table)) {
+		if (defined(table.basetag+"_search", table.root))
+		    SearchTableReset(table, table.root, table.basetag);
+		else TableReset(table, table.root);
+	    }
+	}
+    }
+
+    TableLoader(Pointer arg) {
+	String suffix;
+	String rcf;
+
+	//
+	// A function that can be automatically used by PostCommand() to load
+	// a JTable whenever it's defined in a JTable. Might be a little hard
+	// to follow if you're not familiar with PostCommand(), but the low
+	// level details aren't that important. All you should have to do to
+	// automatically load a JTable is define this function in your JTable
+	// and pass its address as one of the destinations when QueueCommand()
+	// or RunCommand() is called and data that the server returns should
+	// end up in your table.
+	//
+
+	if (this.root != NULL) {
+	    TableInitializer(this);
+	    if (arg == NULL)
+		this.values = "";
+	    else if (arg instanceof String)
+		this.values = arg;
+	    else this.values = *arg;
+	    this.action(MAKE_CELL_VISIBLE, 0, 0, TRUE);
+	    if (defined("rowcountfield", this))
+		rcf = this.rowcountfield;
+	    else rcf = tag + "_rowcount";
+	    if (defined(rcf, this.root.components)) {
+		if (defined("TableLoaderLabel", this))
+		    suffix = this.TableLoaderLabel;
+		else suffix = " rows";
+		this.root.components[rcf].text = (arg@sizeof > 0) ? (toString(this.rows)+suffix) : "";
+	    }
+	    if (this.etc != NULL)
+		this.action(TABLE_SORT, this.etc);
+	    if (defined("Filter", this))
+		this.Filter();
+	}
+    }
+
+    TableReset(Object table, Object root) = SearchTableReset(table, root, NULL);
+
+    TableSorter(InvocationEvent e) {
+	JTable  table = this;
+	int     idx;
+	int     len;
+	int     off;
+	int     i;
+	int     j;
+
+	//
+	// A generic invocationAction() event handler that can be used
+	// by the JTable component. It uses the spare "etc" field in
+	// JTable to store sort column info across invocations.
+	//
+	// Java mishandles cursor changes over table headers, so we do not
+	// allow them, thus to provide some visual feedback to user that
+	// sort is in progress we also flash the gridcolor -- note: the
+	// wait cursor does show up when the cursor is off the header, but
+	// it is usually in the header during the sort
+	//
+
+	save table.root.cursor = Cursor.WAIT_CURSOR;
+	save table.gridcolor = new Color {
+	    int red = 255 - table.gridcolor.red;
+	    int blue = 255 - table.gridcolor.blue;
+	    int green = 255 - table.gridcolor.green;
+	};
+
+	if (e == NULL) {
+	    if (table.etc != NULL && table.etc@sizeof > 0) {
+		table.action(TABLE_SORT, table.etc + off);
+	    }
+	} else if (e.valuesColumn >= 0) {
+	    if ((e.modifiers&CTRL_MASK) == 0) {
+		table.etc = new Array[0,...] {};
+		len = 0;
+	    } else {
+		e.modifiers &= ~CTRL_MASK;
+		if (table.etc == NULL)
+		    table.etc = new Array[0,...] {};
+		len = table.etc@length;
+	    }
+
+	    if (e.modifiers == BUTTON1_MASK) {
+		if (len == 0 && table.action(GET_COLUMN_FIELD, e.valuesColumn, "state") > 0)
+		    idx = 0;
+		else idx = 1 + e.valuesColumn;
+	    } else {
+		if (len == 0 && table.action(GET_COLUMN_FIELD, e.valuesColumn, "state") < 0)
+		    idx = 0;
+		else idx = -(1 + e.valuesColumn);
+	    }
+	    for (i=0; i<len; i++) {
+		if (idx == table.etc[i]) {
+		    for (j=i; j>0; j--)
+			table.etc[j] = table.etc[j-1];
+		    table.etc[0] = 0;
+		    idx = 0;
+		    break;
+		} else if (-idx == table.etc[i]) {
+		    table.etc[i] = idx;
+		    idx = 0;
+		    break;
+		}
+	    }
+	    for (off=0; off<len; off++) {
+		if (table.etc[off] != 0)
+		    break;
+	    }
+	    if (idx != 0) {
+		table.etc[len] = idx;
+		len++;
+	    }
+
+	    if (len == off) {
+		table.action(TABLE_SORT, NULL);
+		table.etc = new Array[0,...] {};
+	    } else table.action(TABLE_SORT, table.etc + off);
+
+	    if ((len - off) < 2)
+		table.action(MAKE_CELL_VISIBLE, 0, e.viewColumn, TRUE);
+	    
+
+	    if (defined("dfltcellcolors", table)) {
+		if (len == off) {
+		    table.cellcolors = table.dfltcellcolors;
+		} else {
+		    Array  values;
+		    Array  cols;
+		    Array  etc;
+
+		    cols = new Array[len-off];
+		    etc = (table.etc + off);
+		    //
+		    // Need to convert columns to the view model because
+		    // that's what the TABLE_JOIN operation (below) will
+		    // expect.
+		    //
+		    for (i = 0; i < cols@length; i++) {
+			cols[i] = table.action(GET_COLUMN_VIEW_INDEX, abs(etc[i]) - 1);
+		    }
+		    table.cellcolors = getArrayBands(
+			table.action(TABLE_JOIN, cols, TRUE, TRUE, 1),
+			unroll(table.dfltcellcolors)
+			);
+		}
+	    }
+	}
+    }
+
+    GetPreferredViewer() {
+	Process proc;
+	String  viewer;
+
+	//
+	// A rather complicated function that does a pretty good job picking
+	// the command for most operating systems when it's not explicitly set
+	// in the PREFERENCES dictionary. Picking the browser on Unix turns out
+	// to be the hardest.
+	//
+
+	if (VIEWER == NULL || VIEWER@length == 0) {
+	    if (ISMAC) {
+		viewer = "open %s"; // should be in /usr/bin
+	    } else if (ISWIN) {
+		//
+		// Windows will use one of (this growing list):
+		//
+		//    [C:\WINNT\system32\]cmd.exe /c start %s
+		//    [C:\WINDOWS\COMMAND\]start.exe %s
+		//    [C:\WINDOWS\]RUNDLL32.EXE url.dll.FileProtocolHandler %s
+		//
+		if (isFilePath("c:/winnt/system32/cmd.exe")) {
+		    // windows 2000 and NT
+		    viewer = localPath("c:/winnt/system32/cmd.exe") + " /c start %s";
+		} else if (isFilePath("c:/windows/system32/cmd.exe")) {
+		    // windows XP
+		    viewer = localPath("c:/windows/system32/cmd.exe") + " /c start %s";
+		} else if (isFilePath("c:/windows/command/start.exe")) {
+		    // windows 98
+		    viewer = localPath("c:/windows/command/start.exe") + " %s";
+		} else if (isFilePath("c:/windows/rundll32.exe")) {
+		    // windows 95
+		    viewer = localPath("c:/windows/rundll32.exe") + " url.dll,FileProtocolHandler %s";
+		} else if (indexOf(OSNAME,"2000") >= 0 || indexOf(OSNAME,"NT") >= 0) {
+		    viewer = "cmd.exe /c start %s";
+		} else {
+		    viewer = "start %s";
+		}
+	    } else { // ISUNIX
+		if ((proc = exec("netscape -v")) != NULL)
+		    waitFor(proc);
+		if (proc == NULL || proc.exitvalue) {
+		    if ((proc = exec("mozilla -v")) != NULL)
+			waitFor(proc);
+		    if (proc == NULL || proc.exitvalue) {
+			if ((proc = exec("firefox -v")) != NULL)
+			    waitFor(proc);
+			if (proc == NULL || proc.exitvalue) {
+			    viewer = NULL;
+			} else viewer = "firefox -remote openURL(%s)";
+		    } else viewer = "mozilla -remote openURL(%s)";
+		} else viewer = "netscape -remote openURL(%s)";
+	    }
+	    if (
+		viewer != NULL && viewer@length > 0
+		&&
+		ShowConfirm(strfmt("Guessing that the viewer command is:\n\n\t%s\n\nIf this guess is not correct, specify a value for TABLE_HELPERS.VIEWER in your configuration file.\n\nShould we continue?", viewer), TRUE).confirmed
+		) {
+		VIEWER = viewer;
+	    } else viewer = NULL;
+	} else viewer = VIEWER;
+
+	return(viewer);
+    }
+
+    ViewFile(String text, String extension, int plaintext) {
+	Array   exec_viewer;
+	Process proc;
+	String  viewer;
+	String  fname = NULL;
+	String  directory;
+	String  basename;
+	String  realpath;
+	String  cmd;
+	File    fl;
+	int     tries = 0;
+	int     pexit;
+	int     idx;
+
+	if ((viewer = GetPreferredViewer()) != NULL) {
+	    fname = MakeTempFile(extension);
+	    while (tries < 3 && (fl = fopen(fname,"w")) == NULL) {
+		fname = MakeTempFile(extension);
+		tries++;
+	    }
+	    if (fl == NULL) {
+		ShowAlert("Could not create a needed temporary file (" + fname + ")");
+		fname = NULL;
+	    } else {
+		if (plaintext)
+		    fl.nextbuf = "<PLAINTEXT>";
+		fl.nextbuf = text;
+		fclose(fl);
+	    }
+
+	    realpath = realPath(fname);
+
+	    if (!ISUNIX && (idx = lastIndexOf(realpath, "/")) > 0) {
+		directory = substring(realpath, 0, idx);
+		basename = substring(realpath, idx+1);
+	    } else {
+		directory = NULL;
+		basename = realpath;
+	    }
+	    cmd = strfmt(viewer, basename);
+
+	    proc = exec(cmd, NULL, directory);
+	    if (proc != NULL) {
+		String errbuf = proc.error.nextbuf;
+		if (errbuf != NULL)
+		    trim(errbuf);
+		if (errbuf@length > 0) {
+		    if (proc.alive == 0)
+			errbuf = strfmt("process error: %s", errbuf);
+		    ShowError(errbuf, "View File Error");
+		}
+		try {
+		    waitFor(proc);
+		    pexit = proc.exitvalue;
+		    if (ISUNIX && pexit) {
+			idx = indexOf(viewer,' ');
+			if (idx < 0) // unlikely
+			    exec_viewer = new Array[] { viewer, basename };
+			else exec_viewer = new Array[] { substring(viewer,0,idx), basename };
+			proc = exec(exec_viewer, NULL, directory);
+			if (proc == NULL || (proc.alive == 0 && proc.exitvalue !=0))
+			    ShowAlert("Browser must already be running for viewer to function."); // give up
+			else {
+			    proc.persistent = TRUE;	// allow to live after the application exits
+			    pexit = 0;
+			}
+		    }
+		}
+		catch(e) {
+		    ShowWarning(e.message, "View File Exception");
+		    pexit = 1;
+		    return(TRUE);
+		}
+	    } else pexit = -1;
+	    if (pexit) {
+		if (ShowConfirm("Could not start viewer. Do you want to save the material to a file?").confirmed) {
+		    Array   filtarr = NULL;
+		    if (extension@length > 0) {
+			filtarr = new Array {
+			    extension + " files", new Regexp {
+				String pattern = "*" + extension;
+				int type = yoix.re.SHELL_PATTERN;
+				int toyoixpath = TRUE;
+			    },
+				NULL, NULL,
+				};
+		    }
+		    JFileDialog jfd = {
+			String directory = getProperty("user.home");
+			int    mode = SAVE;
+			Array  filters = filtarr;
+		    };
+		    jfd.visible = TRUE;
+		    if (jfd.file != NULL) {
+			realpath = jfd.file;
+			if ((fl = fopen(realpath,"w")) == NULL) {
+			    ShowAlert(strfmt("Could not open '%s' for writing", realpath));
+			} else {
+			    fl.nextbuf = text;
+			    fclose(fl);
+			}
+		    }
+		}
+	    }
+	} else ShowAlert("Viewer command is not specified under general preferences.");
+
+	return(fname);
+    }
+};

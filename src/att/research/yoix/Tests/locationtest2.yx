@@ -1,0 +1,91 @@
+import yoix.*.*;
+
+JFrame f = {
+    int opaque = FALSE;
+
+    BoxLayout layoutmanager;
+    Array layout = {
+	72,
+	new JPanel {
+	    ////int opaque = FALSE;
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		new JLabel {
+		    String text = "This is a Label";
+		    Color  background = Color.yellow;
+		    int    alignment = CENTER;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    Insets insets = {
+			double top = 72/4;
+			double bottom = 72;
+		    };
+		},
+
+		new JPanel {
+		    GridLayout layoutmanager = {
+			double hgap = 72/2;
+		    };
+		    Array layout = {
+			new JButton {
+			    String text = "Outline";
+
+			    actionPerformed(e) {
+				root.DrawOutlines();
+			    }
+			},
+			new JButton {
+			    String text = "Clear";
+
+			    actionPerformed(e) {
+				root.repaint();
+			    }
+			},
+			new JButton {
+			    String text = "Dismiss";
+
+			    actionPerformed(e) {
+				exit(0);
+			    }
+			},
+		    };
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    Insets insets = {
+			double top = 2*72;
+			double bottom = 72/4;
+		    };
+		},
+	    };
+        },
+	72,
+    };
+
+    DrawOutlines() {
+	Rectangle rect;
+	Dimension size;
+	Object    comp;
+	Point     location;
+	int       n;
+
+	graphics {
+	    setrgbcolor(1, 0, 0);
+	    for (n = 0; n < components@sizeof; n++) {
+		comp = components[n];
+		if (comp != root && !(comp instanceof JPanel)) {
+		    size = comp.size;
+		    location = getLocationInRoot(comp);
+		    rect.x = location.x - 72/8;
+		    rect.y = location.y - 72/8;
+		    rect.width = size.width + 72/4;
+		    rect.height = size.height + 72/4;
+		    rectstroke(rect);
+		}
+	    }
+	}
+    }
+};
+
+f.visible = 1;

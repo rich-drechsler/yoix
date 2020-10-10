@@ -1,0 +1,6252 @@
+//
+// Support, mostly functions, that table readers and others use when they
+// need to build screens or low level objects, like histograms and panels,
+// that go in the screens. Many are tied to the configuration tables and
+// the functions that read those tables, but there's a good chance much
+// of what's here will not have to change much.
+//
+
+final String PREFIX_AXES = "Axes";
+final String PREFIX_COLORS = "Colors";
+final String PREFIX_FILTERS = "Filters";
+final String PREFIX_GRAPHS = "Graphs";
+final String PREFIX_LABELS = "Labels";
+final String PREFIX_PANELS = "Panels";
+final String PREFIX_PLOTS = "Plots";
+final String PREFIX_SWEEPFILTERS = "SweepFilters";
+final String PREFIX_TABLES = "Tables";
+final String PREFIX_TAGS = "Tags";
+
+NewAxis(String tag, String menulabel, int rows, int columns, int anchor, int inverted, Object ticks, Object labels, Object extra, Dictionary callbacks, Dictionary defaults) {
+    Dictionary initializer[20, ...] = defaults;
+
+    unroll(defaults.SUPPORT, initializer);
+    unroll(callbacks != NULL ? defaults.CALLBACKS : NULL, initializer);
+
+    if (extra != NULL) {
+	if (extra instanceof int)
+	    initializer.axismodel = extra;
+	else if (extra instanceof Font)
+	    initializer.font = extra;
+	else if (extra instanceof String)
+	    initializer.font = new Font {String name = extra;};
+	else if (extra instanceof Dictionary)
+	    unroll(extra, initializer);
+    }
+
+    initializer.tag = tag;
+    initializer.basetag = tag;
+    initializer.menulabel = menulabel;
+    initializer.rows = rows;
+    initializer.columns = columns;
+    initializer.anchor = anchor;
+    initializer.inverted = inverted;
+    initializer.ticks = ticks;
+    initializer.labels = labels;
+    initializer.callbacks = callbacks;
+
+    return(new JAxis initializer);
+}
+
+NewDataTable(String tag, int autoready, int reorder, int resize, Array columns, Object extra, Dictionary callbacks, Dictionary defaults) {
+    Dictionary initializer[20, ...] = defaults;
+    String     basetag = tag;
+
+    initializer {
+	String basetag = tag;
+	Object outputfilter = " ";
+	int    reorder = 1;
+	int    resize = 1;
+
+	Function DragGestureRecognized = EVENT_HANDLERS.DragGestureRecognized;
+	//Function GlobalAdjustmentValueChanged = AdjustmentValueChanged;
+	Function dragGestureRecognized = NULL;
+
+	int include_hidden = FALSE;
+	int cellwise = TRUE;
+	int adjusting = FALSE; // for syncing filter
+	int initialized = FALSE;
+
+	TableDragAdjustment(String transfertext) {
+	    if (transfertext != NULL)
+		transfertext = gsubsti((inputfilter instanceof Array ? "|" : inputfilter), "[\r\n]+", transfertext);
+	    return(transfertext);
+	}
+
+	SetDragState(int state, ...) {
+	    int cellwise = TRUE;
+	    if (state < 0 || (argc > 2 && argv[2] instanceof int)) {
+		cellwise = argv[2];
+		if (state < 0)
+		    state = -state;
+	    }
+	    DragGestureRecognized = state ? (cellwise ? EVENT_HANDLERS.DragGestureRecognized : TABLE_HELPERS.TableDragGestureRecognized) : NULL;
+	    if (dragGestureRecognized != NULL)
+		dragGestureRecognized = DragGestureRecognized;
+	}
+
+	SetScrollStatus(String range) {
+	    if (range == NULL) {
+		if (rows == 0)
+		    root.components[basetag + "_rowinfo"].text = "";
+		else root.components[basetag + "_rowinfo"].text = strfmt("%d", rows);
+	    } else root.components[basetag + "_rowinfo"].text = strfmt("[ %s ] of %d", range, rows);
+	}
+
+	SyncToolTipText() {
+	    root.components[basetag + "_dnd"].SyncToolTipText();
+	}
+
+	SyncSizes(JDataTable master, JTable slave) {
+	    double w;
+	    int v, m, n;
+
+	    if (master.size.height > master.viewport.height) {
+		if (slave.scrollmode == slave.scrollinit) {
+		    slave.scrollmode = slave.scrollvert;
+		    slave.scroll = slave.scrollvert;
+		}
+	    } else {
+		if (slave.scrollmode == slave.scrollvert) {
+		    slave.scrollmode = slave.scrollinit;
+		    slave.scroll = slave.scrollinit;
+		}
+	    }
+	    if (slave.width != master.width) {
+		slave.filtertext = master.GenFilterText(master.width, slave.inputfilter);
+		slave.text = slave.filtertext;
+	    }
+	    for (n = 0; n < master.width; n++) {
+		w = master.action(GET_COLUMN_FIELD, n, "width");
+		v = master.action(GET_COLUMN_VIEW_INDEX, n);
+		m = slave.action(GET_COLUMN_DATA_INDEX, v);
+		slave.action(SET_COLUMN_FIELD, m, "width", w);
+		slave.action(SET_COLUMN_FIELD, m, "visible", master.action(GET_COLUMN_FIELD, n, "visible"));
+	    }
+	    if (slave.negation == NULL || slave.width != master.width) {
+		// could do more here (e.g., use old values were appropriate)
+		slave.negation = new Array[slave.width];
+		for (n = 0; n < slave.width; n++) {
+		    slave.negation[n] = FALSE;
+		    slave.action(SET_COLUMN_FIELD, n, "background", slave.background);
+		    slave.action(SET_COLUMN_FIELD, n, "foreground", slave.foreground);
+		    slave.action(SET_COLUMN_FIELD, n, "selectionbackground", slave.selectionbackground);
+		    slave.action(SET_COLUMN_FIELD, n, "selectionforeground", slave.selectionforeground);
+		    slave.action(SET_COLUMN_FIELD, n, "editbackground", slave.editbackground);
+		    slave.action(SET_COLUMN_FIELD, n, "editforeground", slave.editforeground);
+		}
+	    }
+	}
+
+	Filter() {
+	    Array   vizinfo;
+	    Array   colcells;
+	    Array   filters;
+	    Array   negation;
+	    Array   reflags;
+	    Regexp  re;
+	    JDataTable  tab = root.components[basetag];
+	    JTable  flt = root.components[basetag+"_filter"];
+	    int     m, n;
+	    int     usepat;
+	    int     flags;
+	    int     width;
+	    int     negate;
+
+	    flt.action(EDIT_STOP);
+
+	    save cursor = Cursor.WAIT_CURSOR;
+	    flags = TABLE_HELPERS.FilterTableREFlags(root, basetag);
+
+	    reflags = (defined("reflags", flt) && flt.reflags instanceof Array) ? flt.reflags : NULL;
+
+	    filters = strsplit(flt.text, flt.outputfilter[0]);
+	    negation = flt.negation;
+	    tab.action(ROW_VISIBILITY, 1); // would only apply to existing set if omitted
+	    vizinfo = new Array[tab.rows];
+	    for (ptr in vizinfo)
+		*ptr = 1;
+	    for (ptr in filters) {
+		*ptr = trim(*ptr);
+		usepat = (*ptr !== "");
+		if (usepat) {
+		    re = regexp(*ptr, (reflags != NULL && reflags@sizeof > ptr@offset && reflags[ptr@offset] != NULL) ? reflags[ptr@offset] : flags);
+		    negate = flt.negation[ptr@offset];
+		    colcells = linesplit(tab.action(GET_COLUMN_FIELD, ptr@offset, "text", TRUE, TRUE), TRUE);
+		    for (ptr2 in colcells) {
+			if (vizinfo[n = ptr2@offset]) {
+			    if (negate)
+				vizinfo[n] = !regexec(re, *ptr2);
+			    else vizinfo[n] = regexec(re, *ptr2);
+			}
+		    }
+		}
+	    }
+	    if (vizinfo@sizeof > 0)
+		tab.action(ROW_VISIBILITY, vizinfo, "view");
+
+	    if (defined("FilterPostProcess", tab))
+		tab.FilterPostProcess(flt); // should we queue this or leave it to the user?
+	}
+
+	ResetFilter() {
+	    Array  savedvalues = {
+	        root.components[basetag+"_filter"].text,
+	        new Array[] root.components[basetag+"_filter"].negation
+	    };
+
+	    root.components[basetag+"_filter"].action(EDIT_STOP);
+	    root.components[basetag+"_filter"].text = root.components[basetag+"_filter"].filtertext;
+	    for (ptr in root.components[basetag+"_filter"].negation) {
+		if (*ptr)
+		    root.components[basetag + "_filter"].FlipNegation(ptr@offset);
+	    }
+	    Filter();
+	    if (defined("UserResetFilter", root.components[basetag]))
+		root.components[basetag].UserResetFilter();
+
+	    return(savedvalues);
+	};
+
+	GenFilterText(int n, String sep) {
+	    Array  types[n];
+	    String text;
+	    int    i;
+
+	    text = "";
+	    for (i = 1; i < n; i++)
+		text += sep;
+	    return(text);
+	}
+
+	String filtertext;
+
+	adjustmentValueChanged(e) {
+	    if (e.orientation == HORIZONTAL) {
+		adjusting = TRUE;
+
+		if (!root.components[basetag+"_filter"].adjusting)
+		    root.components[basetag+"_filter"].origin = new Point { double x = origin.x; int y = 0; };
+		adjusting = FALSE;
+	    } else if (defined("SetScrollStatus", this)) {
+		String status;
+		Point  point;
+		int    firstrow;
+		int    lastrow;
+
+		if (this.SetScrollStatus instanceof Function) {
+		    point = this.origin;
+		    if ((firstrow = this.action(FIND_CELL_AT, point).viewRow) >= 0) {
+			lastrow = min(firstrow + viewrowcount, rows);
+			if (firstrow < lastrow)
+			    firstrow++;
+			else firstrow = lastrow;
+			status = strfmt("%d - %d", firstrow, lastrow);
+		    }
+		    this.SetScrollStatus(status);
+		}
+	    }
+	}
+
+	componentResized(e) {
+	    root.components[basetag].SyncSizes(root.components[basetag], root.components[basetag+"_filter"]);
+	}
+
+	invocationChange(e) {
+	    switch (e.change) {
+	    case "resize":
+		if (e.viewColumn >= 0)
+		    root.components[basetag].SyncSizes(this, root.components[basetag+"_filter"]);
+		break;
+	    case "drag":
+		root.components[basetag+"_filter"].action(MOVE_COLUMN, e.fromViewColumn, e.toViewColumn);
+		break;
+	    }
+	}
+    }
+
+    unroll(defaults.SUPPORT, initializer);
+    unroll(callbacks != NULL ? defaults.CALLBACKS : NULL, initializer);
+
+    if (extra != NULL) {
+	if (extra instanceof Font)
+	    initializer.font = extra;
+	else if (extra instanceof String)
+	    initializer.font = new Font {String name = extra;};
+	else if (extra instanceof Palette)
+	    initializer.palette = extra;
+	else if (extra instanceof Dictionary)
+	    unroll(extra, initializer);
+    }
+
+    initializer.tag = tag;
+    initializer.autoready = autoready;
+    initializer.columns = columns;
+    initializer.callbacks = callbacks;
+    initializer.reorder = reorder;
+    initializer.resize = resize;
+    initializer.scroll = HORIZONTAL_AS_NEEDED | VERTICAL_ALWAYS;
+    initializer.resizemode = AUTO_RESIZE_OFF;
+
+    //
+    // Eliminate unnecessary callbacks so everyone doesn't pay the price.
+    //
+    if (!defined("PRESSED", callbacks))
+	initializer.afterPressed = defined("afterPressed", defaults) ? defaults.afterPressed : NULL;
+    if (!defined("UPDATE", callbacks))
+	initializer.afterUpdate = defined("afterUpdate", defaults) ? defaults.afterUpdate : NULL;	// this is the expensive one
+    if (!defined("SELECT", callbacks))
+	initializer.itemStateChanged = defined("itemStateChanged", defaults) ? defaults.itemStateChanged : NULL;	// this can be expensive too
+
+    return(new JDataTable initializer);
+}
+
+NewEventPlot(String tag, String menulabel, int autoready, int anchor, Object border, Object insets, Object pad, Dictionary axes, Dictionary children, Object extra, Dictionary callbacks, Dictionary defaults) {
+    Dictionary initializer[20, ...] = defaults;
+
+    unroll(defaults.SUPPORT, initializer);
+    unroll(callbacks != NULL ? defaults.CALLBACKS : NULL, initializer);
+
+    if (extra != NULL) {
+	if (extra instanceof Font)
+	    initializer.font = extra;
+	else if (extra instanceof String)
+	    initializer.font = new Font {String name = extra;};
+	else if (extra instanceof Palette)
+	    initializer.palette = extra;
+	else if (extra instanceof Dictionary)
+	    unroll(extra, initializer);
+    }
+
+    initializer.tag = tag;
+    initializer.menulabel = menulabel;
+    initializer.autoready = autoready;
+    initializer.anchor = anchor;
+    initializer.children = children;
+    initializer.xaxis = axes.xaxis;
+    initializer.yaxis = axes.yaxis;
+    initializer.callbacks = callbacks;
+
+    if (pad instanceof Number) {
+	pad = new Insets {
+	    double top = pad;
+	    double bottom = pad;
+	};
+    }
+
+    if (border instanceof Number) {
+	border = new Insets {
+	    double top = border;
+	    double bottom = border;
+	    double left = border;
+	    double right = border;
+	};
+    }
+
+    if (insets instanceof Number) {
+	insets = new Insets {
+	    double top = (anchor == NORTH || anchor == TOP) ? border.top : insets;
+	    double bottom = (anchor == SOUTH || anchor == BOTTOM) ? border.bottom : insets;
+	    double left = insets;
+	    double right = insets;
+	};
+    }
+
+    initializer.ipad = pad;
+    initializer.border = border;
+    initializer.insets = insets;
+
+    if (defined("plotstyle", initializer) && defined("bucketinfo", initializer)) {
+	initializer.bucketinfo = new Array[] initializer.bucketinfo;	// changes so we need a copy
+	if (initializer.plotstyle instanceof Array)
+	    /////initializer.plotstyle = new Array {initializer.plotstyle[0], initializer.bucketinfo};
+	    initializer.plotstyle = new Array[] initializer.plotstyle;
+	else initializer.plotstyle = new Array {initializer.plotstyle, initializer.bucketinfo};
+    }
+
+    //
+    // Eliminate unnecessary callbacks so everyone doesn't pay the price.
+    //
+    if (!defined("UPDATE", callbacks))
+	initializer.afterUpdate = defined("afterUpdate", defaults) ? defaults.afterUpdate : NULL;	// this is the expensive one
+
+    return(new JEventPlot initializer);
+}
+
+NewGraph(String tag, int autoready, double linewidth, Object pad, Object palette, Object extra, Dictionary callbacks, Dictionary defaults) {
+    Dictionary initializer[20, ...] = defaults;
+
+    //
+    // Dropped the border and insets arguments when version 4.3 of the
+    // config file was introduced (on 5/21/07). The border filed wasn't
+    // implemented in the GraphPlot Java code and insets really wasn't
+    // a partidularly useful field.
+    //
+
+    unroll(defaults.SUPPORT, initializer);
+    unroll(callbacks != NULL ? defaults.CALLBACKS : NULL, initializer);
+
+    if (extra != NULL) {
+	if (extra instanceof int)
+	    initializer.selectflags = extra;
+	else if (extra instanceof Font)
+	    initializer.font = extra;
+	else if (extra instanceof String)
+	    initializer.font = new Font {String name = extra;};
+	else if (extra instanceof Dictionary)
+	    unroll(extra, initializer);
+    }
+
+    initializer.tag = tag;
+    initializer.autoready = autoready;
+    initializer.linewidth = linewidth;
+    initializer.palette = palette;
+    initializer.callbacks = callbacks;
+    initializer.hbar = NewScrollbar(HORIZONTAL, 0);
+    initializer.vbar = NewScrollbar(VERTICAL, 0);
+
+    if (pad instanceof Number) {
+	pad = new Insets {
+	    double top = pad;
+	    double bottom = pad;
+	    double left = pad;
+	    double right = pad;
+	};
+    }
+
+    initializer.ipad = pad;
+
+    //
+    // Eliminate unnecessary callbacks so everyone doesn't pay the price.
+    //
+    if (!defined("PRESSED", callbacks))
+	initializer.afterPressed = defined("afterPressed", defaults) ? defaults.afterPressed : NULL;
+    if (!defined("TYPEDTEXT", callbacks))
+	initializer.afterTypedText = defined("afterTypedText", defaults) ? defaults.afterTypedText : NULL;
+    if (!defined("UPDATE", callbacks))
+	initializer.afterUpdate = defined("afterUpdate", defaults) ? defaults.afterUpdate : NULL;	// this is the expensive one
+    if (!defined("SELECT", callbacks))
+	initializer.itemStateChanged = defined("itemStateChanged", defaults) ? defaults.itemStateChanged : NULL;	// this can be expensive too
+
+    return(new JGraphPlot initializer);
+}
+
+NewHistogram(String tag, int autoready, int span, Object defaultsort, Object extra, Dictionary callbacks, Dictionary defaults) {
+    Dictionary initializer[20, ...] = defaults;
+
+    unroll(defaults.SUPPORT, initializer);
+    unroll(callbacks != NULL ? defaults.CALLBACKS : NULL, initializer);
+
+    if (defaultsort instanceof Dictionary) {
+	initializer.translator = defaultsort;
+	initializer.defaultsort = SORTBY_TRANSLATOR;
+    } else initializer.defaultsort = defaultsort;
+
+    if (extra != NULL) {
+	if (extra instanceof int)
+	    initializer.labelflags = extra;
+	else if (extra instanceof double)
+	    initializer.barspace = extra;
+	else if (extra instanceof Font)
+	    initializer.font = extra;
+	else if (extra instanceof String)
+	    initializer.font = new Font {String name = extra;};
+	else if (extra instanceof Palette)
+	    initializer.palette = extra;
+	else if (extra instanceof Dictionary)
+	    unroll(extra, initializer);
+    }
+
+    initializer.tag = tag;
+    initializer.autoready = autoready;
+    initializer.callbacks = callbacks;
+    initializer.sortby = initializer.defaultsort ? initializer.defaultsort : SORTBY_TEXT;
+    initializer.hbar = (span > 0) ? NewScrollbar(HORIZONTAL, span) : NULL;
+    initializer.vbar = NewScrollbar(VERTICAL, 0);
+
+    switch (initializer.defaultsort) {
+	case SORTBY_TIME:
+	    initializer.defaultsortname = "Time";
+	    break;
+
+	default:
+	    initializer.defaultsortname = "Name";
+	    break;
+    }
+
+    //
+    // Eliminate unnecessary callbacks so everyone doesn't pay the price.
+    //
+    if (!defined("PRESSED", callbacks))
+	initializer.afterPressed = defined("afterPressed", defaults) ? defaults.afterPressed : NULL;
+    if (!defined("UPDATE", callbacks))
+	initializer.afterUpdate = defined("afterUpdate", defaults) ? defaults.afterUpdate : NULL;	// this is the expensive one
+    if (!defined("SELECT", callbacks))
+	initializer.itemStateChanged = defined("itemStateChanged", defaults) ? defaults.itemStateChanged : NULL;	// this can be expensive too
+
+    return(new JHistogram initializer);
+}
+
+NewHistogramLabel(String text, Dictionary defaults) {
+    Dictionary initializer[20, ...] = defaults;
+
+    initializer.text = text;
+    initializer.rows = 1;
+    initializer.background = initializer.emptycolor;
+
+    initializer.palette = new Palette {
+	Array colors = {initializer.background};
+    };
+
+    initializer.afterUpdate = NULL;
+    initializer.afterPressed = NULL;
+    initializer.itemStateChanged = NULL;
+
+    return(new JHistogram initializer);
+}
+
+NewLabel(String tag, String menulabel, int rows, int columns, int alignment, Font font, Color foreground, String text, Dictionary defaults) {
+    Dictionary initializer[15, ...] = defaults;
+
+    unroll(defaults.SUPPORT, initializer);
+    initializer.tag = tag;
+    initializer.menulabel = menulabel;
+    initializer.rows = rows;
+    initializer.columns = columns;
+    initializer.alignment = alignment;
+    initializer.font = font;
+    initializer.foreground = foreground;
+    initializer.text = text;
+
+    //
+    // Lock foreground if it was specified so it's not changed when we
+    // reverse video.
+    //
+    if (foreground != NULL)
+	const initializer.foreground;
+
+    return(new JTextCanvas initializer);
+}
+
+NewPanel(String tag, String menulabel, double width, double height, Color background, Object layoutmanager, Array layout, Dictionary defaults) {
+    Dictionary initializer[10, ...] = defaults;
+    Dimension  dimension;
+    int        n;
+
+    unroll(defaults.SUPPORT, initializer);
+    initializer.tag = tag;
+    initializer.menulabel = menulabel;
+    initializer.layoutmanager = layoutmanager;
+    initializer.layout = layout;
+
+    if (background != NULL)
+	initializer.background = background;
+
+    if (width > 0 || height > 0) {
+	dimension.width = width;
+	dimension.height = height;
+	initializer.preferredsize = dimension;
+	initializer.minimumsize = dimension;
+	initializer.maximumsize = dimension;
+    }
+
+    return(new JPanel initializer);
+}
+
+NewScrollbar(int orientation, int span) {
+    Dictionary initializer = {
+	Object scrollable;
+	double step;
+	int    orientation = orientation;
+	int    span = span;
+
+	adjustmentValueChanged(AdjustmentEvent e) {
+	    double delta;
+	    Point  p;
+	    int    adjust = FALSE;
+
+	    if (scrollable != NULL) {
+		p = scrollable.origin;
+		if (orientation == VERTICAL) {
+		    delta = yoix.math.abs(p.y - value*step);
+		    p.y = value*step;
+		} else {
+		    delta = yoix.math.abs(p.x - value);
+		    p.x = value;
+		}
+		if (delta >= 1.0)
+		    scrollable.origin = p;
+		if (orientation == HORIZONTAL) {
+		    if (defined("label", scrollable.root)) {
+			if (scrollable.root.label instanceof Histogram) {
+			    p.y = 0;
+			    scrollable.root.label.origin = p;
+			}
+		    }
+		}
+	    }
+	}
+
+	keyTyped(KeyEvent e) {
+	    if (defined("keyTyped", scrollable))
+		scrollable.keyTyped(e);
+	}
+
+	mouseWheelMoved(Event e) {
+	    if ((e.modifiers&BUTTON_MASK) == 0)
+		value += e.wheelrotation;
+	}
+
+	ClearScrollbar() {
+	    setValues(0, 0, 0, 0);
+	}
+
+	ScrollToZero() {
+	    Point p;
+
+	    if (scrollable != NULL) {
+		p = scrollable.origin;
+		if (orientation == VERTICAL)
+		    p.y = 0;
+		else p.x = 0;
+		scrollable.origin = p;
+	    }
+	}
+    };
+
+    return(new JScrollBar initializer);
+}
+
+NewSplitPane(String tag, String menulabel, int orientation, int continuous, double divider, double resize, Array layout, Dictionary defaults) {
+    Dictionary initializer[10, ...] = defaults;
+    int        n;
+
+    unroll(defaults.SUPPORT, initializer);
+    initializer.tag = tag;
+    initializer.menulabel = menulabel;
+    initializer.orientation = orientation;
+    initializer.continuouslayout = continuous;
+    initializer.dividerlocation = divider;
+    initializer.resizeweight = resize;
+    initializer.layout = layout;
+
+    //
+    // Explicitly setting the minimumsize seems to improve the behavior
+    // when the size of the splitpane is increased. Real reason seems to
+    // be the way low level UIMananger Java code uses minimumsize to pick
+    // the divider's minimum (or maximum) location. We eventually may try
+    // to compensate in our Yoix Java code, but for now...
+    //
+
+    for (n = 0; n < layout@sizeof; n++) {
+	if (layout[n] instanceof JPanel)
+	    layout[n].minimumsize = new Dimension;
+    }
+
+    return(new JSplitPane initializer);
+}
+
+NewTagPlot(String tag, String menulabel, Object owner, int autoready, Object palette, Array generator, Dictionary children, Object extra, Dictionary callbacks, Dictionary defaults) {
+    Dictionary initializer[20, ...] = defaults;
+    int        levels;
+
+    if (!(palette instanceof Palette)) {
+	if (palette instanceof Array) {
+	    //
+	    // Omitting checking here - it's probably not done anywhere
+	    // right now, but eventually belongs in table.yx.
+	    //
+	    palette = new Palette {Array colors = palette;};
+	} else if (palette instanceof Color)
+	    palette = new Palette {Array colors = new Array {palette};};
+	else palette = NULL;
+    }
+
+    levels = (palette != NULL) ? palette.colors@sizeof - 1 : 1;
+
+    unroll(defaults.SUPPORT, initializer);
+    unroll(callbacks != NULL ? defaults.CALLBACKS : NULL, initializer);
+
+    if (extra != NULL) {
+	if (extra instanceof Dictionary)
+	    unroll(extra, initializer);
+    }
+
+    initializer.tag = tag;
+    initializer.menulabel = menulabel;
+    initializer.owner = owner;
+    initializer.autoready = autoready;
+    initializer.palette = palette;
+    initializer.children = children;
+    initializer.unixtime = NULL;
+    initializer.callbacks = callbacks;
+
+    if (generator@sizeof > 0) {
+	initializer.ignorezero = FALSE;
+	initializer.keeptall = TRUE;
+	initializer.gentype = generator[0];	// assumes its an int
+	initializer.loadedends = new Dictionary {
+	    Array yaxis = {0, levels > 0 ? levels : 1};
+	};
+    } else {
+	initializer.loadedends = new Dictionary {
+	    Array yaxis = {0, 1};
+	};
+	initializer.ignorezero = TRUE;
+    }
+
+    if (defined("bucketinfo", owner)) {
+	if (defined("plotstyle", initializer)) {
+	    if (initializer.plotstyle instanceof Array)
+		/////initializer.plotstyle = new Array {initializer.plotstyle[0], owner.bucketinfo};
+		initializer.plotstyle = new Array[] initializer.plotstyle;
+	    else initializer.plotstyle = new Array {initializer.plotstyle, owner.bucketinfo};
+	} else initializer.plotstyle = new Array {STYLE_BARS, owner.bucketinfo};
+    }
+
+    //
+    // Eliminate unnecessary callbacks so everyone doesn't pay the price.
+    //
+    if (!defined("UPDATE", callbacks))
+	initializer.afterUpdate = defined("afterUpdate", defaults) ? defaults.afterUpdate : NULL;	// this is the expensive one
+
+    return(new JEventPlot initializer);
+}
+
+//
+// Primary screen builders
+//
+
+NewDataTableScreen(DataTable filter, String title, Object parent) {
+    Dictionary initializer[14, ...] = {
+	DataManager datamanager = filter.datamanager;
+	Dimension   screensize = defined("screensize", filter) ? filter.screensize : NULL;
+	Dimension   size = NULL;
+	DataTable   datatable = filter;
+	Object      parent = parent;
+	String      title = title;
+	Point       location_start;
+	Font        font = FONTS.large_text;
+	int         locationmode = defined("locationmode", filter) ? filter.locationmode : LOCATIONMODE;
+	int         locationindex = defined("locationindex", filter) ? filter.locationindex : -1;
+	int         find_ignorecase = TRUE;
+	int         find_pattern = FALSE;
+	int         snapshots = 0;
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    new JPanel {
+		BorderLayout layoutmanager;
+		Array layout = {
+		    datatable, CENTER,
+		    datatable.vbar, EAST,
+		    unroll(datatable.hbar ? new Array {datatable.hbar, SOUTH} : new Array[0]),
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = BOTH;
+	    },
+
+	    BuildFindPanel(datatable, SHOWFIND&0x01),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int fill = HORIZONTAL;
+	    },
+	};
+
+	JMenuBar menubar = {
+	    Menu items = {
+		BuildFileMenu(parent == NULL, "file_copy", NULL),	// snapshot temporarily disabled
+		"View", new Menu {
+		    BuildFindMenu(LABEL_FIND, datatable, find_ignorecase, find_pattern, SHOWFIND&0x01),
+		    "-", NULL,
+		    "Reverse Video", "reverse_video", REVERSEVIDEO,
+		},
+		"Show", new Menu {
+		    BuildAllOnMenu(),
+		    BuildAllPressedMenu(LABEL_PRESSED, FALSE),
+		    "-", NULL,
+		    "Transient", new Dictionary {
+			String command = "show_transient";
+			String accelerator = ACCELERATORS.Select("show_transient");
+		    }, datatable.transientmode,
+		},
+	    };
+	};
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	actionPerformed(Event e) {
+	    save cursor = Cursor.WAIT_CURSOR;
+	    switch (e.command) {
+		case "all_off":
+		    datatable.setAll(FALSE);
+		    break;
+
+		case "all_on":
+		    datatable.setAll(TRUE);
+		    break;
+
+		case "color_data":
+		    datamanager.SyncColoredBy(datatable.tag);
+		    break;
+
+		case "color_recolor":
+		    datatable.recolored = TRUE;
+		    break;
+
+		case "color_show_all":
+		    datatable.recolored = FALSE;
+		    break;
+
+		case "file_close":
+		    visible = FALSE;
+		    break;
+
+		case "file_copy":
+		    Copy();
+		    break;
+
+		case "file_print":
+		    printAll(root);
+		    break;
+
+		case "file_quit":
+		    datamanager.Dispose();
+		    global.Quit(0);
+		    break;
+
+		case "file_snapshot":
+		    invokeLater(&NewSnapshotScreen, datatable, datatable.foreground, parent, title, ++snapshots);
+		    break;
+
+		case "find_next":
+		    FindNext();
+		    break;
+
+		case "pressed_all_off":
+		    datatable.setAll(FALSE, datatable.pressed);
+		    break;
+
+		case "pressed_all_on":
+		    datatable.setAll(TRUE, datatable.pressed);
+		    break;
+
+		case "pressed_reset":
+		    datatable.pressed = NULL;
+		    break;
+
+		case "raise_screens":
+		    datamanager.RaiseAllScreens();
+		    break;
+
+		case "show_screens":
+		    datamanager.ShowAllScreens();
+		    break;
+
+		default:
+		    Warn("MenuBar ActionEvent %s is unimplemented", e.command);
+		    break;
+	    }
+	}
+
+	itemStateChanged(Event e) {
+	    save cursor = Cursor.WAIT_CURSOR;
+	    switch (e.item) {
+		case "find":
+		    Find(e.state);
+		    break;
+
+		case "find_ignorecase":
+		    find_ignorecase = e.state;
+		    break;
+
+		case "find_pattern":
+		    find_pattern = e.state;
+		    break;
+
+		case "reverse_video":
+		    ReverseVideo();
+		    break;
+
+		case "settings_reorder":
+		    datatable.reorder = e.state;
+		    break;
+
+		case "settings_resize":
+		    datatable.resize = e.state;
+		    break;
+
+		case "show_transient":
+		    datatable.transientmode = e.state;
+		    break;
+
+		default:
+		    Warn("MenuBar ItemEvent %s is unimplemented", e.item);
+		    break;
+	    }
+	}
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	Copy() {
+	    Object clipboard;
+	    Array  labels;
+
+	    if ((clipboard = yoix.system.getSystemClipboard()) != NULL) {
+		if ((labels = datatable.labels) != NULL)
+		    clipboard.setContents(strjoin(labels, "\n"));
+	    }
+	}
+
+	Find(int state) {
+	    components.$_find_panel.SetVisible(state);
+	}
+
+	FindNext() {
+	    components.$_find_panel.FindNext();
+	}
+
+	ReverseVideo() {
+	    Object temp;
+
+	    temp = datatable.background;
+	    datatable.background = datatable.foreground;
+	    datatable.foreground = temp;
+	}
+    };
+
+    return(new JFrame initializer);
+}
+
+NewGraphScreen(GraphPlot filter, String title, Object parent, int mainscreen) {
+    JMenuBar menubar = {
+	Menu items = {
+	    BuildFileMenu(mainscreen, NULL, "file_snapshot"),
+	    "View", new Menu {
+		BuildGraphNodesMenu(LABEL_NODES, LABEL_NODEFILL, filter),
+		BuildGraphEdgesMenu(LABEL_EDGES, filter),
+		BuildGraphSliderMenu(LABEL_NODES, LABEL_EDGES),
+		BuildGraphTipsMenu(LABEL_GRAPH_TIPS, LABEL_TIPS_OVER_NODES, LABEL_TIPS_OVER_EDGES, filter),
+		"-", NULL,
+		"Reverse Video", "reverse_video", REVERSEVIDEO,
+	    },
+	    "Show", new Menu {
+		BuildAllOnMenu(),
+		BuildColorDataMenu(filter),
+		BuildAllPressedMenu(LABEL_PRESSED, TRUE),
+		BuildAllNodesAndEdgesMenu(LABEL_NODES, LABEL_EDGES),
+		"All Moved", new Menu {
+		    "On", "moved_all_on",
+		    "Off", "moved_all_off",
+		    "Flash", "moved_flash",
+		    "-", NULL,
+		    "Reset", "moved_reset",
+		},
+	    },
+	    BuildFilterMenu(PREFIX_FILTERS, PREFIX_FILTERS, NULL, !mainscreen),
+	    BuildColorMenu(PREFIX_COLORS, PREFIX_COLORS, COLOREDBY, NULL, !mainscreen),
+	    BuildHelpMenu(mainscreen),
+	};
+    };
+
+    return(StandardGraphScreen(menubar, filter, title, parent, mainscreen));
+}
+
+NewHistogramScreen(Histogram filter, String title, String diversity, Object parent) {
+    Dictionary initializer[14, ...] = {
+	DataManager datamanager = filter.datamanager;
+	Dimension   screensize = defined("screensize", filter) ? filter.screensize : NULL;
+	Dimension   size = NULL;
+	Object      histogram = filter;
+	Object      parent = parent;
+	String      title = title;
+	Point       location_start;
+	Font        font = FONTS.large_text;
+	int         locationmode = defined("locationmode", filter) ? filter.locationmode : LOCATIONMODE;
+	int         locationindex = defined("locationindex", filter) ? filter.locationindex : -1;
+	int         find_ignorecase = TRUE;
+	int         find_pattern = FALSE;
+	int         reverse_sort = FALSE;
+	int         snapshots = 0;
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    new JPanel {
+		String tag = "$_snapshot_panel";
+		BorderLayout layoutmanager;
+		Array layout = {
+		    new JPanel {
+			GridBagLayout layoutmanager;
+
+			Array layout = {
+			    histogram,
+			    new GridBagConstraints {
+				int gridwidth = REMAINDER;
+				int weightx = 1;
+				int weighty = 1;
+				int fill = BOTH;
+			    },
+
+			    BuildBarSpacePanel(histogram, DIAMONDSCALE*histogram.vbar.preferredsize.width),
+			    new GridBagConstraints {
+				int gridwidth = REMAINDER;
+				int weightx = 1;
+				int fill = HORIZONTAL;
+			    },
+			};
+		    }, CENTER,
+		    
+		    histogram.vbar, EAST,
+		    unroll(histogram.hbar ? new Array {histogram.hbar, SOUTH} : new Array[0]),
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = BOTH;
+	    },
+
+	    BuildFindPanel(histogram, SHOWFIND&0x01),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int fill = HORIZONTAL;
+	    },
+	};
+
+	JMenuBar menubar = {
+	    Menu items = {
+		BuildFileMenu(parent == NULL, "file_copy", "file_snapshot"),
+		"View", new Menu {
+		    BuildFindMenu(LABEL_FIND, histogram, find_ignorecase, find_pattern, SHOWFIND&0x01),
+		    "-", NULL,
+		    PRIMARYLABEL, "view_primary", histogram.labelflags&LABEL_SHOWCOUNT,
+		    "%"+PRIMARYLABEL, "view_primarypcnt", histogram.labelflags&LABEL_SHOWCOUNTPCNT,
+		    diversity ? new Array {LABEL_DIVERSITY, "view_diversity", histogram.labelflags&LABEL_SHOWDIVERSITY} : NULL,
+		    BuildSecondaryMenu(SECONDARYLABEL, histogram, "view_secondary"),
+		    "Stacks", "view_stacks", histogram.stacked,
+		    "-", NULL,
+		    "Reverse Video", "reverse_video", REVERSEVIDEO,
+		},
+		"Show", new Menu {
+		    BuildAllOnMenu(),
+		    BuildColorDataMenu(filter),
+		    BuildAllPressedMenu(LABEL_PRESSED, FALSE),
+		    "-", NULL,
+		    "Transient", new Dictionary {
+			String command = "show_transient";
+			String accelerator = ACCELERATORS.Select("show_transient");
+		    }, histogram.transientmode,
+		},
+		"Sort", new Menu {
+		    histogram.defaultsortname, "sort_default",
+		    "Count", "sort_count",
+		    diversity ? new Array {LABEL_DIVERSITY, "sort_diversity", "%" + LABEL_DIVERSITY, "sort_diversity_percent"} : NULL,
+		    LABEL_PRESSED ? new Array {"Pressed", "sort_pressed"} : NULL,
+		    "Selected", "sort_selected",
+		    "%Selected", "sort_selected_precent",
+		    "-", NULL,
+		    "Reverse Order", "sort_reverse_order", reverse_sort,
+		},
+	    };
+	};
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	actionPerformed(Event e) {
+	    save cursor = Cursor.WAIT_CURSOR;
+	    switch (e.command) {
+		case "all_off":
+		    histogram.setAll(FALSE);
+		    break;
+
+		case "all_on":
+		    histogram.setAll(TRUE);
+		    break;
+
+		case "color_data":
+		    datamanager.SyncColoredBy(histogram.tag);
+		    break;
+
+		case "color_recolor":
+		    histogram.recolored = TRUE;
+		    break;
+
+		case "color_show_all":
+		    histogram.recolored = FALSE;
+		    break;
+
+		case "file_close":
+		    visible = FALSE;
+		    break;
+
+		case "file_copy":
+		    Copy();
+		    break;
+
+		case "file_print":
+		    printAll(root);
+		    break;
+
+		case "file_quit":
+		    datamanager.Dispose();
+		    global.Quit(0);
+		    break;
+
+		case "file_snapshot":
+		    invokeLater(&NewSnapshotScreen, components.$_snapshot_panel, histogram.foreground, parent, title, ++snapshots);
+		    break;
+
+		case "find_next":
+		    FindNext();
+		    break;
+
+		case "pressed_all_off":
+		    histogram.setAll(FALSE, histogram.pressed);
+		    break;
+
+		case "pressed_all_on":
+		    histogram.setAll(TRUE, histogram.pressed);
+		    break;
+
+		case "pressed_reset":
+		    histogram.pressed = NULL;
+		    break;
+
+		case "raise_screens":
+		    datamanager.RaiseAllScreens();
+		    break;
+
+		case "show_screens":
+		    datamanager.ShowAllScreens();
+		    break;
+
+		case "sort_count":
+		    invokeLater(&SetSortBy, SORTBY_TOTAL);
+		    break;
+
+		case "sort_default":
+		    invokeLater(&SetSortBy, histogram.defaultsort);
+		    break;
+
+		case "sort_diversity":
+		    invokeLater(&SetSortBy, SORTBY_DIVERSITY);
+		    break;
+
+		case "sort_diversity_percent":
+		    invokeLater(&SetSortBy, SORTBY_DIVERSITY_PERCENT);
+		    break;
+
+		case "sort_pressed":
+		    invokeLater(&SetSortBy, SORTBY_PRESSED);
+		    break;
+
+		case "sort_selected":
+		    invokeLater(&SetSortBy, SORTBY_SELECTED);
+		    break;
+
+		case "sort_selected_precent":
+		    invokeLater(&SetSortBy, SORTBY_SELECTED_PERCENT);
+		    break;
+
+		case "sort_load_order":
+		    invokeLater(&SetSortBy, SORTBY_TIME);
+		    break;
+
+		default:
+		    Warn("MenuBar ActionEvent %s is unimplemented", e.command);
+		    break;
+	    }
+	}
+
+	itemStateChanged(Event e) {
+	    save cursor = Cursor.WAIT_CURSOR;
+	    switch (e.item) {
+		case "find":
+		    Find(e.state);
+		    break;
+
+		case "find_ignorecase":
+		    find_ignorecase = e.state;
+		    break;
+
+		case "find_pattern":
+		    find_pattern = e.state;
+		    break;
+
+		case "reverse_video":
+		    ReverseVideo();
+		    break;
+
+		case "show_transient":
+		    histogram.transientmode = e.state;
+		    break;
+
+		case "sort_reverse_order":
+		    if (reverse_sort != e.state) {
+			reverse_sort = e.state;
+			invokeLater(&SetSortBy, histogram.sortby);
+		    }
+		    break;
+
+		case "view_diversity":
+		    if (e.state)
+			histogram.labelflags |= LABEL_SHOWDIVERSITY;
+		    else histogram.labelflags &= ~LABEL_SHOWDIVERSITY;
+		    break;
+
+		case "view_primary":
+		    if (e.state)
+			histogram.labelflags |= LABEL_SHOWCOUNT;
+		    else histogram.labelflags &= ~LABEL_SHOWCOUNT;
+		    break;
+
+		case "view_primarypcnt":
+		    if (e.state)
+			histogram.labelflags |= LABEL_SHOWCOUNTPCNT;
+		    else histogram.labelflags &= ~LABEL_SHOWCOUNTPCNT;
+		    break;
+
+		case "view_stacks":
+		    histogram.stacked = e.state;
+		    break;
+
+		default:
+		    if (startsWith(e.item, "view_secondaryp")) {
+			SetSecondaryPcnt(
+			    e.item,
+			    "view_secondaryp",
+			    e.state,
+			    SECONDARYLABEL instanceof Array ? SECONDARYLABEL@sizeof : 1
+			);
+		    } else if (startsWith(e.item, "view_secondary")) {
+			SetSecondary(
+			    e.item,
+			    "view_secondary",
+			    e.state,
+			    SECONDARYLABEL instanceof Array ? SECONDARYLABEL@sizeof : 1
+			);
+		    }
+		    break;
+	    }
+	}
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	Copy() {
+	    Object clipboard;
+	    Array  labels;
+
+	    if ((clipboard = yoix.system.getSystemClipboard()) != NULL) {
+		if ((labels = histogram.labels) != NULL)
+		    clipboard.setContents(strjoin(labels, "\n"));
+	    }
+	}
+
+	Find(int state) {
+	    components.$_find_panel.SetVisible(state);
+	}
+
+	FindNext() {
+	    components.$_find_panel.FindNext();
+	}
+
+	KeyPressed(Event e) {
+	    if (e.keycode == DNDKEYCODE) {
+		if (histogram.alive) {
+		    histogram.alive = FALSE;
+		    histogram.cursor = DNDCURSOR;
+		    addEventHandler(histogram, "dragGestureRecognized", EVENT_HANDLERS.DragGestureRecognized);
+		} else {
+		    removeEventHandler(histogram, "dragGestureRecognized");
+		    histogram.alive = TRUE;
+		    histogram.cursor = Cursor.STANDARD_CURSOR;
+		}
+	    }
+	}
+
+	ReverseVideo() {
+	    Object temp;
+
+	    temp = histogram.background;
+	    histogram.background = histogram.foreground;
+	    histogram.foreground = temp;
+	}
+
+	SetSecondary(String command, String prefix, int state, count) {
+	    String str;
+	    int    index;
+	    int    n;
+
+	    //
+	    // A recent addition that was needed to support more than one
+	    // secondary value. It explicitly assumes that it understands
+	    // how BuildSecondaryMenu() works so be careful making changes
+	    // here or there.
+	    //
+
+	    index = atoi(substring(command, prefix@sizeof));
+	    if (state) {
+		if (count > 1) {
+		    for (n = 1; n <= count; n++) {
+			if (n != index)
+			    menubar.setState(prefix + toString(n), !state);
+		    }
+		}
+		histogram.active = index;
+		if (histogram.active != index)
+		    menubar.setState(prefix + toString(index), !state);
+		else histogram.labelflags |= LABEL_SHOWVALUE;
+	    } else {
+		histogram.active = 0;
+		histogram.labelflags &= ~LABEL_SHOWVALUE;
+	    }
+	}
+
+	SetSecondaryPcnt(String command, String prefix, int state, count) {
+	    String str;
+	    int    index;
+	    int    n;
+
+	    //
+	    // A recent addition that was needed to support more than one
+	    // secondary value. It explicitly assumes that it understands
+	    // how BuildSecondaryMenu() works so be careful making changes
+	    // here or there.
+	    //
+
+	    index = atoi(substring(command, prefix@sizeof));
+	    if (state) {
+		if (count > 1) {
+		    for (n = 1; n <= count; n++) {
+			if (n != index)
+			    menubar.setState(prefix + toString(n), !state);
+		    }
+		}
+		histogram.active = index;
+		if (histogram.active != index)
+		    menubar.setState(prefix + toString(index), !state);
+		else histogram.labelflags |= LABEL_SHOWVALUEPCNT;
+	    } else {
+		histogram.active = 0;
+		histogram.labelflags &= ~LABEL_SHOWVALUEPCNT;
+	    }
+	}
+
+	SetSortBy(int value) {
+	    int current = histogram.sortby;
+
+	    histogram.sortby = (reverse_sort ? -1 : 1) * yoix.math.abs(value);
+	    if (current != histogram.sortby && histogram.vbar != NULL)
+		histogram.vbar.ScrollToZero();
+	}
+    };
+
+    return(new JFrame initializer);
+}
+
+NewPlotScreen(Object panel, String title, Object parent, int mainscreen) {
+    DataManager datamanager = NULL;
+    Dictionary  components;
+    Dictionary  subordinates;
+    Object      primaryplot = panel.primary;
+    Array       allplots[0, ...];
+    int         m;
+    int         n;
+
+    components = panel.components;
+    for (n = 0, m = 0; n < components@sizeof; n++) {
+	if (components[n] instanceof EventPlot) {
+	    allplots[m++] = components[n];
+	    if (datamanager == NULL)
+		datamanager = components[n].datamanager;
+	    if (!(primaryplot instanceof EventPlot)) {
+		if (!components[n].istag) {
+		    if (components[n].owner != NULL)
+			primaryplot = components[n].owner;
+		    else primaryplot = components[n];
+		}
+	    }
+	} else if (components[n] instanceof Axis)
+	    components[n].subordinates = components[n].subordinatePlots();
+    }
+
+    if (primaryplot == NULL)
+	Die("no primary plot for screen named %s", title);
+
+    if (datamanager == NULL)
+	Die("no datamanager found for screen named %s", title);
+
+    Dictionary initializer[30, ...] = {
+	DataManager datamanager = datamanager;
+	Dimension   screensize = defined("screensize", primaryplot) ? primaryplot.screensize : NULL;
+	Array       allplots = allplots;
+	Object      primaryplot = primaryplot;
+	Object      panel = panel;
+	Object      parent = parent;
+	Object      fileloader = NULL;
+	Object      filesaver = NULL;
+	String      title = title;
+	Point       location_start;
+	Font        font = FONTS.large_text;
+	int         locationmode = defined("locationmode", primaryplot) ? primaryplot.locationmode : LOCATIONMODE;
+	int         locationindex = defined("locationindex", primaryplot) ? primaryplot.locationindex : -1;
+	int         syncsweepfilters = TRUE;
+	int         mainscreen = mainscreen;
+	int         snapshots = 0;
+
+	BorderLayout layoutmanager;
+	Array layout = {panel, CENTER};
+
+	//
+	// Need these because of the way timeshading is implemented in
+	// plots - positive means normal shading, zero means none, and
+	// negative means reverse shading.
+	//
+
+	int timeshading = TIMESHADING;
+	int reverseshading = (TIMESHADING < 0);
+
+	//
+	// Screens for customizing things.
+	//
+
+	Object custom_buckets = NULL;
+	Object custom_drawingsizes = NULL;
+	Object timeshading_settings = NULL;
+
+	//
+	// Menu builders prefix strings to menu items so we can easily
+	// identify the menu that actually made the selection, however
+	// that means we need to skip the prefix to find the item that
+	// was selected in the menu. Needed when item names can appear
+	// in more than one menu.
+	//
+
+	JMenuBar menubar = {
+	    Menu items = {
+		BuildFileMenu(mainscreen, NULL, "file_snapshot"),
+		"View", new Menu {
+		    BuildPlotStyleMenu(LABEL_PLOTSTYLE, primaryplot),
+		    BuildPlotSweepMenu(LABEL_PLOTSWEEP, primaryplot),
+		    BuildPlotTimeshadingMenu(LABEL_TIMESHADING, timeshading, reverseshading),
+		    BuildPlotTipsMenu(LABEL_STACK_TIPS, primaryplot),
+		    BuildPlotCustomizeMenu(LABEL_CUSTOMIZE, primaryplot),
+		    "-", NULL,
+		    "Reverse Video", "reverse_video", REVERSEVIDEO,
+		},
+		"Zoom", new Menu {
+		    BuildPlotZoomMenu(LABEL_SPREAD, primaryplot),
+		},
+		"Show", new Menu {
+		    BuildSweepFilterMenu(NULL, PREFIX_SWEEPFILTERS, NULL, !mainscreen),
+		    BuildPlotMenu(PREFIX_PLOTS, PREFIX_PLOTS, panel.components, TRUE),
+		    BuildTagMenu(PREFIX_TAGS, PREFIX_TAGS, panel.components, TRUE),
+		    BuildAxisMenu(PREFIX_AXES, PREFIX_AXES, panel.components, TRUE),
+		    BuildLabelMenu(PREFIX_LABELS, PREFIX_LABELS, panel.components, TRUE),
+		    LABEL_LONGDURATION ? new Array {"-", NULL, LABEL_LONGDURATION, "show_longduration", FALSE} : NULL,
+		},
+		BuildFilterMenu(PREFIX_FILTERS, PREFIX_FILTERS, NULL, !mainscreen),
+		BuildColorMenu(PREFIX_COLORS, PREFIX_COLORS, COLOREDBY, NULL, !mainscreen),
+		BuildTableMenu(PREFIX_TABLES, PREFIX_TABLES, panel.components, !mainscreen),
+		BuildHelpMenu(mainscreen),
+	    };
+	};
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	actionPerformed(Event e) {
+	    save cursor = Cursor.WAIT_CURSOR;
+	    switch (e.command) {
+		case "customize_buckets":
+		    CustomizeBuckets();
+		    break;
+
+		case "customize_drawingsizes":
+		    CustomizeDrawingSizes();
+		    break;
+
+		case "file_close":
+		    HideScreen();
+		    break;
+
+		case "file_print":
+		    printAll(root);
+		    break;
+
+		case "file_quit":
+		    HideScreen();
+		    break;
+
+		case "file_snapshot":
+		    invokeLater(&NewSnapshotScreen, panel, panel.foreground, mainscreen ? this : parent, title, ++snapshots);
+		    break;
+
+		case "help_about":
+		    HelpAbout();
+		    break;
+
+		case "load_all":
+		    datamanager.Reload();
+		    break;
+
+		case "load_browse":
+		    LoadBrowse(&datamanager.LoadPath);
+		    break;
+
+		case "load_path":
+		    LoadPath(&datamanager.LoadPath);
+		    break;
+
+		case "load_selected":
+		    datamanager.LoadSelected();
+		    break;
+
+		case "load_unselected":
+		    datamanager.LoadUnselected();
+		    break;
+
+		case "raise_screens":
+		    datamanager.RaiseAllScreens();
+		    break;
+
+		case "save_all":
+		    SaveFile(datamanager.text);
+		    break;
+
+		case "save_selected":
+		    SaveFile(datamanager.selected);
+		    break;
+
+		case "save_unselected":
+		    SaveFile(datamanager.unselected);
+		    break;
+
+		case "show_screens":
+		    datamanager.ShowAllScreens();
+		    break;
+
+		case "timeshading_settings":
+		    CustomizeTimeshading();
+		    break;
+
+		case "tips_reset_offset":
+		    SetTipsOffset(NULL);
+		    break;
+
+		case "zoom_loaded":
+		    ZoomToLoaded();
+		    break;
+
+		case "zoom_selected":
+		    ZoomToData();
+		    break;
+
+		default:
+		    if (startsWith(e.command, PREFIX_FILTERS))
+			datamanager.ShowScreen(e.command + PREFIX_FILTERS@sizeof, root, NULL);
+		    else if (startsWith(e.command, PREFIX_GRAPHS))
+			datamanager.ShowScreen(e.command + PREFIX_GRAPHS@sizeof, root, NULL);
+		    else if (startsWith(e.command, PREFIX_SWEEPFILTERS))
+			datamanager.ShowScreen(e.command + PREFIX_SWEEPFILTERS@sizeof, root, NULL);
+		    else if (startsWith(e.command, PREFIX_TABLES))
+			datamanager.ShowScreen(e.command + PREFIX_TABLES@sizeof, root, NULL);
+		    else Warn("MenuBar ActionEvent %s is unimplemented", e.command);
+		    break;
+	    }
+	}
+
+	itemStateChanged(Event e) {
+	    save cursor = Cursor.WAIT_CURSOR;
+	    switch (e.item) {
+		case "reverse_video":
+		    ReverseVideo();
+		    break;
+
+		case "show_longduration":
+		    SetLongDuration(e.state);
+		    break;
+
+		case "style_connected":
+		    SetConnected(e.state ? CONNECT_LINES : CONNECT_NONE);
+		    break;
+
+		case "style_bucketed_bars":
+		    SetPlotStyle(STYLE_BARS, TRUE);
+		    break;
+
+		case "style_bucketed_points":
+		    SetPlotStyle(STYLE_POINTS, TRUE);
+		    break;
+
+		case "style_event_bars":
+		    SetPlotStyle(STYLE_BARS, FALSE);
+		    break;
+
+		case "style_event_points":
+		    SetPlotStyle(STYLE_POINTS, FALSE);
+		    break;
+
+		case "style_hide_points":
+		    SetHidePoints(e.state);
+		    break;
+
+		case "style_stacked_bars":
+		    SetPlotStyle(STYLE_STACKED_BARS, TRUE);
+		    break;
+
+		case "style_stacked_points":
+		    SetPlotStyle(STYLE_STACKED_POINTS, TRUE);
+		    break;
+
+		case "style_stacked_polygons":
+		    SetPlotStyle(STYLE_STACKED_POLYGONS, TRUE);
+		    break;
+
+		case "sweep_enabled":
+		     SetPlotSweepFlags(e.state, SWEEP_ENABLED);
+		     break;
+
+		case "sweep_solid_stacks":
+		     SetPlotSweepFlags(e.state, SWEEP_SOLID_STACKS);
+		     break;
+
+		case "timeshading_reverse":
+		    SetReverseShading(e.state);
+		    break;
+
+		case "timeshading_enabled":
+		    SetTimeshading(e.state);
+		    break;
+
+		case "tips_dropped":
+		    SetTipsDropped(e.state);
+		    break;
+
+		case "tips_enabled":
+		    SetTipsEnabled(e.state);
+		    break;
+
+		case "tips_show_rank":
+		    SetTipsShowFlag(e.state, TIP_SHOW_RANK);
+		    break;
+
+		case "tips_show_ties":
+		    SetTipsShowFlag(e.state, TIP_SHOW_TIES);
+		    break;
+
+		case "tips_show_value":
+		    SetTipsShowFlag(e.state, TIP_SHOW_VALUE); //// TODO: TIP_SHOW_VALUEPCNT
+		    break;
+
+		case "tips_snap_to_bucket":
+		    SetTipsSnapToBucket(e.state);
+		    break;
+
+		case "zoom_autozoom":
+		    SetAutozoom(e.state);
+		    break;
+
+		case "zoom_spread":
+		    SetSpread(e.state);
+		    break;
+
+		default:
+		    if (startsWith(e.item, PREFIX_AXES)) {
+			components[e.item + PREFIX_AXES@sizeof].SetVisible(e.state);
+			validate = TRUE;
+		    } else if (startsWith(e.item, PREFIX_LABELS)) {
+			components[e.item + PREFIX_LABELS@sizeof].SetVisible(e.state);
+			validate = TRUE;
+		    } else if (startsWith(e.item, PREFIX_PANELS)) {
+			components[e.item + PREFIX_PANELS@sizeof].SetVisible(e.state);
+			validate = TRUE;
+		    } else if (startsWith(e.item, PREFIX_PLOTS)) {
+			components[e.item + PREFIX_PLOTS@sizeof].SetVisible(e.state);
+			validate = TRUE;
+		    } else if (startsWith(e.item, PREFIX_TAGS))
+			SetTagState(e.item + PREFIX_TAGS@sizeof, e.state);
+		    else if (startsWith(e.item, PREFIX_COLORS))
+			datamanager.SetColoredBy(e.item + PREFIX_COLORS@sizeof);
+		    else Warn("MenuBar ItemEvent %s is unimplemented", e.item);
+		    break;
+	    }
+	}
+
+	windowClosing(Event e) {
+	    HideScreen();
+	}
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	AfterShowScreen() {
+	    int n;
+
+	    //
+	    // We do this here rather than in windowOpened() because the
+	    // initial screen position of a sweepfilters associated with
+	    // this screen are determined from our current location and
+	    // size, which may be adjusted slightly after windowOpened()
+	    // gets a chance to run.
+	    // 
+
+	    if (syncsweepfilters) {
+		syncsweepfilters = FALSE;
+		for (n = 0; n < allplots@sizeof; n++)
+		    datamanager.SyncSweepFilters(allplots[n].tag, this);
+	    }
+	}
+
+	CustomizeBuckets() {
+	    if (custom_buckets == NULL)
+		custom_buckets = NewCustomBuckets(primaryplot, "Bucket Controls", this);
+	    custom_buckets.SetVisible(TRUE);
+	}
+
+	CustomizeDrawingSizes() {
+	    if (custom_drawingsizes == NULL)
+		custom_drawingsizes = NewCustomDrawingSizes(primaryplot, allplots, "Drawing Size Controls", this);
+	    custom_drawingsizes.SetVisible(TRUE);
+	}
+
+	CustomizeTimeshading() {
+	    if (timeshading_settings == NULL)
+		timeshading_settings = NewCustomTimeshading(allplots, "Time Shading Settings", this);
+	    timeshading_settings.SetVisible(TRUE);
+	}
+
+	HelpAbout() {
+	    showMessageDialog(this, GetVersionInfo());
+	}
+
+	HideScreen() {
+	    if (mainscreen) {
+		datamanager.Dispose();
+		global.Quit(0);
+	    } else visible = FALSE;
+	}
+
+	KeyPressed(Event e) {
+	    if (e.keycode == DNDKEYCODE) {
+		if (primaryplot.alive && primaryplot.stacked) {
+		    primaryplot.alive = FALSE;
+		    primaryplot.cursor = DNDCURSOR;
+		    addEventHandler(primaryplot, "dragGestureRecognized", EVENT_HANDLERS.DragGestureRecognized);
+		} else {
+		    removeEventHandler(primaryplot, "dragGestureRecognized");
+		    primaryplot.alive = TRUE;
+		    primaryplot.cursor = Cursor.STANDARD_CURSOR;
+		}
+	    }
+	}
+
+	LoadBrowse(Pointer loader) {
+	    if (fileloader == NULL)
+		fileloader = NewFileDialog(LOAD, this);
+	    fileloader.Load(loader);
+	}
+
+	LoadPath(Pointer loader) {
+	    String path;
+
+	    if (loader != NULL) {
+		if ((path = showInputDialog(this, "Load data from a File or URL")) != NULL)
+		    (*loader)(path);
+	    }
+	}
+
+	Reset() {
+	    if (custom_buckets != NULL)
+		custom_buckets.SetVisible(FALSE);
+	}
+
+	ReverseVideo() {
+	    Dictionary dict;
+	    Object     comp;
+	    Object     temp;
+	    Color      fg;
+	    Color      bg;
+	    int        n;
+
+	    //
+	    // A few components, like labels, may lock their foreground color,
+	    // which is why we currently use the try/catch. Explicitly checking
+	    // WRITE permission might be a better approach - later.
+	    //
+
+	    if (panel != NULL) {
+		fg = panel.background;
+		bg = panel.foreground;
+		dict = panel.components;
+		for (n = 0; n < dict@sizeof; n++) {
+		    try {
+			comp = dict[n];
+			if (comp instanceof EventPlot || defined("components", comp)) {
+			    comp.background = bg;
+			    comp.foreground = fg;
+			}
+		    }
+		    catch(e) {return(TRUE);}
+		}
+		panel.foreground = fg;
+		panel.background = bg;
+	    }
+	}
+
+	SaveFile(String text) {
+	    if (filesaver == NULL)
+		filesaver = NewFileDialog(SAVE, this);
+	    filesaver.Save(text);
+	}
+
+	SetAutozoom(int state) {
+	    int n;
+
+	    for (n = 0; n < allplots@sizeof; n++)
+		allplots[n].SetAutozoom(state);
+	    menubar.setState("zoom_autozoom", state);
+	}
+
+	SetBucketWidth(double width) {
+	    Array plotstyle;
+	    Array buckets;
+
+	    if (width > 0 || width != width) {
+		if (primaryplot.bucketinfo != NULL) {
+		    primaryplot.bucketinfo[1] = width;
+		    if ((plotstyle = primaryplot.plotstyle) != NULL) {
+			if ((buckets = plotstyle[1]) != NULL) {
+			    if (buckets[1] != width || width != width)
+				SetPlotStyle(plotstyle[0], TRUE);
+			}
+		    }
+		}
+	    }
+	}
+
+	SetConnected(int connect) {
+	    int n;
+
+	    for (n = 0; n < allplots@sizeof; n++)
+		allplots[n].SetConnect(connect);
+	}
+
+	SetHidePoints(int state) {
+	    int n;
+
+	    for (n = 0; n < allplots@sizeof; n++)
+		allplots[n].SetHidePoints(state);
+	}
+
+	SetLongDuration(int state) {
+	    int n;
+
+	    for (n = 0; n < allplots@sizeof; n++)
+		allplots[n].SetKeeptall(state);
+	    menubar.setState("show_longduration", state);
+	}
+
+	SetPlotStyle(int style, int bucketed) {
+	    Array plotstyle;
+	    int   n;
+
+	    plotstyle = new Array {style, bucketed ? primaryplot.bucketinfo : NULL};
+	    for (n = 0; n < allplots@sizeof; n++) {
+		if (allplots[n] == primaryplot || allplots[n].owner == primaryplot)
+		    allplots[n].SetPlotStyle(plotstyle);
+	    }
+	    //
+	    // Unfortunately this is needed to make sure tag plots are
+	    // sync'd up with the primary plot. Had some problems when
+	    // buckets changed and something similiar was omitted. It's
+	    // a small kludge that we may eventually look into again.
+	    //
+	    primaryplot.ZoomTo(primaryplot.plotends, 0);
+	}
+
+	SetPlotSweepFlags(int state, int flag) {
+	    int n;
+
+	    for (n = 0; n < allplots@sizeof; n++) {
+		if (state)
+		    allplots[n].sweepflags |= flag;
+		else allplots[n].sweepflags &= (~flag);
+	    }
+	}
+
+	SetReverseShading(int state) {
+	    int value;
+	    int n;
+
+	    reverseshading = state;
+	    value = timeshading ? (reverseshading ? -1 : 1) : 0;
+
+	    for (n = 0; n < allplots@sizeof; n++)
+		allplots[n].SetTimeshading(value);
+	    menubar.setState("timeshading_reverse", state);
+	}
+
+	SetSpread(int state) {
+	    int n;
+
+	    for (n = 0; n < allplots@sizeof; n++)
+		allplots[n].spread = state;
+	    menubar.setState("zoom_spread", state);
+	}
+
+
+	SetTagState(String name, int state) {
+
+	    components[name].SetVisible(state);
+	    menubar.setState(PREFIX_TAGS + name, state);
+	    validate = TRUE;
+	}
+
+	SetTimeshading(int state) {
+	    Object menubar;
+	    int    value;
+	    int     n;
+
+	    //
+	    // Sometimes called via a config file callback when the plot
+	    // is loaded, even with NULL right before we quit, so we take
+	    // a snapshot of menubar in case the screen is disposed.
+	    //
+
+	    if ((menubar = this.menubar) != NULL) {
+		timeshading = state;
+		value = timeshading ? (reverseshading ? -1 : 1) : 0;
+
+		for (n = 0; n < allplots@sizeof; n++)
+		    allplots[n].SetTimeshading(value);
+		menubar.setState("timeshading_enabled", state);
+	    }
+	}
+
+	SetTipsDropped(int state) {
+	    primaryplot.tipdropped = state;
+	}
+
+	SetTipsEnabled(int state) {
+	    primaryplot.tipenabled = state;
+	}
+
+	SetTipsOffset(Point offset) {
+	    primaryplot.tipoffset = offset;
+	}
+
+	SetTipsShowFlag(int state, int flag) {
+	    if (state)
+		primaryplot.tipflags |= flag;
+	    else primaryplot.tipflags &= (~flag);
+	}
+
+	SetTipsSnapToBucket(int state) {
+	    int lockmodel = state ? HORIZONTAL : NONE;
+
+	    primaryplot.tiplockmodel = lockmodel;
+	}
+
+	SyncColoredBy(String name) {
+	    menubar.setState(PREFIX_COLORS + name, TRUE);
+	}
+
+	ZoomToLoaded() {
+	    int n;
+
+	    for (n = 0; n < allplots@sizeof; n++)
+		allplots[n].ZoomToLoaded();
+	}
+
+	ZoomToData() {
+	    int n;
+
+	    for (n = 0; n < allplots@sizeof; n++)
+		allplots[n].ZoomToData();
+	}
+    };
+
+    return(new JFrame initializer);
+}
+
+NewSweepGraphScreen(GraphPlot filter, String title, Object parent) {
+    JMenuBar menubar = {
+	Menu items = {
+	    BuildFileMenu(FALSE, NULL, "file_snapshot"),
+	    "View", new Menu {
+		BuildGraphNodesMenu(LABEL_NODES, LABEL_NODEFILL, filter),
+		BuildGraphEdgesMenu(LABEL_EDGES, filter),
+		BuildGraphSliderMenu(LABEL_NODES, LABEL_EDGES),
+		BuildGraphTipsMenu(LABEL_GRAPH_TIPS, LABEL_TIPS_OVER_NODES, LABEL_TIPS_OVER_EDGES, filter),
+		"-", NULL,
+		"Reverse Video", "reverse_video", REVERSEVIDEO,
+	    },
+	    "Show", new Menu {
+		BuildAllOnMenu(),
+		BuildAllPressedMenu(LABEL_PRESSED, TRUE),
+		BuildAllNodesAndEdgesMenu(LABEL_NODES, LABEL_EDGES),
+		"All Moved", new Menu {
+		    "On", "moved_all_on",
+		    "Off", "moved_all_off",
+		    "Flash", "moved_flash",
+		    "-", NULL,
+		    "Reset", "moved_reset",
+		},
+		"-", NULL,
+		"Accumulate", "show_accumulate", filter.accumulate,
+	    },
+	    BuildClearMenu(),
+	};
+    };
+
+    return(StandardGraphScreen(menubar, filter, title, parent, FALSE));
+}
+
+NewSweepHistogramScreen(Histogram filter, String title, Object label, Object parent) {
+    Dictionary initializer[13, ...] = {
+	DataManager datamanager = filter.datamanager;
+	Dimension   screensize = defined("screensize", filter) ? filter.screensize : NULL;
+	Object      histogram = filter;
+	Object      parent = parent;
+	Object      label = label;
+	String      title = title;
+	Point       location_start;
+	Font        font = FONTS.large_text;
+	int         locationmode = defined("locationmode", filter) ? filter.locationmode : LOCATIONMODE;
+	int         locationindex = defined("locationindex", filter) ? filter.locationindex : -1;
+	int         find_ignorecase = TRUE;
+	int         find_pattern = FALSE;
+	int         reverse_sort = FALSE;
+	int         snapshots = 0;
+
+	GridBagLayout layoutmanager;
+	Array layout = {
+	    new JPanel {
+		String tag = "$_snapshot_panel";
+		BorderLayout layoutmanager;
+		Array layout = {
+		    unroll(label ? new Array {label, NORTH} : new Array[0]),
+		    histogram, CENTER,
+		    histogram.vbar, EAST,
+		    unroll(histogram.hbar ? new Array {histogram.hbar, SOUTH} : new Array[0]),
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = BOTH;
+	    },
+
+	    BuildFindPanel(histogram, SHOWFIND&0x02),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int fill = HORIZONTAL;
+	    },
+	};
+
+	JMenuBar menubar = {
+	    Menu items = {
+		BuildFileMenu(parent == NULL, "file_copy", "file_snapshot"),
+		"View", new Menu {
+		    BuildFindMenu(LABEL_FIND, histogram, find_ignorecase, find_pattern, SHOWFIND&0x02),
+		    "-", NULL,
+		    "Reverse Video", "reverse_video", REVERSEVIDEO,
+		},
+		"Show", new Menu {
+		    BuildAllOnMenu(),
+		    BuildAllPressedMenu(LABEL_PRESSED, FALSE),
+		    "-", NULL,
+		    "Accumulate", "show_accumulate", histogram.accumulate,
+		    "Transient", new Dictionary {
+			String command = "show_transient";
+			String accelerator = ACCELERATORS.Select("show_transient");
+		    }, histogram.transientmode,
+		},
+		BuildClearMenu(),
+		"Sort", new Menu {
+		    histogram.defaultsortname, "sort_default",
+		    "Color", "sort_color",
+		    LABEL_PRESSED ? new Array {"Pressed", "sort_pressed"} : NULL,
+		    "Selected", "sort_selected",
+		    "-", NULL,
+		    "Reverse Order", "sort_reverse_order", reverse_sort,
+		},
+	    };
+	};
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	actionPerformed(Event e) {
+	    save cursor = Cursor.WAIT_CURSOR;
+	    switch (e.command) {
+		case "all_off":
+		    histogram.setAll(FALSE);
+		    break;
+
+		case "all_on":
+		    histogram.setAll(TRUE);
+		    break;
+
+		case "clear_all":
+		    histogram.clear();
+		    break;
+
+		case "clear_selected":
+		    histogram.clear(TRUE);
+		    break;
+
+		case "clear_unselected":
+		    histogram.clear(FALSE);
+		    break;
+
+		case "file_close":
+		    visible = FALSE;
+		    break;
+
+		case "file_copy":
+		    Copy();
+		    break;
+
+		case "file_print":
+		    printAll(root);
+		    break;
+
+		case "file_quit":
+		    datamanager.Dispose();
+		    global.Quit(0);
+		    break;
+
+		case "file_snapshot":
+		    invokeLater(&NewSnapshotScreen, components.$_snapshot_panel, histogram.foreground, parent, title, ++snapshots);
+		    break;
+
+		case "find_next":
+		    FindNext();
+		    break;
+
+		case "pressed_all_off":
+		    histogram.setAll(FALSE, histogram.pressed);
+		    break;
+
+		case "pressed_all_on":
+		    histogram.setAll(TRUE, histogram.pressed);
+		    break;
+
+		case "pressed_reset":
+		    histogram.pressed = NULL;
+		    break;
+
+		case "raise_screens":
+		    datamanager.RaiseAllScreens();
+		    break;
+
+		case "show_screens":
+		    datamanager.ShowAllScreens();
+		    break;
+
+		case "sort_color":
+		    invokeLater(&SetSortBy, SORTBY_COLOR);
+		    break;
+
+		case "sort_default":
+		    invokeLater(&SetSortBy, histogram.defaultsort);
+		    break;
+
+		case "sort_pressed":
+		    invokeLater(&SetSortBy, SORTBY_PRESSED);
+		    break;
+
+		case "sort_selected":
+		    invokeLater(&SetSortBy, SORTBY_SELECTED);
+		    break;
+
+		default:
+		    Warn("MenuBar ActionEvent %s is unimplemented", e.command);
+		    break;
+	    }
+	}
+
+	itemStateChanged(Event e) {
+	    save cursor = Cursor.WAIT_CURSOR;
+	    switch (e.item) {
+		case "find":
+		    Find(e.state);
+		    break;
+
+		case "find_ignorecase":
+		    find_ignorecase = e.state;
+		    break;
+
+		case "find_pattern":
+		    find_pattern = e.state;
+		    break;
+
+		case "reverse_video":
+		    ReverseVideo();
+		    break;
+
+		case "show_accumulate":
+		    histogram.accumulate = e.state;
+		    break;
+
+		case "show_transient":
+		    histogram.transientmode = e.state;
+		    break;
+
+		case "sort_reverse_order":
+		    if (reverse_sort != e.state) {
+			reverse_sort = e.state;
+			invokeLater(&SetSortBy, histogram.sortby);
+		    }
+		    break;
+
+		default:
+		    Warn("MenuBar ItemEvent %s is unimplemented", e.item);
+		    break;
+	    }
+	}
+
+	windowClosing(e) {
+	    visible = FALSE;
+	    return(TRUE);
+	}
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	Copy() {
+	    Object clipboard;
+	    Array  labels;
+
+	    if ((clipboard = yoix.system.getSystemClipboard()) != NULL) {
+		if ((labels = histogram.labels) != NULL)
+		    clipboard.setContents(strjoin(labels, "\n"));
+	    }
+	}
+
+	Find(int state) {
+	    components.$_find_panel.SetVisible(state);
+	}
+
+	FindNext() {
+	    components.$_find_panel.FindNext();
+	}
+
+	ReverseVideo() {
+	    Object temp;
+
+	    temp = histogram.background;
+	    histogram.background = histogram.foreground;
+	    histogram.foreground = temp;
+	}
+
+	SetSortBy(int value) {
+	    int current = histogram.sortby;
+
+	    histogram.sortby = (reverse_sort ? -1 : 1) * yoix.math.abs(value);
+	    if (current != histogram.sortby && histogram.vbar != NULL)
+		histogram.vbar.ScrollToZero();
+	}
+    };
+
+    return(new JFrame initializer);
+}
+
+NewSweepTableScreen(DataTable filter, String title, Object label, Object parent) {
+    String basetag = filter.tag;
+    Object ptr;
+    Object tabletags = basetag;
+    int    cellwise = defined("cellwise", filter) ? filter.cellwise : TRUE;
+
+    JPanel jp = {
+	String tag = "$_snapshot_panel";
+	GridBagLayout layoutmanager = {
+	    int columns = 1;
+	};
+	Array layout = {
+	    filter,
+	    BOTH,
+	    new JPanel {
+		String tag = basetag + "_option_panel";
+		int    visible = OPTION_PANEL;
+
+		GridBagLayout layoutmanager = {
+		    int columns = 1;
+		};
+		Array layout = {
+		    new JPanel {
+			String basetag = filter.tag;
+			String tag = basetag + "_card";
+			String cardtag = basetag + "_filter"; // default is first panel
+			int    visible = FALSE;
+
+			CardLayout layoutmanager;
+			Array layout = {
+			    new JTable {
+				String basetag = filter.tag;
+				String tag = basetag + "_filter";
+				int    reorder = 0;
+				int    rows = 1;
+				int    resize = 0;
+				int    scrollinit = NONE;
+				int    scrollvert = HORIZONTAL_NEVER|VERTICAL_ALWAYS;
+				int    scrollmode = scrollinit;
+				int    scroll = scrollmode;
+				int    resizemode = AUTO_RESIZE_OFF;
+				int    rowheightadjustment = -1;
+				int    edit = 1;
+				int    adjusting = FALSE; // used when syncing filter with table
+
+				Array  negation;
+				Array  reflags;
+
+				Object font = filter.font;
+				Color  gridcolor = filter.gridcolor;
+				Array  bfcolors = { filter.background, filter.foreground };
+				Color  background = bfcolors[0];
+				Color  foreground = bfcolors[1];
+				Color  editbackground = bfcolors[0];
+				Color  editforeground = bfcolors[1];
+				Color  selectionbackground = bfcolors[0];
+				Color  selectionforeground = bfcolors[1];
+				int    useedithighlight = FALSE;
+
+				Object dragcolumns = NULL;
+				Object transferhandler = NULL;
+
+				int retainstate = FALSE;
+
+				String inputfilter = "\t";
+				String outputfilter = "\t";
+
+				String filtertext = filter.GenFilterText(filter.width, inputfilter);
+				String text = filtertext;
+
+				Dictionary lastcell = {
+				    int valuesColumn = -1;
+				    int valuesRow = -1;
+				};
+
+				invocationEdit(e) {
+				    root.components[basetag].Filter();
+				}
+
+				adjustmentValueChanged(e) {
+				    if (e.orientation == HORIZONTAL) {
+					adjusting = TRUE;
+
+					if (!root.components[basetag].adjusting)
+					    root.components[basetag].origin = new Point { double x = origin.x; int y = 0; };
+					adjusting = FALSE;
+				    }
+				}
+
+				FlipNegation(int column) {
+				    Color bk, fg;
+
+				    negation[column] = !negation[column];
+				    bk = action(GET_COLUMN_FIELD, column, "editbackground");
+				    if (bk == NULL)
+					bk = editbackground;
+				    fg = action(GET_COLUMN_FIELD, column, "editforeground");
+				    if (fg == NULL)
+					fg = editforeground;
+				    action(SET_COLUMN_FIELD, column, "editbackground", fg);
+				    action(SET_COLUMN_FIELD, column, "editforeground", bk);
+				    bk = action(GET_COLUMN_FIELD, column, "background");
+				    if (bk == NULL)
+					bk = background;
+				    fg = action(GET_COLUMN_FIELD, column, "foreground");
+				    if (fg == NULL)
+					fg = foreground;
+				    action(SET_COLUMN_FIELD, column, "background", fg);
+				    action(SET_COLUMN_FIELD, column, "foreground", bk);
+				    bk = action(GET_COLUMN_FIELD, column, "selectionbackground");
+				    if (bk == NULL)
+					bk = selectionbackground;
+				    fg = action(GET_COLUMN_FIELD, column, "selectionforeground");
+				    if (fg == NULL)
+					fg = selectionforeground;
+				    action(SET_COLUMN_FIELD, column, "selectionbackground", fg);
+				    action(SET_COLUMN_FIELD, column, "selectionforeground", bk);
+				}
+
+				invocationEditKey(e) {
+				    if (e.keyevent == KEYRELEASED && e.keycode == KeyCode.VK_ALT) {
+					FlipNegation(e.valuesColumn);
+					root.components[basetag].Filter();
+				    }
+				}
+			    },
+			    new JPanel {
+				GridBagLayout layoutmanager;
+				String        tag = filter.tag + "_search";
+
+				Array layout = {
+				    new JTextField {
+					String tag = filter.tag + "_find_text";
+					int columns = 15;
+
+					Object transferhandler = NULL;
+					int    autotrim = TRUE;
+					int    edit = TRUE;
+					int    opaque = TRUE;
+					int    caretmodel = 1;
+
+					String basetag = filter.tag;
+					int alignment = LEFT;
+
+					actionPerformed(e) {
+					    TABLE_HELPERS.SearchTableFindText(root.components[basetag], root, basetag, text, TRUE);
+					}
+
+					keyPressed(e) {
+					    foreground = NULL;
+					}
+				    },
+				    new GridBagConstraints {
+					int anchor = LEFT;
+					int weightx = 1;
+					int fill = HORIZONTAL;
+					Insets insets = {
+					    double right = 72.0/32;
+					};
+				    },
+				    new JButton {
+					String basetag = filter.tag;
+					String tag = basetag + "_prev";
+					Font   font = FONTS.button_text;
+					Image  icon = ICONS.GetButtonLeftIcon(font, Color.black, 0.9);
+					String rowwise = "Find next match searching backward row-wise";
+					String colwise = "Find next match searching up column-wise";
+					String tooltiptext = rowwise;
+					Insets insets = INSETS.PickSmallButtonInsets();
+
+					actionPerformed(e) {
+					    TABLE_HELPERS.SearchTableFindText(root.components[basetag], root, basetag, root.components[basetag + "_find_text"].text, FALSE);
+					}
+
+					mousePressed(e) {
+					    root.components[basetag + "_find_text"].foreground = NULL;
+					}
+				    },
+				    new GridBagConstraints {
+					int anchor = LEFT;
+				    },
+				    new JButton {
+					String basetag = filter.tag;
+					String tag = basetag + "_next";
+					Font   font = FONTS.button_text;
+					Image  icon = ICONS.GetButtonRightIcon(font, Color.black, 0.9);
+					String rowwise = "Find next match searching forward row-wise";
+					String colwise = "Find next match searching down column-wise";
+					String tooltiptext = rowwise;
+					Insets insets = INSETS.PickSmallButtonInsets();
+
+					actionPerformed(e) {
+					    TABLE_HELPERS.SearchTableFindText(root.components[basetag], root, basetag, root.components[basetag + "_find_text"].text, TRUE);
+					}
+
+					mousePressed(e) {
+					    root.components[basetag + "_find_text"].foreground = NULL;
+					}
+				    },
+				    new GridBagConstraints {
+					int anchor = LEFT;
+				    },
+				    new JCheckBox {
+					String basetag = filter.tag;
+					String tag = basetag + "_colwise";
+					String text = "Columns";
+					int alignment = LEFT;
+					String tooltiptext = "Search column-wise rather than row-wise";
+
+					stateChanged(e) {
+					    if (state) {
+						root.components[basetag + "_prev"].icon = ICONS.GetButtonUpIcon(root.components[basetag + "_prev"].font, Color.black, 0.9);
+						root.components[basetag + "_next"].icon = ICONS.GetButtonDownIcon(root.components[basetag + "_prev"].font, Color.black, 0.9);
+						root.components[basetag + "_prev"].tooltiptext = root.components[basetag + "_prev"].colwise;
+						root.components[basetag + "_next"].tooltiptext = root.components[basetag + "_next"].colwise;
+					    } else {
+						root.components[basetag + "_prev"].icon = ICONS.GetButtonLeftIcon(root.components[basetag + "_prev"].font, Color.black, 0.9);
+						root.components[basetag + "_next"].icon = ICONS.GetButtonRightIcon(root.components[basetag + "_prev"].font, Color.black, 0.9);
+						root.components[basetag + "_prev"].tooltiptext = root.components[basetag + "_prev"].rowwise;
+						root.components[basetag + "_next"].tooltiptext = root.components[basetag + "_next"].rowwise;
+					    }
+					}
+				    },
+				    new GridBagConstraints {
+					int anchor = RIGHT;
+				    },
+				    new JCheckBox {
+					String basetag = filter.tag;
+					String tag = basetag + "_case_sensitive";
+					String text = "Case";
+					int alignment = LEFT;
+					String tooltiptext = "Make searching or filtering case-sensitive";
+				    },
+				    new GridBagConstraints {
+					int anchor = RIGHT;
+				    },
+				    new JCheckBox {
+					String basetag = filter.tag;
+					String tag = basetag + "_glob_pattern";
+					String text = "GLOB";
+					int alignment = LEFT;
+					String tooltiptext = "Use GLOB (i.e., shell) pattern for search and filter";
+
+					stateChanged(e) {
+					    if (state)
+						root.components[basetag + "_re_pattern"].state = 0;
+					}
+				    },
+				    new GridBagConstraints {
+					int gridwidth = RELATIVE;
+					int anchor = RIGHT;
+				    },
+				    new JCheckBox {
+					String basetag = filter.tag;
+					String tag = basetag + "_re_pattern";
+					String text = "RE";
+					int alignment = LEFT;
+					String tooltiptext = "Use regular expression (i.e., grep) pattern for search and filter";
+
+					stateChanged(e) {
+					    if (state)
+						root.components[basetag + "_glob_pattern"].state = 0;
+					}
+				    },
+				    new GridBagConstraints {
+					int gridwidth = REMAINDER;
+					int anchor = RIGHT;
+				    },
+				};
+			    },
+			};
+
+			componentShown(e) {
+			    root.components[basetag].SyncSizes(root.components[basetag], root.components[basetag+"_filter"]);
+			}
+
+			SetPanel(String tag) {
+			    nextcard = root.components[cardtag = tag];
+			    if (tag === (basetag + "_filter")) {
+				root.components[basetag+"_search_label"] {
+				    icon = up_norm;
+				    tooltiptext = "Show table search pane";
+				}
+			    } else {
+				root.components[basetag+"_filter_label"] {
+				    icon = up_norm;
+				    tooltiptext = "Show table filter pane";
+				}
+			    }
+			}
+		    },
+		    HORIZONTAL,
+		    new JPanel{
+			GridBagLayout layoutmanager;
+
+			Array layout = {
+			    new JPanel {
+				GridBagLayout layoutmanager;
+
+				Array layout = {
+				    new JLabel {
+					String basetag = filter.tag;
+					String tag = basetag + "_filter_label";
+					String text = "Filter";
+					Font   font = FONTS.titledborder_text;
+					int    alignment = LEFT;
+					Image  down_norm     = ICONS.GetButtonDownIcon(font, Color.gray, 0.8);
+					Image  down_pressed  = ICONS.GetButtonDownIcon(font, Color.black, 0.8);
+					Image  down_over     = ICONS.GetButtonDownIcon(font, Color.sgigray96, 0.8);
+					Image  up_norm       = ICONS.GetButtonUpIcon(font, Color.gray, 0.8);
+					Image  up_pressed    = ICONS.GetButtonUpIcon(font, Color.black, 0.8);
+					Image  up_over       = ICONS.GetButtonUpIcon(font, Color.sgigray96, 0.8);
+					Image  icon = up_norm;
+					int    pressed;
+					Point  presspoint = NULL;
+					String tooltiptext = "Show table filter pane";
+					String paneltag = basetag + "_filter";
+					String cardpanel = basetag + "_card";
+					int    visible = SHOW_SWEEPTABLE_FILTER;
+
+					Array savedvalues = NULL;
+
+					mouseEntered(e) {
+					    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+						icon = down_over;
+					    else icon = up_over;
+					}
+
+					mouseExited(e) {
+					    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+						icon = down_norm;
+					    else icon = up_norm;
+					}
+
+					mousePressed(e) {
+					    presspoint = e.location;
+					    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+						icon = down_pressed;
+					    else icon = up_pressed;
+					}
+
+					mouseDragged(e) {
+					    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+						CancelMousePressed();
+					}
+
+					mouseReleased(e) {
+					    int viz;
+					    if (presspoint != NULL) {
+						viz = !(root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag);
+						if (viz) {
+						    if (savedvalues != NULL) {
+							for (ptr in root.components[basetag+"_filter"].negation) {
+							    if (*ptr != savedvalues[1][ptr@offset]) {
+								root.components[basetag+"_filter"].FlipNegation(ptr@offset);
+							    }
+							}
+
+							root.components[basetag+"_filter"].text = savedvalues[0];
+							root.components[basetag+"_filter"].negation = savedvalues[1];
+							savedvalues = NULL;
+						    }
+						    root.components[cardpanel].SetPanel(paneltag);
+						    root.components[basetag].Filter();
+						} else savedvalues = root.components[basetag].ResetFilter();
+						root.components[cardpanel].visible = viz; // must come before CancelMousePressed
+						tooltiptext = (viz ? "Hide" : "Show") + " table filter pane";
+						CancelMousePressed();
+					    }
+					}
+
+					CancelMousePressed() {
+					    presspoint = NULL;
+					    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+						icon = down_norm;
+					    else icon = up_norm;
+					}
+				    },
+				    LEFT,
+				    72.0/16,
+				    new JLabel {
+					String basetag = filter.tag;
+					String tag = basetag + "_search_label";
+					String text = "Search";
+					Font   font = FONTS.titledborder_text;
+					int    alignment = LEFT;
+					Image  down_norm     = ICONS.GetButtonDownIcon(font, Color.gray, 0.8);
+					Image  down_pressed  = ICONS.GetButtonDownIcon(font, Color.black, 0.8);
+					Image  down_over     = ICONS.GetButtonDownIcon(font, Color.sgigray96, 0.8);
+					Image  up_norm       = ICONS.GetButtonUpIcon(font, Color.gray, 0.8);
+					Image  up_pressed    = ICONS.GetButtonUpIcon(font, Color.black, 0.8);
+					Image  up_over       = ICONS.GetButtonUpIcon(font, Color.sgigray96, 0.8);
+					Image  icon = up_norm;
+					int    pressed;
+					Point  presspoint = NULL;
+					String tooltiptext = "Show table search pane";
+					String paneltag = basetag + "_search";
+					String cardpanel = basetag + "_card";
+					int    visible = SHOW_SWEEPTABLE_SEARCH;
+
+					mouseEntered(e) {
+					    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+						icon = down_over;
+					    else icon = up_over;
+					}
+
+					mouseExited(e) {
+					    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+						icon = down_norm;
+					    else icon = up_norm;
+					}
+
+					mousePressed(e) {
+					    presspoint = e.location;
+					    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+						icon = down_pressed;
+					    else icon = up_pressed;
+					}
+
+					mouseDragged(e) {
+					    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+						CancelMousePressed();
+					}
+
+					mouseReleased(e) {
+					    int viz;
+					    if (presspoint != NULL) {
+						viz = !(root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag);
+						if (viz)
+						    root.components[cardpanel].SetPanel(paneltag);
+						else root.components[basetag + "_filter_label"].savedvalues = root.components[basetag].ResetFilter();
+						root.components[cardpanel].visible = viz; // must come before CancelMousePressed
+						tooltiptext = (viz ? "Hide" : "Show") + " table search pane";
+						CancelMousePressed();
+					    }
+					}
+
+					CancelMousePressed() {
+					    presspoint = NULL;
+					    if (root.components[cardpanel].visible && root.components[cardpanel].cardtag === paneltag)
+						icon = down_norm;
+					    else icon = up_norm;
+					}
+				    },
+				    LEFT,
+				    72.0/16,
+				    new JLabel {
+					String basetag = filter.tag;
+					String text = "Reset";
+					Font   font = FONTS.titledborder_text;
+					int    alignment = LEFT;
+					Image  reset_norm     = ICONS.GetButtonDiamondIcon(font, Color.gray, 0.8);
+					Image  reset_pressed  = ICONS.GetButtonDiamondIcon(font, Color.black, 0.8);
+					Image  reset_over     = ICONS.GetButtonDiamondIcon(font, Color.sgigray96, 0.8);
+					Image  icon = reset_norm;
+					int    pressed;
+					Point  presspoint = NULL;
+					String tooltiptext = "Reset the table to its original state";
+					int    visible = SHOW_SWEEPTABLE_RESET;
+
+					mouseEntered(e) {
+					    icon = reset_over;
+					}
+
+					mouseExited(e) {
+					    icon = reset_norm;
+					}
+
+					mousePressed(e) {
+					    presspoint = e.location;
+					    icon = reset_pressed;
+					    // following needed here to get a proper reset
+					    root.components[basetag+"_filter"].action(EDIT_STOP);
+					}
+
+					mouseDragged(e) {
+					    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+						CancelMousePressed();
+					}
+
+					mouseReleased(e) {
+					    if (presspoint != NULL) {
+						TABLE_HELPERS.SearchTableReset(root.components[basetag], root, basetag);
+						CancelMousePressed();
+					    }
+					}
+
+					CancelMousePressed() {
+					    presspoint = NULL;
+					    icon = reset_norm;
+					}
+				    },
+				    LEFT,
+				    72.0/16,
+				    new JLabel {
+					String basetag = filter.tag;
+					String text = "Export";
+					Font   font = FONTS.titledborder_text;
+					int    alignment = LEFT;
+					Image  export_norm     = ICONS.GetButtonDiamondIcon(font, Color.gray, 0.8);
+					Image  export_pressed  = ICONS.GetButtonDiamondIcon(font, Color.black, 0.8);
+					Image  export_over     = ICONS.GetButtonDiamondIcon(font, Color.sgigray96, 0.8);
+					Image  icon = export_norm;
+					int    pressed;
+					Point  presspoint = NULL;
+					String tooltiptext = "Convert table to a text format and open in a viewier";
+					int    visible = SHOW_SWEEPTABLE_EXPORT;
+
+					JPopupMenu popupmenu = {
+					    Array items = {
+						new JMenuItem {
+						    String text = "Comma-Separated Values (CSV)";
+						    actionPerformed(e) {
+							Object jlabel = this.root;
+							invokeLater(
+							    &TABLE_HELPERS.GenerateTableCSV,
+							    jlabel.root.components[jlabel.basetag],
+							    jlabel.root,
+							    NULL,
+							    TABLE_HELPERS.ProprietaryLabel,
+							    jlabel.root.components[jlabel.basetag].include_hidden
+							);
+						    }
+						},
+						new JMenuItem {
+						    String text = "Tab-Separated Values (TSV)";
+						    actionPerformed(e) {
+							Object jlabel = this.root;
+							invokeLater(
+							    &TABLE_HELPERS.GenerateTableTSV,
+							    jlabel.root.components[jlabel.basetag],
+							    jlabel.root,
+							    NULL,
+							    TABLE_HELPERS.ProprietaryLabel,
+							    jlabel.root.components[jlabel.basetag].include_hidden
+							);
+						    }
+						},
+						new JMenuItem {
+						    String text = "Plain Text (TXT)";
+						    actionPerformed(e) {
+							Object jlabel = this.root;
+							invokeLater(
+							    &TABLE_HELPERS.GenerateTableTXT,
+							    jlabel.root.components[jlabel.basetag],
+							    jlabel.root,
+							    NULL,
+							    TABLE_HELPERS.ProprietaryLabel,
+							    jlabel.root.components[jlabel.basetag].include_hidden
+							);
+						    }
+						},
+						new JMenuItem {
+						    String text = "HTML";
+						    actionPerformed(e) {
+							Object jlabel = this.root;
+							invokeLater(
+							    &TABLE_HELPERS.GenerateTableHTML,
+							    jlabel.root.components[jlabel.basetag],
+							    jlabel.root,
+							    NULL,
+							    TABLE_HELPERS.ProprietaryLabel == NULL ? NULL : strfmt("<center><h2>%s</h2></center>", TABLE_HELPERS.ProprietaryLabel),
+							    jlabel.root.components[jlabel.basetag].include_hidden
+							);
+						    }
+						},
+					    };
+					};
+
+					mouseEntered(e) {
+					    icon = export_over;
+					}
+
+					mouseExited(e) {
+					    icon = export_norm;
+					}
+
+					mousePressed(e) {
+					    presspoint = e.location;
+					    icon = export_pressed;
+					}
+
+					mouseDragged(e) {
+					    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+						CancelMousePressed();
+					}
+
+					mouseReleased(e) {
+					    if (presspoint != NULL) {
+						popupmenu.location = e.location;
+						popup = popupmenu;
+						CancelMousePressed();
+					    }
+					}
+
+					CancelMousePressed() {
+					    presspoint = NULL;
+					    icon = export_norm;
+					}
+				    },
+				    LEFT,
+				    72.0/16,
+				    new JLabel {
+					String basetag = filter.tag;
+					String tag = basetag + "_dnd";
+					Font   font = FONTS.titledborder_text;
+					int    alignment = LEFT;
+					Array  tabletags = (tabletags instanceof Array) ? tabletags : new Array { tabletags };
+					Image  dnd_norm     = ICONS.GetButtonDiamondIcon(font, Color.gray, 0.8);
+					Image  dnd_pressed  = ICONS.GetButtonDiamondIcon(font, Color.black, 0.8);
+					Image  dnd_over     = ICONS.GetButtonDiamondIcon(font, Color.sgigray96, 0.8);
+					Image  icon = dnd_norm;
+					int    pressed;
+					Point  presspoint = NULL;
+					String tooltiptext = "Toggle " + (cellwise ? "cell-wise/row-wise" : "row-wise/cell-wise") + " drag and drop (DnD)";
+					String text = "DnD " + (cellwise ? "cells" : "rows");
+					int    visible = SHOW_SWEEPTABLE_DND;
+
+					mouseEntered(e) {
+					    icon = dnd_over;
+					}
+
+					mouseExited(e) {
+					    icon = dnd_norm;
+					}
+
+					mousePressed(e) {
+					    presspoint = e.location;
+					    icon = dnd_pressed;
+					}
+
+					mouseDragged(e) {
+					    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+						CancelMousePressed();
+					}
+
+					mouseReleased(e) {
+					    if (presspoint != NULL) {
+						if (root.components[basetag].cellwise) {
+						    root.components[basetag].cellwise = FALSE;
+						} else {
+						    root.components[basetag].cellwise = TRUE;
+						}
+						SyncToolTipText();
+						CancelMousePressed();
+					    }
+					}
+
+					CancelMousePressed() {
+					    presspoint = NULL;
+					    icon = dnd_norm;
+					}
+
+					SyncToolTipText() {
+
+					    int cellwise = root.components[basetag].cellwise;
+
+					    root.components[basetag].SetDragState(TRUE, cellwise);
+
+					    tooltiptext = "Toggle " + (cellwise ? "cell-wise/row-wise" : "row-wise/cell-wise") + " drag and drop (DnD)";
+					    text = "DnD " + (cellwise ? "cell" : "row");
+					}
+				    },
+				    LEFT,
+				    new JPanel {},
+				    LEFT, HORIZONTAL,
+				};
+			    },
+			    new Dictionary {
+				int gridx = 1;
+				int gridy = 1;
+				int weightx = 1;
+				int anchor = BOTTOMLEFT;
+			    },
+			    new JPanel {
+				Insets border = {
+				    double right = ISMAC ? 72.0/4.0 : 0.0;
+				};
+
+				Array layout = {
+				    new JLabel {
+					String tag = filter.tag + "_rowinfo";
+					Font   font = FONTS.titledborder_text;
+					int    alignment = RIGHT;
+					int    visible = SHOW_SWEEPTABLE_ROWINFO;
+				    },
+				};
+			    },
+			    BOTTOMRIGHT,
+			};
+		    },
+		    HORIZONTAL,
+		};
+	    },
+	    HORIZONTAL,
+	};
+    };
+
+    Dictionary initializer[13, ...] = {
+	DataManager datamanager = filter.datamanager;
+	Dimension   screensize = defined("screensize", filter) ? filter.screensize : NULL;
+	Object      datatable = filter;
+	Object      parent = parent;
+	Object      label = label;
+	String      title = title;
+	Point       location_start;
+	Font        font = FONTS.large_text;
+	int         locationmode = defined("locationmode", filter) ? filter.locationmode : LOCATIONMODE;
+	int         locationindex = defined("locationindex", filter) ? filter.locationindex : -1;
+	int         find_ignorecase = TRUE;
+	int         find_pattern = FALSE;
+	int         snapshots = 0;
+
+	GridBagLayout layoutmanager;
+	Array layout = {
+	    jp, // what about label? should we keep it?
+	    BOTH,
+	};
+
+	JMenuBar menubar = {
+	    Menu items = {
+		BuildFileMenu(parent == NULL, "file_copy", "file_snapshot"),	// snapshot temporarily disabled
+		"View", new Menu {
+		    "Option Panel", new Dictionary {
+			String command = "show_option_panel";
+			String accelerator = ACCELERATORS.Select("show_option_panel");
+		    }, OPTION_PANEL,
+		    "-", NULL,
+		    BuildTableSettingsMenu(LABEL_TABLE_SETTINGS, datatable),
+		    "-", NULL,
+		    "Reverse Video", "reverse_video", REVERSEVIDEO,
+		},
+		"Show", new Menu {
+		    BuildAllOnMenu(),
+		    BuildAllPressedMenu(LABEL_PRESSED, FALSE),
+		    "-", NULL,
+		    "Accumulate", "show_accumulate", datatable.accumulate,
+		    "Transient", new Dictionary {
+			String command = "show_transient";
+			String accelerator = ACCELERATORS.Select("show_transient");
+		    }, datatable.transientmode,
+		},
+		BuildClearMenu(),
+	    };
+	};
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	actionPerformed(Event e) {
+	    save cursor = Cursor.WAIT_CURSOR;
+	    switch (e.command) {
+		case "all_off":
+		    datatable.setAll(FALSE);
+		    break;
+
+		case "all_on":
+		    datatable.setAll(TRUE);
+		    break;
+
+		case "clear_all":
+		    datatable.clear();
+		    break;
+
+		case "clear_selected":
+		    datatable.clear(TRUE);
+		    break;
+
+		case "clear_unselected":
+		    datatable.clear(FALSE);
+		    break;
+
+		case "file_close":
+		    visible = FALSE;
+		    break;
+
+		case "file_copy":
+		    Copy();
+		    break;
+
+		case "file_print":
+		    printAll(root);
+		    break;
+
+		case "file_quit":
+		    datamanager.Dispose();
+		    global.Quit(0);
+		    break;
+
+		case "file_snapshot":
+		    invokeLater(&NewSnapshotScreen, components.$_snapshot_panel, datatable.foreground, parent, title, ++snapshots);
+		    break;
+
+		case "pressed_all_off":
+		    datatable.setAll(FALSE, datatable.pressed);
+		    break;
+
+		case "pressed_all_on":
+		    datatable.setAll(TRUE, datatable.pressed);
+		    break;
+
+		case "pressed_reset":
+		    datatable.pressed = NULL;
+		    break;
+
+		case "raise_screens":
+		    datamanager.RaiseAllScreens();
+		    break;
+
+		case "show_screens":
+		    datamanager.ShowAllScreens();
+		    break;
+
+		default:
+		    Warn("MenuBar ActionEvent %s is unimplemented", e.command);
+		    break;
+	    }
+	}
+
+	itemStateChanged(Event e) {
+	    save cursor = Cursor.WAIT_CURSOR;
+	    switch (e.item) {
+		case "reverse_video":
+		    ReverseVideo();
+		    break;
+
+		case "settings_reorder":
+		    datatable.reorder = e.state;
+		    break;
+
+		case "settings_resize":
+		    datatable.resize = e.state;
+		    break;
+
+		case "show_accumulate":
+		    datatable.accumulate = e.state;
+		    break;
+
+		case "show_option_panel":
+		    components[datatable.tag + "_option_panel"].visible = e.state;
+		    break;
+
+		case "show_transient":
+		    datatable.transientmode = e.state;
+		    break;
+
+		default:
+		    Warn("MenuBar ItemEvent %s is unimplemented", e.item);
+		    break;
+	    }
+	}
+
+	windowClosing(e) {
+	    visible = FALSE;
+	    return(TRUE);
+	}
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	Copy() {
+	    Object clipboard;
+	    Array  labels;
+
+	    if ((clipboard = yoix.system.getSystemClipboard()) != NULL) {
+		if ((labels = datatable.labels) != NULL)
+		    clipboard.setContents(strjoin(labels, "\n"));
+	    }
+	}
+
+	KeyPressed(Event e) {
+	    if (e.keycode == DNDKEYCODE) {
+		if (datatable.alive) {
+		    datatable.alive = FALSE;
+		    datatable.cursor = DNDCURSOR;
+		    addEventHandler(datatable, "dragGestureRecognized", datatable.DragGestureRecognized);
+		} else {
+		    removeEventHandler(datatable, "dragGestureRecognized");
+		    datatable.alive = TRUE;
+		    datatable.cursor = Cursor.STANDARD_CURSOR;
+		}
+	    }
+	}
+
+	ReverseVideo() {
+	    Object temp;
+
+	    temp = datatable.background;
+	    datatable.background = datatable.foreground;
+	    datatable.foreground = temp;
+	}
+    };
+
+    return(new JFrame initializer);
+}
+
+StandardGraphScreen(JMenuBar menubar, GraphPlot filter, String title, Object parent, int mainscreen) {
+    Dictionary initializer[12, ...] = {
+	DataManager datamanager = filter.datamanager;
+	Dimension   screensize = defined("screensize", filter) ? filter.screensize : NULL;
+	Dimension   size = NULL;
+	JMenuBar    menubar = menubar;
+	double      border = 72.0/12;
+	Object      graph = filter;
+	Object      parent = parent;
+	Object      fileloader = NULL;
+	Object      filesaver = NULL;
+	String      title = title;
+	Point       location_start;
+	Font        font = FONTS.large_text;
+	int         locationmode = defined("locationmode", filter) ? filter.locationmode : LOCATIONMODE;
+	int         locationindex = defined("locationindex", filter) ? filter.locationindex : -1;
+	int         mainscreen = mainscreen;
+	int         snapshots = 0;
+
+	Array layout = {
+	    new JPanel {
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JPanel {
+			GridBagLayout layoutmanager;
+			Array layout = {
+			    new JPanel {
+				String tag = "$_snapshot_panel";
+				BorderLayout layoutmanager;
+				Array layout = {
+				    filter.vbar, EAST,
+				    new JPanel {
+					EtchedBorder border;
+					BorderLayout layoutmanager;
+					Array layout = {filter};
+				    }, CENTER,
+				    filter.hbar, SOUTH,
+				};
+			    },
+			    new GridBagConstraints {
+				int fill = BOTH;
+				int weightx = 1;
+				int weighty = 1;
+			    },
+			};
+		    },
+		    new GridBagConstraints {
+			int gridx = 1;
+			int gridy = 3;
+			int gridwidth = 3;
+			int fill = BOTH;
+			int weightx = 1;
+			int weighty = 1;
+		    },
+
+		    new JLabel {
+			String tag = "$_zoomlabel";
+			String text = strfmt("%.1f", filter.zoomscale);
+			Color  foreground = COLORS.activetext;
+			Font   font = FONTS.large_text;
+			int    alignment = LEFT;
+			int    flags = 0;
+
+			mouseEntered(MouseEvent e) {
+			    if (flags) {
+				foreground = COLORS.pressedtext;
+				flags |= 0x01;
+			    }
+			}
+
+			mouseExited(MouseEvent e) {
+			    if (flags) {
+				foreground = COLORS.activetext;
+				flags &= ~0x01;
+			    }
+			}
+
+			mousePressed(MouseEvent e) {
+			    foreground = COLORS.pressedtext;
+			    flags = 0x03;
+			}
+
+			mouseReleased(MouseEvent e) {
+			    Dimension extent;
+			    Rectangle viewport;
+			    Point     p;
+
+			    if (flags & 0x01) {
+				if ((e.modifiers & BUTTON1_MASK) == 0) {
+				    extent = root.graph.extent;
+				    viewport = root.graph.viewport;
+				    p.x = (extent.width - viewport.width)/2;
+				    p.y = (extent.height - viewport.height)/2;
+				    if (p.x >= 0 && p.y >= 0)	// should always be TRUE
+					root.graph.origin = p;
+				} else root.components.$_zoom_slider.ToggleZoom();
+			    }
+			    foreground = COLORS.activetext;
+			    flags = 0;
+			}
+
+			mouseWheelMoved(Event e) {
+			    root.MouseWheelMoved(e);
+			}
+
+			ShowZoomScale() {
+			    if (root.graph.zoomscale > 0)
+				text = strfmt("%.1f", root.graph.zoomscale);
+			    else text = NULL;
+			}
+		    },
+		    new GridBagConstraints {
+			int gridx = 1;
+			int gridy = 5;
+			int anchor = WEST;
+
+			Insets insets = {
+			    double top = 72.0/12;
+			};
+		    },
+
+		    new JPanel {
+			String tag = "$_slider_panel";
+
+			CardLayout layoutmanager;
+
+			Array layout = {
+			    new JSlider {
+				String tag = "$_zoom_slider";
+				Font   font = FONTS.medium_text;
+				int    orientation = HORIZONTAL;
+				int    minimum = 0;
+				int    maximum = 200;
+				int    value = 5;
+
+				Dimension preferredsize = {
+				    double width = 2.0*72.0;
+				};
+
+				EtchedBorder border = {
+				    String title = "Zoom";
+				};
+
+				double lastscale = 1.0;
+				double startscale = 0.0;
+				int    pressed = FALSE;
+
+				mousePressed(e) {
+				    if (!pressed) {
+					pressed = TRUE;
+					if (e.modifiers & BUTTON1_MASK)
+					    startscale = 0;
+				    }
+				}
+
+				mouseReleased(e) {
+				    if (startscale > 0)
+					value = 10*startscale - 5.0;
+				    startscale = 0;
+				    pressed = FALSE;
+				}
+
+				mouseWheelMoved(e) {
+				    value = NextValue(e.wheelrotation);
+				}
+
+				stateChanged(e) {
+				    double scale;
+
+				    if (!pressed)
+					startscale = root.graph.zoomscale;
+
+				    if ((scale = root.graph.zoomscale) != 1.0)
+					lastscale = scale;
+				    root.graph.zoomscale = 0.5 + ((double)value)/10;
+				    root.components.$_zoomlabel.ShowZoomScale();
+				}
+
+				NextValue(int direction) {
+				    double step;
+
+				    //
+				    // Choices made here were picked by trial and
+				    // error, so don't take them too seriously.
+				    //
+
+				    if (root.graph.zoomscale > 4.0)
+					step = max(1.0, (maximum - minimum)/100.0);
+				    else step = 1.0;
+				    return(value - step*direction);
+				}
+
+				NextZoomScale(int direction) {
+				    return(0.5 + NextValue(direction)/10.0);
+				}
+
+				SyncSlider(int reset) {
+				    if (reset) {
+					lastscale = 1.0;
+					root.graph.zoomscale = 1.0;
+				    }
+				    value = 10*root.graph.zoomscale - 5.0;
+				    maximum = 10*root.graph.zoomlimit - 5.0;
+				    root.components.$_zoomlabel.ShowZoomScale();
+				}
+
+				ToggleZoom() {
+				    if (root.graph.zoomscale != 1.0)
+					value = 5.0;
+				    else value = 10*lastscale - 5.0;
+				}
+			    },
+
+			    new JSlider {
+				String tag = "$_node_slider";
+				Font   font = FONTS.medium_text;
+				int    orientation = HORIZONTAL;
+				int    minimum = 10;
+				int    maximum = 100;
+
+				Dimension preferredsize = {
+				    double width = 2.0*72.0;
+				};
+
+				EtchedBorder border = {
+				    String title = "Scale " + LABEL_NODES;
+				};
+
+				mouseWheelMoved(e) {
+				    value -= e.wheelrotation;
+				}
+
+				stateChanged(e) {
+				    if (!adjusting) {
+					root.graph.nodescale = ((double)value)/minimum;
+					root.graph.fontscale = ((double)value)/minimum;
+				    }
+				}
+			    },
+
+			    new JSlider {
+				String tag = "$_edge_slider";
+				Font   font = FONTS.medium_text;
+				int    orientation = HORIZONTAL;
+				int    minimum = 0;
+				int    maximum = 100;
+
+				Dimension preferredsize = {
+				    double width = 2.0*72.0;
+				};
+
+				EtchedBorder border = {
+				    String title = "Scale " + LABEL_EDGES;
+				};
+
+				mouseWheelMoved(e) {
+				    value -= e.wheelrotation;
+				}
+
+				stateChanged(e) {
+				    if (!adjusting)
+					root.graph.edgescale = 1.0 + 50*((double)value)/maximum;
+				}
+			    },
+
+			    new JSlider {
+				String tag = "$_node_outline_slider";
+				Font   font = FONTS.medium_text;
+				int    orientation = HORIZONTAL;
+				int    snaptoticks = TRUE;
+				int    minortickspacing = 1;
+				int    minimum = 0;
+				int    maximum = NODEOUTLINESTATES - 1;
+				int    value = NODEOUTLINESTATES - 1;
+
+				Dimension preferredsize = {
+				    double width = 2.0*72.0;
+				};
+
+				EtchedBorder border = {
+				    String title = "Outline " + LABEL_NODES;
+				};
+
+				mouseWheelMoved(e) {
+				    value -= e.wheelrotation;
+				}
+
+				stateChanged(e) {
+				    if (!adjusting) {
+					if (value > 0) {
+					    if (value < maximum) {
+						////root.graph.nodeoutline = 0.4*((double)(value)/(maximum - 1));
+						root.graph.nodeoutline = min(0.5, (maximum - 1)/10.0)*((double)value/(maximum - 1));
+					    } else root.graph.nodeoutline = 1.0;
+					} else root.graph.nodeoutline = 0.0;
+				    }
+				}
+			    },
+			};
+		    },
+		    new GridBagConstraints {
+			int gridx = 1;
+			int gridy = 5;
+			int gridwidth = 3;
+			int anchor = CENTER;
+		    },
+
+		    new JChoice {
+			String tag = "$_mode_choice";
+			String selected = toString(filter.graphmode);
+			Font   font = FONTS.large_text;
+
+			Array items = {
+			    "Move", toString(OP_DRAG),
+			    "Pan", toString(OP_PAN),
+			    "Press", toString(OP_PRESS),
+			    ////"Scroll", toString(OP_SCROLL),
+			    "Select", toString(OP_SELECT),
+			    ////"Zoom", toString(OP_ZOOM),
+			};
+
+			itemStateChanged(ItemEvent e) {
+			    if (e.state)
+				SyncPrimaryOperation();
+			}
+
+			mouseWheelMoved(e) {
+			    int index = indexOfObject(mappings, selected);
+
+			    if (e.wheelrotation < 0) {
+				if (--index >= 0)
+				    selected = index;
+			    } else {
+				if (++index < mappings@length)
+				    selected = index;
+			    }
+			}
+
+			SyncPrimaryOperation() {
+			    Array operations = root.graph.operations;
+
+			    operations[0] = abs(atoi(selected));
+			    root.graph.operations = operations;
+			}
+		    },
+		    new GridBagConstraints {
+			int gridx = 3;
+			int gridy = 5;
+			int anchor = EAST;
+
+			Insets insets = {
+			    double top = 72.0/12;
+			};
+		    },
+		};
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	actionPerformed(Event e) {
+	    save cursor = Cursor.WAIT_CURSOR;
+	    switch (e.command) {
+		case "all_off":
+		    graph.setAll(FALSE);
+		    break;
+
+		case "all_on":
+		    graph.setAll(TRUE);
+		    break;
+
+		case "clear_all":
+		    graph.clear();
+		    break;
+
+		case "clear_selected":
+		    graph.clear(TRUE);
+		    break;
+
+		case "clear_unselected":
+		    graph.clear(FALSE);
+		    break;
+
+		case "color_data":
+		    datamanager.SyncColoredBy(graph.tag);
+		    break;
+
+		case "color_recolor":
+		    graph.recolored = TRUE;
+		    break;
+
+		case "color_show_all":
+		    graph.recolored = FALSE;
+		    break;
+
+		case "edges_all_off":
+		    graph.setAll(FALSE, graph.edges);
+		    break;
+
+		case "edges_all_on":
+		    graph.setAll(TRUE, graph.edges);
+		    break;
+
+		case "file_close":
+		    HideScreen();
+		    break;
+
+		case "file_print":
+		    printAll(graph, 0);
+		    break;
+
+		case "file_quit":
+		    HideScreen();
+		    break;
+
+		case "file_snapshot":
+		    invokeLater(&NewSnapshotScreen, components.$_snapshot_panel, graph.foreground, mainscreen ? this : parent, title, ++snapshots);
+		    break;
+
+		case "help_about":
+		    HelpAbout();
+		    break;
+
+		case "load_all":
+		    datamanager.Reload();
+		    break;
+
+		case "load_browse":
+		    LoadBrowse(&datamanager.LoadPath);
+		    break;
+
+		case "load_path":
+		    LoadPath(&datamanager.LoadPath);
+		    break;
+
+		case "load_selected":
+		    datamanager.LoadSelected();
+		    break;
+
+		case "load_unselected":
+		    datamanager.LoadUnselected();
+		    break;
+
+		case "moved_all_off":
+		    graph.setAll(FALSE, graph.moved);
+		    break;
+
+		case "moved_all_on":
+		    graph.setAll(TRUE, graph.moved);
+		    break;
+
+		case "moved_flash":
+		    invokeLater(&Flash, graph.moved);	// invokeLater lets Swing menu disappear
+		    break;
+
+		case "moved_reset":
+		    invokeLater(&Moved, NULL);		// invokeLater lets Swing menu disappear
+		    break;
+
+		case "nodes_all_off":
+		    graph.setAll(FALSE, graph.nodes);
+		    break;
+
+		case "nodes_all_on":
+		    graph.setAll(TRUE, graph.nodes);
+		    break;
+
+		case "pressed_all_off":
+		    graph.setAll(FALSE, graph.pressed);
+		    break;
+
+		case "pressed_all_on":
+		    graph.setAll(TRUE, graph.pressed);
+		    break;
+
+		case "pressed_flash":
+		    invokeLater(&Flash, graph.pressed);	// invokeLater lets Swing menu disappear
+		    break;
+
+		case "pressed_reset":
+		    graph.pressed = NULL;
+		    break;
+
+		case "raise_screens":
+		    datamanager.RaiseAllScreens();
+		    break;
+
+		case "show_default_colors":
+		    datamanager.SyncColoredBy(NULL);	// NULL is currently correct!!!
+		    break;
+
+		case "show_screens":
+		    datamanager.ShowAllScreens();
+		    break;
+
+		case "tips_reset_offset":
+		    graph.tipoffset = NULL;
+		    break;
+
+		default:
+		    if (startsWith(e.command, PREFIX_FILTERS))
+			datamanager.ShowScreen(e.command + PREFIX_FILTERS@sizeof, root, NULL);
+		    else Warn("MenuBar ActionEvent %s is unimplemented", e.command);
+		    break;
+	    }
+	}
+
+	itemStateChanged(Event e) {
+	    String filtertag;
+
+	    save cursor = Cursor.WAIT_CURSOR;
+	    switch (e.item) {
+		case "edges_hide_all":
+		    if (e.state)
+			graph.edgeflags |= 0x01;
+		    else graph.edgeflags &= (~0x01);
+		    break;
+
+		case "edges_hide_labels":
+		    if (e.state)
+			graph.labelflags |= LABEL_HIDEEDGE;
+		    else graph.labelflags &= ~LABEL_HIDEEDGE;
+		    break;
+
+		case "edges_hide_unselected":
+		    if (e.state)
+			graph.edgeflags |= 0x04;
+		    else graph.edgeflags &= (~0x04);
+		    break;
+
+		case "edges_hide_with_node":
+		    graph.attachededgeselection = e.state;
+		    break;
+
+		case "edges_selectable":
+		    if (e.state)
+			graph.selectflags |= DATA_GRAPH_EDGE;
+		    else graph.selectflags &= (~DATA_GRAPH_EDGE);
+		    break;
+
+		case "fill_bottom":
+		    graph.fillmodel = BOTTOM;
+		    break;
+
+		case "fill_left":
+		    graph.fillmodel = LEFT;
+		    break;
+
+		case "fill_none":
+		    graph.fillmodel = NONE;
+		    break;
+
+		case "fill_right":
+		    graph.fillmodel = RIGHT;
+		    break;
+
+		case "fill_top":
+		    graph.fillmodel = TOP;
+		    break;
+
+		case "nodes_hide_all":
+		    if (e.state)
+			graph.nodeflags |= 0x01;
+		    else graph.nodeflags &= (~0x01);
+		    break;
+
+		case "nodes_hide_labels":
+		    if (e.state)
+			graph.labelflags |= LABEL_HIDENODE;
+		    else graph.labelflags &= ~LABEL_HIDENODE;
+		    break;
+
+		case "nodes_hide_unselected":
+		    if (e.state)
+			graph.nodeflags |= 0x04;
+		    else graph.nodeflags &= (~0x04);
+		    break;
+
+		case "nodes_selectable":
+		    if (e.state)
+			graph.selectflags |= DATA_GRAPH_NODE;
+		    else graph.selectflags &= (~DATA_GRAPH_NODE);
+		    break;
+
+		case "reverse_video":
+		    ReverseVideo();
+		    break;
+
+		case "show_accumulate":
+		    graph.accumulate = e.state;
+		    break;
+
+		case "slider_outline_nodes":
+		    if (e.state)
+			components.$_slider_panel.nextcard = "$_node_outline_slider";
+		    break;
+
+		case "slider_scale_edges":
+		    if (e.state)
+			components.$_slider_panel.nextcard = "$_edge_slider";
+		    break;
+
+		case "slider_scale_nodes":
+		    if (e.state)
+			components.$_slider_panel.nextcard = "$_node_slider";
+		    break;
+
+		case "slider_zoom":
+		    if (e.state)
+			components.$_slider_panel.nextcard = "$_zoom_slider";
+		    break;
+
+		case "tips_dropped":
+		    graph.tipdropped = e.state;
+		    break;
+
+		case "tips_enabled":
+		    graph.tipenabled = e.state;
+		    break;
+
+		case "tips_over_edges":
+		    if (e.state)
+			graph.tipflags |= TIP_OVER_EDGES;
+		    else graph.tipflags &= (~TIP_OVER_EDGES);
+		    break;
+
+		case "tips_over_nodes":
+		    if (e.state)
+			graph.tipflags |= TIP_OVER_NODES;
+		    else graph.tipflags &= (~TIP_OVER_NODES);
+		    break;
+
+		case "tips_show_count":
+		    if (e.state)
+			graph.tipflags |= TIP_SHOW_COUNT;
+		    else graph.tipflags &= (~TIP_SHOW_COUNT);
+		    break; //// TODO: TIP_SHOW_COUNTPCNT
+
+		default:
+		    if (startsWith(e.item, PREFIX_COLORS)) {
+			if (e.state) {
+			    filtertag = e.item + PREFIX_COLORS@sizeof;
+			    if (filtertag === graph.tag)
+				filtertag = NULL;
+			    datamanager.SetColoredBy(filtertag);
+			}
+		    } else Warn("MenuBar ItemEvent %s is unimplemented", e.item);
+		    break;
+	    }
+	}
+
+	windowClosing(e) {
+	    HideScreen();
+	}
+
+	windowOpened(e) {
+	    SyncPrimaryOperation();
+	}
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	AfterLoad() {
+	    SyncZoomScale();
+	}
+
+	ClearGraph() {
+	    datamanager.Load(NULL, NULL);
+	    graph.hbar.ClearScrollbar();
+	    graph.vbar.ClearScrollbar();
+	    components.$_zoom_slider.SyncSlider(TRUE);
+	}
+
+	ClearScreen() {
+	    ClearGraph();
+	    components.$_datechoice.SetItems(NULL);
+	}
+
+	Flash(Array elements) {
+	    Array highlighted;
+	    int   n;
+
+	    if (elements@length > 0) {
+		highlighted = graph.highlighted;
+		for (n = 0; n < 3; n++) {
+		    graph.highlighted = elements;
+		    sleep(0.25);
+		    graph.highlighted = NULL;
+		    sleep(0.25);
+		}
+		graph.highlighted = highlighted;
+	    }
+	}
+
+	HelpAbout() {
+	    showMessageDialog(this, GetVersionInfo());
+	}
+
+	HideScreen() {
+	    if (mainscreen) {
+		datamanager.Dispose();
+		global.Quit(0);
+	    } else visible = FALSE;
+	}
+
+	KeyPressed(Event e) {
+	    if (e.keycode == DNDKEYCODE) {
+		if (graph.alive) {
+		    graph.alive = FALSE;
+		    graph.cursor = DNDCURSOR;
+		    addEventHandler(graph, "dragGestureRecognized", EVENT_HANDLERS.DragGestureRecognized);
+		} else {
+		    removeEventHandler(graph, "dragGestureRecognized");
+		    graph.alive = TRUE;
+		    graph.cursor = Cursor.STANDARD_CURSOR;
+		}
+	    }
+	}
+
+	LoadBrowse(Pointer loader) {
+	    if (fileloader == NULL)
+		fileloader = NewFileDialog(LOAD, this);
+	    fileloader.Load(loader);
+	}
+
+	LoadPath(Pointer loader) {
+	    String path;
+
+	    if (loader != NULL) {
+		if ((path = showInputDialog(this, "Load data from a File or URL")) != NULL)
+		    (*loader)(path);
+	    }
+	}
+
+	MouseWheelMoved(Event e) {
+	    if ((e.modifiers&BUTTON_MASK) == 0) {
+		//
+		// Holding CTRL means use the center as the lock point,
+		// which should duplicate the zoom slider behavior. The
+		// old version called the zoom slider's mouseWheelMoved()
+		// event handler, but for now we just use the new zoom()
+		// builtin.
+		//
+		graph.zoom(
+		    components.$_zoom_slider.NextZoomScale(e.wheelrotation),
+		    (e.modifiers&CTRL_MASK) ? NULL : e.location
+		);
+		SyncZoomScale();
+	    }
+	}
+
+	Moved(Object elements) {
+	    if (elements == NULL)
+		graph.moved = NULL;
+	}
+
+	ReverseVideo() {
+	    Object temp;
+
+	    temp = graph.background;
+	    graph.background = graph.foreground;
+	    graph.foreground = temp;
+	}
+
+	SaveFile(String text) {
+	    //
+	    // Probably should be no way to get here when the input file
+	    // was an xdot file that when through an extra translation
+	    // step because what we save can't be reloaded the same way.
+	    // May be disabled for everyone, which is overkill that we
+	    // probably should adddress - later.
+	    // 
+	    if (filesaver == NULL)
+		filesaver = NewFileDialog(SAVE, this);
+	    filesaver.Save(text);
+	}
+
+	SyncColoredBy(String name) {
+	    Object pattern;
+	    int    state;
+
+	    if (name == NULL) {
+		pattern = new Regexp {
+		    String pattern = PREFIX_COLORS + ".*";
+		};
+		state = FALSE;
+	    } else {
+		pattern = PREFIX_COLORS + name;
+		state = TRUE;
+	    }
+
+	    //
+	    // This assumes a version of the Yoix interpreter that accepts
+	    // a regular expression as the pattern argument. Use try/catch
+	    // if you're using an older interpreter.
+	    //
+
+	    menubar.setState(pattern, state);
+	}
+
+	SyncPrimaryOperation() {
+	    components.$_mode_choice.SyncPrimaryOperation();
+	}
+
+	SyncZoomScale() {
+	    components.$_zoom_slider.SyncSlider(FALSE);
+	}
+    };
+
+    return(new JFrame initializer);
+}
+
+//
+// Helper functions, mostly for simple screens.
+//
+
+NewCustomBuckets(Object primaryplot, String title, Object parent) {
+    //
+    // Screen currently only supports simple bucket width adjustment, but
+    // we could add a little more if there's a demand.
+    //
+
+    Dictionary initializer = {
+	Dimension size = NULL;
+	Object    primaryplot = primaryplot;
+	Object    parent = parent;
+	String    title = title;
+	double    border = 72.0/8;
+	Font      font = FONTS.large_text;
+	int       resizable = FALSE;
+	int       initialized = FALSE;
+
+	Dimension preferredsize = {
+	    double width = 4*72.0;
+	};
+
+	double initial_bucketwidth = -1;
+
+	GridBagLayout layoutmanager;
+	Array layout = {
+	    new JPanel {
+		String tag = "$_bucketwidth_panel";
+
+		EtchedBorder border = {
+		    String title = "Bucket Width";
+		};
+
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JSlider {
+			String tag = "$_bucketwidth_slider";
+			Font   font = FONTS.medium_text;
+			int    orientation = HORIZONTAL;
+			int    snaptoticks = TRUE;
+			int    majortickspacing = 1;
+			int    minortickspacing = 1;
+			int    minimum = 0;
+			int    maximum = 0;
+			int    value = 0;
+			int    adjusted = FALSE;
+
+			//
+			// Slider maps to these values.
+			//
+
+			double low;
+			double high;
+			double step;
+			String format = "%d";
+
+			mouseWheelMoved(e) {
+			    adjusted = TRUE;
+			    value -= e.wheelrotation;
+			}
+
+			stateChanged(Event e) {
+			    double width = GetWidth();
+			    Object unixtime = root.primaryplot.unixtime;
+			    int    n;
+
+			    if (unixtime instanceof Number && unixtime != 0)
+				root.components.$_bucketwidth_label.text = timerFormat("D'd'Hh'h'Mm'm'Ss's'", width);
+			    else root.components.$_bucketwidth_label.text = strfmt(format, width);
+
+			    if (adjusting == 0) {
+				if (adjusted)
+				    root.SetBucketWidth(width);
+			    } else adjusted = TRUE;
+			}
+
+			GetWidth() {
+			    return(low + step*value);
+			}
+
+			SetSlider(Array desc) {
+			    //
+			    // Only called right before the screen is shown
+			    // the first time.
+			    //
+
+			    if (desc@sizeof == 2 || desc@sizeof == 3) {
+				low = desc[0];
+				if (desc@sizeof == 2) {
+				    step = desc[0];
+				    maximum = (desc[1] - desc[0])/step;
+				} else {
+				    step = desc[1];
+				    maximum = desc[2];
+				}
+				format = (low != (int)low || step != (int)step) ? "%.1f" : "%d";
+			    } else enabled = FALSE;
+			}
+
+			SyncValue(double width, int adjusted) {
+			    this.adjusted = adjusted;
+			    this.value = (width - low)/step;
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int weightx = 1;
+			int fill = HORIZONTAL;
+
+			Insets insets = {
+			    double bottom = 72.0/16;
+			};
+		    },
+
+		    new JLabel {
+			String tag = "$_bucketwidth_label";
+		    },
+		    new GridBagConstraints {
+			int gridwidth = RELATIVE;
+			int anchor = LEFT;
+		    },
+
+		    new JButton {
+			String text = "Reset";
+
+			actionPerformed(Event e) {
+			    root.Reset();
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int anchor = RIGHT;
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int fill = HORIZONTAL;
+
+		Insets insets = {
+		    double top = 72.0/8;
+		};
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	windowClosing(Event e) {
+	    SetVisible(FALSE);
+	    return(TRUE);
+	}
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	Reset() {
+	    parent.SetBucketWidth(root.initial_bucketwidth);
+	    SyncSlider();
+	}
+
+	SetBucketWidth(double width) {
+	    if (defined("SetBucketWidth", parent))
+		parent.SetBucketWidth(width);
+	}
+
+	SetVisible(state) {
+	    double width = -1;
+	    Array  plotstyle;
+	    Array  buckets;
+	    Point  location;
+
+	    if (!initialized) {
+		if (primaryplot.bucketinfo != NULL)
+		    initial_bucketwidth = primaryplot.bucketinfo[1];
+		location.x = parent.location.x + (parent.size.width - this.size.width)/2;
+		location.y = parent.location.y + parent.size.height - 72.0/2;
+		if (location.y + this.size.height > VM.screen.height)
+		    location.y -= (location.y + this.size.height - VM.screen.height);
+		this.location = location;
+		this.initialized = TRUE;
+	    }
+	    if (state)
+		SyncSlider();
+	    this.visible = state;
+	}
+
+	SyncSlider() {
+	    double width = -1;
+	    Array  plotstyle;
+	    Array  buckets;
+
+	    width = initial_bucketwidth;
+	    if ((plotstyle = primaryplot.plotstyle) != NULL) {
+		if ((buckets = plotstyle[1]) != NULL)
+		    width = buckets[1];
+	    }
+	    components.$_bucketwidth_slider.SetSlider(primaryplot.bucketwidthslider);
+	    components.$_bucketwidth_slider.SyncValue(width, FALSE);
+	}
+    };
+
+    return(new JFrame initializer);
+}
+
+NewCustomDrawingSizes(Object primaryplot, Array plots, String title, Object parent) {
+    Dictionary initializer = {
+	Dimension size = NULL;
+	Array     plots = plots;
+	Object    primaryplot = primaryplot;
+	Object    parent = parent;
+	String    title = title;
+	double    border = 72.0/8;
+	Font      font = FONTS.large_text;
+	int       resizable = FALSE;
+	int       initialized = FALSE;
+
+	Dimension preferredsize = {
+	    double width = 4*72.0;
+	};
+
+	double initial_barwidth = -1;
+	double initial_pointsize = -1;
+
+	GridBagLayout layoutmanager;
+	Array layout = {
+	    new JPanel {
+		String tag = "$_barwidth_panel";
+
+		EtchedBorder border = {
+		    String title = "Bar Width";
+		};
+
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JSlider {
+			String tag = "$_barwidth_slider";
+			Font   font = FONTS.medium_text;
+			int    orientation = HORIZONTAL;
+			int    snaptoticks = TRUE;
+			int    majortickspacing = 10;
+			int    minortickspacing = 1;
+			int    minimum = 0;
+			int    maximum = 180;
+			int    value = maximum + 1;
+			int    adjusted = FALSE;
+
+			mouseWheelMoved(e) {
+			    adjusted = TRUE;
+			    value -= e.wheelrotation;
+			}
+
+			stateChanged(Event e) {
+			    double width = (double)value/majortickspacing;
+			    int    n;
+
+			    root.components.$_barwidth_label.text = strfmt("%.1f", width);
+			    if (adjusting == 0) {
+				if (adjusted)
+				    root.SetBarWidth(width);
+			    } else adjusted = TRUE;
+			}
+
+			SyncValue(double value, int adjusted) {
+			    this.adjusted = adjusted;
+			    this.value = value*majortickspacing;
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int weightx = 1;
+			int fill = HORIZONTAL;
+
+			Insets insets = {
+			    double bottom = 72.0/16;
+			};
+		    },
+
+		    new JLabel {
+			String tag = "$_barwidth_label";
+		    },
+		    new GridBagConstraints {
+			int gridwidth = RELATIVE;
+			int anchor = LEFT;
+		    },
+
+		    new JButton {
+			String text = "Reset";
+
+			actionPerformed(Event e) {
+			    root.components.$_barwidth_slider.SyncValue(root.initial_barwidth, TRUE);
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int anchor = RIGHT;
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int fill = HORIZONTAL;
+
+		Insets insets = {
+		    double top = 72.0/8;
+		};
+	    },
+
+	    new JPanel {
+		String tag = "$_pointsize_panel";
+
+		EtchedBorder border = {
+		    String title = "Point Size";
+		};
+
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JSlider {
+			String tag = "$_pointsize_slider";
+			Font   font = FONTS.medium_text;
+			int    orientation = HORIZONTAL;
+			int    snaptoticks = TRUE;
+			int    majortickspacing = 10;
+			int    minortickspacing = 1;
+			int    minimum = 0;
+			int    maximum = 180;
+			int    value = maximum + 1;
+			int    adjusted = FALSE;
+
+			mouseWheelMoved(e) {
+			    adjusted = TRUE;
+			    value -= e.wheelrotation;
+			}
+
+			stateChanged(Event e) {
+			    double size = (double)value/majortickspacing;
+			    int    n;
+
+			    root.components.$_pointsize_label.text = strfmt("%.1f", size);
+			    if (adjusting == 0) {
+				if (adjusted)
+				    root.SetPointSize(size);
+			    } else adjusted = TRUE;
+			}
+
+			SyncValue(double value, int adjusted) {
+			    this.adjusted = adjusted;
+			    this.value = value*majortickspacing;
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int weightx = 1;
+			int fill = HORIZONTAL;
+
+			Insets insets = {
+			    double bottom = 72.0/16;
+			};
+		    },
+
+		    new JLabel {
+			String tag = "$_pointsize_label";
+		    },
+		    new GridBagConstraints {
+			int gridwidth = RELATIVE;
+			int anchor = LEFT;
+		    },
+
+		    new JButton {
+			String text = "Reset";
+
+			actionPerformed(Event e) {
+			    root.components.$_pointsize_slider.SyncValue(root.initial_pointsize, TRUE);
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int anchor = RIGHT;
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int fill = HORIZONTAL;
+
+		Insets insets = {
+		    double top = 72.0/8;
+		};
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	windowClosing(Event e) {
+	    SetVisible(FALSE);
+	    return(TRUE);
+	}
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	SetBarWidth(double value) {
+	    int n;
+
+	    if (plots != NULL) {
+		for (n = 0; n < plots@sizeof; n++) {
+		    if (plots[n] instanceof EventPlot)
+			plots[n].linewidth = value;		// eventually have a barwidth field?
+		}
+	    }
+	}
+
+	SetPointSize(double value) {
+	    int n;
+
+	    if (plots != NULL) {
+		for (n = 0; n < plots@sizeof; n++) {
+		    if (plots[n] instanceof EventPlot) {
+			plots[n].pointsize = value;
+		    }
+		}
+	    }
+	}
+
+	SetVisible(state) {
+	    Point location;
+
+	    if (!initialized) {
+		if (primaryplot instanceof EventPlot) {
+		    initial_barwidth = primaryplot.linewidth;
+		    initial_pointsize = primaryplot.pointsize;
+		}
+		location.x = parent.location.x + (parent.size.width - this.size.width)/2;
+		location.y = parent.location.y + parent.size.height - 72.0/2;
+		if (location.y + this.size.height > VM.screen.height)
+		    location.y -= (location.y + this.size.height - VM.screen.height);
+		this.location = location;
+		this.initialized = TRUE;
+	    }
+
+	    if (state) {
+		if (primaryplot instanceof EventPlot) {
+		    components.$_barwidth_slider.SyncValue(primaryplot.linewidth, FALSE);
+		    components.$_pointsize_slider.SyncValue(primaryplot.pointsize, FALSE);
+		}
+	    }
+	    this.visible = state;
+	}
+    };
+
+    return(new JFrame initializer);
+}
+
+NewCustomTimeshading(Array plots, String title, Object parent) {
+    Dictionary initializer = {
+	Dimension size = NULL;
+	Array     plots = plots;
+	Object    parent = parent;
+	String    title = title;
+	double    border = 72.0/8;
+	Font      font = FONTS.large_text;
+	int       resizable = FALSE;
+	int       initialized = FALSE;
+
+	Dimension preferredsize = {
+	    double width = 7*72.0;
+	};
+
+	GridBagLayout layoutmanager;
+	Array layout = {
+	    new JPanel {
+		String tag = "$_weekdays_panel";
+		EtchedBorder border = {
+		    String title = "Week Days";
+		};
+
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JPanel {
+			Array layout = {
+			    new JCheckBox {
+				String text = "Sun";
+				int    state = FALSE;
+
+				itemStateChanged(Event e) {
+				    root.SetWeekDay(0, state);
+				}
+			    },
+			    new JCheckBox {
+				String text = "Mon";
+				int    state = TRUE;
+
+				itemStateChanged(Event e) {
+				    root.SetWeekDay(1, state);
+				}
+			    },
+			    new JCheckBox {
+				String text = "Tue";
+				int    state = TRUE;
+
+				itemStateChanged(Event e) {
+				    root.SetWeekDay(2, state);
+				}
+			    },
+			    new JCheckBox {
+				String text = "Wed";
+				int    state = TRUE;
+
+				itemStateChanged(Event e) {
+				    root.SetWeekDay(3, state);
+				}
+			    },
+			    new JCheckBox {
+				String text = "Thu";
+				int    state = TRUE;
+
+				itemStateChanged(Event e) {
+				    root.SetWeekDay(4, state);
+				}
+			    },
+			    new JCheckBox {
+				String text = "Fri";
+				int    state = TRUE;
+
+				itemStateChanged(Event e) {
+				    root.SetWeekDay(5, state);
+				}
+			    },
+			    new JCheckBox {
+				String text = "Sat";
+				int    state = FALSE;
+
+				itemStateChanged(Event e) {
+				    root.SetWeekDay(6, state);
+				}
+			    },
+			};
+		    },
+		    new GridBagConstraints {
+			int anchor = LEFT;
+			int weightx = 1;
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int fill = HORIZONTAL;
+	    },
+
+	    new JPanel {
+		String tag = "$_starthour_panel";
+
+		EtchedBorder border = {
+		    String title = "Start Hour";
+		};
+
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JSlider {
+			String tag = "$_starthour_slider";
+			Font   font = FONTS.medium_text;
+			int    orientation = HORIZONTAL;
+			int    snaptoticks = TRUE;
+			int    majortickspacing = 12;
+			int    minortickspacing = 1;
+			int    minimum = 0;
+			int    maximum = 23;
+			int    value = maximum + 1;
+
+			mouseWheelMoved(e) {
+			    value -= e.wheelrotation;
+			}
+
+			stateChanged(Event e) {
+			    root.SetStartHour(value);
+			    root.components.$_starthour_label.text = toString(value);
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int anchor = LEFT;
+			int fill = HORIZONTAL;
+			int weightx = 1;
+		    },
+
+		    new JLabel {
+			String tag = "$_starthour_label";
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int anchor = LEFT;
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int gridx = RELATIVE;
+		int fill = HORIZONTAL;
+		int weightx = 1;
+
+		Insets insets = {
+		    double top = 72.0/8;
+		};
+	    },
+
+	    new JPanel {
+		String tag = "$_endhour_panel";
+
+		EtchedBorder border = {
+		    String title = "End Hour";
+		};
+
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JSlider {
+			String tag = "$_endhour_slider";
+			Font   font = FONTS.medium_text;
+			int    orientation = HORIZONTAL;
+			int    snaptoticks = TRUE;
+			int    majortickspacing = 12;
+			int    minortickspacing = 1;
+			int    minimum = 0;
+			int    maximum = 23;
+			int    value = maximum + 1;
+
+			mouseWheelMoved(e) {
+			    value -= e.wheelrotation;
+			}
+
+			stateChanged(Event e) {
+			    root.SetEndHour(value);
+			    root.components.$_endhour_label.text = toString(value);
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int anchor = LEFT;
+			int fill = HORIZONTAL;
+			int weightx = 1;
+		    },
+
+		    new JLabel {
+			String tag = "$_endhour_label";
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int anchor = LEFT;
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int fill = HORIZONTAL;
+		int weightx = 1;
+
+		Insets insets = {
+		    double top = 72.0/8;
+		};
+	    },
+
+	    new JPanel {
+		String tag = "$_timezone_panel";
+
+		EtchedBorder border = {
+		    String title = "Time Zone";
+		};
+
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JSlider {
+			String tag = "$_timezone_slider";
+			Font   font = FONTS.medium_text;
+			int    orientation = HORIZONTAL;
+			int    snaptoticks = TRUE;
+			int    majortickspacing = 12;
+			int    minortickspacing = 1;
+			int    minimum = -12;
+			int    maximum = 12;
+			int    value = maximum + 1;
+
+			mouseWheelMoved(e) {
+			    value -= e.wheelrotation;
+			}
+
+			stateChanged(Event e) {
+			    Array plots = root.plots;
+			    int   n;
+
+			    if (plots != NULL) {
+				for (n = 0; n < plots@sizeof; n++) {
+				    if (plots[n] instanceof EventPlot) {
+					if (plots[n].unixtime != NULL)
+					    plots[n].unixtime = 3600*value;
+				    }
+				}
+				root.components.$_timezone_choice.selected = toString(value);
+				root.components.$_timezone_label.text = toString(value);
+			    }
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int weightx = 1;
+			int fill = HORIZONTAL;
+		    },
+
+		    new JLabel {
+			String tag = "$_timezone_label";
+		    },
+		    new GridBagConstraints {
+			int gridx = RELATIVE;
+			int anchor = LEFT;
+		    },
+
+		    new JChoice {
+			String tag = "$_timezone_choice";
+			String selected = "0";
+			Array  items = TIMESHADING_TIMEZONES;
+
+			itemStateChanged(Event e) {
+			    if (selected != NULL)
+				root.components.$_timezone_slider.value = atoi(selected);
+			}
+		    },
+		    new GridBagConstraints {
+			int gridwidth = REMAINDER;
+			int anchor = RIGHT;
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int fill = HORIZONTAL;
+
+		Insets insets = {
+		    double top = 72.0/8;
+		};
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	windowClosing(Event e) {
+	    SetVisible(FALSE);
+	    return(TRUE);
+	}
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	SetEndHour(int hour) {
+	    Dictionary shadetimes;
+	    int        n;
+
+	    if (plots != NULL) {
+		for (n = 0; n < plots@sizeof; n++) {
+		    if (plots[n] instanceof EventPlot) {
+			if ((shadetimes = plots[n].shadetimes) != NULL) {
+			    shadetimes.peakstop = hour;
+			    plots[n].shadetimes = shadetimes;
+			}
+		    }
+		}
+	    }
+	}
+
+	SetStartHour(int hour) {
+	    Dictionary shadetimes;
+	    int        n;
+
+	    if (plots != NULL) {
+		for (n = 0; n < plots@sizeof; n++) {
+		    if (plots[n] instanceof EventPlot) {
+			if ((shadetimes = plots[n].shadetimes) != NULL) {
+			    shadetimes.peakstart = hour;
+			    plots[n].shadetimes = shadetimes;
+			}
+		    }
+		}
+	    }
+	}
+
+	SetVisible(state) {
+	    Dictionary shadetimes;
+	    Point      location;
+	    int        n;
+
+	    if (!initialized) {
+		location.x = parent.location.x + (parent.size.width - this.size.width)/2;
+		location.y = parent.location.y + parent.size.height - 72.0/2;
+		if (location.y + this.size.height > VM.screen.height)
+		    location.y -= (location.y + this.size.height - VM.screen.height);
+		this.location = location;
+		this.initialized = TRUE;
+	    }
+
+	    if (state) {
+		if (plots != NULL) {
+		    for (n = 0; n < plots@sizeof; n++) {
+			if (plots[n] instanceof EventPlot) {
+			    if (shadetimes == NULL)
+				shadetimes = plots[n].shadetimes;
+			    if (plots[n].unixtime != NULL) {
+				if (plots[n].unixtime instanceof Number) {
+				    components.$_timezone_panel.enabled = TRUE;
+				    components.$_timezone_slider.value = plots[n].unixtime/3600;
+				} else components.$_timezone_panel.enabled = FALSE;
+				break;
+			    }
+			}
+		    }
+		    if (shadetimes != NULL) {
+			components.$_starthour_slider.value = shadetimes.peakstart;
+			components.$_endhour_slider.value = shadetimes.peakstop;
+		    }
+		}
+	    }
+	    this.visible = state;
+	}
+
+	SetWeekDay(int index, int state) {
+	    Dictionary shadetimes;
+	    int        mask;
+	    int        n;
+
+	    if (plots != NULL) {
+		mask = (1 << index);
+		for (n = 0; n < plots@sizeof; n++) {
+		    if (plots[n] instanceof EventPlot) {
+			if ((shadetimes = plots[n].shadetimes) != NULL) {
+			    if (state)
+				shadetimes.peakdays |= mask;
+			    else shadetimes.peakdays &= ~mask;
+			    plots[n].shadetimes = shadetimes;
+			}
+		    }
+		}
+	    }
+	}
+    };
+
+    return(new JFrame initializer);
+}
+
+NewFileDialog(int mode, Object parent) {
+    Dictionary initializer = {
+	Object parent = parent;
+	int    mode = mode;
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	windowClosing(Event e) {
+	    this.visible = FALSE;
+	    return(TRUE);
+	}
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	GetPath() {
+	    String path;
+
+	    visible = TRUE;
+	    if (this instanceof FileDialog) {
+		if (directory != NULL && file != NULL) {
+		    path = yoixPath(directory + "/" + file);
+		    directory = directory;		// so we start here next time
+		}
+	    } else path = file;
+	    return(path);
+	}
+
+	Load(Pointer loader) {
+	    String path;
+	    String text;
+	    Stream stream;
+
+	    if ((path = GetPath()) != NULL) {
+		if (loader == NULL) {
+		    if ((stream = open(path, "r")) != NULL) {
+			text = readStream(stream);
+			close(stream);
+		    } else Warn("can't open %s", path);
+		} else (*loader)(path);
+	    }
+
+	    return(text);
+	}
+
+	Save(String text) {
+	    String path;
+	    Stream stream;
+
+	    if ((path = GetPath()) != NULL) {
+		if ((stream = open(path, "w")) != NULL) {
+		    write(stream, text);
+		    close(stream);
+		} else Warn("can't open %s", path);
+	    }
+	}
+    };
+
+    return(new JFileDialog initializer);
+}
+
+NewMonitorThread(...) {
+    //
+    // This returns a thread that shows a small screen that can be used to
+    // track DataManager status during initialization. The low level details
+    // are buried in the DataManager's Java code, but all a Yoix script has
+    // to do is assign this thread to the DataManager's monitor field.
+    //
+    Thread thread = {
+	int priority = yoix.thread.MAX_PRIORITY - 1;
+
+	JWindow progress_screen = {
+	    Dimension size = NULL;
+	    String    font = "Helvetica-bold-12";
+	    int       autodispose = TRUE;
+
+	    BevelBorder border = {
+		int raised = TRUE;
+		EmptyBorder child = {
+		    Insets insets = {
+			double top = 72.0/4;
+			double left = 72.0/4;
+			double bottom = 72.0/16;
+			double right = 72.0/4;
+		    };
+		};
+	    };
+
+	    Point dragpoint = NULL;
+
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		new JProgressBar {
+		    String tag = "$_bar";
+		    String text = NULL;
+		    Color  background = Color.white;
+		    Color  foreground = Color.blue;
+		    int    orientation = HORIZONTAL;
+
+		    Dimension preferredsize = {
+			double width = 4.5*72.0;
+			double height = 0.25*72.0;
+		    };
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 100;
+		    int weighty = 100;
+		    int fill = HORIZONTAL;
+
+		    Insets insets = {
+			double bottom = 72.0/16;
+		    };
+		},
+
+		new JLabel {
+		    String tag = "$_elapsed";
+		    int    alignment = RIGHT;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int anchor = RIGHT;
+	        },
+	    };
+
+	    ////////////////////////////
+	    //
+	    // Event Handlers
+	    //
+	    ////////////////////////////
+
+	    mousePressed(e) {
+		toFront(this);
+		dragpoint = e.location;
+		cursor = Cursor.MOVE_CURSOR;
+	    }
+
+	    mouseDragged(e) {
+		Point  point = this.location;
+
+		point.x += (e.location.x - dragpoint.x);
+		point.y += (e.location.y - dragpoint.y);
+		this.location = point;
+	    }
+
+	    mouseReleased(e) {
+		dragpoint = NULL;
+		cursor = Cursor.DEFAULT_CURSOR;
+	    }
+
+	    ////////////////////////////
+	    //
+	    // Miscellaneous Functions
+	    //
+	    ////////////////////////////
+
+	    ShowScreen() {
+		if (!visible) {
+		    location = new Point {
+			double x = (VM.screen.width - size.width)/2;
+			double y = (VM.screen.height - size.height)/2 - 72;
+		    };
+		    visible = TRUE;
+		}
+	    }
+
+	    UpdateStatus(Array status) {
+		String info = status[1];
+		String elapsed = timerFormat(status[2]);
+		int    indeterminant;
+
+		switch (status[0]) {
+		    case 0:		// idle	- probably impossible
+		    case 1:		// running
+			indeterminant = TRUE;
+			break;
+
+		    case 2:		// loading data
+		    case 3:		// building records
+		    case 4:		// loading components
+			info += ": " + toString((int)status[4]) + "/" + toString((int)status[5]);
+			indeterminant = FALSE;
+			break;
+
+		    default:
+			info = "Unknown State";
+			indeterminant = TRUE;
+			break;
+		}
+
+		components.$_bar.text = status[1];
+		components.$_bar.maximum = (int)status[5];
+		components.$_bar.value = (int)status[4];
+		components.$_bar.indeterminate = indeterminant;
+		components.$_elapsed.text = elapsed;
+	    }
+	};
+
+	run(...) {
+	    Object manager;
+
+	    //
+	    // NOTE - progress_screen should have autodispose set to TRUE,
+	    // so this will only run once, which we think is usually what
+	    // is wanted.
+	    //
+
+	    if (!progress_screen.dispose) {
+		if (argc > 1) {
+		    manager = argv[1];
+		    progress_screen.ShowScreen();
+		    yoix.thread.sleep(.25);
+		    while (1) {
+			progress_screen.UpdateStatus(manager.getState());
+			yoix.thread.sleep(.25);
+		    }
+		    progress_screen.visible = FALSE;
+		}
+	    }
+	}
+
+	afterInterrupt() {
+	    progress_screen.visible = FALSE;
+	}
+    };
+
+    return(thread);
+}
+
+NewSnapshotScreen(Object target, Color foreground, Object parent, String title, int counter) {
+    Dimension size;
+    Object    screen;
+    Image     image;
+
+    if ((image = captureScreen(target)) != NULL) {
+	if ((size = image.size) != NULL) {
+	    if (size.width > 0 && size.height > 0) {
+		screen = new JFrame {
+		    Dimension size = NULL;
+		    Dimension preferredsize = NULL;		// kludge - currently required or JFrame field won't exist
+		    String    title = title + " - Snapshot " + toString(counter);
+		    Object    parent = parent;
+
+		    Dimension thumbnailsize = {
+			double width = 1.5*72.0;
+			double height = 1.5*72.0;
+		    };
+
+		    String original_title = title;
+		    Image  original_image = image;
+		    Array  savedlocations = {NULL, NULL};
+
+		    Array layout = {
+			new JCanvas {
+			    Dimension size = image.size;
+			    Dimension preferredsize = image.size;
+			    Image     backgroundimage = image;
+			    int       backgroundhints = SCALE_DEFAULT;
+			    int       requestfocus = TRUE;
+
+			    Graphics graphics = {
+				Color foreground = foreground;
+			    };
+
+			    Array marks[0, ...];
+			    Array currentmark;
+			    int   enablemarks = FALSE;
+
+			    JPopupMenu popup = {
+				Array items = {
+				    new JMenuItem {
+					String tag = "$_changestate";
+					String text = "";
+
+					actionPerformed(e) {
+					    root.root.ToggleScreenState(root.root.CurrentScreenState());
+					}
+				    },
+				    NULL,
+				    new JMenuItem {
+					String text = "New Title";
+
+					actionPerformed(e) {
+					    addEventHandler(root, "keyTyped", root.KeyTyped);
+					    root.root.title = "|";	// simple text caret
+					}
+				    },
+				    new JMenuItem {
+					String text = "Old Title";
+
+					actionPerformed(e) {
+					    removeEventHandler(root, "keyTyped");
+					    root.root.title = root.root.original_title;
+					}
+				    },
+				    NULL,
+				    new JCheckBoxMenuItem {
+					String text = "Mark Screen";
+					int    state = FALSE;
+
+					itemStateChanged(e) {
+					    root.enablemarks = e.state;
+					}
+				    },
+				    new JMenuItem {
+					String text = "Clear Marks";
+
+					actionPerformed(e) {
+					    root.ClearMarks();
+					}
+				    },
+				};
+			    };
+
+			    componentResized(e) {
+				backgroundimage = root.original_image;
+				graphics.initmatrix();
+				graphics.scale(size.width/preferredsize.width, size.height/preferredsize.height);
+				repaint();
+			    }
+
+			    mouseClicked(e) {
+				if (e.clickcount > 1)
+				    root.ToggleScreenState(root.CurrentScreenState());
+			    }
+
+			    mouseDragged(Event e) {
+				double x = e.coordinates.x;
+				double y = e.coordinates.y;
+				int    count;
+
+				if (enablemarks) {
+				    if (currentmark != NULL) {
+					if (currentmark[0] == 0) {
+					    if ((count = currentmark@sizeof)%6 == 1) {
+						currentmark[count++] = (x + currentmark[count-3])/2;
+						currentmark[count++] = (y + currentmark[count-3])/2;
+						DrawSpline(&currentmark[count-8]);
+					    }
+					    currentmark[count++] = x;
+					    currentmark[count++] = y;
+					}
+				    }
+				}
+			    }
+
+			    mousePressed(e) {
+				if (!e.popuptrigger) {
+				    if (enablemarks)
+					currentmark = new Array[2, ...] {0, e.coordinates.x, e.coordinates.y};
+				} else ShowPopup(e.location);
+			    }
+
+			    mouseReleased(e) {
+				int count;
+
+				if (!e.popuptrigger) {
+				    if (enablemarks) {
+					if ((count = currentmark@sizeof) > 0) {
+					    if (currentmark[0] == 0 && count > 8)
+						marks[marks@sizeof] = currentmark;
+					    currentmark = NULL;
+					}
+				    }
+				} else ShowPopup(e.location);
+			    }
+
+			    paint(Rectangle rect) {
+				graphics {
+				    gsave();
+				    rectclip(rect);
+				    for (mark in marks) {
+					if (mark[0][0] == 0) {
+					    for (spline in &mark[0][1] by 6) {
+						if (spline@sizeof >= 8)
+						    DrawSpline(spline);
+					    }
+					}
+				    }
+				    grestore();
+				}
+			    }
+
+			    DrawSpline(Array control) {
+				graphics.moveto(control[0], control[1]);
+				graphics.curveto(control[2], control[3], control[4], control[5], control[6], control[7]);
+				graphics.stroke();
+			    }
+
+			    KeyTyped(e) {
+				String title = root.title;
+				int    length;
+
+				switch (e.keychar) {
+				    case '\b':
+					if ((length = title@sizeof) > 1) {
+					    root.title = new String[length-2] title;
+					    root.title += "|";
+					}
+					break;
+
+				    case '\n':
+					if ((length = title@sizeof) > 0)
+					    root.title = new String[length-1] title;
+					break;
+
+				    default:
+					if (isprint(e.keychar)) {
+					    if ((length = title@sizeof) > 0)
+						root.title = new String[length-1] title;
+					    root.title += e.keystring + "|";
+					}
+					break;
+				}
+			    }
+
+			    ShowPopup(Point point) {
+				int state = root.CurrentScreenState();
+
+				switch (state) {
+				    case 0:
+					popup.components.$_changestate.text = "Thumbnail";
+					break;
+
+				    default:
+					popup.components.$_changestate.text = "Natural Size";
+					break;
+
+				}
+				popup.location = point;
+				popup.visible = TRUE;
+			    }
+
+			    ClearMarks() {
+			        marks = new Array[0, ...];
+			        currentmark = NULL;
+			        repaint();
+			    }
+			},
+		    };
+
+		    CurrentScreenState() {
+			Dimension size = this.size;
+			int       state = -1;
+
+			if (size.width == preferredsize.width && size.height == preferredsize.height)
+			    state = 0;
+			else if (size.width == thumbnailsize.width && size.height == thumbnailsize.height)
+			    state = 1;
+			return(state);
+		    }
+
+		    ToggleScreenState(int state) {
+			switch (state) {
+			    case 0:		// preferred => thumbnail
+				savedlocations[0] = location;
+				location = savedlocations[1];
+				size = thumbnailsize;
+				thumbnailsize = size;	// so next check works
+				break;
+
+			    case 1:		// thumbnail => preferred
+				savedlocations[1] = location;
+				location = savedlocations[0];
+				size = NULL;
+				break;
+
+			    default:		// unknown => preferred
+				location = savedlocations[0];
+				size = NULL;
+				break;
+			}
+		    }
+		};
+
+		screen.location = new Point {
+		    double x = (VM.screen.width - size.width)/2.0;
+		    double y = (VM.screen.height - size.height)/2.0;
+		};
+		screen.visible = TRUE;
+	    }
+	}
+    }
+}
+
+//
+// Custom components.
+//
+
+BuildBarSpacePanel(Object owner, double height) {
+    //
+    // We weren't particularly happy using any standard Swing components
+    // for the barspace slider, so we decided to build our own. Mostly an
+    // experiment that should be easy to change if you want.
+    //
+
+    JPanel panel = {
+	EtchedBorder border;
+
+	Dimension minimumsize = {
+	    double height = height > 0 ? height : 72.0/4;
+	    double width = height > 0 ? height : 72.0/4;
+	};
+
+	BorderLayout layoutmanager;
+	Array layout = {
+
+	    new JCanvas {
+
+		////////////////////////////
+		//
+		// Custom Variables
+		//
+		////////////////////////////
+
+		Object owner = owner;
+		double slidervalue = owner.barspace;
+		double deltax;
+		double startx;
+		Color  slidercolor = Color.darkGray;
+		Color  sliderdragcolor = Color.gray;
+		Point  dragstart = NULL;
+		Path   sliderpath = NULL;
+		int    dragging = FALSE;
+
+		////////////////////////////
+		//
+		// Event Handlers
+		//
+		////////////////////////////
+
+		componentResized(e) {
+		    EraseSlider();
+		    MakeSlider();
+		    DrawSlider();
+		}
+
+		componentShown(e) {
+		    EraseSlider();
+		    MakeSlider();
+		    DrawSlider();
+		}
+
+		mousePressed(e) {
+		    Rectangle bbox;
+
+		    if (HitSlider(e.location)) {
+			bbox = sliderpath.pathbbox();
+			dragstart = e.location;
+			dragging = TRUE;
+			startx = e.location.x;
+			deltax = startx - (bbox.x + bbox.width/2.0);
+			DrawSlider();
+		    }
+		}
+
+		mouseDragged(e) {
+		    double dx;
+
+		    if (dragging) {
+			if (e.location.x < deltax)
+			    e.location.x = deltax;
+			if (e.location.x > size.width + deltax)
+			    e.location.x = size.width + deltax;
+			if ((dx = e.location.x - dragstart.x) != 0) {
+			    EraseSlider();
+			    dragstart.x = e.location.x;
+			    sliderpath.translatepath(dx, 0);
+			    SetSliderValue(ReadSlider());
+			}
+		    }
+		}
+
+		mouseReleased(e) {
+		    dragging = FALSE;
+		    DrawSlider();
+		}
+
+		paint(r) {
+		    DrawSlider();
+		}
+
+		////////////////////////////
+		//
+		// Support Functions
+		//
+		////////////////////////////
+
+		DrawSlider() {
+		    if (sliderpath != NULL) {
+			graphics {
+			    foreground = dragging ? sliderdragcolor : slidercolor;
+			    setpath(sliderpath);
+			    fill();
+			}
+		    }
+		}
+
+		EraseSlider() {
+		    if (sliderpath != NULL) {
+			graphics {
+			    setpath(sliderpath);
+			    erase();
+			}
+		    }
+		}
+
+		HitSlider(Point p) {
+		    int result = FALSE;
+
+		    if (sliderpath != NULL) {
+			graphics {
+			    setpath(sliderpath);
+			    result = infill(p);
+			    newpath();
+			}
+		    }
+		    return(result);
+		}
+
+		MakeSlider() {
+		    double delta;
+		    Path   path;
+
+		    delta = size.height/2;
+
+		    path {
+			moveto(0, 0);
+			rmoveto(delta, 0);
+			rlineto(-delta, -delta);
+			rlineto(-delta, delta);
+			rlineto(delta, delta);
+			closepath();
+			moveto(0, 0);
+			scalepath(1.5, 0.8);
+		    }
+		    sliderpath = path;
+		    sliderpath.translatepath(size.width*slidervalue, delta);
+		}
+
+		ReadSlider() {
+		    Rectangle bbox;
+		    double    value = slidervalue;
+
+		    if (sliderpath != NULL) {
+			bbox = sliderpath.pathbbox();
+			value = (bbox.x + bbox.width/2.0)/size.width;
+		    }
+		    return(value);
+		}
+
+		SetSliderValue(double value) {
+		    slidervalue = (value >= 0 && value <= 1) ? value : (value < 0 ? 0 : 1);
+		    DrawSlider();
+		    owner.barspace = slidervalue;
+		}
+	    }, CENTER,
+	};
+    };
+
+    return(panel);
+}
+
+BuildFindPanel(Object owner, int visible) {
+    JPanel panel = {
+	String tag = "$_find_panel";
+	Object owner = owner;
+	double border = 72.0/32;
+	int    visible = visible;
+	int    requestfocusenabled = FALSE;
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    new JTextField {
+		String tag = "$_find_text";
+		Object transferhandler = NULL;
+		Font   font = FONTS.large_text;
+		int    columns = 5;
+
+		Function dragGestureRecognized = EVENT_HANDLERS.DragGestureRecognized;
+		Function dragEnter = EVENT_HANDLERS.DragEnter;
+		Function drop = EVENT_HANDLERS.Drop;
+
+		actionPerformed(e) {
+		    root.components.$_find_panel.FindNext();
+		}
+
+		focusGained(e) {
+		    foreground = NULL;
+		}
+	    },
+	    new GridBagConstraints {
+		int gridx = RELATIVE;
+		int weightx = 1;
+		int fill = BOTH;
+	    },
+
+	    new JPanel {
+		GridLayout layoutmanager;
+		Array layout = {
+		    new JButton {
+			String tooltiptext = "Find Next";
+			Image  icon = ICONS.GetButtonDownIcon(FONTS.medium_text);
+			Font   font = FONTS.medium_text;
+			int    requestfocusenabled = FALSE;
+
+			actionPerformed(e) {
+			    root.components.$_find_panel.FindNext();
+			}
+
+			mousePressed(e) {
+			    root.components.$_find_text.foreground = NULL;
+			}
+		    },
+		    new JButton {
+			String tooltiptext = "Find Previous";
+			Image  icon = ICONS.GetButtonUpIcon(FONTS.medium_text);
+			Font   font = FONTS.medium_text;
+			int    requestfocusenabled = FALSE;
+
+			actionPerformed(e) {
+			    root.components.$_find_panel.FindPrev();
+			}
+
+			mousePressed(e) {
+			    root.components.$_find_text.foreground = NULL;
+			}
+		    },
+		};
+	    },
+    	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int anchor = RIGHT;
+
+		Insets insets = {
+		    double left = 72.0/12;
+		};
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Support Functions
+	//
+	////////////////////////////
+
+	FindNext() {
+	    FindText(root.components.$_find_text.text, 1);
+	}
+
+	FindPrev() {
+	    FindText(root.components.$_find_text.text, -1);
+	}
+
+	FindText(String str, int direction) {
+	    String match;
+
+	    if (str@sizeof > 0) {
+		match = owner.findNextMatch(str, root.find_pattern, root.find_ignorecase, direction);
+		if (match == NULL)
+		    root.components.$_find_text.foreground = Color.red;
+	    }
+	}
+
+	SetVisible(int state) {
+	    if (owner instanceof DataTable)
+		owner.action(SET_CELL_SELECTION, "off");
+	    else if (owner instanceof Histogram)
+		owner.highlighted = NULL;
+	    visible = state;
+	    root.components.$_find_text.requestfocus = state;
+	}
+    };
+
+    return(panel);
+}
+
+//
+// Custom menu builders.
+//
+
+BuildAllNodesAndEdgesMenu(String nodes, String edges) {
+    Menu menu;
+
+    if (nodes != NULL && edges != NULL) {
+	menu = new Menu {
+	    "-", NULL,
+	    "All " + nodes, new Menu {
+		"On", "nodes_all_on",
+		"Off", "nodes_all_off",
+	    },
+	    "All " + edges, new Menu {
+		"On", "edges_all_on",
+		"Off", "edges_all_off",
+	    },
+	};
+    }
+    return(menu);
+}
+
+BuildAllOnMenu() {
+    Menu menu;
+
+    menu = new Menu {
+	"All On", new Dictionary {
+	    String command = "all_on";
+	    String accelerator = ACCELERATORS.Select("all_on");
+	},
+	"All Off", new Dictionary {
+	    String command = "all_off";
+	    String accelerator = ACCELERATORS.Select("all_off");
+	},
+    };
+    return(menu);
+}
+
+BuildAllPressedMenu(String pressed, int flash) {
+    Menu menu;
+
+    if (pressed != NULL) {
+	menu = new Menu {
+	    "All " + pressed, new Menu {
+		"On", "pressed_all_on",
+		"Off", "pressed_all_off",
+		flash ? new Array {"Flash", "pressed_flash"} : NULL,
+		"-", NULL,
+		"Reset", "pressed_reset",
+	    }
+	};
+    }
+    return(menu);
+}
+
+BuildClearMenu() {
+    Menu menu;
+
+    menu = new Menu {
+	"Clear", new Menu {
+	    "All", "clear_all",
+	    "Selected", "clear_selected",
+	    "Unselected", "clear_unselected",
+	},
+    };
+    return(menu);
+}
+
+BuildColorDataMenu(Object owner) {
+    Menu menu;
+
+    //
+    // Specialized histograms can't color the data records and shouldn't
+    // include any of these menu items.
+    //
+
+    if (!defined("activefieldcount", owner) || owner.activefieldcount <= 1) {
+	menu = new Menu {
+	    "Color Data", new Dictionary {
+		String command = "color_data";
+		String accelerator = ACCELERATORS.Select("color_data");
+	    },
+	    "-", NULL,
+	    "Recolor", new Dictionary {
+		String command = "color_recolor";
+		String accelerator = ACCELERATORS.Select("color_recolor");
+	    },
+	    "Show All", new Dictionary {
+		String command = "color_show_all";
+		String accelerator = ACCELERATORS.Select("color_show_all");
+	    },
+	};
+    }
+    return(menu);
+}
+
+BuildFileMenu(int mainscreen, String file_copy, String file_snapshot) {
+    Menu menu;
+
+    if (mainscreen) {
+	menu = new Menu {
+	    "File", new Menu {
+		"Load", new Menu {
+		    "All", "load_all",
+		    "Selected", "load_selected",
+		    "Unselected", "load_unselected",
+		    "-", NULL,
+		    "File", "load_path",
+		    "Browse", "load_browse",
+		},
+		"Save", new Menu {
+		    "All", "save_all",
+		    "Selected", "save_selected",
+		    "Unselected", "save_unselected",
+		},
+		"-", NULL,
+		"Raise Screens", "raise_screens",
+		"Show Screens", "show_screens",
+		"-", NULL,
+		"Copy", new Dictionary {
+		    String command = file_copy;
+		    String accelerator = ACCELERATORS.Select("file_copy");
+		    int    enabled = (file_copy != NULL);
+		},
+		"Print", new Dictionary {
+		    String command = "file_print";
+		    String accelerator = ACCELERATORS.Select("file_print");
+		},
+		"Snapshot", new Dictionary {
+		    String command = file_snapshot;
+		    String accelerator = ACCELERATORS.Select("file_snapshot");
+		    int    enabled = (file_snapshot != NULL);
+		},
+		"-", NULL,
+		"Quit", new Dictionary {
+		    String command = "file_quit";
+		    String accelerator = ACCELERATORS.Select("file_quit");
+		},
+	    }
+	};
+    } else {
+	menu = new Menu {
+	    "File", new Menu {
+		"Copy", new Dictionary {
+		    String command = file_copy;
+		    String accelerator = ACCELERATORS.Select("file_copy");
+		    int    enabled = (file_copy != NULL);
+		},
+		"Print", new Dictionary {
+		    String command = "file_print";
+		    String accelerator = ACCELERATORS.Select("file_print");
+		},
+		"Snapshot", new Dictionary {
+		    String command = "file_snapshot";
+		    String accelerator = ACCELERATORS.Select("file_snapshot");
+		    int    enabled = (file_snapshot != NULL);
+		},
+		"-", NULL,
+		"Close", new Dictionary {
+		    String command = "file_close";
+		    String accelerator = ACCELERATORS.Select("file_close");
+		},
+	    }
+	};
+    }
+    return(menu);
+}
+
+BuildFindMenu(String find, Object owner, int ignorecase, int pattern, int visible) {
+    Menu menu;
+
+    if (find != NULL) {
+	if (find@length > 0) {
+	    menu = new Menu {
+		find, new Menu {
+		    "Show Panel",
+			new Dictionary {
+			    String command = "find";
+			    String accelerator = ACCELERATORS.Select("find");
+			},
+			visible,
+		    "Find Next",
+			new Dictionary {
+			    String command = "find_next";
+			    String accelerator = ACCELERATORS.Select("find_next");
+			},
+		    "-", NULL,
+		    "Ignore Case", "find_ignorecase", ignorecase,
+		    "Match Pattern", "find_pattern", pattern,
+		}
+	    };
+	} else {
+	    menu = new Menu {
+		"Show Panel",
+		    new Dictionary {
+			String command = "find";
+			String accelerator = ACCELERATORS.Select("find");
+		    },
+		    visible,
+		"Find Next",
+		    new Dictionary {
+			String command = "find_next";
+			String accelerator = ACCELERATORS.Select("find_next");
+		    },
+		"-", NULL,
+		"Ignore Case", "find_ignorecase", ignorecase,
+		"Match Pattern", "find_pattern", pattern,
+	    };
+	}
+    }
+    return(menu);
+}
+
+BuildGraphEdgesMenu(String edges, Object graph) {
+    Menu menu;
+
+    if (edges != NULL && graph != NULL) {
+	menu = new Menu {
+	    edges, new Menu {
+		"Selectable", "edges_selectable", (graph.selectflags & DATA_GRAPH_EDGE) != 0,
+		"Hide All", "edges_hide_all", (graph.edgeflags&0x01) != 0,
+		"Hide Labels", "edges_hide_labels", (graph.labelflags&LABEL_HIDEEDGE) != 0,
+		"Hide Unselected", "edges_hide_unselected", (graph.edgeflags&0x04) != 0,
+		"Hide With Node", "edges_hide_with_node", graph.attachededgeselection,
+	    },
+	};
+    }
+    return(menu);
+}
+
+BuildGraphNodesMenu(String nodes, String nodefill, Object graph) {
+    Menu menu;
+
+    if (nodes != NULL && graph != NULL) {
+	menu = new Menu {
+	    nodes, new Menu {
+		"Selectable", "nodes_selectable", (graph.selectflags & DATA_GRAPH_NODE) != 0,
+		"Hide All", "nodes_hide_all", (graph.nodeflags&0x01) != 0,
+		"Hide Labels", "nodes_hide_labels", (graph.labelflags&LABEL_HIDENODE) != 0,
+		"Hide Unselected", "nodes_hide_unselected", (graph.nodeflags&0x04) != 0,
+		nodefill ? new Array {
+		    "-", NULL,
+		    nodefill, new Menu {
+			"Disabled", "fill_none", "fill", graph.fillmodel == NONE,
+			"-", NULL,
+			"Bottom", "fill_bottom", "fill", graph.fillmodel == BOTTOM,
+			"Left", "fill_left", "fill", graph.fillmodel == LEFT,
+			"Right", "fill_right", "fill", graph.fillmodel == RIGHT,
+			"Top", "fill_top", "fill", graph.fillmodel == TOP,
+		    },
+		} : NULL,
+	    },
+	};
+    }
+    return(menu);
+}
+
+BuildGraphSliderMenu(String nodes, String edges) {
+    Menu menu;
+
+    //
+    // Unfortunately unroll() calls are currently needed, otherwise the
+    // items don't end up in the same group. Might be a mistake in our
+    // Java menu handling code - we eventually should investigate.
+    //
+
+    if (nodes != NULL || edges != NULL) {
+	menu = new Menu {
+	    "Slider", new Menu {
+		"Zoom", "slider_zoom", "slider", TRUE,
+		unroll(nodes ? new Array {"Scale " + nodes, "slider_scale_nodes", "slider", FALSE} : NULL),
+		unroll(nodes && NODEOUTLINESTATES > 1 ? new Array {"Outline " + nodes, "slider_outline_nodes", "slider", FALSE} : NULL),
+		unroll(edges ? new Array {"Scale " + edges, "slider_scale_edges", "slider", FALSE} : NULL),
+	    },
+	};
+    }
+    return(menu);
+}
+
+BuildGraphTipsMenu(String tips, String nodes, String edges, Object graph) {
+    Menu menu;
+
+    if (tips != NULL && graph != NULL) {
+	menu = new Menu {
+	    tips, new Menu {
+		"Enabled",
+		    new Dictionary {
+			String command = "tips_enabled";
+			String accelerator = ACCELERATORS.Select("tips_enabled");
+		    },
+		    graph.tipenabled,
+		"Dropped",
+		    new Dictionary {
+			String command = "tips_dropped";
+			String accelerator = ACCELERATORS.Select("tips_dropped");
+		    },
+		    graph.tipdropped,
+		nodes ? new Array {"Over " + nodes, "tips_over_nodes", (graph.tipflags&TIP_OVER_NODES) != 0} : NULL,
+		edges ? new Array {"Over " + edges, "tips_over_edges", (graph.tipflags&TIP_OVER_EDGES) != 0} : NULL,
+		"-", NULL,
+		"Show Count", "tips_show_count", (graph.tipflags&TIP_SHOW_COUNT) != 0,
+		//// TODO: TIP_SHOW_COUNTPCNT
+		"-", NULL,
+		"Reset Offset", "tips_reset_offset",
+	    },
+	};
+    }
+    return(menu);
+}
+
+BuildHelpMenu(int mainscreen) {
+    Menu menu;
+
+    if (mainscreen) {
+	menu = new Menu {
+	    "Help", new Menu {
+		"About", "help_about",
+	    }
+	};
+    }
+    return(menu);
+}
+
+BuildPlotCustomizeMenu(String customize, Object plot) {
+    Menu menu;
+    int  custombuckets;
+
+    if (customize != NULL && plot != NULL) {
+	custombuckets = (plot.bucketinfo != NULL && plot.bucketwidthslider != NULL && LABEL_BUCKETS != NULL);
+	if (LABEL_DRAWINGSIZES || custombuckets) {
+	    menu = new Menu {
+		customize, new Menu {
+		    custombuckets ? new Array {LABEL_BUCKETS, "customize_buckets"} : NULL,
+		    LABEL_DRAWINGSIZES ? new Array {LABEL_DRAWINGSIZES, "customize_drawingsizes"} : NULL,
+		}
+	    };
+	}
+    }
+    return(menu);
+}
+
+BuildPlotStyleMenu(String label, Object plot) {
+    Menu menu;
+    int  allowbuckets;
+    int  allowevents;
+    int  allowstacks;
+    int  flags;
+    int  style;
+
+    //
+    // The polygon display for regular events doesn't seem particularly
+    // useful so it's been removed for now. The Java code should still
+    // work so it won't be hard to restore the mode if you decide to.
+    // 
+
+    if (label != NULL && plot != NULL) {
+	flags = plot.plotstyleflags;
+	allowevents = (flags & STYLE_ENABLE_EVENTS);
+	allowstacks = (flags & STYLE_ENABLE_STACKS) && (!allowevents || plot.bucketinfo != NULL);
+	allowbuckets = (plot.bucketinfo != NULL && allowevents);
+	if (allowevents || allowstacks) {	// should be an unnecessary check
+	    style = plot.plotstyle[0];
+	    menu = new Menu {
+		label, new Menu {
+		    allowevents ?
+			new Array {
+			    "Bars", "style_event_bars", "%Style", style == STYLE_BARS,
+			    "Points", "style_event_points", "%Style", style == STYLE_POINTS,
+			    "-", NULL,
+			} : NULL,
+		    allowbuckets ?
+			new Array {
+			    "Bucketed Bars", "style_bucketed_bars", "%Style", FALSE,
+			    "Bucketed Points", "style_bucketed_points", "%Style", FALSE,
+			    "-", NULL,
+			} : NULL,
+		    allowstacks ?
+			new Array {
+			    "Stacked Bars", "style_stacked_bars", "%Style", style == STYLE_STACKED_BARS,
+			    "Stacked Points", "style_stacked_points", "%Style", style == STYLE_STACKED_POINTS,
+			    "Stacked Polygons", "style_stacked_polygons", "%Style", style == STYLE_STACKED_POLYGONS,
+			    "-", NULL,
+			} : NULL,
+		    "Connect Points", "style_connected", plot.connect == CONNECT_LINES,
+		    "Hide Points", "style_hide_points", FALSE,
+		}
+	    };
+	}
+    }
+    return(menu);
+}
+
+BuildPlotSweepMenu(String label, Object plot) {
+    Menu menu;
+    int  allowbuckets;
+    int  allowevents;
+    int  allowstacks;
+    int  flags;
+
+    //
+    // For now only built if we allow stacks - mostly to avoid cluttering
+    // up older applications. Also decided to omit the enabled item since
+    // disabling it doesn't seem to accomplish anything else.
+    //
+
+    if (label != NULL && plot != NULL) {
+	flags = plot.plotstyleflags;
+	allowbuckets = (plot.bucketinfo != NULL);
+	allowevents = (flags & STYLE_ENABLE_EVENTS);
+	allowstacks = (flags & STYLE_ENABLE_STACKS) && (!allowevents || allowbuckets);
+	if (allowstacks) {
+	    flags = plot.sweepflags;
+	    menu = new Menu {
+		label, new Menu {
+		    ////"Enabled", "sweep_enabled", flags & SWEEP_ENABLED,
+		    "Solid Stacks", "sweep_solid_stacks", flags & SWEEP_SOLID_STACKS,
+		}
+	    };
+	}
+    }
+    return(menu);
+}
+
+BuildPlotTimeshadingMenu(String timeshading, int enabled, int reversed) {
+    Menu menu;
+
+    if (timeshading != NULL) {
+	menu = new Menu {
+	    timeshading, new Menu {
+		"Enabled", "timeshading_enabled", enabled,
+		"Reverse Shading", "timeshading_reverse", reversed,
+		"-", NULL,
+		"Settings", "timeshading_settings",
+	    }
+	};
+    }
+    return(menu);
+}
+
+BuildPlotTipsMenu(String tips, Object plot) {
+    Menu menu;
+    int  allowbuckets;
+    int  allowevents;
+    int  allowstacks;
+    int  flags;
+
+    //
+    // Java code currently only supports tips over stacks, so don't build
+    // the menu if the plot can't display stacks.
+    //
+
+    if (tips != NULL && plot != NULL) {
+	flags = plot.plotstyleflags;
+	allowbuckets = (plot.bucketinfo != NULL);
+	allowevents = (flags & STYLE_ENABLE_EVENTS);
+	allowstacks = (flags & STYLE_ENABLE_STACKS) && (!allowevents || allowbuckets);
+	if (allowstacks) {
+	    menu = new Menu {
+		tips, new Menu {
+		    "Enabled",
+			new Dictionary {
+			    String command = "tips_enabled";
+			    String accelerator = ACCELERATORS.Select("tips_enabled");
+			},
+			plot.tipenabled,
+		    "Dropped",
+			new Dictionary {
+			    String command = "tips_dropped";
+			    String accelerator = ACCELERATORS.Select("tips_dropped");
+			},
+			plot.tipdropped,
+		    "Snap To Bucket",
+			new Dictionary {
+			    String command = "tips_snap_to_bucket";
+			    String accelerator = ACCELERATORS.Select("tips_snap_to_bucket");
+			},
+			plot.tiplockmodel == HORIZONTAL || plot.tiplockmodel == BOTH,
+		    "-", NULL,
+		    "Show Rank", "tips_show_rank", plot.tipflags&TIP_SHOW_RANK,
+		    "Show Ties", "tips_show_ties", plot.tipflags&TIP_SHOW_TIES,
+		    "Show Value", "tips_show_value", plot.tipflags&TIP_SHOW_VALUE,
+		    //// TODO: TIP_SHOW_VALUEPCNT
+		    "-", NULL,
+		    "Reset Offset", "tips_reset_offset",
+		},
+	    };
+	}
+    }
+    return(menu);
+}
+
+BuildPlotZoomMenu(String spread, Object plot) {
+    Menu menu;
+    int  allowbuckets;
+    int  allowevents;
+    int  allowstacks;
+    int  flags;
+
+    //
+    // For now only built when stacks and bucketing are disabled.
+    //
+
+    if (plot != NULL) {
+	flags = plot.plotstyleflags;
+	allowbuckets = (plot.bucketinfo != NULL);
+	allowevents = (flags & STYLE_ENABLE_EVENTS);
+	allowstacks = (flags & STYLE_ENABLE_STACKS) && (!allowevents || allowbuckets);
+	menu = new Menu {
+	    "Fit to Loaded",
+		new Dictionary {
+		    String command = "zoom_loaded";
+		    String accelerator = ACCELERATORS.Select("zoom_loaded");
+		},
+	    "Fit to Selected",
+		new Dictionary {
+		    String command = "zoom_selected";
+		    String accelerator = ACCELERATORS.Select("zoom_selected");
+		},
+	    "-", NULL,
+	    "Autozoom", "zoom_autozoom", AUTOZOOM,
+	    spread && !allowstacks && !allowbuckets ? new Array {spread, "zoom_spread", FALSE} : NULL,
+	};
+    }
+    return(menu);
+}
+
+BuildSecondaryMenu(Object label, Object owner, String prefix) {
+    Object menu;
+    Object ptr;
+    int    n;
+
+    //
+    // The command strings generated here also need to agree with the way
+    // they're handled in SetSecondary(), so be careful if you decide to
+    // make any changes.
+    //
+
+    if (label != NULL && owner != NULL) {
+	if (defined("labelflags", owner)) {
+	    if (label instanceof Array) {
+		if (label@sizeof >= 2) {
+		    menu = new Array[0, ...];
+		    unroll(new Array {"-", NULL,}, menu + menu@sizeof);
+		    for (n = 0; n < label@sizeof; n++) {
+			unroll(
+			    new Array {label[n], prefix + toString(n+1), n == 0 ? owner.labelflags&LABEL_SHOWVALUE : FALSE},
+			    menu + menu@sizeof
+			);
+			unroll(
+			    new Array {"%"+label[n], prefix + "p" + toString(n+1), n == 0 ? owner.labelflags&LABEL_SHOWVALUEPCNT : FALSE},
+			    menu + menu@sizeof
+			);
+		    }
+		    unroll(new Array {"-", NULL,}, menu + menu@sizeof);
+		} else if (label@sizeof == 1) {
+		    menu = new Menu {
+			label[0], prefix + "1", owner.labelflags&LABEL_SHOWVALUE,
+			"%"+label[0], prefix + "p1", owner.labelflags&LABEL_SHOWVALUEPCNT,
+		    };
+		}
+	    } else if (label instanceof String) {
+		menu = new Menu {
+		    label, prefix + "1", owner.labelflags&LABEL_SHOWVALUE,
+		    "%"+label, prefix + "p1", owner.labelflags&LABEL_SHOWVALUEPCNT,
+		};
+	    }
+	}
+    }
+    return(menu);
+}
+
+BuildTableSettingsMenu(String label, Object owner) {
+    Menu menu;
+
+    if (label != NULL && owner != NULL) {
+	menu = new Menu {
+	    label, new Menu {
+		"Reorder", "settings_reorder", owner.reorder,
+		"Resize", "settings_resize", owner.resize,
+	    }
+	};
+    }
+    return(menu);
+}
+

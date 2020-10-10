@@ -1,0 +1,50 @@
+#!<_PERL_PATH_> -w
+#
+# A simple script that tries to run the Yoix interpreter using the file
+# named yoix.jar that's stored in the jars directory. Probably not used
+# by the server, but it's here just in case.
+# 
+
+use strict;
+
+my $argc = @ARGV;
+my $arg;
+my $argn;
+my @execargs = ("<_JAVA_BIN_DQ_>/java", "-ms64m", "-mx256m");
+my $yoixjar = "<_SERVER_DOCDIR_DQ_>/jars/<_BETA_PREFIX_DQ_><_JARFILE_BASENAME_DQ_>.jar_<_JARFILE_RELEASE_DQ_>";
+my @yoixargs = ("att.research.yoix.YoixMain");
+
+for ($argn = 0; $argn < $argc; $argn++) {
+    $arg = $ARGV[$argn];
+    if ($arg eq "-cp") {	# classpath
+	$yoixjar = $ARGV[++$argn];
+    } elsif ($arg =~ /^-cp/) {	# classpath
+	$arg =~ s/^-cp//;
+	$yoixjar = $arg;
+    } elsif ($arg =~ /^-ms\d+m/) {
+	$execargs[1] = $arg;
+    } elsif ($arg =~ /^-mx\d+m/) {
+	$execargs[2] = $arg;
+    } elsif ($arg eq "-J") {		# pass through to java
+	$execargs[0] = $ARGV[++$argn];
+    } elsif ($arg =~ /^-J/) {
+	$arg =~ s/^-J//;
+	$execargs[0] = $arg;
+    } else {
+	push(@yoixargs, $arg);
+    }
+}
+
+if (-r $yoixjar) {
+    push(@execargs, "-cp", "$yoixjar");
+    push(@execargs, @yoixargs);
+    exec(@execargs);		# should not return
+} else {
+    if (!$yoixjar) {
+	printf(STDERR "$0: can't read file $yoixjar\n");
+    } else {
+	printf(STDERR "$0: can't find the Yoix jar file\n");
+    }
+}
+
+exit(1);

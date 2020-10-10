@@ -1,0 +1,237 @@
+//
+// Shown once immediately after a successful login.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+String UnavailableMessage = Global.ACRONYM + " is currently unavailable - more information will follow.";
+
+Builder(String name, Array args) {
+    JDialog screen = {
+	Insets border = Global.GetLabeledScreenInsets();
+	String title = Global.ACRONYM + " Welcome";
+	Font   font = Global.GetPreferredLabelFont();
+	int    modal = TRUE;
+	int    opaque = TRUE;
+
+	Dimension size = {
+	    double width = 7.0*72;
+	    double height = 3.5*72;
+	};
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = FALSE;   // save screen-specific info within session
+	int    retainstate = FALSE; // save screen-class info across sessions
+	int    reloadargs = FALSE;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	String welcomemessage = NULL;
+	String available = "true";
+	int    opencount = 0;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+	Array layout = {
+	    Global.NewJHeadingLabel("$_label", "WELCOME TO " + Global.ACRONYM),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+	    },
+
+	    Global.NewJTextArea("$_motd", NULL, 0, 0, AS_NEEDED, "edit", FALSE),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;
+		int fill = BOTH;
+	    },
+
+	    Global.NewJLabel("$_lastlogin_label", "Last recorded login: "),
+	    new GridBagConstraints {
+		int    gridwidth = RELATIVE;
+		int    anchor = RIGHT;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    Global.NewJLabel("$_lastlogin", NULL, "alignment", LEFT, "foreground", Global.GetPreferredVisitedColor()),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    fill = HORIZONTAL;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    new JPanel {
+		GridBagLayout layoutmanager;
+		Array layout = {
+		    new JPanel {
+			GridLayout layoutmanager;
+			Array layout = {
+			    new JButton {
+				String tag = "$_continue";
+				String text = "Continue";
+				Font   font = Global.GetPreferredButtonFont();
+				int    requestfocus = TRUE;
+
+				actionPerformed(e) {
+				    Global.AltQueueCommand(root, &root.HideScreen);
+				}
+			    },
+			    new JButton {
+				String tag = "$_quit";
+				String text = "Quit";
+				Color  foreground = Global.GetPreferredWarningColor();
+				Font   font = Global.GetPreferredButtonFont();
+
+				actionPerformed(e) {
+				    enabled = FALSE;
+				    Global.Quit(0);
+				}
+			    },
+			};
+		    },
+                    new Dictionary {
+                        int gridx = 1;
+                        int gridy = 1;
+                        int weightx = 1;
+                        int anchor = SOUTH;
+                    },
+                    new JLabel {
+                        int alignment = RIGHT;
+                        Image icon = Global.GetYoixLogoIcon(28);
+                    },
+                    RIGHT,
+		};
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		int    fill = HORIZONTAL;
+		Insets insets = Global.GetQualifiedInsets(72.0/8, "T");
+	    },
+
+	    new JLabel {
+		String tag = "$_prop";
+		String text = Global.ProprietaryLabel;
+		Font   font = Global.GetPreferredProprietaryFont();
+		int    alignment = CENTER;
+	    },
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    components.$_motd.text = "";
+	    components.$_lastlogin.text = "";
+	}
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	    CheckAvailable();
+	}
+
+	LoadScreen() {
+	    String preferences;
+	    String text;
+
+	    //
+	    // Users probably dismiss this screen quickly, so make sure it's
+	    // really loaded before it's made visible. This probably should
+	    // be the only screen that uses a blocking LoadScreen().
+	    //
+
+	    Global.RunCommand(
+		this,
+		"WELCOME",
+		VM.Version + " " + Global.UserOperatingSystem + " " + Global.JavaVersion,
+		NULL,
+		&available,
+		&components.$_lastlogin,
+		&preferences,
+		&text,
+		&CheckAvailable
+	    );
+
+	    if (preferences != NULL) {
+	        Global.LoadPreferences(htoa(preferences));
+
+		foreground = Global.GetPreferredForeground();
+		background = Global.GetPreferredBackground();
+		components.$_lastlogin.background = Global.GetPreferredBackground();
+
+		components.$_label.font = Global.GetPreferredHeadingFont();
+		components.$_motd.font = Global.GetPreferredTextFont();
+		components.$_lastlogin_label.font = Global.GetPreferredLabelFont();
+		components.$_lastlogin.font = Global.GetPreferredLabelFont();
+		components.$_continue.font = Global.GetPreferredButtonFont();
+		components.$_quit.font = Global.GetPreferredButtonFont();
+		components.$_prop.font = Global.GetPreferredProprietaryFont();
+
+		validate = TRUE;
+	    }
+
+	    if (welcomemessage != NULL && welcomemessage@length > 0) {
+		if (text@length == 0)
+		    text = welcomemessage ;
+		else text += "\n\n" + welcomemessage;
+	    }
+
+	    if (text@length == 0)
+		text = Global.GetVersionInfo();
+	    else text += "\n\n" + Global.GetVersionInfo();
+
+	    if (components.$_lastlogin.text@length == 0)
+		components.$_lastlogin.text = "none";
+	    components.$_motd.text = text;
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	CheckAvailable() {
+	    if (strcasecmp(available, "true")) {
+		if (opencount++ == 0)
+		    Global.ShowAlert(UnavailableMessage);
+		else Global.Quit(0);
+	    }
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);

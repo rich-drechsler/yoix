@@ -1,0 +1,516 @@
+//
+// Provides a (borderless) window containing a month-at-a-time calendar
+// to allow selection of a date. Indicators "<<" and ">>" in the header
+// shift the calendar backwards or forewards, respectively, by one
+// month when clicked. Clicking on the month/year label resets the
+// calendar to its starting month. An "X" in the lower right dismisses
+// the window without making a selection. Clicking on any date also
+// dismisses the window, but also defines a Dictionary containing year,
+// month and date entries as integers to indicate the selected date.
+// The dictionary is assigned to a variable called "selection" in the
+// screen.
+//
+// The information is also passed to a callback function that can be
+// defined in a dictionary (e.g., the parent screen) and made available
+// to this screen via the "cbdict" and "callback" variables in this
+// screen, which should be set in the usual manner using GetAndShowScreen.
+// By default, "cbdict" takes the value of "parent". Also passed to
+// the callback as a second argument is the screen variable "additional",
+// which should be set in the GetAndShowScreen call if additional
+// information is need to be passed to the callback.
+//
+// Setting the "now" Calendar screen variable to a non-NULL value
+// will set the initial month, day and year for the calendar. The
+// default is the current date.  The calendar does not appear in a
+// modal dialog, so using the callback approach is the best way to
+// obtain reasonable GUI behavior. The current date will be indicated
+// in "inverse video".  Using a JTable would have provided a more
+// lightweight implementation, but the use of 52 JLabel components,
+// as done here, is not so heavyweight that performance suffers.  If
+// desired, one could also set the values for "plainfont", "boldfont",
+// "lightcolor", "darkcolor" and "selcolor", but the defaults seem to
+// work well.  Note that the Locale in effect determines the first day
+// of the week as well as the day of the week and month/year labels.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+Builder(String name, Array args) {
+
+    JWindow screen = {
+	Dimension size = NULL;
+	Object    parent = NULL;
+	Font      font = Global.GetPreferredLabelFont();
+	int       cursor = Cursor.MOVE_CURSOR;
+	int       resizable = FALSE;
+	int       opaque = TRUE;
+
+	BevelBorder border = {
+	    int raised = TRUE;
+	    EmptyBorder child = {
+		double insets = 72.0/8;
+	    };
+	};
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	Object selection = NULL;
+	String callback = NULL;
+	Object cbdict = NULL;
+	Object additional = NULL;
+	Color  darkcolor = Global.GetPreferredTooltipForeground();
+	Color  selcolor = Color.gray;
+	Color  lightcolor = Global.GetPreferredTooltipBackground();
+	Font   plainfont = new Font {String name = "Dialog-plain-10";};
+	Font   boldfont = new Font {String name = "Dialog-plain-10";};
+	int    year = 0;
+	int    month = 0;
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = lightcolor;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = FALSE;
+	int    savestate = FALSE;   // save screen-specific info within session
+	int    retainstate = FALSE; // save screen-class info across sessions
+	int    reloadargs = FALSE;
+
+	//
+	// These probably should be private but the interpreter doesn't
+	// currently support private variables, however it's something we
+	// eventually will add.
+	//
+
+	Object selblock = NULL;
+	Array  weekdays = NULL;
+	Array  monthdays = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+	Calendar now = NULL;
+	Calendar cal = {
+	    int minimaldaysinfirstweek = 1;
+	};
+
+	Point dragpoint = NULL;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager = {
+	    int columns = 1;
+	};
+
+	Array layout = {
+	    new JPanel {
+		Color background = darkcolor;
+		Color foreground = lightcolor;
+		Font  font = plainfont;
+		int   cursor = Cursor.DEFAULT_CURSOR;
+
+		BorderLayout layoutmanager;
+
+		Array layout = {
+		    new JLabel {
+			String original_text = "&lt;&lt;";
+			String text = "<html>" + original_text + "</html>";
+			Point  presspoint = NULL;
+
+			mouseEntered(e) {
+			    text = "<html><u>" + original_text + "</u></html>";
+			}
+
+			mouseExited(e) {
+			    text = "<html>" + original_text + "</html>";
+			}
+
+			mousePressed(e) {
+			    presspoint = e.location;
+			}
+
+			mouseDragged(e) {
+			    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+				CancelMousePressed();
+			}
+
+			mouseReleased(e) {
+			    if (presspoint != NULL) {
+				text = "<html>" + original_text + "</html>";
+				root.ShiftMonth(-1);
+			    }
+			    presspoint = NULL;
+			}
+
+			CancelMousePressed() {
+			    text = "<html>" + original_text + "</html>";
+			    presspoint = NULL;
+			}
+		    },
+		    LEFT,
+		    new JLabel {
+			String tag = "$_monthyear";
+			int alignment = CENTER;
+			String original_text = NULL;
+			Point  presspoint = NULL;
+
+			mouseEntered(e) {
+			    text = "<html><u>" + original_text + "</u></html>";
+			}
+
+			mouseExited(e) {
+			    text = original_text;
+			}
+
+			mousePressed(e) {
+			    presspoint = e.location;
+			}
+
+			mouseDragged(e) {
+			    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+				CancelMousePressed();
+			}
+
+			mouseReleased(e) {
+			    if (presspoint != NULL) {
+				text = original_text;
+				root.Reset();
+			    }
+			    presspoint = NULL;
+			}
+
+			CancelMousePressed() {
+			    text = original_text;
+			    presspoint = NULL;
+			}
+		    },
+		    CENTER,
+		    new JLabel {
+			String text = ">>";
+			String original_text = text;
+			Point  presspoint = NULL;
+
+			mouseEntered(e) {
+			    text = "<html><u>" + original_text + "</u></html>";
+			}
+
+			mouseExited(e) {
+			    text = original_text;
+			}
+
+			mousePressed(e) {
+			    presspoint = e.location;
+			}
+
+			mouseDragged(e) {
+			    if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+				CancelMousePressed();
+			}
+
+			mouseReleased(e) {
+			    if (presspoint != NULL) {
+				text = original_text;
+				root.ShiftMonth(1);
+			    }
+			    presspoint = NULL;
+			}
+
+			CancelMousePressed() {
+			    text = original_text;
+			    presspoint = NULL;
+			}
+		    },
+		    RIGHT,
+		};
+	    },
+	    HORIZONTAL,
+
+	    new JPanel {
+		String tag = "$_month";
+		Color  background = lightcolor;
+		Color  foreground = darkcolor;
+		int    cursor = Cursor.DEFAULT_CURSOR;
+
+		GridLayout layoutmanager = {
+		    int    rows = 7;
+		    int    columns = 7;
+		    double vgap = 1;
+		    double hgap = 3.5;
+		};
+	    },
+	    BOTH,
+	};
+
+	////////////////////////////
+	//
+	// Event Handlers
+	//
+	////////////////////////////
+
+	mousePressed(e) {
+	    toFront(this);
+	    dragpoint = e.location;
+	}
+
+	mouseDragged(e) {
+	    Point  point = this.location;
+
+	    point.x += (e.location.x - dragpoint.x);
+	    point.y += (e.location.y - dragpoint.y);
+	    this.location = point;
+	}
+
+	mouseReleased(e) {
+	    dragpoint = NULL;
+	}
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+
+	InitializeScreen() {
+	    Calendar init = new Calendar;
+	    if (year == 0)
+		year = init.year;
+	    if (month < 1 || month > 12)
+		month = init.month;
+	    else month--;
+	}
+
+	LoadScreen() {
+	    Reset();
+	}
+
+	ReloadScreen() {
+	    Reset();
+	}
+
+	SetScreenSize(value) {
+	    Dimension sz;
+
+	    size = NULL;
+	    sz = size;
+	    if (sz.width > sz.height)
+		sz.height = sz.width;
+	    else sz.width = sz.height;
+	    size = sz;
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	GetMonthLayout() {
+	    double daysecs = 86400;
+	    Array  layout[49];
+	    Array  leaps = {0, cal.leapyear, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	    int    fdow = cal.firstdayofweek;
+	    int    dow = cal.dayofweek;
+	    int    ut = cal.unixtime;
+	    int    dom = cal.dayofmonth;
+	    int    n;
+	    int    day1;
+	    int    dy;
+	    int    wk;
+	    int    dw;
+	    int    current = (cal.year == now.year && cal.month == now.month);
+	    int    today;
+
+	    if (weekdays == NULL) {
+		weekdays = new Array {
+		    toUpperCase(substring(date("E", ut - ((dow - fdow) * daysecs)), 0, 1)),
+		    toUpperCase(substring(date("E", ut - ((dow - fdow - 1) * daysecs)), 0, 1)),
+		    toUpperCase(substring(date("E", ut - ((dow - fdow - 2) * daysecs)), 0, 1)),
+		    toUpperCase(substring(date("E", ut - ((dow - fdow - 3) * daysecs)), 0, 1)),
+		    toUpperCase(substring(date("E", ut - ((dow - fdow - 4) * daysecs)), 0, 1)),
+		    toUpperCase(substring(date("E", ut - ((dow - fdow - 5) * daysecs)), 0, 1)),
+		    toUpperCase(substring(date("E", ut - ((dow - fdow - 6) * daysecs)), 0, 1)),
+		};
+	    }
+
+	    for (n = 0; n < 7; n++) {
+		layout[n] = new JLabel {
+		    String text = weekdays[n];
+		    Font   font = boldfont;
+		    Color foreground = darkcolor;
+		    Color background = lightcolor;
+		};
+	    }
+	    day1 = dow - 1 - ((dom-1)%7);
+	    if (day1 < 0)
+		day1 += 7;
+	    dy = 0;
+	    for (wk = 0; wk < 6; wk++) {
+		for (dw = 0; dw < 7; dw++) {
+		    if (dy == 0) {
+			if (dw < day1) {
+			    layout[n++] = new JLabel {
+				Color background = lightcolor;
+			    };
+			} else dy++;
+		    }
+		    if (dy > 0) {
+			if (dy > (monthdays[cal.month] + leaps[cal.month])) {
+			    if (n == 48) {
+				layout[n++] = new JLabel {
+				    String text = "X";
+				    Font   font = boldfont;
+				    Color foreground = darkcolor;
+				    Color background = lightcolor;
+				    String original_text = text;
+				    Point  presspoint = NULL;
+
+				    mouseEntered(e) {
+					text = "<html><u>" + original_text + "</u></html>";
+				    }
+
+				    mouseExited(e) {
+					text = original_text;
+				    }
+
+				    mousePressed(e) {
+					presspoint = e.location;
+				    }
+
+				    mouseDragged(e) {
+					if (presspoint != NULL && distance(presspoint, e.location) >= 72.0/16)
+					    CancelMousePressed();
+				    }
+
+				    mouseReleased(e) {
+					if (presspoint != NULL) {
+					    text = original_text;
+					    root.HideScreen();
+					}
+					presspoint = NULL;
+				    }
+
+				    CancelMousePressed() {
+					text = original_text;
+					presspoint = NULL;
+				    }
+				};
+			    } else {
+				layout[n++] = new JLabel {
+				    Color background = lightcolor;
+				};
+			    }
+			} else {
+			    today = (current && dy == now.dayofmonth);
+			    layout[n++] = new JLabel {
+				String text = toString(dy);
+				Font   font = plainfont;
+				Color  foreground = (today ? lightcolor : darkcolor);
+				Color  background = (today ? darkcolor : lightcolor);
+				Point  presspoint = NULL;
+				Color  saveback = background;
+				Color  savefore = foreground;
+
+				mouseEntered(e) {
+				    CancelMousePressed();
+				    root.selblock = this;
+				    background = root.selcolor;
+				}
+
+				mouseExited(e) {
+				    CancelMousePressed();
+				}
+
+				mousePressed(e) {
+				    if (root.selblock != this)
+					mouseEntered(e);
+				    background = savefore;
+				    foreground = saveback;
+				}
+
+				mouseReleased(e) {
+				    if (root.selblock != NULL) {
+					if (root.selblock == this) {
+					    CancelMousePressed();
+					    root.Selection(text);
+					} else CancelMousePressed();
+				    }
+				}
+
+				CancelMousePressed() {
+				    if (root.selblock != NULL) {
+					root.selblock.background = root.selblock.saveback;
+					root.selblock.foreground = root.selblock.savefore;
+					root.selblock = NULL;
+				    }
+				}
+			    };
+			}
+			dy++;
+		    }
+		}
+	    }
+
+	    return(layout);
+	}
+
+	Refresh() {
+	    selection = NULL;
+	    components.$_monthyear.text = date("MMMM yyyy", cal.unixtime);
+	    components.$_monthyear.original_text = components.$_monthyear.text;
+	    components.$_month.layout = GetMonthLayout();
+	}
+
+	Reset() {
+	    if (now == NULL)
+		now = new Calendar;
+	    cal = new Calendar {
+		double unixtime = now.unixtime;
+		TimeZone timezone = now.timezone;
+	    };
+	    Refresh();
+	}
+
+	Selection(String day) {
+	    Dictionary value = {
+		int year = cal.year;
+		int month = (cal.month + 1);
+		int day = atoi(day);
+	    };
+	    selection = value;
+	    if (cbdict == NULL)
+		cbdict = parent;
+	    if (defined(callback, cbdict) && cbdict[callback] instanceof Callable)
+		Global.AltQueueCommandOnce(NULL, &cbdict[callback], value, additional);
+	    HideScreen();
+	}
+
+	ShiftMonth(int shift) {
+	    addCalendar(cal, Calendar.MONTH, shift);
+	    Refresh();
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);

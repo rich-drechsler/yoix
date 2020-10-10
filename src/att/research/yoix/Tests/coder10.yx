@@ -1,0 +1,169 @@
+import yoix.*.*;
+
+int n;
+
+final int FILTERS = ZIPPED | CRC32 | GZIP | MIMECODER | IETFCODER | HEXCODER | LINEDHEXCODER;
+final String OUTPUTFILE = "coder_output.txt";
+
+String fullpath = yoixPath(argv[0]);
+int last = lastIndexOf(fullpath, '/');
+String fullfile = substring(fullpath, 0, last+1) + "copy_" + OUTPUTFILE;
+
+double checksum_check = 3299451163.;
+
+Stream outstr;
+Stream instr;
+
+for (n=0; n<4; n++) {
+
+    if (n == 0) {
+	outstr = new StringStream {
+	    int mode = WRITE;
+	    int filters = FILTERS;
+	    int open = TRUE;
+	    Array cipher = {
+		"DES",
+		"AF449F90307B46828DF6BB3D57D248C791F92985E9B17F5557B3F32685C85827C281908F0DACF666",
+		ENCRYPT_MODE,
+	    };
+	};
+    } else if (n == 1) {
+	outstr = new File {
+	    int mode = WRITE;
+	    int filters = FILTERS;
+	    int open = TRUE;
+	    Dictionary cipher = {
+		String transformation = "DES";
+		String keystring = "AF449F90307B46828DF6BB3D57D248C791F92985E9B17F5557B3F32685C85827C281908F0DACF666";
+		int opmode = ENCRYPT_MODE;
+	    };
+	    String name = fullfile;
+	};
+    }
+
+    if (n < 2) {
+
+	ZipEntry ze;
+	String line;
+
+	ze.name = "odyssey.txt";
+	ze.extra = "The Odyssey (translation: Robert Fagles)";
+
+	outstr.nextentry = ze;
+
+	outstr.nextline =
+	    "Sing to me of the man, Muse, the man of twists and turns";
+	outstr.nextline =
+	    "driven time and again off course, once he had plundered";
+	outstr.nextline = "the hallowed heights of Troy.";
+
+	ze.name = "aeneid.txt";
+	ze.extra = "The Aeneid (translation: Allen Mandelbaum)";
+
+	outstr.nextentry = ze;
+
+	outstr.nextline = "I sing of arms and of a man: his fate";
+	outstr.nextline = "had made him fugitive; he was the first";
+	outstr.nextline = "to journey from the coasts of Troy as far";
+	outstr.nextline = "as Italy and the Lavinian shores.";
+
+	fprintf(stdout, "=========== Step %d ===========\n", n);
+	if (outstr.checksum == checksum_check)
+	    fprintf(stdout, "Step %d-A: checksum correct\n", n);
+	else fprintf(stdout, "Step %d-A: checksum wrong\n", n);
+	stdout.nextline = "==============================";
+
+	fprintf(stdout, "checksum for output: %d\n\n", outstr.checksum);
+
+	close(outstr);
+
+    }
+
+    if (n == 0) {
+
+	instr = new StringStream {
+	    String name = outstr.name;
+	    int mode = READ;
+	    int filters = FILTERS;
+	    Array cipher = {
+		"DES",
+		"AF449F90307B46828DF6BB3D57D248C791F92985E9B17F5557B3F32685C85827C281908F0DACF666",
+		DECRYPT_MODE,
+	    };
+	    int open = TRUE;
+	};
+    } else if (n == 1) {
+	instr = new File {
+	    String name = fullfile;
+	    int mode = READ;
+	    int filters = FILTERS;
+	    Dictionary cipher = {
+		String transformation = "DES";
+		String keystring = "AF449F90307B46828DF6BB3D57D248C791F92985E9B17F5557B3F32685C85827C281908F0DACF666";
+		int opmode = DECRYPT_MODE;
+	    };
+	    int open = TRUE;
+	};
+    } else if (n == 2) {
+	String copyfile = fullfile;
+	if (isFilePath(copyfile)) {
+	    instr = new File {
+		String name = copyfile;
+		int mode = READ;
+		int filters = FILTERS;
+		Dictionary cipher = {
+		    String transformation = "DES";
+		    String keystring = "AF449F90307B46828DF6BB3D57D248C791F92985E9B17F5557B3F32685C85827C281908F0DACF666";
+		    int opmode = DECRYPT_MODE;
+		};
+		int open = TRUE;
+	    };
+	} else {
+	    instr = null;
+	    fprintf(stdout, "Step %d: ERROR: could not find %s\n", n, copyfile);
+	}
+    } else if (n == 3) {
+	String copyurl = "http://www.research.att.com/~john/copy_" + OUTPUTFILE;
+	instr = new URL {
+	    String name = copyurl;
+	    int mode = READ;
+	    int filters = FILTERS;
+	    Dictionary cipher = {
+		String transformation = "DES";
+		String keystring = "AF449F90307B46828DF6BB3D57D248C791F92985E9B17F5557B3F32685C85827C281908F0DACF666";
+		int opmode = DECRYPT_MODE;
+	    };
+	    int open = TRUE;
+	};
+	if (!instr.open) {
+	    fprintf(stdout, "Step %d: ERROR: could not open %s\n", n, instr.fullname);
+	    instr = null;
+	}
+	
+    } else instr = null;
+
+    if (instr != null) {
+
+	while(ze = instr.nextentry) {
+	    stdout.nextline = ze.extra;
+	    stdout.nextline = "";
+	    while(line = instr.nextline)
+		stdout.nextline = line;
+	    stdout.nextline = "";
+	}
+
+	close(instr);
+
+	fprintf(stdout, "=========== Step %d ===========\n", n);
+	if (instr.checksum == checksum_check)
+	    fprintf(stdout, "Step %d-B: checksum correct\n", n);
+	else fprintf(stdout, "Step %d-B: checksum wrong\n", n);
+	stdout.nextline = "==============================";
+
+	fprintf(stdout, "checksum for test #%d input: %d\n", n, instr.checksum);
+
+    }
+}
+
+stdout.nextline = "==============================";
+fprintf(stdout, "Last test number should be '3'\n");

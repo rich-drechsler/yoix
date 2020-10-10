@@ -1,0 +1,49 @@
+//
+// This would hang in older versions because receive() is synchronized
+// (in java.net.DatagramSocket) and our implementation of send() called
+// java.net.DatagramSocket.setSoTimeout(), which was also synchronized.
+//
+
+import yoix.*.*;
+
+DatagramSocket socket;
+
+Thread receive_thread = {
+    run() {
+	String buf[200];
+	String addr;
+	int    port;
+	int    count;
+
+	while (TRUE) {
+	    printf("waiting for data\n");
+	    count = socket.receive(buf, &addr, &port);
+	    printf("received: count=%d, addr=%s, port=%d\n", count, addr, port);
+	    sleep(3);
+	}
+    }
+};
+
+Thread send_thread = {
+    run() {
+	String buf = "Now is the time for all good men to come to the aid";
+	String addr;
+	int    port;
+	int    count;
+	int    n;
+
+	for (n = 0; n < 20; n++) {
+	    printf("sending data\n");
+	    count = socket.send(buf, NULL, socket.localport);
+	    printf("sent: count=%d\n", count);
+	    sleep(1);
+	}
+	exit(0);
+    }
+};
+
+socket.alive = TRUE;
+receive_thread.run();
+sleep(1);
+send_thread.run();
+

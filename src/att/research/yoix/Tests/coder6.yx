@@ -1,0 +1,69 @@
+import yoix.*.*;
+
+int n;
+
+Array textvals = {
+    "Now is the time",
+    "for all good men",
+    "to come to the aid",
+    "of their country.",
+};
+
+String step1_out = "5F823F11C3B65E60BA9445C5B2F250FBC04D686F2FD866214215A7FD164F8EC8B3DFD2BAB202A84328B696F7B5E24FCCEE6FFBB041E47D829088314D7C40D78BF241267A983A12E6";
+
+String step2_out = "";
+
+String output;
+String NL = getProperty("line.separator");
+
+Cipher c = {
+    String specification = "DES";
+    int opmode = ENCRYPT_MODE;
+    Dictionary initializer = {
+	String key = "AF449F90307B46828DF6BB3D57D248C791F92985E9B17F5557B3F32685C85827C281908F0DACF666";
+    };
+};
+
+c.opmode = ENCRYPT_MODE;
+StringStream ss1 = {
+    int mode = WRITE;
+    int open = TRUE;
+    Cipher cipher = c;
+    int filters = HEXCODER;
+};
+
+for (n=0; n<textvals@length; n++) {
+    ss1.nextline = textvals[n];
+    step2_out += textvals[n] + NL;
+}
+close(ss1);
+
+stdout.nextline = "=========== Step 1 ===========";
+
+if (ss1.name === step1_out)
+    stdout.nextline = "Step 1: coding succeeded.";
+else stdout.nextline = "Step 1: coding failed.";
+stdout.nextline = "==============================";
+
+stdout.nextline = ss1.name;
+
+c.opmode = DECRYPT_MODE;
+
+StringStream ss2 = {
+    int mode = READ;
+    int open = TRUE;
+    String name = ss1.name;
+    Cipher cipher = c;
+    int filters = HEXCODER;
+};
+
+output = ss2.nextbuf;
+
+stdout.nextline = "=========== Step 2 ===========";
+
+if (output === step2_out)
+    stdout.nextline = "Step 2: de-coding succeeded.";
+else stdout.nextline = "Step 2: de-coding failed.";
+stdout.nextline = "==============================";
+
+stdout.nextbuf = output;

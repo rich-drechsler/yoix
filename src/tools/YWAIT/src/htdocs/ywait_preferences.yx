@@ -1,0 +1,1746 @@
+//
+// This file manages default definitions for things, like fonts and colors,
+// that are primarily used to build screens. Users can control much of this
+// using the edit_preferences screen and their choices can be stored on the
+// server and applied whenever they login to the system. In an uncontrolled
+// environment without password access user preferences can't be linked to
+// the correct user unless they are stored on the user's system, which is
+// something that we currently don't support.
+//
+// A dictionary named PREFERENCES, which is initialized later in this file,
+// handles the low level storage. The details aren't terribly complicated,
+// but they are subject to change, so applications should use functions,
+// like GetPreferredTextFont(), to retrieve values from PREFERENCES.
+//
+
+int PREFERENCES_LOADED = FALSE;
+
+GetPreferredButtonFont() = PREFERENCES.DISPLAY.FONT.BUTTON.value[VCRNT];
+GetPreferredChoiceFont() = PREFERENCES.DISPLAY.FONT.CHOICE.value[VCRNT];
+GetPreferredHeadingFont() = PREFERENCES.DISPLAY.FONT.HEADING.value[VCRNT];
+GetPreferredLabelFont() = PREFERENCES.DISPLAY.FONT.LABEL.value[VCRNT];
+GetPreferredMenuFont() = PREFERENCES.DISPLAY.FONT.MENU.value[VCRNT];
+GetPreferredMessageFont() = PREFERENCES.DISPLAY.FONT.MESSAGE.value[VCRNT];
+GetPreferredMonospaceFont() = PREFERENCES.DISPLAY.FONT.MONOSPACE.value[VCRNT];
+GetPreferredProgressFont() = PREFERENCES.DISPLAY.FONT.PROGRESS.value[VCRNT];
+GetPreferredProprietaryFont() = PREFERENCES.DISPLAY.FONT.PROPRIETARY.value[VCRNT];
+GetPreferredStatusFont() = PREFERENCES.DISPLAY.FONT.STATUS.value[VCRNT];
+GetPreferredTableFont() = PREFERENCES.DISPLAY.FONT.TABLE.value[VCRNT];
+GetPreferredTableHeadingFont() = PREFERENCES.DISPLAY.FONT.TABLE_HEADING.value[VCRNT];
+GetPreferredTextFont() = PREFERENCES.DISPLAY.FONT.TEXT.value[VCRNT];
+GetPreferredTitledBorderFont() = PREFERENCES.DISPLAY.FONT.TITLEDBORDER.value[VCRNT];
+GetPreferredTreeFont() = PREFERENCES.DISPLAY.FONT.TREE.value[VCRNT];
+
+GetPreferredBackground() = PREFERENCES.DISPLAY.COLOR.BACKGROUND[ServerType].value[VCRNT];
+GetPreferredForeground() = PREFERENCES.DISPLAY.COLOR.FOREGROUND[ServerType].value[VCRNT];
+GetPreferredChoiceBackground() = PREFERENCES.DISPLAY.COLOR.BACKGROUND.CHOICE.value[VCRNT];
+GetPreferredChoiceForeground() = PREFERENCES.DISPLAY.COLOR.FOREGROUND.CHOICE.value[VCRNT];
+GetPreferredProgressBarBackground() = PREFERENCES.DISPLAY.COLOR.BACKGROUND.PROGRESS.value[VCRNT];
+GetPreferredProgressBarForeground() = PREFERENCES.DISPLAY.COLOR.FOREGROUND.PROGRESS.value[VCRNT];
+GetPreferredTableBackground() = PREFERENCES.DISPLAY.COLOR.BACKGROUND.TABLE.value[VCRNT];
+GetPreferredTableForeground() = PREFERENCES.DISPLAY.COLOR.FOREGROUND.TABLE.value[VCRNT];
+GetPreferredTextBackground() = PREFERENCES.DISPLAY.COLOR.BACKGROUND.TEXT.value[VCRNT];
+GetPreferredTextForeground() = PREFERENCES.DISPLAY.COLOR.FOREGROUND.TEXT.value[VCRNT];
+GetPreferredTreeBackground() = PREFERENCES.DISPLAY.COLOR.BACKGROUND.TREE.value[VCRNT];
+GetPreferredTreeForeground() = PREFERENCES.DISPLAY.COLOR.FOREGROUND.TREE.value[VCRNT];
+
+GetPreferredActiveColor() = PREFERENCES.DISPLAY.COLOR.ACTIVE_TEXT.value[VCRNT];
+GetPreferredTableGridColor() = PREFERENCES.DISPLAY.COLOR.GRID.TABLE.value[VCRNT];
+GetPreferredPressedColor() = PREFERENCES.DISPLAY.COLOR.PRESSED_TEXT.value[VCRNT];
+GetPreferredVisitedColor() = PREFERENCES.DISPLAY.COLOR.VISITED_TEXT.value[VCRNT];
+GetPreferredWarningColor() = PREFERENCES.DISPLAY.COLOR.WARNING_TEXT.value[VCRNT];
+
+GetPreferredDebugging() = PREFERENCES.GENERAL.DEBUGGING.value[VCRNT];
+GetPreferredRandomBackground() = PREFERENCES.GENERAL.RANDOMBACKGROUND.value[VCRNT];
+
+GetPreferredScreenInsets() {
+    return(new Insets {
+	double bottom = PREFERENCES.DISPLAY.BOTTOM_SCREEN_INSET.value[VCRNT];
+	double left = PREFERENCES.DISPLAY.LEFT_SCREEN_INSET.value[VCRNT];
+	double right = PREFERENCES.DISPLAY.RIGHT_SCREEN_INSET.value[VCRNT];
+	double top = PREFERENCES.DISPLAY.TOP_SCREEN_INSET.value[VCRNT];
+    });
+}
+
+GetPreferredSmallButtonInsets() {
+    JButton button;
+    Insets  insets = NULL;
+
+    if (defined("insets", button)) {        // added in release 2.1.7
+	if (strcasecmp(VM.screen.uimanager.lookandfeel, "Metal") == 0) {
+	    insets = button.insets;
+	    insets.top *= 0.25;
+	    insets.bottom *= 0.25;
+	    insets.left *= 0.25;
+	    insets.right *= 0.25;
+	}
+    }
+    return(insets);
+}
+
+GetPreferredTableCellColors() {
+    return(
+	new Array {
+	    new Array[] {
+		PREFERENCES.DISPLAY.COLOR.BACKGROUND.TABLE_CELL_1.value[VCRNT],
+		PREFERENCES.DISPLAY.COLOR.BACKGROUND.TABLE_CELL_2.value[VCRNT],
+	    },
+	    new Array[] {
+		PREFERENCES.DISPLAY.COLOR.FOREGROUND.TABLE_CELL_1.value[VCRNT],
+		PREFERENCES.DISPLAY.COLOR.FOREGROUND.TABLE_CELL_2.value[VCRNT],
+	    },
+	}
+    );
+}
+
+GetPreferredTableFilterCellColors() {
+    return(
+	new Array[] {
+	    PREFERENCES.DISPLAY.COLOR.BACKGROUND.TABLE_CELL_1.value[VCRNT],
+	    PREFERENCES.DISPLAY.COLOR.FOREGROUND.TABLE_CELL_1.value[VCRNT],
+	}
+    );
+}
+
+GetPreferredTableFilterSelectionBackground() = PREFERENCES.DISPLAY.COLOR.BACKGROUND.TABLE_CELL_1.value[VCRNT];
+GetPreferredTableFilterSelectionForeground() = PREFERENCES.DISPLAY.COLOR.FOREGROUND.TABLE_CELL_1.value[VCRNT];
+
+GetPreferredTableHeaderBackgrounds() {
+    return(
+	new Array {
+	    PREFERENCES.DISPLAY.COLOR.BACKGROUND.TABLE_HEADER.value[VCRNT],
+	    PREFERENCES.DISPLAY.COLOR.BACKGROUND.TABLE_HEADER_2.value[VCRNT],
+	    PREFERENCES.DISPLAY.COLOR.BACKGROUND.TABLE_HEADER_1.value[VCRNT],
+	}
+    );
+}
+
+GetPreferredTableHeaderForegrounds() {
+    return(
+	new Array {
+	    PREFERENCES.DISPLAY.COLOR.FOREGROUND.TABLE_HEADER.value[VCRNT],
+	    PREFERENCES.DISPLAY.COLOR.FOREGROUND.TABLE_HEADER_2.value[VCRNT],
+	    PREFERENCES.DISPLAY.COLOR.FOREGROUND.TABLE_HEADER_1.value[VCRNT],
+	}
+    );
+}
+
+Function GetPreferredTableHeaderColors = GetPreferredTableHeaderBackgrounds;
+
+GetPreferredTooltipBackground() {
+    return(VM.screen.uimanager.get("ToolTip.background", Color.lightGray));
+}
+
+GetPreferredTooltipForeground() {
+    return(VM.screen.uimanager.get("ToolTip.foreground", Color.black));
+}
+
+GetPreferredViewer() {
+    Process proc;
+    String  viewer;
+    String  browser;
+    Array   unixbrowsers = {"firefox", "mozilla", "netscape"};
+
+    //
+    // As rather complicated function that does a pretty good job picking
+    // the command for most operating systems when it's not explicitly set
+    // in the PREFERENCES dictionary. Picking the browser on Unix turns out
+    // to be the hardest.
+    //
+
+    if (PREFERENCES.GENERAL.VIEWER.value[VCRNT] == NULL || PREFERENCES.GENERAL.VIEWER.value[VCRNT]@length == 0) {
+	if (ISMAC) {
+            viewer = "open %s"; // should be in /usr/bin
+	} else if (ISWIN) {
+	    //
+	    // Windows will use one of (this growing list):
+	    //
+	    //    [C:\WINNT\system32\]cmd.exe /c start %s
+	    //    [C:\WINDOWS\COMMAND\]start.exe %s
+	    //    [C:\WINDOWS\]RUNDLL32.EXE url.dll.FileProtocolHandler %s
+	    //
+	    if (isFilePath("c:/winnt/system32/cmd.exe")) {
+		// windows 2000 and NT
+		viewer = localPath("c:/winnt/system32/cmd.exe") + " /c start %s";
+	    } else if (isFilePath("c:/windows/system32/cmd.exe")) {
+		// windows XP
+		viewer = localPath("c:/windows/system32/cmd.exe") + " /c start %s";
+	    } else if (isFilePath("c:/windows/command/start.exe")) {
+		// windows 98
+		viewer = localPath("c:/windows/command/start.exe") + " %s";
+	    } else if (isFilePath("c:/windows/rundll32.exe")) {
+		// windows 95
+		viewer = localPath("c:/windows/rundll32.exe") + " url.dll,FileProtocolHandler %s";
+	    } else if (indexOf(OSNAME,"2000") >= 0 || indexOf(OSNAME,"NT") >= 0) {
+		viewer = "cmd.exe /c start %s";
+	    } else {
+		viewer = "start %s";
+	    }
+	} else { // ISUNIX
+	    //
+	    // Decided against taking the actual command line from a property,
+	    // but at least this lets the user override our preferred choice.
+	    //
+	    if ((browser = getProperty("yoix.browser")) != NULL) {
+		if (indexOfObject(unixbrowsers, browser) >= 0)
+		    unixbrowsers = new Array {browser};
+	    }
+	    //
+	    // The three browsers we currently support accept the same options
+	    // and arguments, so a simple loop works.
+	    //
+	    for (ptr in unixbrowsers) {
+		if ((proc = exec(*ptr + " -v")) != NULL) {
+		    waitFor(proc);
+		    if (proc.exitvalue == 0) {
+			viewer = *ptr + " -remote openURL(%s)";
+			break;
+		    }
+		}
+	    }
+	}
+	if (viewer@sizeof > 0)
+	    PREFERENCES.GENERAL.VIEWER.value[VCRNT] = viewer;
+	else viewer = NULL;	// should be unnecessary
+    } else viewer = PREFERENCES.GENERAL.VIEWER.value[VCRNT];
+
+    return(viewer);
+}
+
+GetStoreRetainedColumnOrder() = PREFERENCES.GENERAL.STORERETAINEDCOLUMNORDER.value[VCRNT];
+GetStoreRetainedColumnWidths() = PREFERENCES.GENERAL.STORERETAINEDCOLUMNWIDTHS.value[VCRNT];
+GetStoreRetainedLocation() = PREFERENCES.GENERAL.STORERETAINEDLOCATION.value[VCRNT];
+GetStoreRetainedSizing() = PREFERENCES.GENERAL.STORERETAINEDSIZING.value[VCRNT];
+GetStoreRetainedTableSort() = PREFERENCES.GENERAL.STORERETAINEDTABLESORT.value[VCRNT];
+
+GetUseRetainedColumnOrder() = PREFERENCES.GENERAL.USERETAINEDCOLUMNORDER.value[VCRNT];
+GetUseRetainedColumnWidths() = PREFERENCES.GENERAL.USERETAINEDCOLUMNWIDTHS.value[VCRNT];
+GetUseRetainedLocation() = PREFERENCES.GENERAL.USERETAINEDLOCATION.value[VCRNT];
+GetUseRetainedSizing() = PREFERENCES.GENERAL.USERETAINEDSIZING.value[VCRNT];
+GetUseRetainedTableSort() = PREFERENCES.GENERAL.USERETAINEDTABLESORT.value[VCRNT];
+
+LoadPreferences(String prefs) {
+    //
+    // Loads user defined preferences after a successful login.
+    //
+
+    PREFERENCES_LOADED = TRUE;
+
+    if (prefs != NULL) {
+	prefs = trim(prefs);
+	if (prefs@sizeof > 0) {
+	    //
+	    // Using local as a "named block" prevents "blockfull" errors
+	    // when eval runs. This is a Yoix issue that may never change.
+	    //
+	    Dictionary local[1, ...];
+	    local {
+		try {
+		    eval(prefs);
+		}
+		catch(e) {
+		    ShowWarning("User preference file has faulty syntax and will be ignored.\n\nFile content follows:\n" + prefs, TRUE);
+		    prefs = NULL;
+		    return(TRUE);
+		}
+
+		if (prefs != NULL) {
+		    if (defined("PREFERENCES", local) && local.PREFERENCES instanceof Dictionary) {
+			PostProcessPreferences("UserPreferences", "PREFERENCES", local.PREFERENCES, global.PREFERENCES);
+			CopyPreferences(&local.PREFERENCES, &global.PREFERENCES);
+		    } else {
+			ShowWarning("User preference file does not contain PREFERENCES dictionary.\nIt will be ignored.\n\nFile content follows:\n" + prefs, TRUE);
+			prefs = NULL;
+		    }
+		}
+	    }
+	    if (prefs != NULL) {
+		ResetPreferences();
+		ResetScreens();
+	    }
+	}
+    }
+}
+
+ResetPreferences() {
+    VM.screen.foreground = GetPreferredForeground();
+    VM.screen.background = GetPreferredBackground();
+    VM.addtags = GetPreferredDebugging() ? 1 : VM.addtags;
+    SyncVMPreferences(PREFERENCES);
+}
+
+SetPreferredDegugging(int state) = PREFERENCES.GENERAL.DEBUGGING.value = new Array {state, state, state};
+
+SetupPreferences() {
+    //
+    // Handles initialization that needs to happen when the system first
+    // starts. We eventually may want to make sure this function is only
+    // called once.
+    //
+    PostProcessPreferences("SystemPreferences", "PREFERENCES", PREFERENCES, NULL);
+    ResetPreferences();
+}
+
+//
+// Everything that follows is low level code that most applications won't
+// ever need. It's also code that we may decide to change as we expand or
+// modify YWAIT's preferences support.
+//
+
+final int VCRNT = 0;
+final int VEDIT = 1;
+final int VDFLT = 2;
+
+final int VPNONE = 0;
+final int VPHEX  = 1;
+final int VPURL  = 2;
+
+final int VTYPE_BOOLEAN    =  0;
+final int VTYPE_COLOR      =  1;
+final int VTYPE_DIMENSION  =  2;
+final int VTYPE_DOUBLE     =  3;
+final int VTYPE_DOUBLES    =  4; // array of doubles
+final int VTYPE_FOLDER     =  5;
+final int VTYPE_FONT       =  6;
+final int VTYPE_INT        =  7;
+final int VTYPE_INTS       =  8; // array of ints
+final int VTYPE_POINT      =  9;
+final int VTYPE_STRING     = 10; // single-line text
+final int VTYPE_TEXTBLOCK  = 11; // possibly multi-line text
+
+Regexp VTYPE_INT_RE = {
+    String pattern = "^[+-]?[0-9]+$";
+};
+
+Regexp VTYPE_DOUBLE_RE = {
+    String pattern = "^[+-]?([0-9]*[.][0-9]+|[0-9]+[.]?)([eE][+-]?[0-9]+)?$";
+};
+
+//
+// This forces loading of xcolors into the Color dictionary.
+//
+
+addColor();
+GetMonofont(String style, int size) {
+    // just intended for use in this file, so minimal error checking
+    Font monofont = { String name = "Monaco-" + style + "-" + toString(size); };
+    if (monofont.family !== "Monaco")
+	monofont = new Font { String name = "Monospaced-" + style + "-" + toString(size); };
+    return(monofont);
+}
+
+//
+// For flexibility and to fully take advantage of routines such as
+// PostProcessPreferences, make all the dictionaries growable. It is
+// not necessary if you pre-define all the fields any dictionary will
+// need including those that the UserPrefernces might want to add.
+// Currently no need to make VTYPE_FOLDER elements growable.
+//
+// Any Dictionary entry can have a "validate" function for validating user
+// preference changes.
+// Number entries can provide a "range" field to providing bounding info. The
+// field is an array with 4 elements: low-bound, low-bound inclusion boolean,
+// hi-bound, hi-bound inclusion boolean, where the boolen indicates if acceptable
+// values includes the bound value.
+// Number entries can also have a "values" Array field of N+1 elements. The first
+// element is a boolean indicating whether free form entries (from an editable combobox)
+// are permitted in addition to the N specific values that follow.
+// Orignally included for color values was the concept of a "value_name" field that
+// provides a mechanism for carrying a text representation (i.e., a name) of the value.
+// Colors no longer need this as getColorName is available, but perhaps other data types
+// such as images will require it. Be sure to test as it may have atrophied through dis-use.
+//
+
+Dictionary PREFERENCES = {
+    int        type = VTYPE_FOLDER; // the default type (so unnecessary to specify it)
+    Dictionary GENERAL = {
+	// make dictionary final when you want uneditable values
+	int        type = VTYPE_FOLDER;
+	Dictionary VIEWER[0, ...] = {
+	    String label = "Viewer command (with %s as target placeholder)";
+	    int    type  = VTYPE_STRING;
+	    int    encoding = VPNONE;
+	    String initvalue = NULL;
+	    Array  value = NULL;
+	    String errmsg = NULL;
+
+	    validate(Object val) {
+		int valid = TRUE;
+
+		errmsg = NULL;
+		if (val instanceof String) {
+		    if (val@sizeof > 0) {
+			if (indexOf(val, "%s") < 0) {
+			    valid = FALSE;
+			    errmsg = "Browser specification must include %s, which the system will replace with a URL or filepath when needed.";
+			}
+		    }
+		} else {
+		    valid = FALSE;
+		    errmsg = strfmt("Unexpected value; expected a String, but found a %s.", val@typename);
+		}
+		return(valid);
+	    }
+	};
+	Dictionary DEBUGGING[0, ...] = {
+	    String label = "Debugging active";
+	    int    type  = VTYPE_BOOLEAN;
+	    int    initvalue = FALSE;
+	    Array  value = NULL;
+	};
+	Dictionary RANDOMBACKGROUND[0, ...] = {
+	    String label = "Enable random background generation";
+	    int    type  = VTYPE_BOOLEAN;
+	    int    initvalue = TRUE;
+	    Array  value = NULL;
+	};
+	Dictionary STORERETAINEDCOLUMNORDER[0, ...] = {
+	    String label = "Enable auto-retention of table column order";
+	    int    type  = VTYPE_BOOLEAN;
+	    int    initvalue = FALSE;
+	    Array  value = NULL;
+	};
+	Dictionary STORERETAINEDCOLUMNWIDTHS[0, ...] = {
+	    String label = "Enable auto-retention of table column widths";
+	    int    type  = VTYPE_BOOLEAN;
+	    int    initvalue = FALSE;
+	    Array  value = NULL;
+	};
+	Dictionary STORERETAINEDLOCATION[0, ...] = {
+	    String label = "Enable auto-retention of screen location";
+	    int    type  = VTYPE_BOOLEAN;
+	    int    initvalue = FALSE;
+	    Array  value = NULL;
+	};
+	Dictionary STORERETAINEDSIZING[0, ...] = {
+	    String label = "Enable auto-retention of screen sizing";
+	    int    type  = VTYPE_BOOLEAN;
+	    int    initvalue = FALSE;
+	    Array  value = NULL;
+	};
+	Dictionary STORERETAINEDTABLESORT[0, ...] = {
+	    String label = "Enable auto-retention of table sort order";
+	    int    type  = VTYPE_BOOLEAN;
+	    int    initvalue = FALSE;
+	    Array  value = NULL;
+	};
+	Dictionary USERETAINEDCOLUMNORDER[0, ...] = {
+	    String label = "Use retained table column order";
+	    int    type  = VTYPE_BOOLEAN;
+	    int    initvalue = TRUE;
+	    Array  value = NULL;
+	};
+	Dictionary USERETAINEDCOLUMNWIDTHS[0, ...] = {
+	    String label = "Use retained table column widths";
+	    int    type  = VTYPE_BOOLEAN;
+	    int    initvalue = TRUE;
+	    Array  value = NULL;
+	};
+	Dictionary USERETAINEDLOCATION[0, ...] = {
+	    String label = "Use retained screen location";
+	    int    type  = VTYPE_BOOLEAN;
+	    int    initvalue = TRUE;
+	    Array  value = NULL;
+	};
+	Dictionary USERETAINEDSIZING[0, ...] = {
+	    String label = "Use retained screen sizing";
+	    int    type  = VTYPE_BOOLEAN;
+	    int    initvalue = TRUE;
+	    Array  value = NULL;
+	};
+	Dictionary USERETAINEDTABLESORT[0, ...] = {
+	    String label = "Use retained table sort order";
+	    int    type  = VTYPE_BOOLEAN;
+	    int    initvalue = TRUE;
+	    Array  value = NULL;
+	};
+    };
+    Dictionary DISPLAY = {
+	int        type = VTYPE_FOLDER;
+	Dictionary BOTTOM_SCREEN_INSET[0, ...] = {
+	    String label = "Screen inset bottom bound (72 units = 1 inch)";
+	    int    type  = VTYPE_INT;
+	    int    initvalue = 36;
+	    Array  value = NULL;
+	    Array  range = { 0, TRUE, ifloor(VM.screen.height / 2), FALSE };
+	    // Set values so that the preference editor will use
+	    // a JComboBox instead of a JTextField (just as an example)
+	    Array  values = { TRUE, 18, 36, 72, 144 };
+	};
+	Dictionary LEFT_SCREEN_INSET[0, ...] = {
+	    String label = "Screen inset left bound (72 units = 1 inch)";
+	    int    type  = VTYPE_INT;
+	    int    initvalue = 1;
+	    Array  value = NULL;
+	    Array  range = { 0, TRUE, ifloor(VM.screen.width / 2), FALSE };
+	};
+	Dictionary RIGHT_SCREEN_INSET[0, ...] = {
+	    String label = "Screen inset right bound (72 units = 1 inch)";
+	    int    type  = VTYPE_INT;
+	    int    initvalue = 1;
+	    Array  value = NULL;
+	    Array  range = { 0, TRUE, ifloor(VM.screen.width / 2), FALSE };
+	};
+	Dictionary TOP_SCREEN_INSET[0, ...] = {
+	    String label = "Screen inset top bound (72 units = 1 inch)";
+	    int    type  = VTYPE_INT;
+	    int    initvalue = 1;
+	    Array  value = NULL;
+	    Array  range = { 0, TRUE, ifloor(VM.screen.height / 2), FALSE };
+	    // Set values so that the preference editor will use
+	    // a JComboBox instead of a JTextField (just as an example)
+	    Array  values = { TRUE, 18, 36, 72, 144 };
+	};
+	Dictionary COLOR = {
+	    int        type = VTYPE_FOLDER;
+	    Dictionary BACKGROUND = {
+		int        type = VTYPE_FOLDER;
+		Dictionary PRODUCTION[0, ...] = {
+		    String label = "Production system background color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.grayperiwinkle;
+		    Array  value = NULL;
+		};
+		Dictionary DEMONSTRATION[0, ...] = {
+		    String label = "Demonstation system background color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.palegoldenrod;
+		    Array  value = NULL;
+		};
+		Dictionary DEVELOPMENT[0, ...] = {
+		    String label = "Development system background color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.honeydew2;
+		    Array  value = NULL;
+		};
+		Dictionary PROTOTYPE[0, ...] = {
+		    String label = "Prototype system background color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.graylime;
+		    Array  value = NULL;
+		};
+		Dictionary DISABLED[0, ...] = {
+		    String label = "Disabled background color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.lightgray;
+		    Array  value = NULL;
+		};
+		Dictionary CHOICE[0, ...] = {
+		    String label = "Background color for choices and lists";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.white;
+		    Array  value = NULL;
+		};
+		Dictionary PROGRESS[0, ...] = {
+		    String label = "Progress bar background color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.white;
+		    Array  value = NULL;
+		};
+		Dictionary TABLE[0, ...] = {
+		    String label = "Table background color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.white;
+		    Array  value = NULL;
+		};
+		Dictionary TABLE_CELL_1[0, ...] = {
+		    String label = "Table cell background color 1";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.grey96;
+		    Array  value = NULL;
+		};
+		Dictionary TABLE_CELL_2[0, ...] = {
+		    String label = "Table cell background color 2";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.grey86;
+		    Array  value = NULL;
+		};
+		Dictionary TABLE_HEADER[0, ...] = {
+		    String label = "Table header background color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.grey86;
+		    Array  value = NULL;
+		};
+		Dictionary TABLE_HEADER_1[0, ...] = {
+		    String label = "Table header background color 1";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.seagreen1;
+		    Array  value = NULL;
+		};
+		Dictionary TABLE_HEADER_2[0, ...] = {
+		    String label = "Table header background color 2";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.sienna1;
+		    Array  value = NULL;
+		};
+		Dictionary TEXT[0, ...] = {
+		    String label = "Text component background color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.white;
+		    Array  value = NULL;
+		};
+		Dictionary TREE[0, ...] = {
+		    String label = "Tree background color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.white;
+		    Array  value = NULL;
+		};
+	    };
+	    Dictionary FOREGROUND = {
+		int        type = VTYPE_FOLDER;
+		Dictionary PRODUCTION[0, ...] = {
+		    String label = "Production system foreground color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.black;
+		    Array  value = NULL;
+		};
+		Dictionary DEMONSTRATION[0, ...] = {
+		    String label = "Demonstration system foreground color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.black;
+		    Array  value = NULL;
+		};
+		Dictionary DEVELOPMENT[0, ...] = {
+		    String label = "Development system foreground color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.black;
+		    Array  value = NULL;
+		};
+		Dictionary PROTOTYPE[0, ...] = {
+		    String label = "Prototype system foreground color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.black;
+		    Array  value = NULL;
+		};
+		Dictionary DISABLED[0, ...] = {
+		    String label = "Disabled foreground color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.gray;
+		    Array  value = NULL;
+		};
+		Dictionary CHOICE[0, ...] = {
+		    String label = "Foreground color for choices and lists";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.black;
+		    Array  value = NULL;
+		};
+		Dictionary PROGRESS[0, ...] = {
+		    String label = "Progress bar foreground color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.blue;
+		    Array  value = NULL;
+		};
+		Dictionary TABLE[0, ...] = {
+		    String label = "Table foreground color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.black;
+		    Array  value = NULL;
+		};
+		Dictionary TABLE_CELL_1[0, ...] = {
+		    String label = "Table cell foreground color 1";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.black;
+		    Array  value = NULL;
+		};
+		Dictionary TABLE_CELL_2[0, ...] = {
+		    String label = "Table cell foreground color 2";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.black;
+		    Array  value = NULL;
+		};
+		Dictionary TABLE_HEADER[0, ...] = {
+		    String label = "Table header foreground";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.black;
+		    Array  value = NULL;
+		};
+		Dictionary TABLE_HEADER_1[0, ...] = {
+		    String label = "Table header foreground color 1";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.magenta;
+		    Array  value = NULL;
+		};
+		Dictionary TABLE_HEADER_2[0, ...] = {
+		    String label = "Table header foreground color 2";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.peachpuff;
+		    Array  value = NULL;
+		};
+		Dictionary TEXT[0, ...] = {
+		    String label = "Text component foreground color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.black;  // placeholder (effectively ignored)
+		    String VM = "screen.foreground"; // uses this value as dflt
+		    Array  value = NULL;
+		};
+		Dictionary TREE[0, ...] = {
+		    String label = "Tree foreground color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.black;  // placeholder (effectively ignored)
+		    String VM = "screen.foreground"; // uses this value as dflt
+		    Array  value = NULL;
+		};
+	    };
+	    Dictionary GRID = {
+		int        type = VTYPE_FOLDER;
+		Dictionary TABLE[0, ...] = {
+		    String label = "Table grid color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.blue;
+		    Array  value = NULL;
+		};
+	    };
+	    Dictionary HIGHLIGHT = {
+		int        type = VTYPE_FOLDER;
+		Dictionary CARET[0, ...] = {
+		    String label = "Caret highlight color";
+		    int    type  = VTYPE_COLOR;
+		    String colorname = "ywaitslategray";
+		    Array  colorvalue = { 0.60, 0.60, 0.70 };
+		    Array  value = NULL;
+		};
+		Dictionary INVALID[0, ...] = {
+		    String label = "Invalid highlight color";
+		    int    type  = VTYPE_COLOR;
+		    Color  initvalue = Color.grayoffpink;
+		    Array  value = NULL;
+		};
+		Dictionary VALID[0, ...] = {
+		    String label = "Valid highlight color";
+		    int    type  = VTYPE_COLOR;
+		    String colorname = "ywaitlightsteelblue";
+		    Array  colorvalue = { 0.80, 0.80, 0.95 };
+		    Array  value = NULL;
+		};
+	    };
+	    Dictionary ACTIVE_TEXT[0, ...] = {
+		String label = "Active color";
+		int    type  = VTYPE_COLOR;
+		Color  initvalue = Color.blue;
+		Array  value = NULL;
+	    };
+	    Dictionary PRESSED_TEXT[0, ...] = {
+		String label = "Pressed color";
+		int    type  = VTYPE_COLOR;
+		Color  initvalue = Color.plum1;
+		Array  value = NULL;
+	    };
+	    Dictionary VISITED_TEXT[0, ...] = {
+		String label = "Visited color";
+		int    type  = VTYPE_COLOR;
+		Color  initvalue = Color.magenta;
+		Array  value = NULL;
+	    };
+	    Dictionary WARNING_TEXT[0, ...] = {
+		String label = "Warning color";
+		int    type  = VTYPE_COLOR;
+		Color  initvalue = Color.red;
+		Array  value = NULL;
+	    };
+	};
+	Dictionary FONT = {
+	    int        type = VTYPE_FOLDER;
+	    Dictionary BUTTON[0, ...] = {
+		String label = "Font for buttons";
+		int    type  = VTYPE_FONT;
+		Font   initvalue = { String name = "Dialog-plain-12"; };
+		Array  value = NULL;
+	    };
+	    Dictionary CHOICE[0, ...] = {
+		String label = "Font for choices and lists";
+		int    type  = VTYPE_FONT;
+		Font   initvalue = { String name = "Dialog-plain-12"; };
+		Array  value = NULL;
+	    };
+	    Dictionary HEADING[0, ...] = {
+		String label = "Font for headings";
+		int    type  = VTYPE_FONT;
+		Font   initvalue = { String name = "Dialog-plain-14"; };
+		Array  value = NULL;
+	    };
+	    Dictionary LABEL[0, ...] = {
+		String label = "Font for labels";
+		int    type  = VTYPE_FONT;
+		Font   initvalue = { String name = "Dialog-plain-12"; };
+		Array  value = NULL;
+	    };
+	    Dictionary MENU[0, ...] = {
+		String label = "Font for menus";
+		int    type  = VTYPE_FONT;
+		Font   initvalue = { String name = "Dialog-plain-12"; };
+		Array  value = NULL;
+	    };
+	    Dictionary MESSAGE[0, ...] = {
+		String label = "Font for messages";
+		int    type  = VTYPE_FONT;
+		Font   initvalue = { String name = "Dialog-plain-12"; };
+		Array  value = NULL;
+	    };
+	    Dictionary MONOSPACE[0, ...] = {
+		String label = "Font for fixed-width type";
+		int    type  = VTYPE_FONT;
+		Font   initvalue = GetMonofont("plain", 12);
+		Array  value = NULL;
+	    };
+	    Dictionary PROGRESS[0, ...] = {
+		String label = "Font for progress bars";
+		int    type  = VTYPE_FONT;
+		Font   initvalue = { String name = "Dialog-plain-14"; };
+		Array  value = NULL;
+	    };
+	    Dictionary PROPRIETARY[0, ...] = {
+		String label = "Font for the proprietary footer";
+		int    type  = VTYPE_FONT;
+		Font   initvalue = { String name = "Dialog-plain-10"; };
+		Array  value = NULL;
+	    };
+	    Dictionary STATUS[0, ...] = {
+		String label = "Font for the status line";
+		int    type  = VTYPE_FONT;
+		Font   initvalue = { String name = "Dialog-plain-12"; };
+		Array  value = NULL;
+	    };
+	    Dictionary TABLE[0, ...] = {
+		String label = "Font for tables";
+		int    type  = VTYPE_FONT;
+		Font   initvalue = GetMonofont("plain", 12);
+		Array  value = NULL;
+	    };
+	    Dictionary TABLE_HEADING[0, ...] = {
+		String label = "Font for table headings";
+		int    type  = VTYPE_FONT;
+		Font   initvalue = { String name = "Dialog-plain-14"; };
+		Array  value = NULL;
+	    };
+	    Dictionary TEXT[0, ...] = {
+		String label = "Font for text components";
+		int    type  = VTYPE_FONT;
+		Font   initvalue = { String name = "Dialog-plain-12"; };
+		Array  value = NULL;
+	    };
+	    Dictionary TITLEDBORDER[0, ...] = {
+		String label = "Font for titled borders";
+		int    type  = VTYPE_FONT;
+		Font   initvalue = { String name = "Dialog-plain-12"; };
+		Array  value = NULL;
+	    };
+	    Dictionary TREE[0, ...] = {
+		String label = "Font for tree";
+		int    type  = VTYPE_FONT;
+		Font   initvalue = { String name = "Dialog-plain-12"; };
+		Array  value = NULL;
+	    };
+	};
+    };
+    Dictionary STATE = {
+	int        type = VTYPE_FOLDER;
+	Dictionary COLUMNORDER[0, ...] = {
+	    int        type = VTYPE_FOLDER;
+	    String     sublabel = "Table column order";
+	    int        subtype  = VTYPE_INTS;
+
+	    subvalidate(Object val) {
+		Hashtable dupes;
+		int       valid = TRUE;
+		int       bound;
+
+		errmsg = NULL;
+		if (val != NULL) {
+		    if (val instanceof Array) {
+			bound = val@sizeof;
+			if (bound > 0) {
+			    for (ptr in val) {
+				if (*ptr < 0) {
+				    valid = FALSE;
+				    errmsg = "The column indices need to be non-negative.";
+				    break;
+				} else if (dupes.contains(*ptr)) {
+				    valid = FALSE;
+				    errmsg = strfmt("The column index %d is a repeat of an earlier value.", *ptr);
+				    break;
+				} else dupes.put(*ptr, ptr@offset);
+			    }
+			} else value[VEDIT] = NULL;
+		    } else {
+			valid = FALSE;
+			errmsg = strfmt("Unexpected value; expected an Array, but found a %s.", val@typename);
+		    }
+		}
+		return(valid);
+	    }
+	};
+	Dictionary COLUMNWIDTHS[0, ...] = {
+	    int        type = VTYPE_FOLDER;
+	    String     sublabel = "Table column widths";
+	    int        subtype  = VTYPE_DOUBLES;
+
+	    subvalidate(Object val) {
+		int valid = TRUE;
+
+		errmsg = NULL;
+		if (val != NULL) {
+		    if (val instanceof Array) {
+			if (val@sizeof > 0) {
+			    for (ptr in val) {
+				if (*ptr < 0) {
+				    valid = FALSE;
+				    errmsg = "The column widths need to be greater than zero.";
+				    break;
+				}
+			    }
+			} else value[VEDIT] = NULL;
+		    } else {
+			valid = FALSE;
+			errmsg = strfmt("Unexpected value; expected an Array, but found a %s.", val@typename);
+		    }
+		}
+		return(valid);
+	    }
+	};
+	Dictionary LOCATION[0, ...] = {
+	    int        type = VTYPE_FOLDER;
+	    String     sublabel = "Screen location";
+	    int        subtype  = VTYPE_POINT;
+
+	    subvalidate(Object val) {
+		int valid = TRUE;
+
+		errmsg = NULL;
+		if (val instanceof Point) {
+		    if (val.x < 0 || val.x > (VM.screen.width - 72)) {
+			valid = FALSE;
+			errmsg = strfmt("The x value needs to be between 0 and %O, inclusive.", (VM.screen.width - 72));
+		    } else if (val.y < 0 || val.y > (VM.screen.height - 72)) {
+			valid = FALSE;
+			errmsg = strfmt("The y value needs to be between 0 and %O, inclusive.", (VM.screen.height - 72));
+		    }
+		} else {
+		    valid = FALSE;
+		    errmsg = strfmt("Unexpected value; expected a Point, but found a %s.", val@typename);
+		}
+
+		return(valid);
+	    }
+	};
+	Dictionary SIZING[0, ...] = {
+	    int        type = VTYPE_FOLDER;
+	    String     sublabel = "Screen size";
+	    int        subtype  = VTYPE_DIMENSION;
+
+	    subvalidate(Object val) {
+		int valid = TRUE;
+
+		errmsg = NULL;
+		if (val instanceof Dimension) {
+		    if (val.width < 72 || val.width > (VM.screen.width - 72)) {
+			valid = FALSE;
+			errmsg = strfmt("The width value needs to be between 72 and %O, inclusive.", (VM.screen.width - 72));
+		    } else if (val.height < 72 || val.height > (VM.screen.height - 72)) {
+			valid = FALSE;
+			errmsg = strfmt("The height value needs to be between 72 and %O, inclusive.", (VM.screen.height - 72));
+		    }
+		} else {
+		    valid = FALSE;
+		    errmsg = strfmt("Unexpected value; expected a Dimension, but found a %s.", val@typename);
+		}
+		return(valid);
+	    }
+	};
+	Dictionary TABLESORT[0, ...] = {
+	    int        type = VTYPE_FOLDER;
+	    String     sublabel = "Table sort order";
+	    int        subtype  = VTYPE_INTS;
+	};
+    };
+};
+
+//
+// These are low level functions that support the current implementation
+// of preferences.
+//
+
+CopyPreferences(Dictionary source, Dictionary target) {
+    String name;
+
+    if (defined("value", *source)) {
+	if (defined("value", *target)) {
+	    try {
+		(*target)["value"] = (*source)["value"];
+	    }
+	    catch(e) {
+		ShowAlert(strfmt("Type check error for value in preference dictionary '%s':\n%.4O\n", *source@nameof, *source), TRUE);
+		return(TRUE);
+	    }
+	    if (defined("value_name", *target) && defined("value_name", *source)) {
+		try {
+		    (*target)["value_name"] = (*source)["value_name"];
+		}
+		catch(e) {
+		    ShowAlert(strfmt("Type check error for name in preference dictionary '%s':\n%.4O\n", *source@nameof, *source), TRUE);
+		    return(TRUE);
+		}
+	    }
+	} else {
+	    ShowAlert(strfmt("No corresponding value in preference dictionary '%s'.\nUser defined dictionary is:\n%.4O\n", *target@nameof, *source), TRUE);
+	}
+    } else {
+	for (ptr in *source) {
+	    //
+	    // We're only concerned with Dictionary entries (and "values"),
+	    // but we won't consider other entries to be an error
+	    //
+	    if (*ptr instanceof Dictionary) {
+		name = (*ptr)@nameof;
+		if (defined(name, *target) && (*target)[name] instanceof Dictionary) {
+		    CopyPreferences(&((*source)[name]), &((*target)[name]));
+		} else if (!defined(name, *target) && defined("subtype", *target) && defined("sublabel", *target) && isGrowable(*target)) {
+		    if (defined("sublabel", *target)) {
+			(*target)[name] = new Dictionary {
+			    String  label = strfmt("%s for %s", (*target).sublabel, gsubsti(".$", "[$][$]", name));
+			    int     type  = (*target).subtype;
+			    Array   value = NULL;
+			    Function validate = defined("subvalidate", target) ? (*target).subvalidate : NULL;
+			    String errmsg = NULL;
+			    Dictionary parent = target;
+			};
+		    } else {
+			(*target)[name] = new Dictionary {
+			    String  label = strfmt("%s for %s", (*target).sublabel, name);
+			    int     type  = (*target).subtype;
+			    Array   value = NULL;
+			};
+		    }
+		    CopyPreferences(&((*source)[name]), &((*target)[name]));
+		} else {
+		    ShowAlert(strfmt("No corresponding dictionary in preference dictionary '%s'.\nUser defined dictionary (%s) is:\n%.4O\n", *target@nameof, name, (*source)[name]), TRUE);
+		}
+	    }
+	}
+    }
+}
+
+PostProcessPreferences(String basename, String path, Dictionary prefs, Dictionary reference) {
+    Function showmsg;
+    String   name;
+    int      type;
+
+    if (defined("type", prefs))
+	type = prefs.type;
+    else if (reference == NULL || !defined("type", reference))
+	type = VTYPE_FOLDER;
+    else type = reference.type;
+
+    if (type == VTYPE_FOLDER) {
+	for (ptr in prefs) {
+	    if (*ptr instanceof Dictionary) {
+		name = (*ptr)@nameof;
+		if (reference == NULL)
+		    PostProcessPreferences(basename, path+"$"+name, *ptr, NULL);
+		else if (defined(name, reference))
+		    PostProcessPreferences(basename, path+"$"+name, *ptr, reference[name]);
+		else if (isGrowable(reference) && defined("subtype", reference) && defined("sublabel", reference))
+		    PostProcessPreferences(basename, path+"$"+name, *ptr, new Dictionary {
+			int type = reference.subtype;
+			Array value = { NULL, NULL, NULL };
+		    });
+	    }
+	}
+    } else if (defined("value", prefs) && (!isArray(prefs.value) || (prefs.value != NULL && prefs.value@sizeof != 3))) {
+	showmsg = (reference == NULL ? ShowError : ShowWarning);
+	showmsg(strfmt("The preference dictionary (%s) is ill-defined for entry '%s' because the value entry is not valid.", basename, path));
+	if (reference == NULL)
+	    Quit(1);
+    } else if (reference == NULL && (!defined("type", prefs) || !defined("label", prefs))) {
+	ShowError(strfmt("The system preference dictionary is ill-defined for entry '%s'.", path));
+	Quit(1);
+    } else if (!defined("value",prefs) || prefs.value == NULL) {
+	if (defined("initvalue", prefs)) {
+	    if (reference == NULL || !defined("value", reference)) 
+		prefs.value = new Array[] { prefs.initvalue, prefs.initvalue, prefs.initvalue };
+	    else {
+		prefs.value = new Array[3];
+		prefs.value[VDFLT] = reference.value[VDFLT];
+		prefs.value[VEDIT] = prefs.initvalue;
+		prefs.value[VCRNT] = prefs.initvalue;
+	    }
+	} else {
+	    switch(type) {
+		// right now only need something for Color, but could
+		// have others later (e.g., Cursor, Image)
+	    case VTYPE_COLOR:
+		if (defined("colorname", prefs) && prefs.colorname instanceof String) {
+		    if (defined(prefs.colorname, Color)) {
+			if (reference == NULL)
+			    prefs.value = new Array[] { Color[prefs.colorname], Color[prefs.colorname], Color[prefs.colorname] };
+			else {
+			    prefs.value = new Array[3];
+			    prefs.value[VDFLT] = reference.value[VDFLT];
+			    prefs.value[VEDIT] = Color[prefs.colorname];
+			    prefs.value[VCRNT] = Color[prefs.colorname];
+			}
+		    } else {
+			if (defined("colorvalue", prefs) && prefs.colorvalue instanceof Array && prefs.colorvalue@sizeof == 3 && prefs.colorvalue[0] instanceof Number && prefs.colorvalue[1] instanceof Number && prefs.colorvalue[2] instanceof Number) {
+			    addColor(prefs.colorname, prefs.colorvalue[0], prefs.colorvalue[1], prefs.colorvalue[2]);
+			    if (reference == NULL)
+				prefs.value = new Array[] { Color[prefs.colorname], Color[prefs.colorname], Color[prefs.colorname] };
+			    else {
+				prefs.value = new Array[3];
+				prefs.value[VDFLT] = reference.value[VDFLT];
+				prefs.value[VEDIT] = Color[prefs.colorname];
+				prefs.value[VCRNT] = Color[prefs.colorname];
+			    }
+			} else {
+			    showmsg = (reference == NULL ? ShowError : ShowWarning);
+			    showmsg(strfmt("Could not load preference dictionary (%s) for entry '%s' because the colorvalue entry is not properly set-up.", basename, path));
+			    if (reference == NULL)
+				Quit(1);
+			}
+		    }
+		} else {
+		    showmsg = (reference == NULL ? ShowError : ShowWarning);
+		    showmsg(strfmt("Could not load preference dictionary (%s) for entry '%s' because the colorname entry is not properly defined.", basename, path));
+		    if (reference == NULL)
+			Quit(1);
+		}
+		break;
+	    default:
+		showmsg = (reference == NULL ? ShowError : ShowWarning);
+		showmsg(strfmt("Could not load preference dictionary (%s) for entry '%s' because the appropriate value information is not supplied.", basename, path));
+		if (reference == NULL)
+		    Quit(1);
+		break;
+	    }
+	}
+    }
+}
+
+SyncVMPreferences(Dictionary prefs) {
+    int type;
+
+    if (defined("type", prefs))
+	type = prefs.type;
+    else type = VTYPE_FOLDER;
+
+    if (type == VTYPE_FOLDER) {
+	for (ptr in prefs) {
+	    if (*ptr instanceof Dictionary)
+		SyncVMPreferences(*ptr);
+	}
+    } else if (defined("VM", prefs)) {
+	switch(type) {
+	    //
+	    // Right now we only need something for Color, but could
+	    // add others later (e.g., Cursor, Image).
+	    //
+	    case VTYPE_COLOR:
+		if (prefs.VM instanceof String && defined(prefs.VM, VM) && VM[prefs.VM] instanceof Color)  {
+		    if (prefs.value[VDFLT] === prefs.value[VCRNT])
+			prefs.value[VCRNT] = prefs.value[VEDIT] = VM[prefs.VM];
+		    prefs.value[VDFLT] = VM[prefs.VM];
+		}
+		break;
+
+	    default:
+		break;
+	}
+    }
+}
+
+//
+// These functions are also used in edit_preferences
+//
+
+BuildPrefString() {
+    return(BuildPrefStringRecurse(PREFERENCES, 0));
+}
+
+BuildPrefStringRecurse(Dictionary prefs, int depth) {
+    Array    names = getDictionaryNames(prefs);
+    String   text = "";
+    String   result;
+    String   tabs;
+    int      i;
+    int      type;
+
+    depth++;
+    tabs = TabString(depth);
+
+    for (i = 0; i < names@sizeof; i++) {
+	if (prefs[names[i]] instanceof Dictionary) {
+	    if (defined("type", prefs[names[i]]))
+		type = prefs[names[i]].type;
+	    else type = VTYPE_FOLDER;
+	    switch (type) {
+	    case VTYPE_BOOLEAN:
+		if (prefs[names[i]].value[VEDIT] != prefs[names[i]].value[VDFLT]) {
+		    result = strfmt("%s\tint initvalue = %s;\n",
+				    tabs,
+				    prefs[names[i]].value[VEDIT] ? "TRUE" : "FALSE"
+			);
+		    text += tabs + "Dictionary " + names[i] + "[0,...] = {\n" + result + tabs + "};\n";
+		}
+		break;
+	    case VTYPE_FOLDER:
+		result = BuildPrefStringRecurse(prefs[names[i]], depth);
+		if (result@sizeof > 0) {
+		    text += tabs + "Dictionary " + names[i] + " = {\n" + result + tabs + "};\n";
+		}
+		break;
+	    case VTYPE_COLOR:
+		if (prefs[names[i]].value[VEDIT] !== prefs[names[i]].value[VDFLT]) {
+		    result = strfmt("%s\tString colorname = \"%s\";\n%s\tArray colorvalue = {\n%s\t\t%O,\n%s\t\t%O,\n%s\t\t%O\n%s\t};\n",
+				    tabs,
+				    getColorName(prefs[names[i]].value[VEDIT]),
+				    tabs,
+				    tabs,
+				    prefs[names[i]].value[VEDIT].red,
+				    tabs,
+				    prefs[names[i]].value[VEDIT].green,
+				    tabs,
+				    prefs[names[i]].value[VEDIT].blue,
+				    tabs
+			);
+		    text += tabs + "Dictionary " + names[i] + "[0,...] = {\n" + result + tabs + "};\n";
+		}
+		break;
+	    case VTYPE_DIMENSION:
+	    case VTYPE_POINT:
+		if (prefs[names[i]].value[VEDIT] != prefs[names[i]].value[VDFLT] && prefs[names[i]].value[VEDIT] != NULL) {
+		    result = strfmt("%s\t%s initvalue = {\n",
+				    tabs,
+				    prefs[names[i]].value[VEDIT]@typename
+			);
+		    for (ptr in prefs[names[i]].value[VEDIT]) {
+			result += strfmt("%s\t\t%s %s = %O;\n",
+					 tabs,
+					 *ptr@typename,
+					 *ptr@nameof,
+					 *ptr
+			    );
+		    }
+		    result += strfmt("%s\t};\n", tabs);
+		    text += tabs + "Dictionary " + names[i] + "[0,...] = {\n" + result + tabs + "};\n";
+		}
+		break;
+	    case VTYPE_DOUBLE:
+	    case VTYPE_INT:
+		if (prefs[names[i]].value[VEDIT] != prefs[names[i]].value[VDFLT]) {
+		    result = strfmt("%s\t%s initvalue = %O;\n",
+				    tabs,
+				    prefs[names[i]].value[VEDIT]@typename,
+				    prefs[names[i]].value[VEDIT]
+			);
+		    text += tabs + "Dictionary " + names[i] + "[0,...] = {\n" + result + tabs + "};\n";
+		}
+		break;
+	    case VTYPE_DOUBLES:
+	    case VTYPE_INTS:
+		if (prefs[names[i]].value[VEDIT] != prefs[names[i]].value[VDFLT] && prefs[names[i]].value[VEDIT] != NULL) {
+		    result = strfmt("%s\t%s initvalue = {\n",
+				    tabs,
+				    prefs[names[i]].value[VEDIT]@typename
+			);
+		    for (ptr in prefs[names[i]].value[VEDIT]) {
+			result += strfmt("%s\t\t%O,\n",
+					 tabs,
+					 *ptr
+			    );
+		    }
+		    result += strfmt("%s\t};\n", tabs);
+		    text += tabs + "Dictionary " + names[i] + "[0,...] = {\n" + result + tabs + "};\n";
+		}
+		break;
+	    case VTYPE_FONT:
+		if (prefs[names[i]].value[VEDIT].name !== prefs[names[i]].value[VDFLT].name) {
+		    result = strfmt("%s\tFont initvalue = { String name = \"%s\"; };\n",
+				    tabs,
+				    prefs[names[i]].value[VEDIT].name
+			);
+		    text += tabs + "Dictionary " + names[i] + "[0,...] = {\n" + result + tabs + "};\n";
+		}
+		break;
+	    case VTYPE_STRING:
+	    case VTYPE_TEXTBLOCK:
+		if (prefs[names[i]].value[VEDIT] !== prefs[names[i]].value[VDFLT]) {
+		    result = tabs + "\tString initvalue = \"" + cstring(prefs[names[i]].value[VEDIT]) + "\";\n";
+		    text += tabs + "Dictionary " + names[i] + "[0,...] = {\n" + result + tabs + "};\n";
+		}
+		break;
+	    default:
+		ShowMessage(this, strfmt("Unrecognized preference type indicator (%d) needs to be reported to the application administrator. In the meantime, it will be ignored.", type));
+		break;
+	    }
+	}
+    }
+
+    if (prefs == PREFERENCES && text@sizeof > 0) {
+	text = "// DO NOT EDIT THIS FILE!\n// This file is generated and used by " + ACRONYM + ".\n// It should not be edited manually unless you are\n// absolutely sure you know what you are doing!!!\n// Consider yourself warned.\n\nDictionary PREFERENCES = {\n" + text + "};\n";
+    }
+
+    return(text);
+}
+
+TabString(int count) {
+    String tabs = "";
+
+    while (count-- > 0)
+	tabs += "\t";
+    return(tabs);
+}
+
+//
+// These are functions support state retention
+//
+
+HasRetainedLocation(String name) {
+    return(defined(name, PREFERENCES.STATE.LOCATION) && PREFERENCES.STATE.LOCATION[name].value[VCRNT] != NULL);
+}
+
+HasRetainedSizing(String name) {
+    return(defined(name, PREFERENCES.STATE.SIZING) && PREFERENCES.STATE.SIZING[name].value[VCRNT] != NULL);
+}
+
+HasRetainedColumnOrder(JTable table) {
+    String  tag;
+    int     ok = FALSE;
+
+    if (defined("screenbuilder", table.root)) {
+	tag = table.root.screenbuilder + "$" + table.tag;
+	ok = defined(tag, PREFERENCES.STATE.COLUMNORDER)
+	    && (PREFERENCES.STATE.COLUMNORDER[tag].value[VCRNT] != NULL);
+    }
+
+    return(ok);
+}
+
+HasRetainedColumnWidths(JTable table) {
+    String  tag;
+    int     ok = FALSE;
+
+    if (defined("screenbuilder", table.root)) {
+	tag = table.root.screenbuilder + "$" + table.tag;
+	ok = defined(tag, PREFERENCES.STATE.COLUMNWIDTHS)
+	    && (PREFERENCES.STATE.COLUMNWIDTHS[tag].value[VCRNT] != NULL);
+    }
+
+    return(ok);
+}
+
+HasRetainedTableSort(JTable table) {
+    String  tag;
+    int     ok = FALSE;
+
+    if (defined("screenbuilder", table.root)) {
+	tag = table.root.screenbuilder + "$" + table.tag;
+	ok = defined(tag, PREFERENCES.STATE.TABLESORT)
+	    && (PREFERENCES.STATE.TABLESORT[tag].value[VCRNT] != NULL);
+    }
+
+    return(ok);
+}
+
+GetRetainedLocation(String name) {
+    // assume we did the existence check already
+    return(PREFERENCES.STATE.LOCATION[name].value[VCRNT]);
+}
+
+GetRetainedSizing(String name) {
+    // assume we did the existence check already
+    return(PREFERENCES.STATE.SIZING[name].value[VCRNT]);
+}
+
+GetRetainedColumnOrder(JTable table) {
+    // assume we did the existence check already
+    return(PREFERENCES.STATE.COLUMNORDER[table.root.screenbuilder + "$" + table.tag].value[VCRNT]);
+}
+
+GetRetainedColumnWidths(JTable table) {
+    // assume we did the existence check already
+    return(PREFERENCES.STATE.COLUMNWIDTHS[table.root.screenbuilder + "$" + table.tag].value[VCRNT]);
+}
+
+GetRetainedTableSort(JTable table) {
+    // assume we did the existence check already
+    return(PREFERENCES.STATE.TABLESORT[table.root.screenbuilder + "$" + table.tag].value[VCRNT]);
+}
+
+RetainStates(Object screen, ...) {
+    int order;
+    int sort;
+    int widths;
+    int force = FALSE;
+
+    if (argc == 3 && argv[2] instanceof int)
+	force = argv[2];
+
+    if (PREFERENCES_LOADED && defined("screenbuilder", screen)) {
+	if (defined("retainstate", screen) && screen.retainstate) {
+	    if (force || GetStoreRetainedLocation())
+		RetainLocation(screen.screenbuilder, screen.location.x, screen.location.y);
+	    if (force || GetStoreRetainedSizing())
+		RetainSizing(screen.screenbuilder, screen.size.width, screen.size.height);
+	}
+	order = GetStoreRetainedColumnOrder();
+	widths = GetStoreRetainedColumnWidths();
+	sort = GetStoreRetainedColumnWidths();
+	if (force || order || widths || sort) {
+	    for (ptr in screen.components) {
+		if (*ptr instanceof JTable)
+		    RetainTableInfo(screen.screenbuilder, *ptr, force || order, force || widths, force || sort);
+	    }
+	}
+    }
+}
+
+//DebugRetain(String name, String routine, Dictionary dict) {
+//    fprintf(stderr, "%s(%s).value=%.2O\n", routine, name, dict.value);
+//}
+
+RetainLocation(String name, double x, double y) {
+    Dictionary target = PREFERENCES.STATE.LOCATION;
+    Point      newvalue = {
+	double x = x;
+	double y = y;
+    };
+
+    target[name] = new Dictionary {
+	String     label = strfmt("%s for %s", target.sublabel, name);
+	int        type  = target.subtype;
+	Point      initvalue = newvalue;
+	Array      value[3];
+	Function   validate = defined("subvalidate", target) ? target.subvalidate : NULL;
+	String     errmsg = NULL;
+	Dictionary parent = target;
+    };
+    target[name].value[VDFLT] = NULL;
+    target[name].value[VEDIT] = newvalue;
+    target[name].value[VCRNT] = newvalue;
+    //DebugRetain(name, argv[0], target[name]);
+}
+
+RetainSizing(String name, double width, double height) {
+    Dictionary target = PREFERENCES.STATE.SIZING;
+    Dimension  newvalue = {
+	double width = width;
+	double height = height;
+    };
+
+    target[name] = new Dictionary {
+	String     label = strfmt("%s for %s", target.sublabel, name);
+	int        type  = target.subtype;
+	Dimension  initvalue = newvalue;
+	Array      value[3];
+	Function   validate = defined("subvalidate", target) ? target.subvalidate : NULL;
+	String     errmsg = NULL;
+	Dictionary parent = target;
+    };
+    target[name].value[VDFLT] = NULL;
+    target[name].value[VEDIT] = newvalue;
+    target[name].value[VCRNT] = newvalue;
+    //DebugRetain(name, argv[0], target[name]);
+}
+
+RetainTableInfo(String name, JTable table, int order, int widths, int sort) {
+
+    String      tag = name + "$" + table.tag;
+    String      showtag = name + "." + table.tag;
+    Dictionary  target;
+    Array       info;
+    int         n;
+
+    if (defined("retainstate", table) && table.retainstate) {
+	if (order) {
+	    info = new Array[table.width];
+	    for (n = 0; n < info@length; n++)
+		info[n] = table.viewToModel(n, "c");
+	    target = PREFERENCES.STATE.COLUMNORDER;
+	    target[tag] = new Dictionary {
+		String     label = strfmt("%s for %s", target.sublabel, showtag);
+		int        type  = target.subtype;
+		Array      initvalue = info;
+		Array      value[3];
+		Function   validate = defined("subvalidate", target) ? target.subvalidate : NULL;
+		String     errmsg = NULL;
+		Dictionary parent = target;
+	    };
+	    target[tag].value[VDFLT] = NULL;
+	    target[tag].value[VEDIT] = info;
+	    target[tag].value[VCRNT] = info;
+	    //DebugRetain(name, argv[0] + "[ORDER]", target[tag]);
+	}
+	if (widths) {
+	    info = new Array[table.width];
+	    for (n = 0; n < info@length; n++)
+		info[n] = table.action(GET_COLUMN_FIELD, n, "width");
+	    target = PREFERENCES.STATE.COLUMNWIDTHS;
+	    target[tag] = new Dictionary {
+		String     label = strfmt("%s for %s", target.sublabel, showtag);
+		int        type  = target.subtype;
+		Array      initvalue = info;
+		Array      value[3];
+		Function   validate = defined("subvalidate", target) ? target.subvalidate : NULL;
+		String     errmsg = NULL;
+		Dictionary parent = target;
+	    };
+	    target[tag].value[VDFLT] = NULL;
+	    target[tag].value[VEDIT] = info;
+	    target[tag].value[VCRNT] = info;
+	    //DebugRetain(name, argv[0] + "[WIDTHS]", target[tag]);
+	}
+	if (sort) {
+	    if (table.etc@sizeof == 0)
+		info = NULL;
+	    else info = new Array[] table.etc;
+	    target = PREFERENCES.STATE.TABLESORT;
+	    target[tag] = new Dictionary {
+		String     label = strfmt("%s for %s", target.sublabel, showtag);
+		int        type  = target.subtype;
+		Array      initvalue = info;
+		Array      value[3];
+		Function   validate = defined("subvalidate", target) ? target.subvalidate : NULL;
+		String     errmsg = NULL;
+		Dictionary parent = target;
+	    };
+	    target[tag].value[VDFLT] = NULL;
+	    target[tag].value[VEDIT] = info;
+	    target[tag].value[VCRNT] = info;
+	    //DebugRetain(name, argv[0] + "[ORDER]", target[tag]);
+	}
+    }
+}
+
+UnretainStates(Object screen) {
+
+    if (PREFERENCES_LOADED && defined("screenbuilder", screen)) {
+	UnretainLocation(screen.screenbuilder);
+	UnretainSizing(screen.screenbuilder);
+	for (ptr in screen.components) {
+	    if (*ptr instanceof JTable)
+		UnretainTableInfo(screen.screenbuilder, *ptr);
+	}
+    }
+}
+
+UnretainLocation(String name) {
+    Dictionary oldtarget = PREFERENCES.STATE.LOCATION;
+    Dictionary newtarget = new Dictionary[oldtarget@sizeof-1,...];
+
+    for (ptr in oldtarget) {
+	if ((*ptr)@nameof !== name)
+	    newtarget[(*ptr)@nameof] = *ptr;
+    }
+
+    PREFERENCES.STATE.LOCATION = newtarget;
+}
+
+UnretainSizing(String name) {
+    Dictionary oldtarget = PREFERENCES.STATE.SIZING;
+    Dictionary newtarget = new Dictionary[oldtarget@sizeof-1, ...];
+
+    for (ptr in oldtarget) {
+	if ((*ptr)@nameof !== name)
+	    newtarget[(*ptr)@nameof] = *ptr;
+    }
+
+    PREFERENCES.STATE.SIZING = newtarget;
+}
+
+UnretainTableInfo(String basename, JTable table) {
+
+    Dictionary oldtarget = PREFERENCES.STATE.COLUMNORDER;
+    Dictionary newtarget = new Dictionary[oldtarget@sizeof-1, ...];
+    String    name = basename + "$" + table.tag;
+
+    for (ptr in oldtarget) {
+	if ((*ptr)@nameof !== name)
+	    newtarget[(*ptr)@nameof] = *ptr;
+    }
+
+    PREFERENCES.STATE.COLUMNORDER = newtarget;
+
+    oldtarget = PREFERENCES.STATE.COLUMNWIDTHS;
+    newtarget = new Dictionary[oldtarget@sizeof-1, ...];
+
+    for (ptr in oldtarget) {
+	if ((*ptr)@nameof !== name)
+	    newtarget[(*ptr)@nameof] = *ptr;
+    }
+
+    PREFERENCES.STATE.COLUMNWIDTHS = newtarget;
+
+    oldtarget = PREFERENCES.STATE.TABLESORT;
+    newtarget = new Dictionary[oldtarget@sizeof-1, ...];
+
+    for (ptr in oldtarget) {
+	if ((*ptr)@nameof !== name)
+	    newtarget[(*ptr)@nameof] = *ptr;
+    }
+
+    PREFERENCES.STATE.TABLESORT = newtarget;
+}
+
+ServerSave(Object screen, int verbose) {
+    String response = "Unknown failure reason.";
+    String success = "0";
+    String filetext;
+
+    filetext = BuildPrefString();
+
+    RunCommand(
+	screen,
+	"USERFILE",
+	"-C",
+	filetext,
+	"-F",
+	"preferences",
+	NULL,
+	&success,
+	&response
+    );
+
+    if (verbose && success === "0")
+	ShowWarning(this, response, "Server Save Problem");
+}
+
+AttachRetainPopup(Object owner) {
+    Array items;
+    int   needs_separator;
+    int   access;
+    int   hastable = FALSE;
+
+    //
+    // Currently restricted to JFrames with no popup, mousePressed() or
+    // mouseReleased(). Could skip more (e.g., screens with a parent).
+    //
+    // NOTE - a JFrame with actionPerformed() event handler also seems
+    // to get the event that's handled by the JMenuItem. Anyway, we set
+    // command to "" which signal the JFrame's actionPerformed() that
+    // this is a special event and error information can be suppressed.
+    // Means adding simple code to screens that have actionPerformed()
+    // or itemStateChanged() event handlers for menubars.
+    //
+
+    if (owner instanceof JFrame) {
+	if (defined("screenbuilder", owner) && defined("retainstate", owner) && owner.retainstate) {
+	    if (owner.popup == NULL && !defined("mousePressed", owner) && !defined("mouseReleased", owner)) {
+		items = new Array[0, ...] {
+		    new JMenuItem {
+			String text = "Save Screen Location";
+			String command = "";
+
+			actionPerformed(e) {
+			    RetainLocation(root.screenbuilder, root.location.x, root.location.y);
+			};
+		    },
+		    new JMenuItem {
+			String text = "Save Screen Size";
+			String command = "";
+
+			actionPerformed(e) {
+			    RetainSizing(root.screenbuilder, root.size.width, root.size.height);
+			}
+		    },
+		};
+
+		//
+		// Add items of tables, if any
+		//
+		for (ptr in owner.components) {
+		    if (*ptr instanceof JTable && defined("retainstate", *ptr) && (*ptr).retainstate) {
+			if (!hastable) {
+			    hastable = TRUE;
+			    items[items@sizeof] = new JMenuItem {
+				String text = "Save Screen Size and Location";
+				String command = "";
+
+				actionPerformed(e) {
+				    RetainLocation(root.screenbuilder, root.location.x, root.location.y);
+				    RetainSizing(root.screenbuilder, root.size.width, root.size.height);
+				}
+			    };
+			}
+			items[items@sizeof] = NULL;
+
+			items[items@sizeof] = new JMenuItem {
+			    String tabletag = (*ptr).tag;
+			    String text = strfmt("Save Column Order of Table \"%s\"", tabletag);
+			    String command = "";
+
+			    actionPerformed(e) {
+				RetainTableInfo(root.screenbuilder, root.components[tabletag], TRUE, FALSE, FALSE);
+			    };
+			};
+			items[items@sizeof] = new JMenuItem {
+			    String tabletag = (*ptr).tag;
+			    String text = strfmt("Save Column Widths of Table \"%s\"", tabletag);
+			    String command = "";
+
+			    actionPerformed(e) {
+				RetainTableInfo(root.screenbuilder, root.components[tabletag], FALSE, TRUE, FALSE);
+			    };
+			};
+			items[items@sizeof] = new JMenuItem {
+			    String tabletag = (*ptr).tag;
+			    String text = strfmt("Save Sort Order of Table \"%s\"", tabletag);
+			    String command = "";
+
+			    actionPerformed(e) {
+				RetainTableInfo(root.screenbuilder, root.components[tabletag], FALSE, FALSE, TRUE);
+			    };
+			};
+			items[items@sizeof] = new JMenuItem {
+			    String tabletag = (*ptr).tag;
+			    String text = strfmt("Save All Column and Sort Info for Table \"%s\"", tabletag);
+			    String command = "";
+
+			    actionPerformed(e) {
+				RetainTableInfo(root.screenbuilder, root.components[tabletag], TRUE, TRUE, TRUE);
+			    };
+			};
+		    }
+		}
+
+		items[items@sizeof] = NULL;
+		items[items@sizeof] = new JMenuItem {
+		    String text = "Clear All";
+		    String command = "";
+
+		    actionPerformed(e) {
+			UnretainStates(root);
+		    };
+		};
+
+		items[items@sizeof] = NULL;
+		items[items@sizeof] = new JMenuItem {
+		    String text = "Save All";
+		    String command = "";
+
+		    actionPerformed(e) {
+			RetainStates(root, TRUE);
+		    };
+		};
+
+		//
+		// Add additional items here someday (e.g., JSplitPane)
+		//
+
+		owner.popup = new JPopupMenu {
+		    Array items = items;
+		};
+	    
+		ShowPopupMenu(e) {
+		    if (e.popuptrigger && e.modifiers&SHIFT_MASK) {
+			if (this.popup != NULL) {
+			    this.popup.location = e.location;
+			    this.popup.visible = TRUE;
+			}
+		    }
+		}
+
+		addEventHandler(owner, "mousePressed", ShowPopupMenu);
+		addEventHandler(owner, "mouseReleased", ShowPopupMenu);
+	    }
+	}
+    }
+}
+

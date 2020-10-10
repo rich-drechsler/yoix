@@ -1,0 +1,94 @@
+//
+// Pretty much the same as the last example but it moves one of the
+// views.
+//
+
+import yoix.j3d.*;
+import yoix.*.*;
+
+VirtualUniverse universe = {
+    Color background = Color.gray;
+
+    Array layout = {
+	new BranchGroup {
+	    String tag = "$_branch1";
+
+	    EulerAngle orientation = {
+		double alpha = 10;
+		double beta = 30;
+	    };
+
+	    Array layout = {
+		new ColorCube {
+		    String tag = "$_colorcube";
+		    double scale = 0.2;
+		},
+	    };
+	},
+
+	new ViewPlatform {
+	    String tag = "$_sideview";
+
+	    Transform3D transform = {
+		initializer() {
+		    setToTranslation(0, 0, 10);
+		}
+	    };
+	},
+
+	new ViewPlatform {
+	    String tag = "$_topview";
+
+	    Transform3D transform = {
+		initializer() {
+		    //
+		    // I found setToLookAt() a little confusing, but
+		    // we're just using their lookAt() method. Notice
+		    // that their documentation also mentions inverting
+		    // the result yields a transform that's appropriate
+		    // for a ViewPlatform. Commented out code accomplishes
+		    // exactly the same thing.
+		    //
+		    setToViewAt(0, 5, 0, 0, 0, 0, 0, 0, -1);
+		}
+	    };
+	},
+    };
+};
+
+Frame f = {
+    GridLayout layoutmanager = {
+	int rows = 0;
+	int columns = 1;
+	double vgap = 72.0/4;
+    };
+
+    Array layout = {
+	new Canvas3D {
+            String  tag = "$_topcanvas";
+            ViewPlatform view = universe.tagged.$_topview;
+	},
+
+        new Canvas3D {
+            String  tag = "$_sidecanvas";
+            ViewPlatform view = universe.tagged.$_sideview;
+
+            mousePressed(MouseEvent e) {
+		if (e.modifiers & BUTTON1_MASK)
+		    direction = 1;
+		else direction = -1;
+            }
+        },
+    };
+};
+
+f.visible = TRUE;
+
+int direction = 1;
+Transform3D t = universe.tagged.$_sideview.transform;
+
+while (1) {
+    universe.tagged.$_sideview.transform = t.translate(0, 0, direction).rotateZ(10);
+    sleep(.1);
+}
+

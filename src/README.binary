@@ -1,0 +1,38 @@
+
+                  Yoix Version 3.0.0 - Binary Distribution
+                                  Oct 10 2020
+
+This is an unofficial binary release of the Yoix interpreter. The scripts in the
+bin-linux directory work on Linux and they also seem to work on MacOS. Right now
+the bat files in bin-windows are completely untested. They may or may not work,
+but if they don't they're probably pretty close. The scripts in the bin directory
+are a copy of either bin-linux or bin-windows, and which one depends on which OS
+was selected when this package was built. If it's not right for you just delete
+bin and replace it with bin-linux (Linux or MacOS) or bin-windows.
+
+This is old technology, and it's definitely not my goal to try to persuade anyone
+that the language has value, but recent events have convinced me that there may
+be hidden value in the work that John Mocenigo and I did many years ago. When I
+started looking at the 2.3.1 package earlier this year it was clear some serious
+cleanup work was in order. Most of that work focused on the source code package,
+so it won't be noticeable in the "binary" distribution. However, compare some of
+the YChart examples to their 2.3.1 versions and improvements, like zooming in the
+Unicode chart, should be obvious. In addition, the scripts that run applications
+were completely rewritten, so you should be able to move the package anywhere you
+want and it will continue to work (except Windows bat files haven't been tested).
+
+Version number 3.0.0 was chosen to provide an obvious break between this package
+and the one that was released by AT&T in 2011.
+
+                                                        Rich Drechsler
+
+------------
+Requirements
+------------
+
+You'll need a Java 1.8.X runtime environment before anything will work. Versions
+from Oracle or OpenJDK both seem to work, but font rendering at very small sizes
+seems to be better in Oracle's version. It's a pretty insignificant issue that we
+only noticed when we zoomed way out in a few YChart examples. Older versions of
+Java might work, but we haven't tested anything older than 1.8.0.
+

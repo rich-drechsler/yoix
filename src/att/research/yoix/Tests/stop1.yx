@@ -1,0 +1,90 @@
+//
+// A modified version of the orignal. Uses charpath() and show() to handle
+// text, so you may notice positioning and sizing problems on some systems.
+// It's not a general implementation that you can easily extend if you want
+// to draw different signs, but it will remind us to invesitage the system
+// dependent charpath() and show() behavior.
+// 
+
+import yoix.*.*;
+
+Image stop = {
+    int   type = TYPE_RGB_ALPHA;
+
+    Dimension size = {
+	double width = 4.0*72;
+	double height = 4.0*72;
+    };
+
+    Graphics graphics = {
+	String font = "Helvetical-bold-10";
+	int    antialiasing = TRUE;
+	int    fractionalmetrics = TRUE;
+    };
+
+    paint(Rectangle r) {
+	Rectangle bounds;
+	double    scaling;
+	double    side;
+	int       n;
+
+	graphics {
+	    gsave();
+	    erasedrawable(0.0);		// clear image using alpha 
+
+	    moveto(0, 0);
+	    charpath("STOP");
+	    bounds = pathbbox();
+
+	    scaling = min(size.width/bounds.width, size.height/bounds.height);
+	    translate(size.width/2, size.height/2);
+
+	    gsave();
+	    scale(.9, .9);	// little slop around the edge (shadow maybe)
+	    side = size.width*tan(45)/4;
+
+	    newpath();
+	    translate(size.width/2, -side/2);
+	    moveto(0, 0);
+
+	    for (n = 0; n < 8; n++) {
+		translate(0, side);
+		lineto(0, 0);
+		rotate(45);
+	    }
+
+	    gsave();
+	    path.translatepath(9, 18);
+	    setgray(.5);
+	    fill(.25);
+	    grestore();
+
+	    setrgbcolor(1, 0, 0);
+	    fill();
+	    grestore();
+
+	    gsave();
+	    scale(scaling, scaling);
+	    scale(.8, .8);
+	    moveto(-bounds.x - bounds.width/2, bounds.height/2);
+	    setrgbcolor(1, 1, 1);
+	    show("STOP");
+	    grestore();
+	    grestore();
+	}
+    }
+};
+
+JFrame jf = {
+    Dimension size = NULL;
+    int visible = 1;
+
+    Array layout = {
+	new JButton {
+	    Image icon = stop;
+	    actionPerformed(e) {
+		exit(0);
+	    }
+	}
+    };
+};

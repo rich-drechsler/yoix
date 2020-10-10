@@ -1,0 +1,30 @@
+import yoix.*.*;
+
+JFrame f = {
+    Graphics graphics = {
+	double linewidth = 18;
+	int    linecap = CAP_ROUND;
+    };
+
+    paint() {
+        graphics {
+            if (currentpoint() == NULL) {
+                translate(72, 144);
+                rotate(-45);
+                scale(.5, .5);
+                shear(0, .5);
+		arc(144, 144, 144, 0, 180);
+            }
+            gsave();
+            stroke();
+            grestore();
+         }
+    }
+
+    mousePressed(MouseEvent e) {
+        printf("hit=%d\n", graphics.instroke(e.coordinates));
+    }
+};
+
+f.visible = TRUE;
+

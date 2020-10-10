@@ -1,0 +1,80 @@
+#!<_PERL_PATH_> -w
+#
+# Simple script that writes a time string, which can be the mtime
+# associated with an existing file, on standard output in a format
+# that can be specified by the caller, which almost always will be
+# other admin scripts. We anticipate using touch (with an adjusted
+# time) to create files and find (with ! -newer) to handle cleanup
+# of old files.
+#
+# NOTE - the strange $touchformat initialization may be needed to
+# prevent truely annoying SCCS interference!!
+#
+
+use strict;
+use POSIX "strftime";
+
+my $argc = @ARGV;
+my $arg;
+my $argn;
+my $adjust = 0;
+my $format = "";
+my $time = time();
+my $touchformat = "%Y" . "%m" . "%d" . "%H" . "%M" . ".%S";
+my $separator = "";
+
+for ($argn = 0; $argn < $argc; $argn++) {
+    $arg = $ARGV[$argn];
+    if ($arg eq "-a") {			# time adjustment in seconds 
+	$adjust = $ARGV[++$argn];
+    } elsif ($arg =~ /^-a/) {		# time adjustment in seconds 
+	$arg =~ s/^-a//;
+	$adjust = $arg;
+    } elsif ($arg eq "-f") {		# format for strftime()
+	$format = $ARGV[++$argn];
+    } elsif ($arg =~ /^-f/) {		# format for strftime()
+	$arg =~ s/^-f//;
+	$format = $arg;
+    } elsif ($arg eq "-t") {		# for Unix touch command
+	$format = $touchformat
+    } elsif ($arg =~ /^-.*/) {
+	printf(STDERR "$0: invalid option $arg\n");
+	exit(1);
+    } else {
+	last;
+    }
+}
+
+#
+# Arguments that are numbers are times, otherwise the argument should
+# be a file name whose mtime is used as the time.
+#
+
+if ($argn < $argc) {
+    for (; $argn < $argc; $argn++) {
+	$arg = $ARGV[$argn];
+	if ($arg =~ /\d+$/) {
+	    $time = $arg;
+	} else {
+	    if (stat($arg)) {
+		$time = (stat($arg))[9];	# gets the mtime
+	    } else {
+		printf(STDERR "$0: file $arg doesn't exist\n");
+		exit(1);
+	    }
+	}
+	if ($format) {
+	    printf("%s%s", $separator, strftime($format, localtime($time + $adjust)));
+	} else {
+	    printf("%s%s", $separator, $time + $adjust);
+	}
+	$separator = "\n";
+    }
+} else {
+    if ($format) {
+	printf("%s", strftime($format, localtime($time + $adjust)));
+    } else {
+	printf("%d", $time + $adjust);
+    }
+}
+

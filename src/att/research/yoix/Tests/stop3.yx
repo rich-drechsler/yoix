@@ -1,0 +1,153 @@
+//
+// An example that shows how to turn the last example into a function
+// that you can call when you want a stop sign. Probably wouldn't be
+// too hard to add a caching mechanism that would let you reuse images
+// that have already been built.
+//
+
+import yoix.*.*;
+
+GetPolygonIcon(Dimension size, int sides, String text, Color polygoncolor, Color textcolor, int addshadow) {
+
+    Image image = {
+	Dimension size = size;
+	int       type = TYPE_RGB_ALPHA;
+
+	Graphics graphics = {
+	    String font = "Helvetica-bold-10";
+	    /////String font = "Ludica-bold-10";
+	    /////String font = "TimesRoman-bold-10";
+	    /////String font = "Courier-bold-10";
+	    /////String font = "Utopia-bold-10";
+	    int    antialiasing = TRUE;
+	};
+
+	String text = text;
+	Color  polygoncolor = polygoncolor;
+	Color  textcolor = textcolor;
+	int    sides = sides;
+	int    addshadow = addshadow;
+
+	paint(Rectangle r) {
+	    Rectangle textbounds;
+	    Rectangle bounds;
+	    double    factor;
+	    double    scaling;
+	    double    shadow;
+	    double    side;
+	    double    dx;
+	    double    dy;
+	    double    angle;
+	    int       n;
+
+	    angle = 360.0/sides;
+	    dx = abs(sin(angle/2));
+	    dy = abs(cos(angle/2));
+	    side = 2*dx;
+
+	    if ((factor = min(size.width, size.height)/72.0) < 1.0) {
+		if (factor <= .25)
+		    factor = 0;
+	    } else factor = min(factor, 2.0);
+	    shadow = factor*72.0/18;
+
+	    graphics {
+		//
+		// Make a transparent image.
+		//
+
+		erasedrawable(0.0);
+
+		//
+		// Build a "unit" polygon with center at (0, 0) and a horizontal
+		// side along its bottom.
+		//
+
+		translate(dx, dy);
+		moveto(0, 0);
+
+		for (n = 0; n < sides; n++) {
+		    translate(-side, 0);
+		    lineto(0, 0);
+		    rotate(angle);
+		}
+
+		translate(-dx, -dy);	// should be back to the original CTM
+
+		//
+		// Scale the polygon so it fits the comfortably into the image,
+		// then translate the path so it's centered in the image.
+		//
+
+		bounds = pathbbox();
+		scaling = .95*min((size.width - 2*shadow)/bounds.width, (size.height - 2*shadow)/bounds.height);
+		path.scalepath(scaling, scaling);
+		bounds = pathbbox();
+		path.translatepath(size.width/2 - (bounds.x + bounds.width/2), size.height/2 - (bounds.y + bounds.height/2));
+
+		//
+		// Draw the polygon's shadow, if there's supposed to be one, and
+		// then draw the polygon.
+		//
+
+		if (addshadow && shadow > 0) {
+		    gsave();
+		    path.translatepath(shadow, shadow);
+		    setgray(.5);
+		    fill(.4);
+		    grestore();
+		}
+
+		foreground = polygoncolor;
+		fill();
+
+		//
+		// We deal with the text string as a path that's supposed to fit
+		// comfortably into the polygon that we just drew using the same
+		// techniques that we just used for the polygon. Rendering the
+		// text as a path (rather than by using show()) means the bounds
+		// that we calculate for the path itself should hold. There were
+		// some small, but annoying, positioning problems on some systems
+		// when we used the charpath() bounds to position the text that
+		// was drawn with show(). The behavior seems like something that
+		// should be investigated!!
+		//
+
+		moveto(0, 0);
+		charpath(text);
+		textbounds = pathbbox();
+		scaling = 0.9*min(bounds.width/textbounds.width, .6*bounds.height/textbounds.height);
+		path.scalepath(scaling, scaling);
+		bounds = pathbbox();
+		path.translatepath(size.width/2 - bounds.x - bounds.width/2, size.height/2 + (bounds.height/2 - (bounds.height + bounds.y)));
+		foreground = textcolor;
+		fill();
+	    }
+	}
+    };
+    return(image);
+}
+
+JFrame jf = {
+    Dimension size = NULL;
+    int visible = TRUE;
+
+    Array layout = {
+	new JButton {
+	    Image icon = GetPolygonIcon(
+		new Dimension {
+		    double width = 72;
+		    double height = 72;
+		},
+		8,
+		"STOP",
+		Color.red,
+		Color.white,
+		TRUE
+	    );
+	    actionPerformed(e) {
+		exit(0);
+	    }
+	}
+    };
+};

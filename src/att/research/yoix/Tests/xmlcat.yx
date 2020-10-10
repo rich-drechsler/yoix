@@ -1,0 +1,57 @@
+// Test to see if XML parser can parse input (read from stdin)
+
+import yoix.io.*;
+import yoix.parser.*;
+import yoix.stdio.*;
+
+ParseTree tree;
+String content = readStream(stdin);
+StringStream stream = {
+    int mode = READ;
+};
+
+//
+// Microsoft Office generated XML is UTF-8; this code adjusts for
+// encoded input.
+//
+
+switch (*content) {
+case '\xef':
+    if (*(content+1) == '\xbb' && *(content+2) == '\xbf') {
+	stream.encoding = "UTF-8";
+	stream.name = &content[3];
+    }
+    break;
+case '\xfe':
+    if (*(content+1) == '\xff') {
+	stream.encoding = "UTF-16BE";
+	stream.name = &content[2];
+    }
+    break;
+case '\xff':
+    if (*(content+1) == '\xfe') {
+	stream.encoding = "UTF-16LE";
+	stream.name = &content[2];
+    }
+    break;
+default:
+    stream.encoding = stdin.encoding;
+    stream.name = &content[0];
+    break;
+}
+
+stream.open = TRUE;
+
+content = readStream(stream);
+
+tree.addtags = FALSE;
+tree.parser = PARSER_XML;
+tree.parse = content;
+if(tree.errordict) {
+    fprintf(stderr, "ERROR: %s: %s\n", argv[0], tree.errordict.message);
+    exit(1);
+}
+stdout.nextbuf = tree.tree;
+
+exit(0);
+

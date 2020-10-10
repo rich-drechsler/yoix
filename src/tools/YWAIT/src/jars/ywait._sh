@@ -1,0 +1,227 @@
+#!/bin/sh
+#
+# The interpreter's startup behavior can be controlled by property
+# files and command line options. The name of the default property
+# is "yoix.properties", and the interpreter always looks for one in
+# the three directories that Java associates with the "yoix.home",
+# "user.home", and "user.dir" system properties.
+#
+# Command line options are processed after all the default property
+# files are read. Here's a brief description of some of the options:
+#
+#	-c	Tells the interpreter start running in a strict mode that
+#		requires declarations for all variables. Change - to + and
+#		the interpreter will let you assign values to undeclared
+#		variables, which are always created in the global block
+#		(this is the default mode). This option sets the initial
+#		value of VM.create to TRUE or FALSE, but Yoix scripts can
+#		(and often do) change VM.create, which will override the
+#		choice that you made on command line.
+#
+#	-dnum	Sets the debugging mode to num, which are flags that are
+#		officially defined in YoixConstants.java. The most useful
+#		flag is 1 (i.e., -d1), which has the interpreter to dump
+#		the value of every expression that is also happens to be
+#		a statement. This option ends up setting VM.debug, which
+#		can also be done in Yoix scripts. When we're working on
+#		the Java code we often use -d16 to generate a Java trace
+#		whenever there's an error.
+#
+#	-enum	Sets the exitmodel to num, which currently should only be
+#		0, 1, or 2. The exitmodel controls what happens when the
+#		main thread quits:
+#
+#		    0	Nothing special happens when the main thread
+#			quits, so the Yoix program must call exit()
+#			to quit.
+#
+#		    1	The interpreter does its best to guess if it
+#			should exit() when the main thread quits. The
+#			guess currently looks for active threads or
+#			visible windows before deciding what to do.
+#
+#		    2	The interpreter always exits when the main
+#			thread quits.
+#
+#		The default value is currently 1.
+#
+#	+f	This is how you ask for the font adjustments described
+#		under the +D option without having to explicitly set the
+#		size of your screen. Change + to - and the interpreter
+#		won't make any font adjustments (this is the default).
+#
+#	-g	Ask the interpreter to run in a mode that guarantees that
+#		command line and source file information will be available
+#		for error reporting. In addition -g now also automatically
+#		generates a Yoix stack trace whenever there's an error. An
+#		application started with -g pays a penalty when compared
+#		to the same application started with the -O option (it's
+#		always slower and uses more memory), so -g should probably
+#		only be used when you need to debug Yoix problems.
+#
+#	-lnum	Tells the interpreter to quit after num errors, which is
+#		a number that can also be set by Yoix scripts using the
+#		yoix.system.setErrorLimit() builtin. Change the - to +
+#		and the interpreter locks the error limit, which means
+#		all subsequent requests to change it will be ignored. A
+#		num that's less than or equal to 0 (the default) means
+#		there is no limit.
+#
+#	-mnum	This is another way to change font size. Internally Yoix
+#		multiplies requested font sizes by num before asking Java
+#		for a font. For example, starting Yoix using
+#
+#			-m1.1
+#
+#		as an option means that Yoix uses point size
+#
+#			11 = 1.1*10
+#
+#		whenever it's supposed to use size 10. Try to keep num
+#		reasonably close to 1.0, because Java can misbehave if
+#		you get carried away. Values between 0.8 and 1.2 will
+#		usually work; anything else may be asking for trouble.
+#
+#	-ppfx	Sets the prefix string used by the interpreter when its
+#		asked to read a property file (see the -P option). The
+#		default prefix string is "", which means an entry like
+#
+#			yoix.tmpdir = /usr/tmp
+#
+#		in a property file referenced by the -P option wouldn't
+#		be recognized unless the -pyoix option appeared on the
+#		command line before the -P option.
+#
+#	-u	Disables user modules, which means any request to load
+#		a class that looks like a user module will be rejected
+#		with a securitycheck error. Although it looks like you
+#		can change the - to + and enable user modules, our low
+#		level Java code (in YoixVM()) doesn't enable them once
+#		they've been disabled. You can use the checkYoixModule()
+#		security  checker in the Yoix SecurityManager when you
+#		want to be more selective.
+#
+#	-Cpfx	Quits if Java's classpath, which is often set using the
+#		CLASSPATH environment variable, isn't empty and doesn't
+#		start with the string pfx.
+#
+#	-Dnum	Tells Yoix the size of your screen (in inches measured
+#		along the diagonal). For example, we found
+#
+#			-D16.1
+#
+#		was a good choice on a 17 inch monitor at home, while
+#
+#			-D19.2
+#
+#		worked well on a 21 inch monitor in our lab. Feel free
+#		to experiment and pick any value you like. A value less
+#		than or equal to zero (e.g., -D0.0) disables all screen
+#		size calculations designed to guess the resolution of
+#		your screen. Actually that's the default behavior, so
+#		omitting the -D option accomplishes the same thing.
+#
+#	+Dnum	This option does everything that -Dnum does, in addition
+#		to trying to adjust the fonts so their size matches the
+#		point size that Yoix asked for. In general if you're not
+#		happy with fonts, usually because they're too small, and
+#		you're already using the -D option try changing it to +D
+#		and see if things improve. For example,
+#
+#			+D16.1
+#
+#		is the option we prefer on 17 inch monitors.
+#
+#	-Ifile	Arranges to include the named file after all command line
+#		options	are processed, but before the input file named on
+#		the command line is executed. All files included this way
+#		run in the environment created for the primary input file.
+#		This option can be particulary useful when no input file
+#		is named on the command line (i.e., the Yoix interpreter
+#		reads from standard input) and you want a way to establish
+#		a consistent environment, often for debugging purposes.
+#
+#	-O	Starts the Yoix interpreter in optimized mode, which can
+#		improve performance by about 10%, but it currently means
+#		you get little or no debugging help from error messages.
+#		Ends up fiddling with VM.addtags, which can also be done
+#		in Yoix scripts. You should use the -g option if you need
+#		more help while you're debugging a Yoix script.
+#
+#	-Pfile	Tells the interpreter to load properties from file. Lines
+#		in a property file look like
+#
+#			key = value
+#
+#		and the only ones recognized must start with the prefix
+#		that can be set using the -p option, which by default is
+#		the empty string (i.e., ""). In addition, only properties
+#		named in the properties Hashtable (below) have any effect.
+#		At startup the Yoix interpreter looks for files named
+#		yoix.properties in the directories that Java associates
+#		with the "yoix.home", "user.home", and "user.dir" system
+#		properties.
+#
+#	-Sstr	Sets the security policy based on str, which should be a
+#		string of the form "access:category[:arg]". The access
+#		token in str sets the access mode and should be "allow",
+#		"prompt", or "deny". The second token in str, which must
+#		be separated from the access token by a colon, selects
+#		a category (e.g., "file", "read", "delete") or names an
+#		individual security checker (e.g., "checkRead"). The arg
+#		token is optional and appropriate values depends on the
+#		category. For example,
+#
+#			-S"prompt:file:/etc/*"
+#
+#		prompts with a dialog whenever a Yoix porgram tries to
+#		read, write, delete, or execute files under /etc. Using
+#		temp files is common, so there's an easy way to extend
+#		permissions to temp files. The option
+#
+#			-Sallow:tempfile
+#
+#		lets Yoix programs read, write, or delete files that are
+#		in the official temp directory (i.e., VM.tmpdir), but it
+#		prompts with a dialog whenever the program accesses files
+#		in any other directory. The category can also be the name
+#		of SecurityManager function, so
+#
+#			-Sprompt:checkRead
+#
+#		prompts with a dialog whenever Java decides it needs to
+#		find out if a local file can be read, while
+#
+#			-Sprompt:checkYoixInclude
+#
+#		prompts with a dialog right before the Yoix interpreter
+#		executes an explicit or implicit (i.e., see the -I option)
+#		include statement.
+#
+#	-Tdir	Names the default directory the interpreter uses when it
+#		creates temporary files (e.g., via the tempnam builtin).
+#		Point at a temp directory that's not the system default,
+#		and the interpreter creates that directory if it doesn't
+#		already exist.
+#
+#	-V	Dump version information and then exit. Change - to + and
+#		you get a little extra information.
+#
+# Older releases started the interpreter using a command line that
+# looked something like,
+#
+#	CLASSPATH=yoix.jar java -mx64m att.research.yoix.YoixMain "$@"
+#
+# which is simple and still works, but the -jar option that was
+# added to Java 1.2 can also be used, so
+#
+#	java -mx64m -jar yoix.jar "$@"
+#
+# is even easier. Our automatically generated scripts now prepend
+# yoix.jar to the CLASSPATH environment variable, which lets you
+# point CLASSPATH at user modules and our scripts won't hide them
+# from Java. User modules can be completely disabled using the -u
+# option or selectively using the checkYoixModule() function that
+# has been added to the Yoix SecurityManager.
+#
+

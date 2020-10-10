@@ -1,0 +1,16 @@
+import yoix.*.*;
+
+Dimension res = VM.screen.defaultmatrix.dtransform(72, 72);
+
+JFrame f = {
+    Graphics graphics = {
+        Matrix CTM = new Matrix;
+    };
+
+    paint(Rectangle rect) {
+        graphics.rectfill(50, 150, 2*res.width, 50);
+    }
+};
+
+f.visible = TRUE;
+

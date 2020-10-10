@@ -1,0 +1,117 @@
+import yoix.*.*;
+
+DrawSquare(double side, ...) {
+    double dx = side/2;
+    double xscale = (argc > 2 && argv[2] instanceof Number) ? argv[2] : 1;
+    double yscale = (argc > 3 && argv[3] instanceof Number) ? argv[3] : 1;
+    double angle = (argc > 4 && argv[4] instanceof Number) ? argv[4] : 0;
+    Path   path;
+
+    //
+    // Draw a triangle with sides of length 'side' about the origin
+    //
+
+    path {
+	moveto(0, 0);
+	rmoveto(dx, dx);
+	rlineto(-side, 0);
+	rlineto(0, -side);
+	rlineto(side, 0);
+	rlineto(0, side);
+	closepath();
+	moveto(0, 0);
+	if (xscale != 1 || yscale != 1)
+	    scalepath(xscale, yscale);
+	if (angle != 0)
+	    rotatepath(angle);
+    }
+    return(path);
+}
+
+DrawTriangle(double side, ...) {
+    double dx = side/2;
+    double dy = sqrt(3)*side/4;
+    double xscale = (argc > 2 && argv[2] instanceof Number) ? argv[2] : 1;
+    double yscale = (argc > 3 && argv[3] instanceof Number) ? argv[3] : 1;
+    double angle = (argc > 4 && argv[4] instanceof Number) ? argv[4] : 0;
+    Path   path;
+
+    //
+    // Draw a triangle with sides of length 'side' about the origin
+    //
+
+    path {
+	moveto(0, 0);
+	rmoveto(dx, dy);
+	rlineto(-side, 0);
+	rlineto(dx, -2 * dy);
+	rlineto(dx, 2 * dy);
+	closepath();
+	moveto(0, 0);
+	if (xscale != 1 || yscale != 1)
+	    scalepath(xscale, yscale);
+	if (angle != 0)
+	    rotatepath(angle);
+    }
+    return(path);
+}
+
+Path p1;
+Path p2;
+
+p1 {        // "named block"
+    moveto(0, 0);
+    rlineto(0, 144);
+}
+
+p2 {        // "named block"
+    moveto(0, 0);
+    rlineto(144, 0);
+}
+
+JFrame f = {
+    Color background = Color.white;
+
+    int addshadow = TRUE;
+    int smooth = TRUE;
+    double side = 72;
+    double shadow = side/20;
+
+    Graphics graphics = {
+	int linejoin = (smooth ? JOIN_ROUND : JOIN_MITER);
+	int linecap = (smooth ? CAP_ROUND : CAP_BUTT);
+    };
+
+    paint(Rectangle r) {
+        graphics {        // "named block"
+            moveto(144, 144);
+            appendpath(DrawSquare(side));
+            appendpath(p2);
+            appendpath(DrawSquare(side, 1, 1.5, 45));
+            appendpath(p1);
+            appendpath(DrawTriangle(side));
+            appendpath(p2);
+            appendpath(DrawTriangle(side, 1, 1.5, -45));
+
+	    if (addshadow && shadow > 0.001) {
+		gsave();
+		path.translatepath(shadow, shadow);
+		setgray(.5);
+		linewidth = shadow * 2;
+		strokepath();
+		fill(.4);
+		grestore();
+	    }
+	    gsave();
+            setrgbcolor(1, 0, 0);
+	    linewidth = shadow;
+	    stroke();
+	    grestore();
+            setrgbcolor(0, 0, 1);
+	    fill();
+        }
+    }
+};
+
+f.visible = TRUE;
+

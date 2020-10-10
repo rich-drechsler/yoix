@@ -1,0 +1,29 @@
+<HTML>
+<HEAD>
+<TITLE><_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_></TITLE>
+</HEAD>
+<BODY>
+<TABLE VSPACE=24 HSPACE=24><TR><TD BGCOLOR=#BBF1DE>
+&nbsp;
+<H1><CENTER><_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_> Application Home Page</CENTER></H1>
+&nbsp;
+</TD></TR><TR><TD>&nbsp;
+<P>
+<_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_> is a Yoix<SUP>&reg;</SUP> application. This page is intended
+to provide background information, instructions, contact information and more about the <_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_> application.
+<P>
+A convenient <A HREF="<_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_>Installer.html">installer</A> for
+<_BETA_PREFIX_HTML_><_ACRONYM_UPLOW_HTML_> is also available.
+<P>
+<HR COLOR=#BBF1DE SIZE=7>
+<P>
+For more information about the Yoix language and its interpreter, visit:
+<BLOCKQUOTE>
+<A HREF="http://www.research.att.com/sw/tools/yoix/">
+http://www.research.att.com/sw/tools/yoix/
+</A>
+</BLOCKQUOTE>
+<P>
+<HR COLOR=#BBF1DE SIZE=7>
+</TD></TR></TABLE>
+</BODY>

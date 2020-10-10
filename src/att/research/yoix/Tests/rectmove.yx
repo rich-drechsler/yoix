@@ -1,0 +1,76 @@
+//
+// Works, so it illustrates a bunch of ideas, but it's not a particularly
+// efficient implementation because we recalculate the string bounds each
+// time paint is called. Not hard to improve, but we'll leave that to you.
+//
+// NOTE - we also used panandzoom to enable mouse wheel zooming.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    Array layout = {
+        new JCanvas {
+            Color background = Color.black;
+	    int   panandzoom = 0x000400;
+
+            Graphics graphics = {
+                String font = "Helvetica-bold-12";
+            };
+
+	    Rectangle cell = {
+		double x = 72;
+		double y = 72;
+		double width = 72;
+		double height = 36;
+	    };
+
+	    Point pressedpoint = NULL;
+
+            paint(rect) {
+		Rectangle bounds = NULL;
+		double    x;
+		double    y;
+
+		bounds = graphics.font.stringbounds("Drag Me");
+		x = cell.x + (cell.width - bounds.width)/2;
+		y = cell.y + (cell.height - bounds.height)/2 - bounds.y;
+
+                graphics {
+                    gsave();
+		    setgray(.7);
+		    rectbutton(cell, 72.0/32);
+		    setrgbcolor(1, 0, 0);
+		    moveto(x, y);
+		    show("Drag Me");
+                    grestore();
+                }
+            }
+
+	    mouseDragged(e) {
+		double dx;
+		double dy;
+
+		if (pressedpoint) {
+		    dx = e.coordinates.x - pressedpoint.x;
+		    dy = e.coordinates.y - pressedpoint.y;
+		    pressedpoint.x += dx;
+		    pressedpoint.y += dy;
+		    graphics.rectmove(cell, dx, dy);
+		}
+	    }
+
+	    mousePressed(e) {
+		if (pointInRect(e.coordinates, cell))
+		    pressedpoint = e.coordinates;
+	    }
+
+	    mouseReleased(e) {
+		pressedpoint = NULL;
+	    }
+        },
+    };
+};
+
+f.visible = TRUE;
+

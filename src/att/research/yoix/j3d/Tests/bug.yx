@@ -1,0 +1,175 @@
+import yoix.j3d.*;
+import yoix.*.*;
+
+Image logo = {
+    ////String source = "http://www.yoix.org/images/ATTlogo.gif";
+    String source = "http://www.research.att.com/sw/tools/yoix/images/ATTlogo.gif";
+    int yup = FALSE;
+    int byreference = TRUE;
+};
+
+Frame f = {
+    Array layout = {
+	new Canvas3D {
+	    String tag = "$_canvas";
+
+	    VirtualUniverse view = {
+		////Color background = Color.cyan;
+		Image backgroundimage = NULL;
+
+		Array layout = {
+		    new Sphere {
+			String tag = "$_sphere";
+			double radius = 1.0;
+int divisions = 64;
+			Point3D position = {
+			    double z = -5;
+			};
+
+			Appearance appearance = {
+			    ColoringAttributes coloring = {
+				Color  color = Color.green;
+			    };
+
+			    Material material = {
+				Color  ambientcolor = Color.red;
+				double shininess = .5;
+				int    enabled = TRUE;
+			    };
+
+			    PointAttributes points = {
+				int    antialiasing = TRUE;
+				double size = 2.0;
+			    };
+
+			    PolygonAttributes polygons = {
+				int  mode = J3D_FILL;
+				int  culling = J3D_BACK;
+			    };
+
+			    RenderingAttributes rendering = {
+				int visible = TRUE;
+			    };
+
+			    TransparencyAttributes transparency = {
+				int mode = J3D_NONE;
+			    };
+
+/****
+			    String textureunit = "http://www.research.att.com/sw/tools/yoix/images/ATTlogo.gif";
+****/
+
+/**********
+
+			    Texture2D textureunit = {
+				////Image  image = logo;
+				String image = "http://www.research.att.com/sw/tools/yoix/images/ATTlogo.gif";
+				int    format = J3D_RGB;
+				int    magfilter = J3D_BASE_LEVEL_LINEAR;
+				String minfilter = "BASE_LEVEL_POINT";
+				int    mipmap = TRUE;
+				int    enabled = TRUE;
+int baselevel = 0;
+int anisotropicdegree = 16.0;
+
+				Dictionary lod = {
+				    double maximum = 2000;
+				};
+
+				Array sharpen = {
+				    0, .5,
+				    1, .5,
+				};
+
+				Array filter4 = {
+				    1, 2, 3, 4, 5, 
+				};
+			    };
+**********/
+
+			    TextureUnit textureunit = {
+				////String texture = "http://www.research.att.com/sw/tools/yoix/images/ATTlogo.gif";
+				Texture2D texture = {
+				    String image = "http://www.research.att.com/sw/tools/yoix/images/ATTlogo.gif";
+				    int mipmap = TRUE;
+				    int baselevel = 0;
+				    ////int maximumlevel = 5;
+				};
+				int    generationmode = J3D_SPHERE_MAP;
+			    };
+			};
+		    },
+
+		    new DirectionalLight {
+			Color color = Color.blue;
+			int   enabled = TRUE;
+			Vector3D direction = {
+			    double x = -1.0;
+			    double y = -1.0;
+			    double z = -0.5;
+			};
+		    },
+
+		    new DirectionalLight {
+			Color color = Color.green;
+			int   enabled = TRUE;
+			Vector3D direction = {
+			    double x = 0;
+			    double y = 0;
+			    double z = -1.0;
+			};
+		    },
+
+		    new DirectionalLight {
+			Color color = Color.red;
+			int   enabled = TRUE;
+			Vector3D direction = {
+			    double x = 1.0;
+			    double y = -1.0;
+			    double z = -0.5;
+			};
+		    },
+		};
+	    };
+	}, CENTER,
+    };
+};
+
+f.visible = TRUE;
+
+//
+// Just an example - using the "view" field to get to tagged in the
+// universe, but that will eventually change because "view" won't
+// always be a universe.
+//
+
+/////fprintf(stderr, "tagged=%O\n", f.components.$_canvas.universe.tagged);
+
+/****
+sleep(3);
+f.components.$_canvas.universe.tagged.$_sphere.appearance.color = Color.green;
+sleep(3);
+f.components.$_canvas.universe.tagged.$_sphere.appearance = NULL;
+****/
+
+sleep(2);
+/****
+stderr.nextline = toString(f.components.$_canvas.universe.tagged.$_sphere.appearance.polygons);
+stderr.nextline = toString(f.components.$_canvas.universe.tagged.$_sphere.appearance.points);
+stderr.nextline = toString(f.components.$_canvas.universe.tagged.$_sphere.appearance.lines);
+stderr.nextline = toString(f.components.$_canvas.universe.tagged.$_sphere.appearance.material);
+stderr.nextline = toString(f.components.$_canvas.universe.tagged.$_sphere.appearance.transparency);
+****/
+
+stderr.nextline = toString(f.components.$_canvas.universe.tagged.$_sphere.appearance.textureunit);
+stderr.nextline = toString(f.components.$_canvas.universe.tagged.$_sphere.appearance.textureunit.texture);
+stderr.nextline = toString(f.components.$_canvas.universe.tagged.$_sphere.appearance.textureunit.texture.lodoffset);
+stderr.nextline = toString(f.components.$_canvas.universe.tagged.$_sphere.appearance.textureunit.texture.lodrange);
+
+/****
+stderr.nextline = toString(f.components.$_canvas.universe.tagged.$_sphere.appearance.textureunit.texture.boundary);
+stderr.nextline = toString(f.components.$_canvas.universe.tagged.$_sphere.appearance.textureunit.texture.sharpen);
+stderr.nextline = toString(f.components.$_canvas.universe.tagged.$_sphere.appearance.textureunit.texture.filter4);
+****/
+/////stderr.nextline = toString(f.components.$_canvas.properties);
+

@@ -1,0 +1,21 @@
+//
+// Intentional error to check duplicatetag message.
+//
+
+import yoix.*.*;
+
+JFrame frame = {
+	FlowLayout layoutmanager;
+	Array layout = {
+	    new JButton {
+		String tag = "$_one";
+		String text = "one";
+	    },
+	    new JButton {
+		String tag = "$_one";
+		String text = "one";
+	    },
+	};
+};
+
+frame.visible = TRUE;

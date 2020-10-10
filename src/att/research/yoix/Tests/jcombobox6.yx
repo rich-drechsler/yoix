@@ -1,0 +1,54 @@
+import yoix.*.*;
+
+JFrame f = {
+    FlowLayout layoutmanager = {
+        int  hgap = 10;
+        int  vgap = 72;
+    };
+
+    Array layout = {
+        new JComboBox {
+            Array items = {"Continue", NULL, "Quit", NULL};
+            int   selected = 0;
+
+            actionPerformed(e) {
+                printf("selected=%O\n", selected);
+                if (selected === "Quit")
+                    exit(0);
+            }
+
+	    //
+	    // Mac OS X had some issues with registering mouse event listeners on a
+	    // the right component of a combobox, so this test just makes sure things
+	    // are working
+	    //
+	    mouseClicked(e) {
+		fprintf(stderr, "%s\n", argv[0]);
+	    }
+	    mouseEntered(e) {
+		fprintf(stderr, "%s\n", argv[0]);
+	    }
+	    mouseExited(e) {
+		fprintf(stderr, "%s\n", argv[0]);
+	    }
+	    mousePressed(e) {
+		fprintf(stderr, "%s\n", argv[0]);
+	    }
+	    mouseReleased(e) {
+		fprintf(stderr, "%s\n", argv[0]);
+	    }
+	    mouseWheelMoved(e) {
+		fprintf(stderr, "%s\n", argv[0]);
+	    }
+	    mouseMoved(e) {
+		fprintf(stderr, "%s\n", argv[0]);
+	    }
+	    mouseDragged(e) {
+		fprintf(stderr, "%s\n", argv[0]);
+	    }
+
+        },
+    };
+};
+
+f.visible = TRUE;

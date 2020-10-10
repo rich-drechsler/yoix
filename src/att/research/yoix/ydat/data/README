@@ -1,0 +1,13 @@
+
+Data files that have names that match up with the corresponding config files
+that can found in directory
+
+        ../scripts
+
+are automatically run by the ydat bash script when the -c command line option
+names that config file and there's no data file argument.
+
+NOTE - reorganized this stuff on 5/23/20, and that means the old installer.yx
+script probably won't work without appropriate changes. Not a big deal because
+we currently have no plans to distribute this stuff using the Yoix installer.
+

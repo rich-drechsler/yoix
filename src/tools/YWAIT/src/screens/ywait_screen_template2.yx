@@ -1,0 +1,124 @@
+//
+// A template screen with a JLabel at the top, a single JButton that's
+// kept close to bottom of the screen, and a proprietary label at the
+// very bottom of the screen. In practice this screen probably isn't
+// often used as a template, because you usually want to put something
+// (e.g., a JTextArea) between the top JLabel and the JButton.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Insets border = Global.GetLabeledScreenInsets();
+	String title = Global.ACRONYM + " Template 2";
+	Font   font = Global.GetPreferredLabelFont();
+	int    opaque = TRUE;
+
+	//
+	// This is starting screen size. Setting size to NULL is special
+	// and means the individual components displayed in the screen
+	// determine the size of the screen.
+	//
+
+	Dimension size = {
+	    double width = 7.0*72;
+	    double height = 3.0*72;
+	};
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	//
+	// Every screen should define and initialize the following set
+	// of variables. Expect problems is you omit any of them.
+	//
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = NULL;
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = TRUE;   // save screen-specific info within session
+	int    retainstate = TRUE; // save screen-class info across sessions
+	int    reloadargs = FALSE;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    //
+	    // Functions defined in the "ywait_constructors.yx" file can
+	    // be an easy way to build new components, particularly when
+	    // you want automatic support for things like drag-and-drop.
+	    //
+	    Global.NewJHeadingLabel(NULL, "This is the text displayed by the label", "dragtext", NULL),
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+	    },
+
+	    new JButton {
+		String text = "Dismiss";
+		Font   font = Global.GetPreferredButtonFont();
+
+		actionPerformed(e) {
+		    //
+		    // We immediately hide the screen right in this example,
+		    // but more complicated screens often do
+		    //
+		    //    Global.QueueCommand(root, &root.HideScreen);
+		    //
+		    // which delays the root.HideScreen() call until it gets
+		    // to the front of the queue. Means other things that the
+		    // screen may have queued up get a chance to finish before
+		    // we disappear.
+		    //
+
+		    root.HideScreen();
+		}
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int weighty = 1;	// give us extra space
+		int anchor = SOUTH;	// keeps button at the bottom of our space
+	    },
+
+	    Global.NewJProprietaryLabel(),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);
+

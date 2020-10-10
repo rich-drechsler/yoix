@@ -1,0 +1,69 @@
+The zip files in this directory currently include files that were distributed in
+in AT&T's 2.3.1 release or were published and available elsewhere on the web. At
+this point we've made no changes to the original files, however there are issues,
+like references to non-existent web sites or expired trademarks, that eventually
+should be addressed.
+
+examples.zip
+    These are examples that were distributed in the 2.3.1 release. Unzip
+    it using
+
+        unzip examples.zip
+
+    and you end up with a directory named examples that contains simple
+    Yoix scripts.
+
+papers.zip
+    A few papers about Yoix, including the first draft of a Yoix tutorial
+    that was part of the 2.3.1 release. When you unzip the file using
+
+        unzip papers.zip
+
+    you end up with a directory named papers that includes the PDF files
+    for the individual papers.
+
+reference.zip
+    These are the Yoix reference pages that were distributed in the 2.3.1
+    release. Unzip it using something like
+
+        unzip reference.zip
+
+    and you end up with a directory named reference that contains the Yoix
+    2.3.1 HTML reference pages. Point your browser at the index.html file
+    in that directory and you should be able to explore the old Yoix 2.3.1
+    documentation and the important links in those reference pages should
+    all work.
+
+---------
+Wish List
+---------
+
+The files included in reference.zip clearly need lots of work, but at this point
+I only have plans for some simple changes to the HTML files:
+
+    1) According to the website
+
+           https://www.uspto.gov/trademark
+
+       the AT&T's Yoix trademark has been dead since March 28, 2014. Every
+       HTML page in the doc.zip file in the 2.3.1 release claims that Yoix
+       is a trademark of AT&T, which is no longer true. The change would
+       simply remove the trademark claim, because it no longer appears to
+       be true.
+
+    2) The HTML pages all reference the URL
+
+           http://www.research.att.com/css/global.css
+
+       which no longer exists. All references probably should be removed.
+
+    3) Examples in some reference pages undoubtedly mention nonexistent
+       websites, like
+
+           http://www.yoix.org
+           http://www.research.att.com/sw/tools/yoix
+
+       All of those references should eventually be dealt with, maybe by
+       pointing them at new Yoix related URLs that actually exist. This
+       isn't a high priority, so it probably won't happen anytime soon.
+

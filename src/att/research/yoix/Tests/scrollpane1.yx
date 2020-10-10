@@ -1,0 +1,57 @@
+//
+// ScrollPane test
+//
+
+import yoix.*.*;
+
+Frame f = {
+    Dimension size = {
+        double width = 8*72;
+        double height = 6*72;
+    };
+
+    Array layout = {
+        new ScrollPane {
+            Array layout = {
+		new Panel {
+		    BorderLayout layoutmanager;
+
+                    Array layout = {
+                        new Label {
+                            String text = "A ScrollPane Example";
+                            String font = "Lucida-bold-16";
+                            int    alignment = CENTER;
+                        }, NORTH,
+
+                        new TextArea {
+                            int rows = 50;
+                            int columns = 100;
+                            int scroll = NONE;
+                        }, CENTER,
+
+                        new Panel {
+                            Array layout = {
+                                new Button {
+                                    String text = "One";
+                                },
+                                new Button {
+                                    String text = "Two";
+                                },
+                                new Button {
+                                    String text = "Dismiss";
+
+                                    actionPerformed(e) {
+                                        exit(0);
+                                    }
+                                },
+                            };
+                        }, SOUTH,
+                    };
+		},
+            };
+        },
+    };
+};
+
+f.visible = TRUE;
+

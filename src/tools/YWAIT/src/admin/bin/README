@@ -1,0 +1,46 @@
+Some useful administrative scripts
+
+    broadcast._PL
+	A simple script that you can use to manage broadcast messages that
+	are sent back to clients when they contact your server. Messages
+	and other control information are automatically saved in directory
+	../broadcast. For example,
+
+		./broadcast.pl /tmp/xxx
+
+	copies the contents of /tmp/xxx to file ../broadcast/message and
+	uses it as the message that's delivered to users when they connect
+	to your server. The list of users that have seen the message are
+	recorded in ../broadcast/log, so they don't get it more than once
+	per login.  Typing
+
+		./broadcast.pl -c
+
+	cancels the current broadcast message. Comments in broadcast._PL
+	provide more details.
+
+    cleanup._PL
+	A script normally run by cron that can be used to clean log files,
+	home directories, tmp files, and the passwd file. Type
+
+		./crontab.pl
+
+	and suggestions for your crontab file that use cleanup.pl will be
+	written to standard output.
+
+    crontab._PL
+	A script that writes possible crontab entries for your system on
+	standard output. Your existing crontab entries are included in the
+	output, but you should check for yourself too.
+
+    makepassword._PL
+	A script that takes a password and encrypts it so it can be used
+	in the passwd file. Written a long time ago and is really no longer
+	needed, because the the perl script that manages the passwd file
+	now automatically adds (i.e., appends an updated entry) an entry
+	with an encrypted password whenever a user logs in and the user's
+	last entry user has a password field that's empty.
+
+    utime._PL
+	A script that's currently only used by the cleanup.pl.
+

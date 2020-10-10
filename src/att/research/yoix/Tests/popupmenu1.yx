@@ -1,0 +1,63 @@
+//
+// A really old AWT test file that shares a single PopupMenu.
+//
+
+import yoix.*.*;
+
+PopupMenu popupmenu = {
+    String text = "Test Popup Menu";
+
+    Menu items = {
+        "Line 1", "1",
+        "Line 2", "2",
+        "More...", new Menu {
+            "Line 3", "3",
+            "Line 4", "4", TRUE,
+        },
+        "-", NULL,
+        "Exit", "exit",
+    };
+};
+
+mouseEventHandler(e) {
+    if (e.popuptrigger) {
+        global.popupmenu.location = e.location;
+        this.popup = global.popupmenu;
+    }
+}
+
+Frame f = {
+    GridLayout layoutmanager;
+
+    Array layout = {
+        new Label {
+            String text = "A Label";
+            Color  background = Color.red;
+            int    alignment = CENTER;
+
+            Function mousePressed = mouseEventHandler;
+            Function mouseReleased = mouseEventHandler;
+
+            actionPerformed(e) {
+                printf("actionPerformed: event=%O\n", e);
+                if (strcmp(e.command, "exit") == 0)
+                    exit(0);
+            }
+        },
+
+        new Button {
+            String text = "A Button";
+            Color  background = Color.magenta;
+            int    alignment = CENTER;
+
+            Function mousePressed = mouseEventHandler;
+            Function mouseReleased = mouseEventHandler;
+
+            itemStateChanged(e) {
+                printf("itemStateChanged: event=%O\n", e);
+            }
+        },
+    };
+};
+
+f.visible = TRUE;

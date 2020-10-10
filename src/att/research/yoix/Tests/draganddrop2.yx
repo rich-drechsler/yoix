@@ -1,0 +1,54 @@
+//
+// The Yoix implementation of the example
+//
+//    http://java.sun.com/docs/books/tutorial/uiswing/misc/example-1dot4/LabelDnD.java
+//
+// that's discussed in Sun's drag and drop tutorial.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    String title = "LabelDnD";
+    double border = 6;
+    Dimension size = NULL;
+
+    GridLayout layoutmanager = {
+	int rows = 2;
+    };
+
+    Array layout = {
+	new JPanel {
+	    String border = "JTextField: drag and drop is enabled";
+
+	    Array layout = {
+		new JTextField {
+		    int columns = 40;
+		    int dragenabled = TRUE;
+
+		    TransferHandler transferhandler = {
+			String property = "selected";
+			int    action = COPY;
+		    };
+		},
+	    };
+	},
+	new JLabel {
+	    String text = "I'm a Label!";
+	    String border = "JLabel: drag from or drop to this label";
+	    Color  foreground = Color.blue;
+	    int    alignment = LEADING;
+
+	    TransferHandler transferhandler = {
+		String property = "text";
+		int action = COPY;
+	    };
+
+	    mousePressed(e) {
+		transferhandler.exportAsDrag(this, e, COPY);
+	    }
+	},
+    };
+};
+
+f.visible = TRUE;

@@ -1,0 +1,1266 @@
+#
+# This is the system configuration file that's read by most perl scripts.
+# It's a very important file, so be careful making changes - any mistake
+# (e.g., a syntax error) could grind everything to a halt.
+# 
+# RUNSTATE controls the system - you have to set it to 2.0 (or more) to
+# start production mode. Here are the current settings:
+#
+#	0.0	Maintenance mode - nobody gets in
+#	0.?	Maintenance mode - $ADMINISTRATORS are allowed in	
+#	1.0	Maintenance mode - nobody gets past motd screen
+#	1.?	Maintenance mode - $ADMINISTRATORS are allowed in
+#	[2-9].?	Production mode - everyone gets in
+#
+# The system is in maintenance mode when the first digit of $RUNSTATE is
+# 0 or 1. When the second digit isn't 0 users listed in $ADMINISTRATORS
+# (a space separated list) are allowed all the way in. Letting everyone
+# see motd when the system is in maintenance mode is an easy way to keep
+# the user community informed. The system is in normal production mode
+# when the first digit of $RUNSTATE is 2 or more. Changing $RUNSTATE,
+# say from 2.0 to 3.0, disables active sessions and forces everyone to
+# log back in, however it only happens the next time the users contact
+# the server. Changing the second digit forces everyone to reconnect,
+# exactly as if the time limit on all sessions expired. If possible you
+# should warn users with a broadcast message (see admin/bin directory)
+# before making $RUNSTATE changes that disable active sessions.
+#
+# Clients poke the server at intervals controlled by $PINGTIMER. It's a
+# floating point number, interpreted as minutes, that's always included
+# in the header sent back to clients. A value of 0 disables the timer,
+# and all clients currently have 30 seconds as a lower limit. A small
+# value makes the server work harder, but provides better support for
+# things like broadcast messages.
+#
+# The jar file usually used to run this application is a superset of the
+# standard Yoix jar file. Client jar files should be stored in $JARSDIR
+# on the server. There currently aren't any enforced naming conventions
+# for those jar files, however we recommend names that start with your
+# applications's name and end with an underscore followed by the official
+# release number of that jar file (e.g., YwaitDemo.jar_1.0.0). Jar files
+# no longer have to be stored on each client's PC (although they can be
+# cached if you want) because the YWAIT client now uses a URLClassLoader
+# to load a jar file (usually from $JARSDIR) it's it's not cached on the
+# client. If you're interested in the details look at the ywait_setup._PL
+# script in the cgi-bin source directory and the Ywait_Client._JAVA class
+# file in the jars source directory. They're the programs that select the
+# jar file the client is supposed to use and look for it on the client or
+# load it over the network using a URLClassLoader.
+# 
+# The bottom line is that most of the code associated with the old YWAIT
+# "update" mechanism has been removed from this version of YWAIT, however
+# we decided to keep a little bit of the "release" related code in this
+# file. If $ALLOWED_RELEASES isn't empty then it should be a list of one
+# or more space separated release numbers (e.g., 1.2.0) that are matched
+# against the release assigned to the jar file that the client is using.
+# If they don't match WriteHeader() adds an entry to the header that it
+# sends back to the client that lets it know there's a mismatch and the
+# Yoix code that process the header decides how to proceed. The mechanism
+# isn't all that important and really should only be viewed as a way that
+# an administrator can use to force "old" clients off the system, usually
+# after giving them sufficient warning (e.g., using a broadcast message).
+#
+# Definitions in this file that control the behavior of clients can be
+# changed while the system is in production, but active sessions only
+# notice the changes when they contact the server. Remember $PINGTIMER
+# gives you some control over how often clients contact the server.
+#
+
+<_PERL_LIB_LINE_>
+use Config;
+use Fcntl;
+use URI::Escape;
+use POSIX qw(strftime tzset);
+use Compress::Zlib;	# for crc32 checksum
+<_USE_SENDMAIL_>
+
+umask(007);
+srand(time() ^ ($$ + ($$<<15)));
+
+if (defined($Config{sig_name})) {
+    my $name;
+    my $i = 0;
+
+    foreach $name (split(' ', $Config{sig_name})) {
+	$SIGNO{$name} = $i;
+	$SIGNAME[$i] = $name;
+	$i++;
+    }
+} else {
+    print "STATUS=" . unpack("H*", "internalerror") . "\n";
+    print "REASON=" . unpack("H*", "no signal names defined in perl Config") . "\n";
+    exit(1);
+}
+
+$RUNSTATE = "2.0";
+$ADMINISTRATORS = "admin <_ADMIN_IDS_DQ_>";
+$SERVERTYPE = lc("<_SERVER_TYPE_DQ_>");
+
+@COMMENT_EMAIL = qw(<_COMMENT_EMAIL_>);
+$ADMIN_EMAIL = "<_ADMIN_EMAIL_DQ_>";
+$SMTP_SERVER = "<_SMTP_SERVER_DQ_>";
+$SMTP_PORT   = <_SMTP_PORT_>;
+$USE_SENDMAIL = "<_USE_SENDMAIL_DQ_>";
+if ($#COMMENT_EMAIL < 0) {
+    @COMMENT_EMAIL = ( $ADMIN_EMAIL );
+}
+
+$ALLOWED_RELEASES = "<_JARFILE_RELEASE_DQ_>"; # space separated list if more than one
+
+$CHECKHOST = "TRUE";		# make sure REMOTE_HOST and session id match
+$DEBUGFLAGS = "";		# undocumented string of debug flags (e.g., "0x38")
+$LOGDETAIL = "2";		# normally 2 is a good value (client entries are allowed at 3)
+$MESSAGEFILE_LIMIT = -1;	# max bytes in user message files or negative if unlimited
+$MESSAGEFILE_NAME = "messages";	# name of file in user home directories
+$MESSAGE_LIMIT = -1;		# max bytes in a message or negative if unlimited
+$PASSWORDTIMER = "0";		# minutes between password changes (<= 0 is special)
+$PINGTIMER = "5";		# minutes between clients pings
+$SESSIONIDFIELDS = 15;		# must agree with how they're built by makeid
+$SESSIONIDTIMER = 12*60;	# minutes that a sessionid lasts - forces reconnect
+$SSH = "<_SSH_PATH_DQ_>";
+
+%COMMANDPATHS = <_COMMAND_PATHS_>;
+
+$DBRQST_ID = "<_DBRQST_ID_DQ_>";
+$DBRQST_IP = "<_DBRQST_IP_DQ_>";
+$DBRQST_CMD = "<_DBRQST_CMD_DQ_>";
+if ($SSH eq "" || $DBRQST_IP eq "") {
+    $DBRQST = "$DBRQST_CMD";
+} else {
+    $DBRQST = "$SSH -l $DBRQST_ID $DBRQST_IP $DBRQST_CMD";
+}
+
+#
+# The timezone mapping is designed to translate timezone names that
+# usually come from Java into names that can be used on your server.
+# An empty list means no translation, otherwise any timezone that's
+# not in %TIMEZONES will be translated into UTC. See PickTimeZone()
+# for more details. Timezones that your server recognizes should be
+# found in a directory named zoneinfo (e.g., /usr/share/zoneinfo).
+#
+
+%TIMEZONES = ();
+
+#
+# Acronyms - for your system.
+#
+
+$ACRONYM = "<_ACRONYM_DQ_>";
+$acronym = "<_ACRONYM_LOWER_DQ_>";
+$Acronym = "<_ACRONYM_UPLOW_DQ_>";
+
+#
+# Default error messages - keep them short.
+#
+
+$DISABLEDMESSAGE = "This session has been disabled by an administrator. Try reconnecting before calling for help.";
+
+$MAINTENANCEMESSAGE = "<_BETA_PREFIX_DQ_><_ACRONYM_DQ_> is now running in system maintenance mode. Try again later.";
+
+$REJECTEDMESSAGE = "Your request has been rejected by the system and your session has been disabled. Try reconnecting before calling for help.";
+
+$UNAVAILABLEMESSAGE = "The system is temporarily unavailable. Try your request again in a few minutes.";
+
+#
+# You won't often have to change definitions that follow.
+#
+
+$SERVERDOCDIR = "<_SERVER_DOCDIR_DQ_>";
+$SERVERHOMEDIR = "<_SERVER_HOMEDIR_DQ_>";
+$ADMINDIR = $SERVERHOMEDIR . "/admin";
+$BINDIR = $SERVERHOMEDIR . "/bin";
+$ETCDIR = $SERVERHOMEDIR . "/etc";
+$HELPDIR = $SERVERHOMEDIR . "/help";
+$HOMEDIR = $SERVERHOMEDIR . "/home";
+$JARSDIR = $SERVERDOCDIR . "/jars";
+$PLUGINSDIR = $SERVERHOMEDIR . "/plugins";
+$SCREENSDIR = $SERVERHOMEDIR . "/screens";
+$SCRIPTSDIR = $SERVERHOMEDIR . "/scripts";
+$SUBSDIR = $SERVERHOMEDIR . "/subs";
+$TMPDIR = $SERVERHOMEDIR . "/tmp";
+
+$ADMINBINDIR = "$ADMINDIR/bin";
+$BROADCASTDIR = "$ADMINDIR/broadcast";
+$LOGDIR = "$ADMINDIR/logs";
+$SESSIONIDDIR = "$ADMINDIR/sessionids";
+
+$BROADCASTMESSAGE = "$BROADCASTDIR/<_BETA_PREFIX_DQ_>message";
+$BROADCASTLOG = "$BROADCASTDIR/<_BETA_PREFIX_DQ_>log";
+$COMMENTLOG = "$LOGDIR/<_BETA_PREFIX_DQ_>comments";
+$DEBUGLOG = "$LOGDIR/<_BETA_PREFIX_DQ_>debug_log";
+$EXECLOG = "$LOGDIR/<_BETA_PREFIX_DQ_>access_log";
+$JARFILE = "$JARSDIR/<_BETA_PREFIX_DQ_><_JARFILE_BASENAME_DQ_>.jar";
+$LOGINLOG = "$LOGDIR/<_BETA_PREFIX_DQ_>access_log";
+$MOTDFILE = "$ETCDIR/<_BETA_PREFIX_DQ_>motd";
+$PASSWDFILE = "$ETCDIR/<_BETA_PREFIX_DQ_>passwd";
+
+$SEPARATOR = "<_SEPARATOR_DQ_>";
+$GROUP = "<_GROUP_DQ_>";
+$COMMANDSET = "*";
+$FEATURESET = "";
+
+#
+# We now explicitly export most of the variables that we just defined so
+# they will be available to programs, like shell scripts, that can't read
+# this file. User related variables are defined and exported when we parse
+# the session id.
+#
+
+$ENV{SERVERHOMEDIR} = $SERVERHOMEDIR;
+$ENV{ADMINDIR} = $ADMINDIR;
+$ENV{BINDIR} = $BINDIR;
+$ENV{ETCDIR} = $ETCDIR;
+$ENV{HELPDIR} = $HELPDIR;
+$ENV{HOMEDIR} = $HOMEDIR;
+$ENV{JARSDIR} = $JARSDIR;
+$ENV{PLUGINSDIR} = $PLUGINSDIR;
+$ENV{SCREENSDIR} = $SCREENSDIR;
+$ENV{SCRIPTSDIR} = $SCRIPTSDIR;
+$ENV{SUBSDIR} = $SUBSDIR;
+$ENV{TMPDIR} = $TMPDIR;
+
+$ENV{ADMINBINDIR} = $ADMINBINDIR;
+$ENV{BROADCASTDIR} = $BROADCASTDIR;
+$ENV{LOGDIR} = $LOGDIR;
+$ENV{SESSIONIDDIR} = $SESSIONIDDIR;
+
+$ENV{PATH} = "<_PATH_DQ_>";
+
+#
+# Use the environment to set $REMOTE_HOST, but also make sure it's also
+# properly defined in the environment.
+#
+
+if (!exists($ENV{REMOTE_HOST}) || !defined($ENV{REMOTE_HOST}) || $ENV{REMOTE_HOST} eq "") {
+    if (exists $ENV{REMOTE_ADDR} && defined $ENV{REMOTE_ADDR} && $ENV{REMOTE_ADDR} ne "") {
+	$ENV{REMOTE_HOST} = "$ENV{REMOTE_ADDR}";
+    } else {
+	$ENV{REMOTE_HOST} = "unknown";
+    }
+}
+
+$REMOTE_HOST = UntaintedAddress($ENV{REMOTE_HOST});
+$HOST = $REMOTE_HOST;
+
+#
+# Use the environment to set $SERVER, but also make sure that
+# TZ is properly defined in the environment.
+#
+
+if (!exists($ENV{TZ}) || !defined($ENV{TZ}) || $ENV{TZ} eq "") {
+    if (-s "/etc/localtime") {
+	$ENV{TZ} = ":/etc/localtime";
+    } else {
+	$ENV{TZ} = "GMT";
+    }
+    tzset();
+}
+
+$SERVER_TZ = $ENV{TZ};
+
+#
+# The characters in KEYSET are used when we generate session ids and encrypt
+# passwords, so they should match the character set that crypt() uses.
+#
+
+@KEYSET = qw(a b c d e f g h i j k l m n o p q r s t u v w x y z A B C D E F G H I J K L M N O P Q R S T U V W X Y Z 0 1 2 3 4 5 6 7 8 9 . /);
+
+#
+# Heavily used functions - be careful if you change them.
+#
+
+sub CallCommandScript {
+    my $command = shift;
+    my $script = shift;
+    my $argc = shift;
+    my @args = @_;
+    my $n;
+
+    #
+    # Designed to call standalone programs to handle client requests that
+    # arrive via the usual route. The alternative approach, which should
+    # be more efficient, are the Perl subroutines that the exec and login
+    # scripts recognize. This was added when we were forced to upgrade an
+    # old application and didn't want to translate working shell scripts
+    # to Perl subroutines.
+    #
+    # NOTE - we explicitly assume that the script calls WriteHeader() if
+    # it runs properly, so we only handle obvious errors.
+    #
+
+    for ($n = 0; $n < $argc; $n++) {
+	$script = "$script " . $args[$n];
+    }
+
+    WriteLog("-d2", "$command $script");
+
+    #
+    # We use cat to force Perl to call the shell, which undoubtedly could
+    # also done using a variation of open - later.
+    #
+
+    $script = "| cat - | $script";
+
+    #
+    # Some versions of Perl seem to need this, otherwise anything that we
+    # think has been written to STDOUT may disappear when the script runs.
+    # Didn't test to find out exactly what Perl versions need it.
+    #
+
+    select(STDOUT);
+    $| = 1;
+
+    if (open(SCRIPT, "$script")) {
+	for (; $n < @args; $n++) {
+	    printf(SCRIPT "%s\n", $args[$n]);
+	}
+	if (!close(SCRIPT)) {
+	    WriteHeader("-failed", "REASON", "Unavailable command: $COMMAND");
+	    WriteLog("-d0", "ADMIN: Script for command $COMMAND failed to run");
+	}
+    } else {
+	WriteHeader("-failed", "REASON", "Unavailable command: $COMMAND");
+	WriteLog("-d0", "ADMIN: Script for command $COMMAND failed to open");
+    }
+}
+
+sub Cleanup {
+    my $signame = shift();
+    my $code = ((exists $SIGNO{$signame}) ? (0x80|$SIGNO{$signame}) : int($signame));
+
+    if ($code == 0x80) {
+	$code = 0;
+    }
+
+    if ($code == 0) {
+	unlink(@CLEANUP_FILES);
+    }
+
+    @CLEANUP_FILES = ();
+    $SIG{HUP} = '';
+    $SIG{INT} = '';
+    $SIG{QUIT} = '';
+    $SIG{TERM} = '';
+
+    exit($code);
+}
+
+sub GetFormattedGMTime {
+    my $format = (@_ > 0) ? $_[0] : "%a %b %e %T %Z %Y";
+    my $time = (@_ > 1) ? $_[1] : time();
+
+    return(strftime($format, gmtime($time)));
+}
+
+sub GetFormattedServerTime {
+    my $format = (@_ > 0) ? $_[0] : "%a %b %e %T %Z %Y";
+    my $time = (@_ > 1) ? $_[1] : time();
+
+    #
+    # Would currently be safe to assume that the timezone is properly set,
+    # but we decided to make sure.
+    #
+
+    $ENV{TZ} = $SERVER_TZ;
+    tzset();
+    return(strftime($format, localtime($time)));
+}
+
+sub GetFormattedUserTime {
+    my $format = (@_ > 0) ? $_[0] : "%a %b %e %T %Z %Y";
+    my $time = (@_ > 1) ? $_[1] : time();
+    my $result;
+
+    $ENV{TZ} = PickTimeZone($USER_TZ);
+    tzset();
+    $result = strftime($format, localtime($time));
+    $ENV{TZ} = $SERVER_TZ;
+    tzset();
+    return($result);
+}
+
+sub GetKey {
+    my $key = "";
+    my $n;
+
+    #
+    # Generates a short random string of characters taken from KEYSET that
+    # ends up as the first entry in the session id. Older implementations
+    # behaved differently, but sessionids are now always saved until the
+    # user quits or the sessionid expires. This approach, along with the
+    # two time stamps saved in each sessionid, mean that guessing a valid
+    # sessionid based on known information about a user won't be all that
+    # easy.
+    # 
+
+    for ($n = 0; $n < 10; $n++) {
+	$key .= $KEYSET[int(rand() * ($#KEYSET + 1))];
+    }
+    return($key);
+}
+
+sub GetSessionIDPath {
+    my @flds = split(/\s+/,$_[0], $SESSIONIDFIELDS);
+    my $path;
+
+    $flds[0] =~ tr/\/./+_/;
+    $path = $SESSIONIDDIR . "/" . $flds[3] . ":" . $flds[4] . ":" . GetFormattedGMTime("%Y%m%d.%H%M%S", $flds[1]) . ":" . GetFormattedGMTime("%Y%m%d.%H%M%S", $flds[2]) . ":" . $flds[0];
+    return($path);
+}
+
+sub IsAdministrator {
+    return(LookFor("$_[0]", "$ADMINISTRATORS"));
+}
+
+sub LockNamedFile {
+    my $path;
+    my $result = 0;
+    my $sleep;
+    my $timeout;
+
+    if (@_ > 0) {
+	$path = $_[0] . ".lck";
+	$timeout = time() + ((@_ > 1) ? $_[1] : 0);
+	$sleep = (@_ > 2) ? $_[2] : 1;
+	do {
+	    if (sysopen(LOCKFILE, $path, O_WRONLY|O_EXCL|O_CREAT)) {
+		print(LOCKFILE "$$");
+		close(LOCKFILE);
+		$result = 1;
+	    } else {
+		sleep($sleep);
+	    }
+	} while ($result == 0 && time() <= $timeout);
+    }
+    return($result);
+}
+
+sub LookFor {
+    my $sep = ((@_ > 2) ? $_[2] : " ");
+    my $patterns;
+    my $str;
+    my $result = 0;
+
+    #
+    # Looks for a string that's surrounded by separator characters in
+    # a second string. Regular expressions aren't used, so the match
+    # must be exact.
+    #
+
+    if ($_[0]) {
+	if ($_[1]) {
+	    $str = $sep . $_[0] . $sep;
+	    $patterns = $sep . $_[1] . $sep;
+	    if (index($patterns, $str) >= 0) {
+		$result = 1;
+	    }
+	}
+    }
+    return($result);
+}
+
+sub LookForHost {
+    my $pattern;
+    my @patterns;
+    my $result = 0;
+    my $host;
+    my $n;
+
+    #
+    # Matches an IP address against an allowed set of addresses using
+    # regular expressions. It's very careful about the patterns that
+    # can be used, which is why we don't just use LookForPattern.
+    #
+
+    if ($_[0]) {
+	if ($_[1]) {
+	    $host = $_[0];
+	    @patterns = split(/[\s,]+/, $_[1]);
+	    for ($n = 0; $n < @patterns; $n++) {
+		$pattern = $patterns[$n];
+		if ($pattern =~ /^\d+\.\d+\.(\d+|\*)\.(\d+|\*)$/) {
+		    $pattern =~ s/\./\\./g;
+		    $pattern =~ s/\*/\\d+/g;
+		    if ($host =~ /^$pattern$/) {
+			$result = 1;
+			last;
+		    }
+		}
+	    }
+	}
+    }
+    return($result);
+}
+
+sub LookForPattern {
+    my $sep = ((@_ > 2) ? $_[2] : "[\\s,]+");
+    my @patterns;
+    my $str;
+    my $result = 0;
+    my $n;
+
+    #
+    # Matches a string against an allowed set of patterns using regular 
+    # expressions, which means it's more powerful than LookFor but won't
+    # always be the right choice.
+    #
+
+    if ($_[0]) {
+	if ($_[1]) {
+	    $str = $_[0];
+	    @patterns = split(/$sep/, $_[1]);
+	    for ($n = 0; $n < @patterns; $n++) {
+		if ($patterns[$n]) {
+		    if ($str =~ /^$patterns[$n]$/) {
+			$result = 1;
+			last;
+		    }
+		}
+	    }
+	}
+    }
+    return($result);
+}
+
+sub ParseRelease {
+    my $numbers = $_[0];
+    my @vers;
+    my $factor = 10000;
+    my $release = 0;
+    my $i;
+
+    #
+    # Probably unused right now, but it might be useful somewhere down the
+    # line so we're going to leave it in.
+    #
+
+    $numbers =~ s/-.*//;		# remove trailing suffix (e.g., -beta2)
+    $numbers =~ s/[^0-9.]//g;
+    @vers = split(/[.]/, $numbers);
+
+    for($i=0; $i<=$#vers && $factor >= 1; $i++) {
+	$release += $factor * int($vers[$i]);
+	$factor /= 100;
+    }
+    return($release);
+}
+
+sub ParseSessionID {
+    my @flds = split(/\s+/, $_[0], $SESSIONIDFIELDS);
+
+    $CHECKSUM = $flds[0];
+    $CREATETIME = $flds[1];
+    $EXPIRETIME = $flds[2];
+    $USER = $flds[3];
+    $GROUP = $flds[4];
+    $HOST = $flds[5];
+    $CLIENTID = $flds[6];
+    $SERIAL = $flds[7];
+    $USERPID = $flds[8];
+    $USERFLAGS = $flds[9];
+    $RELEASE = $flds[10];
+    $VMRELEASE = $flds[11];
+    $USER_TZ = $flds[12];
+    $COMMANDSET = $flds[13];
+    $OSNAME = $flds[14];
+
+    #
+    # At the very least export anything used, directly or indirectly
+    # in WriteHeader. Eventually consider renaming and exporting all
+    # of them??
+    #
+
+    $ENV{USER} = $USER;
+    $ENV{GROUP} = $GROUP;
+    $ENV{HOST} = $HOST;
+    $ENV{CLIENTID} = $CLIENTID;
+    $ENV{USERPID} = $USERPID;
+    $ENV{RELEASE} = $RELEASE;
+    $ENV{VMRELEASE} = $VMRELEASE;
+    $ENV{USER_TZ} = $USER_TZ;
+    $ENV{COMMANDSET} = $COMMANDSET;
+    $ENV{OSNAME} = $OSNAME;
+
+    #
+    # Error message that you want to pass back to clients in the header
+    # that WriteHeader() builds should be assigned to $WARNINGMESSAGE. We
+    # now also add it to the environment for other programs (e.g., shell
+    # scripts) that can't read Perl. In that case the program can assign
+    # a value to WARNINGMESSAGE and then call the standalone writeheader
+    # Perl script that will make sure it's handled properly.
+    #
+
+    $ENV{WARNINGMESSAGE} = "";
+}
+
+sub PickSalt {
+    my $salt;
+
+    $salt = $KEYSET[int(rand() * ($#KEYSET + 1))];
+    $salt .= $KEYSET[int(rand() * ($#KEYSET + 1))];
+    return($salt);
+}
+
+sub PickTimeZone {
+    my $tz = $_[0];
+
+    if (defined($tz)) {
+	if (keys(%TIMEZONES) > 0) {
+	    $tz = defined($TIMEZONES{$tz}) ? $TIMEZONES{$tz} : "UTC";
+        }
+    } else {
+	$tz = "UTC";
+    }
+    return($tz);
+}
+
+sub PipelineForKeywords {
+    my $cmd = "";
+    my @parts;
+    my $part;
+
+    if ($_[0]) {
+	@parts = split(/[|]/, $_[0]);
+	foreach $part ( @parts ) {
+	    $part =~ s/^\s+//o;
+	    $part =~ s/\s+$//o;
+	    if (exists $COMMANDPATHS{$part}) {
+		if ($cmd eq "") {
+		    $cmd = $COMMANDPATHS{$part};
+		} else {
+		    $cmd .= " | $COMMANDPATHS{$part}";
+		}
+	    } else {
+		$cmd = "";
+		last;
+	    }
+	}
+    }
+
+    return($cmd);
+}
+
+sub RemoveSessionID {
+    my $path = GetSessionIDPath($_[0]);
+
+    if (-f $path) {
+	unlink($path);
+    }
+}
+
+sub SaveSessionID {
+    my $path = GetSessionIDPath($_[0]);
+    my $result = 0;
+
+    if (! -f $path) {
+	if (open(SIDFILE, ">" . UntaintedPath($path))) {
+	    print(SIDFILE "$SESSIONID\n");
+	    close(SIDFILE);
+	    $result = 1;
+	}
+    }
+    return($result);
+}
+
+sub UnlockNamedFile {
+    my $path;
+    my $pid;
+
+    if (@_ > 0) {
+	$path = $_[0] . ".lck";
+	if (open(LOCKFILE, "<" . $path)) {
+	    $pid = <LOCKFILE>;
+	    close(LOCKFILE);
+	    if ($pid == $$) {
+		unlink($path);
+	    }
+	}
+    }
+}
+
+sub UntaintedAddress {
+    my $address;
+    my $validate = 1;
+
+    #
+    # We use at least one IP address from the environment, but Perl may
+    # complain if it's not passed through this subroutine. We're not all
+    # that precise with our validation, but should be sufficient because
+    # the value should be set by httpd.
+    #
+
+    if ($validate) {
+	if ($_[0] =~ /[a-zA-Z0-9.]*$/) {
+	    ($address) = $_[0] =~ /(.*)/;
+	} else {
+	    $address = "";
+	}
+    } else {
+	($address) = $_[0] =~ /(.*)/;
+    }
+    return($address);
+}
+
+sub UntaintedPath {
+    my $dotdot = 0;
+    my $path;
+    my $prefix = $SERVERHOMEDIR;
+    my $validate = 1;
+
+    #
+    # Eventually could allow options to control validation checking. We
+    # reject paths that contain ".." or don't start with $SERVERHOMEDIR.
+    # Be careful writing to the log from this subroutine if there's no
+    # way to disable the validation checks because we're also called by
+    # WriteLog()!!
+    #
+
+    if ($validate) {
+	if ($dotdot || index($_[0], "..") < 0) {
+	    if ($prefix eq "" || index($_[0], $prefix) == 0) {
+		($path) = $_[0] =~ /(.*)/;
+	    } else {
+		$path = "";
+	    }
+	} else {
+	    $path = "";
+	}
+    } else {
+	($path) = $_[0] =~ /(.*)/;
+    }
+    return($path);
+}
+
+sub UserInit {
+    my $path;
+
+    if ($#_ > 0 && $_[0] ne "") {
+	ParseSessionID($_[0]);
+    }
+
+    $USERHOME = "$HOMEDIR/$USER";
+    $USERSETUP = "$USERHOME/etc/<_ACRONYM_LOWER_DQ_>_rc.pl";
+    $USERLOGINS = "$USERHOME/login.history";
+    $USERMESSAGES = "$USERHOME/$MESSAGEFILE_NAME";
+    $USERPREFS = "$USERHOME/preferences";
+    $USERDATE = GetFormattedUserTime("%a %b %e %T %Z %Y", time());
+
+    #
+    # Read the user's configuration file, if it exists. Decided to keep
+    # it in a directory named etc in the user's home directory. We skip
+    # the user's setup file if it or the directory its in are writable
+    # by whoever's running this script. We're being extra careful, but
+    # it's probably unnecessary and may not even guarantee anything, so
+    # toss the checks if you want.
+    #
+
+    if (-r $USERSETUP) {
+	if (! -w "$USERHOME/etc" && ! -w $USERSETUP) {
+	    $path = UntaintedPath($USERSETUP);
+	    require $path;
+	}
+    }
+}
+
+sub ValidateHome {
+    my $home;
+    my $result = 0;
+
+    if ($_[0]) {
+	$home = $HOMEDIR . "/" . $_[0];
+	if (-d $home && -r $home && -w $home) {
+	    $result = 1;
+	}
+    }
+    return($result);
+}
+
+sub ValidateMessage {
+    my $length;
+    my $result = 0;
+
+    if ($_[0]) {
+	if (($length = length($_[0])) > 0) {
+	    if ($MESSAGE_LIMIT < 0 || $length <= $MESSAGE_LIMIT) {
+		$result = 1;
+	    }
+	}
+    }
+    return($result);
+}
+
+sub ValidateMessageFile {
+    my $user;
+    my $length;
+    my $path;
+    my $result = 0;
+    my @statinfo;
+
+    if ($_[0]) {
+	$user = $_[0];
+	if (ValidateHome($user)) {
+	    $path = $HOMEDIR . "/" . $user . "/" . $MESSAGEFILE_NAME;
+	    if (! -e $path || (-w $path && -f $path)) {
+		if ($MESSAGEFILE_LIMIT >= 0) {
+		    $length = $_[1] ? length($_[1]) : 0;
+		    if (-f $path && (@statinfo = stat(_))) {
+			$length += $statinfo[7];
+		    }
+		    if ($length <= $MESSAGEFILE_LIMIT) {
+			$result = 1;
+		    }
+		} else {
+		    $result = 1;
+		}
+	    }
+	}
+    }
+    return($result);
+}
+
+sub ValidateSessionID {
+    my $path = GetSessionIDPath($_[0]);
+    my $sid;
+    my $result = 0;
+    my @answer;
+
+    #
+    # If there's a second argument and $PASSWDFILE is readable and has
+    # non-zero size than use the file to validate the user (i.e., $_[1])
+    # and only accept the session id if the user also still has a valid
+    # password file entry. Means you can disable users by changing their
+    # last entry in the password file.
+    #
+
+    if (-f $path) {
+	if (open(SIDFILE, "< $path")) {
+	    $sid = <SIDFILE>;
+	    chomp($sid);
+	    if ($sid eq $_[0]) {
+		$result = 1;
+	    }
+	    close(SIDFILE);
+	}
+    }
+    if ($result && $_[1]) {
+	if ($_[3] & 0x1) {
+	    @answer = ValidateUser("-v", "-g", $_[2], $_[1]);
+	    if ($answer[0] ne "ok") {
+		#
+		# A "syserr" means the open failed, perhaps because the
+		# passwd file is being cleaned by a cron job. Decided we
+		# can ignore it because the sessionid already passed the
+		# most important validity test.
+		#
+		if ($answer[0] ne "syserr") {
+		    $result = 0;
+		}
+	    }
+	}
+    }
+    return($result);
+}
+
+sub ValidateUser {
+    my @argv = @_;
+    my $argc = @_;
+    my $argn;
+    my $arg;
+    my $path = $PASSWDFILE;
+    my $newpassword;
+    my $validate;
+    my $myname;
+    my $mypassword;
+    my $mygroup;
+    my $commands;
+    my $name;
+    my $password;
+    my $group;
+    my $starttime;
+    my $endtime;
+    my $commandset;
+    my $hosts;
+    my $realname;
+    my $email;
+    my $extra;
+    my @entry;
+    my @lastentry;
+    my $entries = 0;
+    my $easypass;
+    my @easyentry;
+    my $delta;
+    my $time = time();
+    my @answer = ("failed", "none");
+
+    #
+    # Password file support that may also be called whenever we validate a
+    # session id (see ValidateSessionID). This function is also responsible
+    # for updating entries when users login for the first time (i.e., their
+    # password field is empty) or when they change their password. Changes
+    # are handled by building a new entry and appending it to the password
+    # file, which means we have to read the entire file to find the user's
+    # last entry. It's not hard to imagine ways to improve performance, if
+    # it turns out to be an issue. Password files can be easliy cleaned up
+    # by a cron job that moves the password file, which would temporarily
+    # disable logins, removes duplicates user entries, and the moves the
+    # cleaned up password file back.
+    #
+    # Applications can easily manage users in some other way (e.g., their
+    # own database) so this function may not be used. Take a look at the
+    # validiation.pl script in the ../subs directory is you're planning to
+    # handle this on your own.
+    #
+
+    for ($argn = 0; $argn < $argc; $argn++) {
+	$arg = $argv[$argn];
+	if ($arg eq "-e") {		# LOGID/RECONID login
+	    $easypass = 1;
+	} elsif ($arg eq "-g") {	# match this group too
+	    $mygroup = $argv[++$argn];
+	} elsif ($arg =~ /^-g/) {	# match this group too
+	    $arg =~ s/^-g//;
+	    $mygroup = $arg;
+	} elsif ($arg eq "-v") {	# validate a user
+	    $validate = 1;
+	} elsif ($arg eq "-P") {	# passwd file path
+	    $path = $argv[++$argn];
+	} elsif ($arg =~ /^-P/) {	# passwd file path
+	    $arg =~ s/^-P//;
+	    $path = $arg;
+	} elsif ($arg eq "--") {	# ignore
+	    next;
+	} else {
+	    last;
+	}
+    }
+
+    #
+    # We now claim bit 0 in $USERFLAGS to mean we've been here before and
+    # it was for something other than validation.
+    #
+
+    if (!$validate && defined($USERFLAGS)) {
+	$USERFLAGS |= 1;
+    }
+
+    if ($argn < $argc) {
+	$myname = $argv[$argn++];
+	if ($myname =~ /^[a-zA-Z]\w+$/) {
+	    if ($argn < $argc) {
+		$mypassword = $argv[$argn++];
+		if ($argn < $argc) {
+		    $newpassword = $argv[$argn++];
+		}
+	    }
+	    if (open(PASSWD, "<$path")) {
+		while (<PASSWD>) {
+		    if ($_ =~ /^\s*[a-zA-Z*]/) {
+			@entry = split(/:/, $_, 10);
+			if ($entry[0] eq $myname) {
+			    if (!$mygroup || $entry[2] eq $mygroup) {
+				@lastentry = @entry;
+				$entries++;
+			    }
+			} elsif ($easypass && $entry[0] eq "*") {
+			    $entry[0] = $myname;
+			    @easyentry = @entry;
+			}
+		    }
+		}
+		close(PASSWD);
+		if (@easyentry && !@lastentry) {
+		    @lastentry = @easyentry;
+		}
+		if (@lastentry) {
+		    ($name, $password, $group, $starttime, $endtime, $commandset, $hosts, $realname, $email, $extra) = @lastentry;
+		    if ($name eq $myname) {
+			if ($group) {
+			    if ($password ne "disabled" && $password ne "*") {
+				if (($starttime || $starttime eq "0") && ($endtime || $endtime eq "0")) {
+				    if ($time >= $starttime && $starttime >= 0) {
+					if ($time <= $endtime || $endtime <= 0) {
+					    if (!$hosts || LookForHost($REMOTE_HOST, $hosts)) {
+						$commands = $commandset ? $commandset : "*";
+                                                if ($easypass && $password eq "none") {
+                                                    if ($group ne "default" && $group ne "admin") {
+                                                        @answer = ("ok", $commands, $group);
+							$newpassword = $mypassword;
+                                                    }
+						} elsif ($password) {
+						    if (!$newpassword || $group !~ /^shared/) {
+							if ($mypassword) {
+							    if ($password eq crypt($mypassword, $password)) {
+								@answer = ("ok", $commands, $group);
+							    }
+							} elsif ($validate) {
+							    @answer = ("ok", $commands, $group);
+							}
+						    }
+						} else {
+						    if (!$newpassword && $mypassword) {
+							$newpassword = $mypassword;
+						    }
+						    if ($newpassword && !$validate) {
+							@answer = ("ok", $commands, $group);
+						    }
+						}
+					    }
+					}
+				    }
+				}
+			    }
+			}
+		    }
+		    if (!$validate && $answer[0] eq "ok") {
+			if ($newpassword || $endtime < 0) {
+			    if ($PASSWORDTIMER <= 0) {
+				$delta = 60*($entries - 1)*($entries - 2);
+			    } else {
+				$delta = 60*$PASSWORDTIMER;
+			    }
+			    if ($time - $starttime > $delta) {
+				$starttime = $time;
+				if ($endtime < 0) {
+				    $endtime = $starttime - $endtime;
+				}
+				if ($newpassword) {
+				    $password = crypt($newpassword, PickSalt());
+				}
+				if (LockNamedFile(UntaintedPath($path), 10)) {
+				    if (open(PASSWD, ">>" . UntaintedPath($path))) {
+					print(PASSWD join(':', ($name, $password, $group, $starttime, $endtime, $commandset, $hosts, $realname, $email, $extra)));
+					close(PASSWD);
+				     } else {
+					$answer[0] = "failed";
+				     }
+				     UnlockNamedFile(UntaintedPath($path));
+				} else {
+				    $answer[0] = "failed";
+				}
+			    } else {
+				$answer[0] = "failed";
+			    }
+			}
+		    }
+		}
+	    } else {
+		if ($validate) {
+		    $answer[0] = "syserr";
+		}
+	    }
+	}
+    }
+    return(@answer);
+}
+
+sub WriteHeader {
+    my $status = "ok";		# the default - don't change it!!
+    my $reason = "";
+    my $text = "";
+    my $ac = 0;
+
+    #
+    # Writes the header that's returned by the cgi scripts that handle
+    # the requests posted by the client. The header ends with a blank
+    # line and must be coordinated with the code that the client uses
+    # to communicate with the server (normally PostCommand()), so be
+    # careful making changes.
+    #
+
+    UserInit();
+
+    while ($#_ >= $ac) {
+	if ($_[$ac] eq "-ok") {
+	    $status = "ok";
+	    $reason = "";
+	} elsif ($_[$ac] eq "-rejected") {
+	    $status = "rejected";
+	    $reason = "";
+	} elsif ($_[$ac] eq "-invalidaccess") {
+	    $status = "invalidaccess";
+	    $reason = "";
+	} elsif ($_[$ac] =~ /^-e/) {
+	    $status = "expired";
+	    $reason = "expired";
+	} elsif ($_[$ac] =~ /^-d/) {
+	    $status = "disabled";
+	    $reason = "disabled";
+	} elsif ($_[$ac] =~ /^-f/) {
+	    $status = "failed";
+	    $reason = "failed";
+	} elsif ($_[$ac] =~ /^-l/) {
+	    $status = "lapsed";
+	    $reason = "lapsed";
+	} elsif ($_[$ac] =~ /^-s/) {
+	    $status = "security";
+	    $reason = "security";
+	} elsif ($_[$ac] =~ /^-/) {
+	    $status = "internalerror";
+	    $reason = "internalerror";
+	} else {
+	    last;
+	}
+	$ac++;
+    }
+
+    print "STATUS=" . unpack("H*", $status) . "\n";
+    if (length($reason) > 0) {
+        print "REASON=" . unpack("H*", $reason) . "\n";
+    }
+    if ($DEBUGFLAGS) {
+	print "DEBUGFLAGS=" . unpack("H*", $DEBUGFLAGS) . "\n";
+    }
+    print "PINGTIMER=" . unpack("H*", $PINGTIMER) . "\n";
+
+    if ($WARNINGMESSAGE) {
+	print "MESSAGE=" . unpack("H*", $WARNINGMESSAGE) . "\n";
+    }
+
+    if ($status eq "ok") {
+	if (-f "$USERMESSAGES" && -r "$USERMESSAGES") {
+	    print "SERVERSTATUS=" . unpack("H*", "mail") . "\n";
+	} else {
+	    print "SERVERSTATUS=" . unpack("H*", "null") . "\n";
+	}
+
+	if (-s "$BROADCASTMESSAGE" && -r "$BROADCASTMESSAGE") {
+	    my $broadcastid = "$USER $HOST";
+	    my $seen = 0;
+	    my $modtime = 0;
+	    my @tmparr;
+	    my $tmpval;
+
+	    if (!defined($COMMAND) || $COMMAND ne "LOGIN") {		# show broadcast at every LOGIN??
+		if (open(BLOG, "< " . $BROADCASTLOG)) {
+		    while (<BLOG>) {
+			if (index($_,$broadcastid) >= 0) {
+			    @tmparr = split("\t");
+			    $seen = 0 + $tmparr[1];
+			}
+		    }
+		    close(BLOG);
+		}
+	    }
+	    if ($seen > 0) {
+		@tmparr = stat($BROADCASTMESSAGE);
+		$modtime = $tmparr[9];
+	    }
+	    if ($modtime >= $seen) {
+		$text = "";
+		if (open(BMSG, "< " . $BROADCASTMESSAGE)) {
+		    while (<BMSG>) {
+			$text .= $_;
+		    }
+		    print "BROADCAST=" . unpack("H*", $text) . "\n";
+		    if (open(BLOG, ">>" . UntaintedPath($BROADCASTLOG))) {
+			printf BLOG ("%s\t%ld\t%s\n", $broadcastid, time(), GetFormattedServerTime("%a %b %e %T %Z %Y", time()));
+			close(BLOG);
+		    }
+		    close(BMSG);
+		}
+	    }
+	}
+
+	#
+	# Check the user's release and tell the client if it's too old or
+	# doesn't otherwise match what we want.
+	#
+
+	if ($ALLOWED_RELEASES && $RELEASE && $RELEASE ne "Unknown") {
+	    if ($ALLOWED_RELEASES ne $RELEASE) {
+		if (!LookFor($RELEASE, "$ALLOWED_RELEASES")) {
+		    print "UNSUPPORTED=" . unpack("H*", "The version of the software that you are using is not supported. Try reconnecting before calling for help.");
+		}
+	    }
+	}
+    }
+
+    #
+    # Remaining arguments are key/value pairs that belong in the header.
+    # Only handling simple-minded quoting, so be careful. Expect we may
+    # eventually need a more robust implementation - perhaps one that
+    # returns hex strings?
+    #
+    # Note: if REASON was supplied here, it will override the one set
+    #       using reason above (a good thing). 
+    #
+    while ($#_ > $ac) {
+	print "$_[$ac]=" . unpack("H*", $_[$ac+1]) . "\n";
+	$ac += 2;
+    }
+    print "\n";		# a blank line currently ends the header
+}
+
+sub WriteLog {
+    my $maxlength = -1;
+    my $detail = 0;
+    my $cliententry = 0;
+    my $text = "";
+    my $ac = 0;
+
+    #
+    # Appends text to a log file, but only when $LOGFILE is defined and
+    # $LOGDETAIL is greater than or equal to $detail, which can be set
+    # using the -d option. Individual user logging can be controlled by
+    # using user rc files (see the UserInit function).
+    #
+
+    while ($#_ >= $ac) {
+	if ($_[$ac] eq "-d") {
+	    $ac++;
+	    $detail = $_[$ac];
+	} elsif ($_[$ac] =~ /^-d/) {
+	    $detail = substr($_[$ac],2);
+	} elsif ($_[$ac] eq "-c") {
+	    $cliententry = 1;
+	    $maxlength = 128;
+	} elsif ($_[$ac] =~ /^-/) {
+	    $ac++;
+	    last;
+	} else {
+	    last;
+	}
+	$ac++;
+    }
+
+    if (defined($LOGFILE) && $LOGFILE ne "") {
+	if ($LOGDETAIL >= $detail) {
+	    my $LOGDATE = GetFormattedServerTime("%a %b %e %T %Z %Y", time());
+	    if ($USERPID eq "") {
+		$USERPID = "0";
+	    }
+	    if ($USER eq "") {
+		$USER = "unknown";
+	    }
+	    $text = "";
+	    while ($#_ >= $ac) {
+		$text .= " " . $_[$ac];
+		$ac++;
+	    }
+
+	    #
+	    # We decided to really restrict what clients can put in our log.
+	    # Easy to change if you disagree.
+	    #
+	    if ($cliententry) {
+		if ($maxlength > 0 && length($text) > $maxlength) {
+		    $text = substr($text, 0, $maxlength) . "...";
+		}
+		$text =~ s/\n/ /g;
+		$text =~ s/^ //;
+		$text = " LOG <" . $text . ">";
+	    }
+
+	    if (open(LOG, ">>" . UntaintedPath($LOGFILE))) {
+		printf LOG ("[%s] %s %d %s%s\n", $LOGDATE, $USER, $USERPID, $GROUP, $text);
+		close(LOG);
+	    }
+	}
+    }
+}
+
+$SIG{HUP} = 'Cleanup';
+$SIG{INT} = 'Cleanup';
+$SIG{QUIT} = 'Cleanup';
+$SIG{TERM} = 'Cleanup';
+

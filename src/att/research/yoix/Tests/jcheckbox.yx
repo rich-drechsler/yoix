@@ -1,0 +1,18 @@
+import yoix.*.*;
+
+JFrame f = {
+    FlowLayout layoutmanager;
+    Array layout = {
+        new JCheckBox {
+            String text = "This is the checkbox label";
+            int    state = TRUE;
+
+	    itemStateChanged(ItemEvent event) {
+		printf("event.state=%d\n", event.state);
+		printf("checkbox.state=%d\n", state);
+	    }
+        },
+    };
+};
+
+f.visible = 1;

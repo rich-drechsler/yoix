@@ -1,0 +1,163 @@
+//
+// Minimal (reasonable) table configuration example
+//
+import yoix.*.*;
+
+String results = "\
+Total population|281,421,906|100.0\n\
+||\n\
+SEX AND AGE||\n\
+Male|138,053,563|49.1\n\
+Female|143,368,343|50.9\n\
+||\n\
+Under 5 years|19,175,798|6.8\n\
+5 to 9 years|20,549,505|7.3\n\
+10 to 14 years|20,528,072|7.3\n\
+15 to 19 years|20,219,890|7.2\n\
+20 to 24 years|18,964,001|6.7\n\
+25 to 34 years|39,891,724|14.2\n\
+35 to 44 years|45,148,527|16.0\n\
+45 to 54 years|37,677,952|13.4\n\
+55 to 59 years|13,469,237|4.8\n\
+60 to 64 years|10,805,447|3.8\n\
+65 to 74 years|18,390,986|6.5\n\
+75 to 84 years|12,361,180|4.4\n\
+85 years and over|4,239,587|1.5\n\
+||\n\
+Median age (years)|35.3|N/A\n\
+||\n\
+18 years and over|209,128,094|74.3\n\
+Male|100,994,367|35.9\n\
+Female|108,133,727|38.4\n\
+21 years and over|196,899,193|70.0\n\
+62 years and over|41,256,029|14.7\n\
+65 years and over|34,991,753|12.4\n\
+Male|14,409,625|5.1\n\
+Female|20,582,128|7.3\n\
+||\n\
+RACE||\n\
+One race|274,595,678|97.6\n\
+White|211,460,626|75.1\n\
+Black or African American|34,658,190|12.3\n\
+American Indian and Alaska Native|2,475,956|0.9\n\
+Asian|10,242,998|3.6\n\
+Asian Indian|1,678,765|0.6\n\
+Chinese|2,432,585|0.9\n\
+Filipino|1,850,314|0.7\n\
+Japanese|796,700|0.3\n\
+Korean|1,076,872|0.4\n\
+Vietnamese|1,122,528|0.4\n\
+Other Asian|1,285,234|0.5\n\
+Native Hawaiian and Other Pacific Islander|398,835|0.1\n\
+Native Hawaiian|140,652|0.0\n\
+Guamanian or Chamorro|58,240|0.0\n\
+Samoan|91,029|0.0\n\
+Other Pacific Islander|108,914|0.0\n\
+Some other race|15,359,073|5.5\n\
+Two or more races|6,826,228|2.4\n\
+||\n\
+Race alone or in combination with one or more other races||\n\
+White|216,930,975|77.1\n\
+Black or African American|36,419,434|12.9\n\
+American Indian and Alaska Native|4,119,301|1.5\n\
+Asian|11,898,828|4.2\n\
+Native Hawaiian and Other Pacific Islander|874,414|0.3\n\
+Some other race|18,521,486|6.6\n\
+||\n\
+HISPANIC OR LATINO AND RACE||\n\
+Total population|281,421,906|100.0\n\
+Hispanic or Latino (of any race)|35,305,818|12.5\n\
+Mexican|20,640,711|7.3\n\
+Puerto Rican|3,406,178|1.2\n\
+Cuban|1,241,685|0.4\n\
+Other Hispanic or Latino|10,017,244|3.6\n\
+Not Hispanic or Latino|246,116,088|87.5\n\
+White alone|194,552,774|69.1\n\
+||\n\
+RELATIONSHIP||\n\
+Total population|281,421,906|100.0\n\
+In households|273,643,273|97.2\n\
+Householder|105,480,101|37.5\n\
+Spouse|54,493,232|19.4\n\
+Child|83,393,392|29.6\n\
+Own child under 18 years|64,494,637|22.9\n\
+Other relatives|15,684,318|5.6\n\
+Under 18 years|6,042,435|2.1\n\
+Nonrelatives|14,592,230|5.2\n\
+Unmarried partner|5,475,768|1.9\n\
+In group quarters|7,778,633|2.8\n\
+Institutionalized population|4,059,039|1.4\n\
+Noninstitutionalized population|3,719,594|1.3\n\
+||\n\
+HOUSEHOLDS BY TYPE||\n\
+Total households|105,480,101|100.0\n\
+Family households (families)|71,787,347|68.1\n\
+With own children under 18 years|34,588,368|32.8\n\
+Married-couple family|54,493,232|51.7\n\
+With own children under 18 years|24,835,505|23.5\n\
+Female householder, no husband present|12,900,103|12.2\n\
+With own children under 18 years|7,561,874|7.2\n\
+Nonfamily households|33,692,754|31.9\n\
+Householder living alone|27,230,075|25.8\n\
+Householder 65 years and over|9,722,857|9.2\n\
+||\n\
+Households with individuals under 18 years|38,022,115|36.0\n\
+Households with individuals 65 years and over|24,672,708|23.4\n\
+||\n\
+Average household size|2.59|N/A\n\
+Average family size|3.14|N/A\n\
+||\n\
+HOUSING OCCUPANCY||\n\
+Total housing units|115,904,641|100.0\n\
+Occupied housing units|105,480,101|91.0\n\
+Vacant housing units|10,424,540|9.0\n\
+For seasonal, recreational, or occasional use|3,578,718|3.1\n\
+||\n\
+Homeowner vacancy rate (percent)|1.7|N/A\n\
+Rental vacancy rate (percent)|6.8|N/A\n\
+||\n\
+HOUSING TENURE||\n\
+Occupied housing units|105,480,101|100.0\n\
+Owner-occupied housing units|69,815,753|66.2\n\
+Renter-occupied housing units|35,664,348|33.8\n\
+||\n\
+Average household size of owner-occupied unit|2.69|N/A\n\
+Average household size of renter-occupied unit|2.40|N/A\n\
+";
+
+JFrame screen = {
+    Dimension	size = NULL;
+
+
+    GridBagLayout	layoutmanager;
+
+    Array layout = {
+
+	new JLabel {
+	    String	text = "U.S. 2000 Census Data";
+	    int	alignment = CENTER;
+	},
+	new GridBagConstraints {
+	    int	gridwidth = REMAINDER;
+	    int	weightx = 1;
+	    int	fill = HORIZONTAL;
+	    int	anchor = CENTER;
+	},
+
+	new JTable {
+	    String      values = results;  // only this is really needed
+	    String	tag = "$_census";  // included for testing purposes
+	    int         scroll = VERTICAL; // included for practical reasons
+	    int         rows = 10;         // ditto
+	},
+	new GridBagConstraints {
+	    int	fill = BOTH;
+	    int	weightx = 1;
+	    int	weighty = 1;
+	    int	gridwidth = REMAINDER;
+	},
+
+    };
+};
+
+screen.visible = 1;

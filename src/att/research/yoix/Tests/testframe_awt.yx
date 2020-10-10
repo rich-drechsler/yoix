@@ -1,0 +1,21 @@
+//
+// Simple Frame that we occasionally use to test AWT components.
+//
+
+import yoix.*.*;
+
+Frame f = {
+    GridBagLayout layoutmanager;
+
+    Array layout = {
+	new Button {
+	    String text = "This is a test";
+	},
+	new GridBagConstraints {
+	    int anchor = CENTER;
+	},
+    };
+};
+
+f.visible = TRUE;
+

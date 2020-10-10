@@ -1,0 +1,103 @@
+//
+// Swing version of the old AWT popup menu test.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    GridLayout layoutmanager;
+
+    Array layout = {
+        new JLabel {
+	    String text = "A Label";
+            ////Color  background = Color.red;
+            int    alignment = CENTER;
+
+	    JPopupMenu popup = {
+		String text = "Popup Menu 1";
+Color background = Color.yellow;
+Color foreground = Color.red;
+
+		Menu items = {
+		    "Line 1", "1",
+		    "Line 2", "2",
+		    "More...", new Menu {
+			"Line 3", "3",
+			"Line 4", "4", TRUE,
+		    },
+		    "-", NULL,
+		    "Exit", "exit",
+		};
+	    };
+
+	    mousePressed(e) {
+		if (e.popuptrigger) {
+		    popup.location = e.location;
+		    popup.visible = TRUE;
+		}
+	    }
+
+	    mouseReleased(e) {
+		if (e.popuptrigger) {
+		    popup.location = e.location;
+		    popup.visible = TRUE;
+		}
+	    }
+
+            actionPerformed(e) {
+                printf("Received1a: %O\n", e);
+            }
+
+            itemStateChanged(e) {
+                printf("Received2a: %O\n", e);
+            }
+        },
+
+        new JLabel {
+            String text = "Label 2";
+            Color  background = Color.green;
+            int    alignment = CENTER;
+
+	    JPopupMenu popup = {
+		String text = "Popup Menu 2";
+
+		Menu items = {
+		    "Testing", "testing",
+		    "More...", new Menu {
+			"Line 3", "3",
+			"Line 4", "4", TRUE,
+		    },
+		    "-", NULL,
+		    "Exit", "exit",
+		};
+	    };
+
+	    mousePressed(e) {
+		if (e.popuptrigger) {
+		    popup.location = e.location;
+		    popup.visible = TRUE;
+		}
+	    }
+
+	    mouseReleased(e) {
+		if (e.popuptrigger) {
+		    popup.location = e.location;
+		    popup.visible = TRUE;
+		}
+	    }
+
+            actionPerformed(e) {
+                printf("Received1b: %O\n", e);
+                if (strcmp(e.command, "exit") == 0)
+                    exit(0);
+            }
+
+            itemStateChanged(e) {
+                printf("Received2b: %O\n", e);
+            }
+        },
+    };
+};
+
+f.visible = TRUE;
+

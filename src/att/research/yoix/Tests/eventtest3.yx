@@ -1,0 +1,28 @@
+import yoix.*.*;
+
+JFrame f = {
+    Array layout = {
+	new JTextPane {
+	    String text = "<a href='http://www.yoix.org/'>Yoix</a>";
+	    int    mode = 1;         // this means HTML
+	    int    edit = FALSE;     // currently required
+
+	    hyperlinkActivated(Event e) {
+		Stream fp;
+
+		if ((fp = open(e.href, "r")) != NULL) {
+		    printf("%s\n", readStream(fp));
+		    close(fp);
+		}
+	    }
+	    hyperlinkEntered(Event e) {
+		printf("hyperlinkEntered: e=%O\n", e);
+	    }
+	    hyperlinkExited(Event e) {
+		printf("hyperlinkExited: e=%O\n", e);
+	    }
+	},
+    };
+};
+
+f.visible = TRUE;

@@ -1,0 +1,147 @@
+//
+// Uses old-style AWT Table that we haven't ported to Swing yet.
+//
+
+import yoix.*.*;
+
+String text = "";
+String line;
+File   fp;
+
+int counter;
+
+Header(name, alignment) {
+    return(new Label {
+	String text = name;
+	Color  background = Color.black;
+	Color  foreground = Color.white;
+	int    alignment = alignment;
+
+	mousePressed(e) {
+	    Array items[] = strsplit(root.components[this.text].text, "\n");
+	    Array sorted[] = strsplit(root.components.passwd.text, "\n");
+
+	    //
+	    // An example of finally...
+	    //
+	    finally {
+		this.cursor = Cursor.DEFAULT_CURSOR;
+	    }
+	    this.cursor = Cursor.WAIT_CURSOR;
+
+	    qsort(items, sorted);
+	    root.components.passwd.text = strjoin(sorted, "\n");
+	}
+    });
+}
+
+HeaderConstraint(number) {
+    return(new GridBagConstraints {
+        int    gridx = number;
+        int    gridy = 1;
+        int    fill = HORIZONTAL;
+	Insets insets = {double left = 1;};
+    });
+}
+
+Column(rows, columns, alignment, action, name) {
+    return(new TableColumn {
+	String tag = name;
+	int    rows = rows;
+	int    columns = columns;
+	int    alignment = alignment;
+	Color  background = Color.white;
+	Color  foreground = (action == NULL) ? Color.black : Color.blue;
+	Color  visitcolor = (action == NULL) ? NULL : Color.magenta;
+
+	Function actionPerformed = action;
+    });
+}
+
+ColumnConstraint(number) {
+    return(new GridBagConstraints {
+        int    gridx = number;
+        int    gridy = 2;
+        int    fill = BOTH;
+	Insets insets = {double left = 1, top = 1;};
+    });
+}
+
+actionPerformed(e) {
+    printf("you just picked %s\n", e.command);
+}
+
+syncViewport(viewport, extent, cell) {
+    Pointer  vbar;
+
+    if (root != NULL) {
+	vbar = root.components.vbar;
+	vbar.cellheight = cell.height;
+	vbar.minimum = 0;
+	vbar.maximum = (extent.height + viewport.height)/cell.height - 1;
+	vbar.visibleamount = viewport.height/cell.height;
+	vbar.unitincrement = 1;
+	vbar.blockincrement = viewport.height/cell.height - 1;
+    }
+}
+
+Frame f = {
+    Dimension size = NULL;
+
+    Array layout = {
+	new TableManager {
+	    String        tag = "passwd";
+	    String        inputfilter = ":";
+	    Color         background = Color.red;
+	    Function      syncViewport = global.syncViewport;
+	    GridBagLayout layoutmanager;
+
+	    Array layout = {
+		Header("Name", CENTER),
+		HeaderConstraint(1),
+		Column(20, 10, LEFT, global.actionPerformed, "Name"),
+		ColumnConstraint(1),
+		Header("Password", CENTER),
+		HeaderConstraint(2),
+		Column(20, 15, LEFT, NULL, "Password"),
+		ColumnConstraint(2),
+		Header("UID", RIGHT),
+		HeaderConstraint(3),
+		Column(20, 6, RIGHT, NULL, "UID"),
+		ColumnConstraint(3),
+		Header("GID", RIGHT),
+		HeaderConstraint(4),
+		Column(20, 6, RIGHT, NULL, "GID"),
+		ColumnConstraint(4),
+		Header("GECOS", LEFT),
+		HeaderConstraint(5),
+		Column(20, 40, LEFT, NULL, "GECOS"),
+		ColumnConstraint(5),
+	    };
+	}, WEST,
+
+	new Scrollbar {
+	    String tag = "vbar";
+	    double cellheight;
+
+	    adjustmentValueChanged(e) {
+		Point origin = root.components.passwd.origin;
+
+		origin.y = value*cellheight;
+		root.components.passwd.origin = origin;
+	    }
+	}, EAST,
+    };
+};
+
+if ((fp = fopen("/etc/passwd", "r")) != NULL) {
+    while ((line = fp.nextline) != NULL) {
+	if (line[0] != '#')
+	    text += line + "\n";
+    }
+    f.components.passwd.text = text;
+    fclose(fp);
+}
+
+f.visible = TRUE;
+

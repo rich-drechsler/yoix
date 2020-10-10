@@ -1,0 +1,142 @@
+import yoix.j3d.*;
+import yoix.*.*;
+
+Frame f = {
+    Array layout = {
+	new Canvas3D {
+	    String tag = "$_canvas";
+
+	    VirtualUniverse view = {
+		////Color background = Color.cyan;
+		Image backgroundimage = NULL;
+
+		Array layout = {
+		    new Shape3D {
+			String tag = "$_shape";
+			Point3D position = {
+			    double z = -5;
+			};
+
+			EulerAngle orientation = {
+			    double alpha = 0;
+			};
+
+			Transform3D transform = {
+			    double sx = 1.0;
+			    double sz = .5;
+			};
+
+			Array geometry = {
+			   new TriangleArray {
+////int defaultcapability = 2;
+				int  generatenormals = TRUE;
+				Array coordinates = {
+				    0, 0, 0,
+				    1, 0, 0,
+				    1, 1, 0,
+
+				    0, 0, 0,
+				    1, 1, 0,
+				    1, 1, -1,
+				};
+
+				String colorformat = "RGB";
+				Array colors = {
+				    1, 0, 0,
+				    0, 1, 0,
+				    1, 1, 0,
+				    1, 1, 0,
+				    1, 1, 0,
+				    1, 1, 0,
+				};
+			    },
+			};
+
+			Appearance appearance = {
+/****
+			    ColoringAttributes coloring = {
+				Color  color = Color.green;
+			    };
+ ****/
+
+			    Material material = {
+				////Color  emissivecolor = Color.red;
+				double shininess = 1.0;
+				int    colortarget = J3D_DIFFUSE;
+				int    enabled = TRUE;
+			    };
+
+			    PointAttributes points = {
+				int    antialiasing = TRUE;
+				double size = 10.0;
+			    };
+
+			    PolygonAttributes polygons = {
+				int  mode = J3D_FILL;
+				int  culling = J3D_NONE;
+			    };
+
+			    RenderingAttributes rendering = {
+				int visible = TRUE;
+				int ignorevertexcolors = TRUE;
+			    };
+
+			    TransparencyAttributes transparency = {
+				String mode = "screen_door";
+				double value = 0.0;
+			    };
+			};
+		    },
+
+		    new PointLight {
+			Color color = Color.blue;
+			int   enabled = TRUE;
+			Point3D position = {
+			    double x = -1.0;
+			    double y = -1.0;
+			    double z = -0.5;
+			};
+		    },
+
+		    new PointLight {
+			Color color = Color.green;
+			int   enabled = TRUE;
+			Point3D position = {
+			    double x = 0;
+			    double y = 0;
+			    double z = -1.0;
+			};
+		    },
+
+		    new PointLight {
+			Color color = Color.red;
+			int   enabled = TRUE;
+			Point3D position = {
+			    double x = 1.0;
+			    double y = -1.0;
+			    double z = -0.5;
+			};
+		    },
+		};
+	    };
+	}, CENTER,
+    };
+};
+
+f.visible = TRUE;
+
+//
+// Just an example - using the "view" field to get to tagged in the
+// universe, but that will eventually change because "view" won't
+// always be a universe.
+//
+
+////stderr.nextline = toString(f.components.$_canvas.universe.tagged.$_shape.geometry);
+fprintf(stderr, "geometry=%.3O\n", f.components.$_canvas.universe.tagged.$_shape.geometry);
+
+EulerAngle orientation = f.components.$_canvas.universe.tagged.$_shape.orientation;
+while (1) {
+    orientation.alpha += 3;
+    f.components.$_canvas.universe.tagged.$_shape.orientation = orientation;
+    sleep(.1);
+}

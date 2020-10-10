@@ -1,0 +1,24 @@
+import yoix.*.*;
+
+VM.exitmodel = 0;      // so main thread does not exit
+
+JFrame frame = {
+    mouseEntered(Event e) {
+        printf("mouseEntered: %.2O\n", e);
+    }
+
+    mousePressed(Event e) {
+        printf("mousePressed: %.2O\n", e);
+        if (e.modifiers & SHIFT_MASK)
+            exit(0);
+    }
+};
+
+frame.visible = TRUE;
+
+MouseEvent event = {
+    String id = "mouseEntered";
+};
+
+printf("Posting %s\n", event.id);
+postEvent(event, frame);

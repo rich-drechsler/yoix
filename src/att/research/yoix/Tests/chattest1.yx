@@ -1,0 +1,52 @@
+//
+// Simple two-party chat program. One argument (i.e., argc == 2) means
+// we're supposed to be a simple server that accepts a connection from
+// a single client. Two arguments means we're the client that's trying
+// to connect to the system and port named by argv[1] and argv[2]. To
+// test on your local machine type something like,
+//
+//	yoix chattest1.yx 6789
+//
+// in one window and
+//
+//	yoix chattest1.yx localhost 6789
+//
+// in another and the two windows should be able to chat.
+//
+
+import yoix.*.*;
+
+ServerSocket server;
+Socket       socket;
+
+if (argc == 2) {	// we're the server
+    server.localport = atoi(argv[1]);
+    stdout.nextline = "Waiting for connection on port " + argv[1];
+    socket = server.accept();
+} else if (argc == 3) { // set up the client
+    socket.remoteaddress = argv[1];
+    socket.remoteport = atoi(argv[2]);
+    socket.alive = TRUE;
+} else {                // usage error
+    fprintf(stderr, "ERROR: USAGE: %s [host] port\n", argv[0]);
+    exit(1);
+}
+
+stdout.nextline = "Connected To: " + socket.remotename;
+
+Thread	outputthread = {
+    run() {
+	while (line = socket.input.nextline)
+	    stdout.nextline = "<== " + line;
+	stdout.nextline = "Connection closed.";
+	exit(0);
+    }
+};
+
+outputthread.alive = TRUE;
+
+while (text = stdin.nextline)
+    socket.output.nextline = text;
+
+outputthread.alive = FALSE;
+

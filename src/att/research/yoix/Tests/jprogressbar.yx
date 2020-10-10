@@ -1,0 +1,91 @@
+import yoix.*.*;
+
+JFrame f = {
+    Dimension size = NULL;
+
+    GridBagLayout layoutmanager;
+    Array layout = {
+	new JProgressBar {
+	    String tag = "$_progress";
+	    String text = "this is a test...";
+	    Color  background = Color.yellow;
+	    Color  foreground = Color.blue;
+	    int    maximum = 500;
+	    int    minimum = 400;
+	    int    value = 10;
+
+	    Increment(int delta) {
+		value += delta;
+		text = toString((int)percentcomplete) + "%";
+	    }
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int weightx = 100;
+	    int weighty = 100;
+	    int fill = HORIZONTAL;
+
+	    Insets insets = {
+		double top = 72.0/2;
+		double left = 72.0/4;
+		double right = 72.0/4;
+	    };
+	},
+
+	new JCheckBox {
+	    String text = "indeterminate";
+	    int    state = 0;
+
+	    itemStateChanged(e) {
+		root.components.$_progress.indeterminate = state;
+	    }
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int anchor = LEFT;
+
+	    Insets insets = {
+		double left = 72.0/4;
+		double right = 72.0/4;
+	    };
+	},
+
+	new JPanel {
+	    Array layout = {
+		new JButton {
+		    String text = "Increment";
+
+		    actionPerformed(e) {
+			root.components.$_progress.Increment(10);
+		    }
+		},
+		new JButton {
+		    String text = "Decrement";
+
+		    actionPerformed(e) {
+			root.components.$_progress.Increment(-10);
+		    }
+		},
+		new JButton {
+		    String text = "Dismiss";
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+
+	    Insets insets = {
+		double top = 72.0/4;
+		double left = 72.0;
+		double bottom = 72.0/8;
+		double right = 72.0;
+	    };
+	},
+    };
+};
+
+f.visible = TRUE;

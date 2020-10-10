@@ -1,0 +1,50 @@
+//
+// An old example that draws an image (that's is also modified by its
+// own paint function) into a larger one and then copies the combined
+// image to a JCanvas. Consider adding printf() to the different paint
+// functions to see when they're called.
+//
+
+import yoix.*.*;
+
+Image img = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+
+    Dimension size = {
+	int height = 72;
+	int width = 144;
+    };
+
+    paint() {
+	graphics.rotate(15);
+	fillRect(this, 10, 10, 36, 18);
+    }
+};
+
+Image backimg = {
+    String source = NULL;
+
+    Dimension size = {
+	int height = 200;
+	int width = 200;
+    };
+
+    paint() {
+	drawImage(this, img, 10, 10);
+    }
+};
+
+JFrame f = {
+    Color background = Color.blue;
+
+    Array layout = {
+	new JCanvas {
+	     paint() {
+		drawImage(this, backimg, 100, 100);
+	     }
+	}
+    };
+};
+
+f.visible = TRUE;
+

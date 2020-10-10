@@ -1,0 +1,42 @@
+//
+// Example of addColor() use.
+//
+
+import yoix.*.*;
+
+Color salmon = {
+    double red   = 1.0;
+    double green = 0.73;
+    double blue  = 0.73;
+};
+
+addColor("periwinkle", 0.86, 0.86, 1.0);
+addColor("salmon", salmon);
+addColor("lime", "#baffba");
+
+JFrame f = {
+    Dimension size = null;
+    Color     background = Color.lightGray;
+
+    FlowLayout layoutmanager = {
+	int hgap = 18;
+	int vgap = 18;
+    };
+
+    Array layout = {
+	new JButton {
+	    Color  background = Color.periwinkle;
+	    String text = "periwinkle";
+	},
+	new JButton {
+	    Color  background = Color.salmon;
+	    String text = "salmon";
+	},
+	new JButton {
+	    Color  background = Color.lime;
+	    String text = "lime";
+	},
+    };
+};
+
+f.visible = TRUE;

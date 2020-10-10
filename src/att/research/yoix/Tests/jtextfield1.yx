@@ -1,0 +1,53 @@
+import yoix.*.*;
+
+generic_verifier() {
+    int ret = time() % 2;
+
+    fprintf(stderr, "in verifier for %s and returning %d\n", tag, ret);
+
+    return(ret);
+}
+
+JFrame f = {
+    Dimension size = NULL;
+
+    Array layout = {
+	new JTextField {
+	    String tag = "$_textfield1";
+	    String font = "Helvetica-plain-12";
+	    String text = "underscore_test";
+	    int    columns = 20;
+
+	    Function verifier = generic_verifier;
+	}, NORTH,
+
+	new JTextField {
+	    String tag = "$_textfield2";
+	    String font = "Helvetica-plain-14";
+	    String text = "underscore_test";
+	    int    columns = 20;
+
+	    verifier() {
+		String other = "$_textfield1";
+		if (root.components[other].verifier == NULL) {
+	            fprintf(stderr, "restoring verifier for %s\n", other);
+		    root.components[other].verifier = generic_verifier;
+		} else {
+	            fprintf(stderr, "removing verifier for %s\n", other);
+		    root.components[other].verifier = NULL;
+		}
+	    }
+	}, CENTER, 
+
+	new JTextField {
+	    String tag = "$_textfield3";
+	    String font = "Courier-bold-24";
+	    String text = "underscore_test";
+	    int   columns = 20;
+	    Function verifier = generic_verifier;
+	}, SOUTH,
+    };
+};
+
+f.visible = TRUE;
+

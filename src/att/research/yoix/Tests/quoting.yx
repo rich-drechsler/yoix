@@ -1,0 +1,97 @@
+import yoix.stdio.fprintf;
+int nbr = 0;
+@<>@ === "" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<>>@ === ">" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<>>>@ === ">>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<>>>>@ === ">>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<>>>>>@ === ">>>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@< >> >@ === " >> " ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@< >> >>@ === " >> >" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@< >> >>>@ === " >> >>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@< >> >>>>@ === " >> >>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@< >> >>>>>@ === " >> >>>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<> >> >@ === "> >> " ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<>> >> >>@ === ">> >> >" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<>>> >> >>>@ === ">>> >> >>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<>>>> >> >>>>@ === ">>>> >> >>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<>>>>> >> >>>>>@ === ">>>>> >> >>>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<\<>@ === "<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<\<<>@ === "<<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<\<<<>@ === "<<<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<\<<<<>@ === "<<<<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@< << >@ === " << " ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@< << <>@ === " << <" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@< << <<>@ === " << <<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@< << <<<>@ === " << <<<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<\< << >@ === "< << " ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<\<< << <>@ === "<< << <" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<\<<< << <<>@ === "<<< << <<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<\<<<< << <<<>@ === "<<<< << <<<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<
+>@ === "\n" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<
+<>>@ === "\n<>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<
+<<>>>@ === "\n<<>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<
+<<<>>>>@ === "\n<<<>>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<
+<<<<>>>>>@ === "\n<<<<>>>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<@>@ === "@" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<@@>@ === "@@" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<@<@>@ === "@<@" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<@<@<>@ === "@<@<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<@@@>@ === "@@@" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<@@@@>@ === "@@@@" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<>>@ === "" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<>>>@ === ">" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<>>>>@ === ">>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<>>>>>@ === ">>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<>>>>>>@ === ">>>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<< >> >>@ === " >> " ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<< >> >>>@ === " >> >" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<< >> >>>>@ === " >> >>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<< >> >>>>>@ === " >> >>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<< >> >>>>>>@ === " >> >>>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<> >> >>@ === "> >> " ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<>> >> >>>@ === ">> >> >" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<>>> >> >>>>@ === ">>> >> >>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<>>>> >> >>>>>@ === ">>>> >> >>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<>>>>> >> >>>>>>@ === ">>>>> >> >>>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<\<>>@ === "\\<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<\<<>>@ === "\\<<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<\<<<>>@ === "\\<<<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<\<<<<>>@ === "\\<<<<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<< << >>@ === " << " ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<< << <>>@ === " << <" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<< << <<>>@ === " << <<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<< << <<<>>@ === " << <<<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<\< << >>@ === "\\< << " ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<\<< << <>>@ === "\\<< << <" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<\<<< << <<>>@ === "\\<<< << <<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<\<<<< << <<<>>@ === "\\<<<< << <<<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<
+>>@ === "\n" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<
+<>>>@ === "\n<>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<
+<<>>>>@ === "\n<<>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<
+<<<>>>>>@ === "\n<<<>>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<
+<<<<>>>>>>@ === "\n<<<<>>>>" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<@>>@ === "@" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<@@>>@ === "@@" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<@<@>>@ === "@<@" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<@<@<>>@ === "@<@<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<@@@>>@ === "@@@" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<@@@@>>@ === "@@@@" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<<>>@ === "<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<<<>>@ === "<<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<<<<>>@ === "<<<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<<<<<>>@ === "<<<<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<< << >>@ === "< << " ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<<< << <>>@ === "<< << <" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<<<< << <<>>@ === "<<< << <<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+@<<<<<< << <<<>>@ === "<<<< << <<<" ? ++nbr : fprintf(stderr, "Test %d failed.\n", ++nbr);
+fprintf(stderr, "Completed %d tests.\n", nbr);

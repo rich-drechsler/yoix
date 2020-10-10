@@ -1,0 +1,30 @@
+import yoix.*.*;
+
+JFrame f = {
+    Array layout = {
+        new JTree {
+            Color background = Color.white;
+
+            JTreeNode top = {
+		String text = "The C Programming Language";
+		Array children = {
+		    new JTreeNode {
+			String text = "Introduction";
+		    },
+		    new JTreeNode {
+			String text = "A Tutorial Introduction";
+		    },
+		    new JTreeNode {
+			String text = "Types, Operators and Expressions";
+		    },
+		};
+	    };
+
+            valueChanged(Event e) {
+                printf("valueChanged: items=%O\n", e.items);
+            }
+        }
+    };
+};
+
+f.visible = TRUE;

@@ -1,0 +1,34 @@
+import yoix.*.*;
+
+Font ROT0 = {
+    String name = "Lucida-plain-30";
+};
+
+Font ROT180 = ROT0.rotatefont(180);
+
+JFrame f = {
+    Color background = Color.white;
+
+    Graphics graphics = {
+	int textantialiasing = TRUE;
+    };
+
+    paint(Rectangle rect) {
+	graphics {
+	    gsave();
+	    moveto(36, 144);
+	    rlineto(144, 0);
+	    stroke();
+	    rectclip(rect);
+	    moveto(36, 144);
+	    setfont(ROT0);
+	    show("Hello");
+	    setfont(ROT180);
+	    show("world");
+	    grestore();
+	}
+    }
+};
+
+f.visible = TRUE;
+

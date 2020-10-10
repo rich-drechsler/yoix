@@ -1,0 +1,680 @@
+//
+// HTTPD server support. This is the file that manages the communications
+// between the client and server, so it's also where you should look if
+// you're trying to understand the protocol that YWAIT clients and servers
+// use.
+//
+// PostCommand() does most of the work, so its's the function you should
+// concentrate on. Strategically placed fprintf() statements are always a
+// useful debugging tool and the %O format is an easy way to get a quick
+// dump of any Yoix object. Screens never call PostCommand() directly but
+// instead they use QueueCommand() or RunCommand(), which are also defined
+// in this file, whenever they need to talk to the server. QueueCommand()
+// calls RunCommand() but does it in a special thread that means it can
+// return without waiting for the server to respond. RunCommand() is much
+// more patient and waits for its turn in PostCommand() and doesn't return
+// until the server has responded.
+//
+// This version of YWAIT (primiarly here and in the thread related file)
+// only supports a single command thread, which is perfectly adequate for
+// most YWAIT applications. If you need more let us know - expanding the
+// capabilites isn't trivial, but we undoutbtedly can help.
+//
+
+import yoix.*.*;
+
+String SessionID = NULL;		// set after a successful login
+Object NetworkStatus = NULL;		// set by the main app window
+Object ServerStatus = NULL;		// set by the main app window
+Object AltNetworkStatus = NULL;		// set by the other app windows as needed
+URL    ExecScript = NULL;
+URL    LoginScript = NULL;
+int    Enabled = FALSE;
+int    Expired = FALSE;
+int    FirstLogin = TRUE;
+int    ForceBeep = FALSE;		// may eventually be set by PingThread
+int    NewPassword = FALSE;
+int    Posting = FALSE;
+int    Reconnecting = FALSE;
+int    Updating = FALSE;
+
+//
+// RUNLOCK currently controls all PostCommand() calls except the one sent
+// back when we're officially quitting.
+//
+
+final String RUNLOCK = "RUNLOCK";
+
+AltQueueCommand(Object screen, Object command, ...) {
+    int queuestat;
+
+    //
+    // We don't want to use AltCommandThread for server access, so
+    // we need screen != NULL and !isString(command) at a minimum.
+    // Also want to avoid modal dialogs. There are obvious alternatives,
+    // so feel free to experiment.
+    //
+
+    if (AltCommandThread != NULL && screen != NULL && !(defined("modal", screen) && screen.modal) && !isString(command)) {
+	if (AltCommandThread.queue(RunCommand, unroll(&screen)) != NULL)
+	    queuestat = TRUE;
+	else queuestat = FALSE;
+    } else queuestat = QueueCommand(unroll(&screen));
+    return(queuestat);
+}
+
+AltQueueCommandOnce(Object screen, Object command, ...) {
+    int queuestat;
+
+    //
+    // Duplicates AltQueueCommand() but calls a new Thread builtin, namely
+    // queueOnce(), that should make sure we only queue this request
+    // once. Mostly for buttons that might be pushed several times but
+    // don't generate anything new the second time.
+    //
+
+    if (AltCommandThread != NULL && screen != NULL && !(defined("modal", screen) && screen.modal) && !isString(command)) {
+	if (AltCommandThread.queueOnce(RunCommand, unroll(&screen)) != NULL)
+	    queuestat = TRUE;
+	else queuestat = FALSE;
+    } else queuestat = QueueCommandOnce(unroll(&screen));
+    return(queuestat);
+}
+
+ClearNetworkStatus() {
+    UpdateNetworkStatus("", NULL, NULL);
+}
+
+CloseServerStream(Stream stream) {
+    if (stream != NULL) {
+	close(stream);
+	if (currentThread() == CommandThread) {
+	    if (CommandThread.stream != NULL)
+		close(CommandThread.stream);
+	    CommandThread.stream = NULL;
+	}
+    }
+}
+
+OpenServerStream(String name) {
+    Stream stream;
+    int    tries = OpenServerTries;
+
+    if (name != NULL) {
+	do {
+	    if ((stream = open(name, "r+")) == NULL) {
+		if (tries > 1)
+		    sleep(1);
+	    } else break;
+	} while (--tries > 0);
+	if (currentThread() == CommandThread) {
+	    if (CommandThread.stream != NULL)
+		close(CommandThread.stream);
+	    CommandThread.stream = stream;
+	}
+    } else stream = NULL;
+    return(stream);
+}
+
+PickServerScript(String command) {
+    switch (command) {
+	case "LOGID":
+	case "LOGIN":
+	case "RECONID":
+	case "RECONNECT":
+	    if (LoginScript == NULL) {
+		LoginScript = new URL;
+		LoginScript.name = ServerScript("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_login.cgi");
+	    }
+	    return(LoginScript);
+	    break;
+
+	default:
+	    if (ExecScript == NULL) {
+		ExecScript = new URL;
+		ExecScript.name = ServerScript("<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_exec.cgi");
+	    }
+	    return(ExecScript);
+	    break;
+
+	case NULL:
+	    return(NULL);
+	    break;
+    }
+}
+
+PingServer(...) {
+    String arg;
+    int    wait;
+
+    if (argc > 1) {
+	if (argv[1] instanceof String) {
+	    arg = argv[1];
+	    if (argc > 2)
+		wait = (argv[2] instanceof int) ? argv[2] : FALSE;
+	} else wait = (argv[1] instanceof int) ? argv[1] : FALSE;
+    }
+    if (wait)
+	RunCommand(NULL, "PING", arg);
+    else QueueCommand(NULL, "PING", arg);
+}
+
+PostCommand(Object screen, String command, String arg, ...) {
+    Stream stream;
+    String buf;
+    String key;
+    String value;
+    String block;
+    String extra[1];
+    Array  blocks;
+    Array  data;
+    Array  args;
+    Array  fargs;
+    URL    script;
+    int    count;
+    int    total;
+    int    bufsiz;
+    int    urlencoded;
+    int    hexencoded;
+    int    hexcomplete;
+    int    n;
+
+    Dictionary header[15, ...] = {
+	String ARGCOUNT = "0";
+	String BROADCAST = NULL;
+	String DEBUGFLAGS = NULL;
+	String FEATURESET = NULL;
+	String HEXENCODED = NULL;
+	String MESSAGE = NULL;
+	String NEWPASSWORD = NULL;
+	String PINGTIMER = "0";
+	String REASON = NULL;
+	String SEPARATOR = NULL;
+	String SERVERSTATUS = NULL;
+	String SESSIONID = NULL;
+	String STATUS = "invalid";
+	String UNSUPPORTED = NULL;
+	String URLENCODED = NULL;
+    };
+
+    //
+    // Selects a URL based on command, sends SessionID on a line by itself,
+    // combines the command and command arg count and sends them as the next
+    // line, and then sends each remaining argument (up to NULL) URLencoded
+    // on a line by itself.  The name/value pairs returned by the CGI script
+    // are stored in the header dictionary. Everything after the header is
+    // assumed to be the result of the query, which often contains several
+    // distinct pieces that can be separated using the SEPARATOR specified
+    // in the header. All header values are assumed to be hex encoded. The
+    // HEXENCODED and URLENCODED fields apply to the data that follows the
+    // header, however the SEPARATOR and newline used to separate the data
+    // is assumed to be unencoded.
+    //
+
+    if ((script = PickServerScript(command)) != NULL) {
+	save Posting = TRUE;
+	UpdateNetworkStatus("Contacting", script.host, NULL);
+	if ((stream = OpenServerStream(script.name)) != NULL) {
+	    UpdateNetworkStatus("Sending data to", script.host, NULL);
+
+	    fputs(SessionID != NULL ? SessionID : "\n", stream);
+	    for (count = 0, args = &arg; args@sizeof > 0 && *args != NULL; args++)
+		count++;
+	    fprintf(stream, "%s %d\n", command, count);
+	    total = 0;
+	    for (args = &arg; count > 0; args++, count--) {
+		if (isStream(*args)) {
+		    bufsiz = stream.bufsize;
+		    block = new String[bufsiz];
+		    while((count = readInto(*args,block)) > 0) {
+			// should error check on write be performed?
+			count = writeFrom(stream, block, count);
+			total += count;
+			UpdateNetworkStatus("Sending data to", script.host, total);
+		    }
+		    close(*args); // should we let the caller close it?
+		} else stream.nextline = atoh(*args);
+	    }
+
+	    //
+	    // Skip the NULL if it is there.
+	    //
+	    if (args@sizeof > 0)
+		args++;
+
+	    UpdateNetworkStatus("Reading data from", script.host, 0);
+	    stream.callback(READ, UpdateReadStatus, stream.bufsize);
+	    stream.callback(EOF, UpdateEOFStatus);
+	    while (fscanf(stream, "%[A-Z]=%[^\r\n]%*c", &key, &value) == 2)
+		header[strdup(key)] = htoa(value);
+	    //
+	    // If you're debugging try something like,
+	    //
+	    //    fprintf(stderr, "header=%O\n", header);
+	    //
+	    // and you should see the header the the cgi script returned.
+	    //
+	    stream.nextline;	// skip blank line that ends the header
+
+	    switch (header.STATUS) {
+		case "ok":
+		    Enabled = TRUE;
+		    Expired = FALSE;
+		    if (header.SESSIONID != NULL)
+			SessionID = atoh(header.SESSIONID) + "\n";
+		    if (FirstLogin) {
+			//
+			// Setting UserName was added on 3/25/11. Only works
+			// with the corresponding change in ywait._YX.
+			//
+			if (defined("LOGINNAME", header) && header.LOGINNAME)
+			    UserName = header.LOGINNAME;
+			if (defined("GROUPNAME", header) && header.GROUPNAME)
+			    GroupName = header.GROUPNAME;
+			if (defined("NEWPASSWORD", header) && header.NEWPASSWORD)
+			    NewPassword = strcasecmp(header.NEWPASSWORD, "true") == 0;
+		    }
+
+		    if (defined("URLENCODED", header) && header.URLENCODED) {
+			urlencoded = TRUE;
+			hexencoded = FALSE;
+		    } else if (defined("HEXENCODED", header) && header.HEXENCODED) {
+			urlencoded = FALSE;
+			hexencoded = TRUE;
+		    } else {
+			urlencoded = FALSE;
+			hexencoded = FALSE;
+		    }
+
+                    if (!urlencoded && args@sizeof == 1 && isStream(*args)) {
+			bufsiz = stream.bufsize;
+			block = new String[bufsiz - (bufsiz%2)];
+			total = 0;
+			hexcomplete = TRUE;
+			while((count = readInto(stream, block)) > 0) {
+			    // should error check on these writes be performed?
+			    if (hexencoded) {
+				if (count%2) {
+				    if (readInto(stream, extra) == 1)
+					block[count++] = extra[0];
+				    else hexcomplete = FALSE;
+				}
+				if (count < block@sizeof)
+				    block[count] = '\0';
+				writeFrom(*args, htoa(block, TRUE), count/2);
+			    } else writeFrom(*args, block, count);
+			    total += count;
+			}
+			if (!hexcomplete)
+			    UpdateNetworkStatus("Transfer of hexed data is incomplete from", script.host, total);
+			close(*args);	// should we let the caller close it?
+                    } else {
+			buf = readStream(stream);
+			total = buf@sizeof;
+
+			if (urlencoded && args@sizeof == 1 && isStream(*args)) {
+			    write(*args, urlDecode(buf, TRUE));
+			    close(*args); // should we let the caller close it?
+			    buf = NULL;
+			} else {
+			    if (header.SEPARATOR != NULL && buf != NULL) {
+				data = strsplit(
+				    buf,
+				    header.SEPARATOR + "\n",
+				    atoi(header.ARGCOUNT)
+				);
+			    } else data = new Array {buf};
+
+			    buf = NULL;		// try to give it back early
+
+			    //
+			    // Handle arguments based on origin
+			    //
+			    for (; args@sizeof > 0; args++) {
+				if (*args != NULL) {
+				    if (isPointer(*args) && isCallable(**args)) {
+					switch (**args@sizeof) {
+					    case 0:	// for speed
+						(**args)();
+						break;
+
+					    case 1:	// for speed
+						(**args)(*++args);
+						break;
+
+					    default:	// should always work
+						fargs = new Array[**args@sizeof];
+						for (n = 0; n < fargs@sizeof; n++)
+						    fargs[n] = args[n + 1];
+						(**args)(unroll(fargs));
+						args += n;
+						break;
+					}
+				    } else if (isCallable(*args)) {
+					switch (*args@sizeof) {
+					    case 0:	// for speed
+						(*args)();
+						break;
+
+					    case 1:	// for speed
+						(*args)(*++args);
+						break;
+
+					    default:	// should always work
+						fargs = new Array[*args@sizeof];
+						for (n = 0; n < fargs@sizeof; n++)
+						    fargs[n] = args[n + 1];
+						(*args)(unroll(fargs));
+						args += n;
+						break;
+					}
+				    } else {
+					value = (data@sizeof > 0 && *data != NULL) ? *data : "";
+					if (urlencoded)
+					    value = urlDecode(value, TRUE);
+					else if (hexencoded)
+					    value = htoa(value);
+
+					data++;
+					if (isComponent(**args)) {
+					    switch (**args@typename) {
+						case "JButton":
+						case "JTextArea":
+						case "JTextCanvas":
+						    (**args).text = value;
+						    break;
+
+						case "JTextPane":
+						    (**args).text = value;
+						    (**args).selectedends = new Array[] { 0, 0 };
+						    break;
+
+						case "JTable":
+						    (**args).TableLoader(value);
+						    break;
+
+						case "JLabel":
+						case "JTextField":
+						    (**args).text = trim(value);
+						    break;
+
+						case "JCheckBox":
+						case "JCheckbox":
+						    (**args).state = strcasecmp(trim(value), "false");
+						    break;
+
+						case "JChoice":
+						case "JComboBox":
+						    (**args).selected = trim(value);
+						    break;
+
+						case "JList":
+						    //
+						    // May use a different approach here.
+						    // Needs to be checked - later!!!
+						    //
+						    if ((**args).multiplemode)
+							(**args).selected = strsplit(trim(value),",");
+						    else (**args).selected = trim(value);
+						    break;
+
+						default:
+						    abort(ACRONYM, "unsupported: " + **args@typename);
+						    break;
+					    }
+					} else if (isStream(*args)) {
+					    write(*args, value);
+					    close(*args);
+					} else {
+					    if (urlencoded || hexencoded)
+						**args = value;
+					    else **args = trim(value);
+					}
+				    }
+				}
+			    }
+			}
+		    }
+		    break;
+
+		case "disabled":
+		    if (Enabled) {
+			ShowHeaderBroadcast(header);
+			ShowHeaderMessage(NULL, header);
+		    }
+		    Enabled = FALSE;
+		    Quit(2);
+		    break;
+
+		case "expired":
+		    Expired = TRUE;
+		    data = NULL;
+		    break;
+
+		case "failed":
+		    UpdateNetworkStatus("Request sent to", script.host, "did not succeed (" + header.REASON + ")");
+		    data = NULL;
+		    break;
+
+		case "invalidaccess":
+		case "internalerror":
+		    ShowHeaderMessage(NULL, header);
+		    Quit(2);
+		    break;
+
+		case "lapsed":
+		case "security":
+		case "validation":
+		    if (header.MESSAGE == NULL && header.REASON != NULL)
+			header.MESSAGE = "Login Denied -- Reason: " + header.REASON;
+		    ShowHeaderMessage(NULL, header);
+		    Quit(2);
+		    break;
+
+		case "rejected":
+		    Rejected(header);
+		    break;
+
+		default:
+		    UpdateNetworkStatus("Request sent to", script.host, "did not succeed (status=" + header.STATUS + ")");
+		    data = NULL;
+		    break;
+	    }
+	    UpdateServerStatus(header.SERVERSTATUS);
+	    ShowHeaderMessage(screen, header);
+	    ShowHeaderBroadcast(header);
+	    if (header.DEBUGFLAGS != NULL)
+		SetDebug(header.DEBUGFLAGS);
+	    if (header.PINGTIMER != NULL)
+		PingThread.SetAlarm(header.PINGTIMER);
+	    CloseServerStream(stream);
+	    if (header.UNSUPPORTED != NULL) {
+		ShowError(header.UNSUPPORTED);
+		Quit(2);
+	    }
+	} else abort(strfmt("can't open %s [%s]\n", script.name, date(time())));
+    }
+
+    return(data);
+}
+
+PostQuitting() {
+    if (SessionID != NULL)
+	PostCommand(NULL, "QUITTING", "");
+}
+
+QueueCommand(Object screen, Object command, ...) {
+    Array queue = NULL;
+
+    //
+    // Unfortunately, we usually shouldn't queue commands when screen is
+    // a modal dialog, even if the caller asked. What we need to avoid is
+    // a direct (or indirect) GetAndShowScreen() call from the command
+    // thread when the screen is a modal dialog, because it blocks until
+    // the dialog is hidden. There are obvious alternatives, so feel free
+    // to experiment.
+    //
+
+    if (CommandThread != NULL) {
+	if (screen != NULL) {
+	    //screen.cursor = Cursor.WAIT_CURSOR;
+	    if (defined("modal", screen) && screen.modal)
+		RunCommand(unroll(&screen));
+	    else queue = CommandThread.queue(RunCommand, unroll(&screen));
+	} else queue = CommandThread.queue(RunCommand, unroll(&screen));
+    } else RunCommand(unroll(&screen));
+    return(queue != NULL);
+}
+
+QueueCommandOnce(Object screen, Object command, ...) {
+    Array queue = NULL;
+
+    //
+    // Duplicates QueueCommand() but calls a new Thread builtin, namely
+    // queueOnce(), that should make sure we only queue this request
+    // once. Mostly for buttons that might be pushed several times but
+    // don't generate anything new the second time.
+    //
+
+    if (CommandThread != NULL) {
+	if (screen != NULL) {
+	    //screen.cursor = Cursor.WAIT_CURSOR;
+	    if (defined("modal", screen) && screen.modal)
+		RunCommand(unroll(&screen));
+	    else queue = CommandThread.queueOnce(RunCommand, unroll(&screen));
+	} else queue = CommandThread.queueOnce(RunCommand, unroll(&screen));
+    } else RunCommand(unroll(&screen));
+    return(queue != NULL);
+}
+
+QueueEvent(Object screen, Pointer handler, Object event) {
+    int queued = FALSE;
+
+    //
+    // This is a convenenience routine that sometimes helps simplify the
+    // coding of an event handler. It shouldn't be used much because the
+    // caller is assuming that all the data needed to process the event
+    // can be collected later, which is often not true.
+    //
+
+    if (screen != NULL && handler != NULL && event != NULL) {
+	if (CommandThread != NULL && currentThread() != CommandThread) {
+	    if (defined("modal", screen) == FALSE || screen.modal == FALSE) {
+		queued = TRUE;
+		CommandThread.queue(RunCommand, screen, handler, event);
+	    }
+	}
+    }
+    return(queued);
+}
+
+RunCommand(Object screen, Object command, ...) {
+    Object result;
+
+    if (screen != NULL)
+	save screen.cursor = Cursor.WAIT_CURSOR;
+
+    if (isString(command)) {
+	if (!isShutdownThread()) {
+	    synchronized(RUNLOCK) {
+		result = PostCommand(unroll(&screen));
+	    }
+	    if (!Reconnecting) {
+		Reconnecting = TRUE;
+		if (!FirstLogin) {
+		    while (Expired && !Quitting)
+			ShowReconnect();
+		}
+		Reconnecting = FALSE;
+	    }
+	} else result = PostCommand(unroll(&screen));
+    } else if (isCallable(command))
+	command(unroll(&command + 1));
+    else if (isPointer(command) && isCallable(*command))
+	(*command)(unroll(&command + 1));
+    return(result);
+}
+
+RunLoginCommand(Object screen, String command, String user, String password, String groupname) {
+    Object data = NULL;
+
+    if (command === "LOGIN" || command === "LOGID" || command === "RECONNECT" || command === "RECONID") {
+	if (user@sizeof > 0) {
+	    data = RunCommand(
+		screen,
+		command,
+		user,
+		password,
+		groupname,
+		ReleaseNumber,
+		VM.Version,
+		UserTimeZone,
+		UserOperatingSystem,
+		ClientId,
+		"0",
+		UserProperties
+	    );
+	}
+    }
+
+    return(data);
+}
+
+UpdateEOFStatus(int total) {
+    //
+    // A stream callback function that runs in the stream's context,
+    // so host will be defined.
+    //
+
+    UpdateNetworkStatus("Transfer completed from", host, total);
+}
+
+UpdateNetworkStatus(String prefix, String host, Object suffix) {
+    if (NetworkStatus != NULL) {
+	StartClearThread();
+	if (host != NULL)
+	    prefix += " " + host;
+	if (suffix != NULL) {
+	    if (suffix instanceof int)
+		NetworkStatus.text = prefix + " (" + toString(suffix) + " bytes)";
+	    else NetworkStatus.text = prefix + " " + suffix;
+	} else NetworkStatus.text = prefix;
+    }
+    //
+    // Special purpose code that was originally designed for our old update
+    // screen that also displayed a JProgressBar. It's probably not used by
+    // any standard YWAIT screens, but we're going to leave the callback in
+    // anyway - just in case.
+    //
+    if (AltNetworkStatus != NULL && defined("UpdateProgress", AltNetworkStatus)) {
+	if (suffix != NULL && suffix instanceof Number)
+	    AltNetworkStatus.UpdateProgress(suffix);
+    }
+}
+
+UpdateReadStatus(int total) {
+    //
+    // A stream callback function that runs in the stream's context,
+    // so host will be defined.
+    //
+
+    UpdateNetworkStatus("Reading data from", host, total);
+}
+
+UpdateServerStatus(String text) {
+    if (ServerStatus != NULL) {
+	if (text != NULL) {
+	    text = toUpperCase(text);
+	    if (ForceBeep && text !== "NULL") {
+		beep();
+		ForceBeep = FALSE;
+	    }
+	}
+	ServerStatus.ShowStatus(text);
+    }
+}
+
+UpdateStopStatus() {
+    UpdateNetworkStatus("interrupted", NULL, NULL);
+}
+

@@ -1,0 +1,40 @@
+//
+// Compares the answer obtained two way - which should be equivalent.
+//
+
+import yoix.*.*;
+
+JFrame frame = {
+    GridBagLayout layoutmanager;
+    Array layout = {
+	new JButton {
+	    String text = "Compare";
+
+	    actionPerformed(e) {
+		root.Compute();
+	    }
+	},
+    };
+
+    Compute() {
+	Rectangle rect1;
+	Rectangle rect2;
+	int       equal;
+
+	graphics {
+	    gsave();
+	    rect1 = drawablebbox();
+	    clippath();
+	    rect2 = pathbbox();
+	    grestore();
+	}
+	equal = (rect1.x == rect2.x && rect1.y == rect2.y && rect1.width == rect2.width && rect1.height == rect2.height);
+	if (!equal) {
+	    printf("answers differ\n");
+	    printf("drawablebbox result=%O\n", rect1);
+	    printf("clippath result=%O\n", rect2);
+	} else printf("answers are the same\n");
+    }
+};
+
+frame.visible = TRUE;

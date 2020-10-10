@@ -1,0 +1,51 @@
+//
+// Arc and ellipse drawing test that also illustrates lots of other
+// things that are available in Yoix versions that support Java2D.
+// Use arc() with horizontal and vertical scaling as the last two
+// arguments to draw an ellipse. We suspect arc() will eventually
+// also support a rotation argument (perhaps just in a Matrix).
+// 
+
+import yoix.*.*;
+
+JFrame f = {
+    Array layout = {
+	new JCanvas {
+	    String tag = "$_canvas";
+	    Color background = Color.lightGray;
+
+	    paint(Rectangle rect) {
+		Object bbox;
+		graphics {
+		    gsave();
+		    rectclip(rect);
+		    recterase(rect);
+		    sethsbcolor(0.666667, 0.5, 1.0);
+		    linewidth = 4;
+		    linejoin = yoix.graphics.JOIN_MITER;
+		    linecap = yoix.graphics.CAP_ROUND;
+		    translate(200, 200);
+		    rotate(-30);
+		    moveto(0, 0);
+		    arc(0, 0, 144, 0, 830);		// circle
+		    closepath();
+		    gsave();
+		    fill(0.5);				// argument is alpha
+		    grestore();
+		    sethsbcolor(0, 1.0, 1.0);
+		    stroke();
+		    newpath();
+		    moveto(0, 0);
+		    arc(0, 0, 72, 0, 360, 1.0, .5);	// ellipse
+		    closepath();
+		    setrgbcolor(0, 1, 0);
+		    fill(.3);				// argument is alpha
+		    grestore();
+		}
+	    }
+	}
+    };
+};
+
+f.visible = TRUE;
+

@@ -1,0 +1,76 @@
+import yoix.*.*;
+
+JFrame frame = {
+    String title = "JInternalFrame Test";
+
+    Array layout = {
+	new JDesktopPane {
+	    String tag = "$_desktop";
+	    Color  background = Color.blue;
+	}, CENTER,
+    };
+};
+
+JInternalFrame internalframe = {
+    String title = "Internal Frame";
+    int    visible = TRUE;
+
+    Dimension size = {
+	double width = 4*72.0;
+	double height = 3*72.0;
+    };
+
+    Point location = {
+	double x = 36;
+	double y = 36;
+    };
+
+    windowActivated(e) {
+	printf("windowActivated: e=%O\n", e);
+    }
+
+    windowDeactivated(e) {
+	printf("windowDeactivated: e=%O\n", e);
+    }
+
+    windowClosed(e) {
+	printf("windowClosed: e=%O\n", e);
+    }
+
+    windowClosing(e) {
+	printf("windowClosing: e=%O\n", e);
+	return(FALSE);
+    }
+
+    windowIconified(e) {
+	printf("windowIconified: e=%O\n", e);
+    }
+
+    windowDeiconified(e) {
+	printf("windowDeiconified: e=%O\n", e);
+    }
+
+    windowOpened(e) {
+	printf("windowOpened: e=%O\n", e);
+    }
+
+    componentShown(e) {
+	printf("componentShown: e=%O\n", e);
+    }
+
+    paint(r) {
+	graphics {	// named block
+	    gsave();
+	    setcmykcolor(0, 1, 0, 0);
+	    moveto(36, 36);
+	    rlineto(100, 0);
+	    rlineto(0, 50);
+	    fill();
+	    grestore();
+	}
+    }
+};
+
+frame.visible = TRUE;
+sleep(2);
+internalframe.desktop = frame.components.$_desktop;

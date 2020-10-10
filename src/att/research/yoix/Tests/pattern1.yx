@@ -1,0 +1,83 @@
+//
+// Pattern matching example - only way into the low level Java code is
+// currently through the new ParseTree.match() builtin. We sometimes use
+// '#' as the Yoix string delimiter when the parser field is initialized,
+// but it's only to avoid cluttering the string up with extra escapes.
+//
+// Terminals in the parse tree can be regular expressions or strings.
+// Strings are delimited by whitespace or operators and you must use
+// a backslash to include delimiters in the string. Regular expressions
+// are delimited by '/'. Take a look at PatternParser.jjt if you need
+// more info.
+//
+
+import yoix.parser.*;
+
+ParseTree t = {
+    String parse;
+
+    //
+    // Four new "parser" constants are defined in yoix.parser that
+    // all trigger translations by the pattern parser. The contants
+    // are:
+    //
+    //    PARSER_PATTERN		concatenation not allowed
+    //    PARSER_PATTERN_AND		concatenation means AND
+    //    PARSER_PATTERN_OR		concatenation means OR
+    //    PARSER_PATTERN_XOR		concatenation means XOR
+    //
+    // and as you can see they're just supposed to control how the
+    // pattern parser handles concatenation.
+    //
+
+    int    parser = PARSER_PATTERN;
+};
+
+t.parse = #(ab\ \ d & 789 | QWerTY)#;		// '#' is a special Yoix string delimiter
+stdout.nextline = "pattern = " + t.parse;
+stdout.nextline = "match(\"789\") = " + toString(t.match("789"));
+stdout.nextline = "match(\"qwerty\") = " + toString(t.match("qwerty"));
+stdout.nextline = "match(\"qwerty\", CASE_INSENSITIVE) = " + toString(t.match("qwerty", CASE_INSENSITIVE));
+
+//
+// Change the pattern.
+//
+
+t.parse = "abc...g | XXX";
+stdout.nextline = "\npattern = " + t.parse;
+stdout.nextline = "match(\"abc...g\") = " + toString(t.match("abc...g"));
+stdout.nextline = "match(\"aBc...g\", CASE_INSENSITIVE) = " + toString(t.match("aBc...g", CASE_INSENSITIVE));
+stdout.nextline = "match(\"abcXXXg\", DOT_PATTERN) = " + toString(t.match("abcXXXg", DOT_PATTERN));
+stdout.nextline = "match(\"aBcXXXg\", DOT_PATTERN) = " + toString(t.match("aBcXXXg", DOT_PATTERN));
+stdout.nextline = "match(\"aBcXXXg\", DOT_PATTERN|CASE_INSENSITIVE) = " + toString(t.match("aBcXXXg", DOT_PATTERN|CASE_INSENSITIVE));
+stdout.nextline = "match(\"XXX\") = " + toString(t.match("XXX"));
+
+//
+// Pattern that should use regular expressions
+//
+
+t.parse = #/^123|time$/ | qwert#;
+stdout.nextline = "\npattern = " + t.parse;
+stdout.nextline = "match(\"123456\") = " + toString(t.match("123456"));
+stdout.nextline = "match(\"now is the time\") = " + toString(t.match("now is the time"));
+stdout.nextline = "match(\"qwert\") = " + toString(t.match("qwert"));
+stdout.nextline = "match(\"qwErt\") = " + toString(t.match("qwErt"));
+stdout.nextline = "match(\"qwErt\", CASE_INSENSITIVE) = " + toString(t.match("qwErt", CASE_INSENSITIVE));
+stdout.nextline = "match(\"TiMe\", CASE_INSENSITIVE) = " + toString(t.match("TiMe", CASE_INSENSITIVE));
+stdout.nextline = "match(\"qwert\") = " + toString(t.match("qwert"));
+
+//
+// Change the parser so concatenation means OR and change the pattern
+// back to second one but omit the | operator.
+//
+
+
+t.parser = PARSER_PATTERN_OR;
+t.parse = "abc...g    XXX";
+stdout.nextline = "\npattern = " + t.parse;
+stdout.nextline = "match(\"abc...g\") = " + toString(t.match("abc...g"));
+stdout.nextline = "match(\"aBc...g\", CASE_INSENSITIVE) = " + toString(t.match("aBc...g", CASE_INSENSITIVE));
+stdout.nextline = "match(\"abcXXXg\", DOT_PATTERN) = " + toString(t.match("abcXXXg", DOT_PATTERN));
+stdout.nextline = "match(\"aBcXXXg\", DOT_PATTERN) = " + toString(t.match("aBcXXXg", DOT_PATTERN));
+stdout.nextline = "match(\"aBcXXXg\", DOT_PATTERN|CASE_INSENSITIVE) = " + toString(t.match("aBcXXXg", DOT_PATTERN|CASE_INSENSITIVE));
+stdout.nextline = "match(\"XXX\") = " + toString(t.match("XXX"));

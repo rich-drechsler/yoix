@@ -1,0 +1,21 @@
+//
+// Simple JFrame that we occasionally use to test Swing components.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    GridBagLayout layoutmanager;
+
+    Array layout = {
+	new JButton {
+	    String text = "This is a test";
+	},
+	new GridBagConstraints {
+	    int anchor = CENTER;
+	},
+    };
+};
+
+f.visible = TRUE;
+

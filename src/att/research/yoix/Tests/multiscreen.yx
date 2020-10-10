@@ -1,0 +1,97 @@
+//
+// Trivial example that's supposed to test multiple screens - if they're available.
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    String title = "Multi Monitor Test";
+    double border = 72.0/8;
+    int    screen = 1;
+
+    Dimension size = {
+	double height = 4*72;
+	double width = 8*72;
+    };
+
+    Point location = {
+	double x = 2*72;
+	double y = 1*72;
+    };
+
+    Array layout = {
+	new JLabel {
+	    String font = "Helvetica-plain-14";
+	    String text = "Press Shift To Move To Next Monitor";
+	    int    alignment = CENTER;
+	}, NORTH,
+
+	new JTextArea {
+	    String tag = "$_textarea";
+	    String text = "";
+	    double border = 72.0/16;
+	    int    rows = 0;
+	    int    columns = 0;
+	    int    edit = TRUE;
+	    int    scroll = AS_NEEDED;
+	}, CENTER,
+
+	new JPanel {
+	    FlowLayout  layoutmanager = {
+		int vgap = 72/12;
+	    };
+
+	    Array layout = {
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String text = "Shift";
+			    int    requestfocus = TRUE;
+			    int    shiftcount = 0;
+			    int    screencount = VM.screens@sizeof;
+
+			    actionPerformed(e) {
+				Object currentbounds;
+				Object shiftedbounds;
+				Object corner;
+
+				if (screencount > 0) {
+				    currentbounds = VM.screens[(shiftcount++ + root.screen.index)%screencount].bounds;
+				    shiftedbounds = VM.screens[(shiftcount + root.screen.index)%screencount].bounds;
+				    corner = root.location;
+				    corner.x += (shiftedbounds.x - currentbounds.x);
+				    corner.y += (shiftedbounds.y - currentbounds.y);
+				    root.location = corner;
+
+				    root.components.$_textarea.text += strfmt("shiftcount=%d, location=%O\n\n", shiftcount, root.location);
+				}
+			    }
+			},
+
+			new JButton {
+			    String text = "Reset";
+
+			    actionPerformed(e) {
+				root.screen = VM.screens[0];
+				root.components.$_textarea.text = "";
+			    }
+			},
+
+			new JButton {
+			    String text = "Quit";
+
+			    actionPerformed(e) {
+				exit(0);
+			    }
+			},
+		    };
+		},
+	    };
+	}, SOUTH,
+    };
+};
+
+f.visible = TRUE;
+

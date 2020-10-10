@@ -1,0 +1,15 @@
+import yoix.*.*;
+
+Path p;
+Point pt;
+
+p.moveto(50, 50);
+p.lineto(50, 100);
+printf("Output before CTM change:\n");
+pt = p.currentpoint();
+printf(" currentpoint=(%.1f, %.1f)\n", pt.x, pt.y);
+p.CTM.scale(.5, .5);
+printf("\nOutput after CTM change:\n");
+pt = p.currentpoint();
+printf(" currentpoint=(%.1f, %.1f)\n", pt.x, pt.y);
+

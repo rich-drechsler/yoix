@@ -1,0 +1,106 @@
+//
+// We've obviously done lots of testing using this file.
+//
+
+import yoix.*.*;
+
+Image img = {
+	String source = "";
+int model = -1;
+	Dimension size = {
+	    double width = 144;
+	    double height = 72;
+	};
+
+	paint(Rectangle clip) {
+fprintf(stderr, "img.paint: clip=%O\n", clip);
+	    graphics {
+		foreground = Color.cyan;
+		moveto(18, 9);
+		rlineto(108, 0);
+		rlineto(0, 54);
+		closepath();
+		fill();
+	    }
+	}
+};
+
+JFrame f = {
+	Array layout = {
+	    new JCanvas {
+	Image backgroundimage = img;
+	int   backgroundhints = SCALE_TILE;
+		String tag = "$_canvas";
+		Color background = Color.lightGray;
+Graphics graphics = {
+Object foreground = new Array {Color.red, 72, 0, Color.green, 300, 0, true};
+};
+
+		paint(Rectangle rect) {
+		    Object bbox;
+fprintf(stderr, "clip=%O\n", rect);
+		    graphics {
+			gsave();
+			rectclip(rect);
+clippath();
+fill();
+newpath();
+alpha = 1.0;
+background = Color.blue;
+xormode = FALSE;
+sethsbcolor(0.666667, 0.5, 1.0);
+			linewidth = 18;
+			linejoin = yoix.graphics.JOIN_MITER;
+			linecap = yoix.graphics.CAP_ROUND;
+			translate(144, 144);
+			rotate(15);
+			scale(1, 1);
+			moveto(0, 0);
+			rlineto(72, -50);
+			rlineto(-20, 72);
+			////closepath();
+			strokepath();
+			linewidth = 0;
+			bbox = pathbbox();
+			fill();
+			newpath();
+setrgbcolor(1, 0, 0);
+			////foreground = Color.red;
+			moveto(bbox.x, bbox.y);
+			rlineto(bbox.width, 0);
+			rlineto(0, bbox.height);
+			rlineto(-bbox.width, 0);
+			closepath();
+			stroke();
+			linewidth = 9;
+
+			////rectclip(bbox.x, bbox.y, bbox.width, bbox.height);
+			////rectclip(bbox);
+			////rectfill(bbox.x + 20, bbox.y + 40, bbox.width, bbox.height);
+
+dasharray = new Array {18, 36};
+dashphase = 9;
+			moveto(72, 144);
+			rlineto(300, 0);
+			gsave();
+			stroke();
+			grestore();
+
+dasharray = NULL;
+////compositerule = COMPOSITE_CLEAR;
+////xormode = TRUE;
+setrgbcolor(0, 1, 0);
+			////foreground = Color.green;
+			linewidth = 2;
+			stroke();
+			grestore();
+////sleep(1);
+////recterase(100, 100, 200, 50);
+		    }
+		}
+	    }
+	};
+};
+
+f.visible = TRUE;
+sleep(2);

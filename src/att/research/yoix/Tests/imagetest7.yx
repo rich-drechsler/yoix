@@ -1,0 +1,54 @@
+//
+// Image example that uses version 1.1.0 features.
+//
+
+import yoix.*.*;
+
+Array toss[256];
+Array dark[256];
+Array keep[256];
+
+for (n = 0; n < 256; n++) {
+    toss[n] = 0;
+    keep[n] = n;
+    dark[n] = n/2;
+}
+
+Image img = {
+    String source = "http://www.yoix.org/imgs/ATTlogo.gif";
+    Array  metrics = {0, 0, 1.0, 1.0};
+};
+
+Image img_dark = {
+    Image source = img;
+    Array metrics = {0, 0, 1.0, 1.0};
+
+    paint() {
+	replace(dark);
+    }
+};
+
+Image img_blue = {
+    Image source = img;
+    Array metrics = {0, 0, 1.0, 1.0};
+
+    paint() {
+	replace(toss, toss, keep);
+    }
+};
+
+JFrame f = {
+    paint(Rectangle r) {
+	graphics {
+	    rectclip(r);
+	    moveto(72, 72);
+	    showimage(img);
+	    showimage(img_dark);
+	    showimage(img_blue);
+	    initclip();
+	}
+    }
+};
+
+f.visible = TRUE;
+

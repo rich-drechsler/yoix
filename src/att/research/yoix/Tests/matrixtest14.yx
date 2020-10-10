@@ -1,0 +1,27 @@
+import yoix.*.*;
+
+Dump(Matrix m) {
+    return(strfmt(
+        "{%.2f, %.2f, %.2f, %.2f, %.2f, %.2f}",
+        m.sx, m.shx, m.tx, m.sy, m.shy, m.ty
+    ));
+}
+
+final Matrix DEFAULTMATRIX = {
+    double sx = 1.5;
+    double sy = 2.0;
+};
+
+Matrix num = DEFAULTMATRIX.currentmatrix();
+Matrix denom = DEFAULTMATRIX.currentmatrix();
+Matrix div;
+
+num.scale(2, 4).translate(200, 100).rotate(30);
+div = denom.invertmatrix().concatmatrix(num);
+
+printf("        num=%s\n", Dump(num));
+printf("      denom=%s\n", Dump(denom));
+printf("    inverse=%s\n", Dump(denom.invertmatrix()));
+printf("inverse*num=%s\n", Dump(div));
+printf("  denom*div=%s\n", Dump(denom.concatmatrix(div)));
+

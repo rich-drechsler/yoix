@@ -1,0 +1,92 @@
+//
+// Removing an object from a ButtonGroup resulted in an invalidaccess error
+// when the Java code tried to modify the items array. Fixed on 5/31/07, so
+// this should now work.
+//
+
+import yoix.*.*;
+
+ButtonGroup bg1;
+ButtonGroup bg2;
+
+JFrame f = {
+    Array layout = {
+	new JPanel {
+	    BoxLayout layoutmanager;
+	    Array layout = {
+		0.0,
+		new JCheckbox {
+		    String tag = "$_one";
+		    String text = "One";
+		    Object group = bg1;
+		    int    state = TRUE;
+		},
+		new JCheckbox {
+		    String tag = "$_two";
+		    String text = "Two";
+		    Object group = bg1;
+		    int    state = FALSE;
+		},
+		new JCheckbox {
+		    String tag = "$_three";
+		    String text = "Three";
+		    Object group = bg1;
+		    int    state = FALSE;
+		},
+		0.0,
+	    };
+	}, CENTER,
+
+	new JPanel {
+	    FlowLayout  layoutmanager = {
+		int vgap = 72/12;
+	    };
+	    Array layout = {
+		new JPanel {
+		    GridLayout layoutmanager;
+
+		    Array layout = {
+			new JButton {
+			    String text = "Change";
+			    int    requestfocus = TRUE;
+			    int    count = 0;
+
+			    actionPerformed(e) {
+				if (count++%2 == 0)
+				    root.components.$_one.group = bg2;
+				else root.components.$_one.group = bg1;
+			    }
+			},
+			new JButton {
+			    String text = "Quit";
+
+			    actionPerformed(e) {
+				exit(0);
+			    }
+			},
+		    };
+		},
+	    };
+	}, SOUTH,
+
+	//
+	// Side padding - just for looks.
+	//
+	new JCanvas {
+	    Dimension size = {
+		int width = 72/8;
+		int height = 72/8;
+	    };
+	}, EAST,
+
+	new JCanvas {
+	    Dimension size = {
+		int width = 72/8;
+		int height = 72/8;
+	    };
+	}, WEST,
+    };
+};
+
+f.visible = TRUE;
+

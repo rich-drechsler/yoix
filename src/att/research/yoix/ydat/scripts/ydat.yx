@@ -1,0 +1,243 @@
+//
+// A simple yoix script that starts visualization programs by executing
+// another program file that's written in Yoix.
+//
+
+VM.addtags = FALSE;	// TRUE means slower but better Yoix errors
+VM.create = FALSE;	// FALSE means don't create without declaration
+
+import yoix.ydat.*;	// data visualization module
+import yoix.*.*;
+
+Dictionary CONTEXT[24, ...] = {
+    int        AUTOZOOM = FALSE;
+    double     AXISWIDTH = .75;
+    String     CONFIG = NULL;
+    String     CONFIGFILE = NULL;
+    String     CUSTOMFILE = NULL;
+    int        DEBUGGING = FALSE;
+    int        DOTDATA = FALSE;
+    Dictionary EXPORTS[0, ...];
+    String     HOME = NULL;
+    double     LINEWIDTH = 1;
+    int        MENULIMIT = 25;
+    int        MENUMODEL = 0;
+    Array      MODEL = NULL;
+    String     PROGRAM = "ydat";
+    String     PROGRAM_UPLOW = "YDAT";
+    int        REVERSEPALETTE = FALSE;
+    int        REVERSEVIDEO = FALSE;
+    String     TEXTSEPARATOR = NULL;
+    int        TIMESHADING = TRUE;
+
+    Quit(int status) {
+	exit(status);
+    }
+
+    Die(String format, ...) {
+	String message = strfmt(unroll(&format));
+
+	stderr.nextline = PROGRAM + ": " + message;
+	showMessageDialog(NULL, message, PROGRAM_UPLOW + " Error", ERROR_MESSAGE);
+	Quit(1);
+    }
+
+    Warn(String format, ...) {
+	String message = strfmt(unroll(&format));
+
+	showMessageDialog(NULL, message, PROGRAM_UPLOW + " Warning", WARNING_MESSAGE);
+    }
+
+    Function GetFile = NULL;
+
+    //
+    // No longer used, but old yoix scripts may assume CONTEXT.Monitor
+    // exists. Probably can be removed when all of our website software
+    // is converted to the new version.
+    //
+    Function Monitor = NULL;
+};
+
+//
+// Command line options followed by zero or more arguments that name
+// input files (as local files or URLs), the contents of each of which
+// is passed along to the data visualization software as a single string
+// argument. If no files (or URLs) are specified, the data is normally
+// taken from stdin.
+//
+
+Function Run;
+Option   option;
+Stream   fp_exec;
+Stream   fp_in;
+Stream   fp_update;
+String   model;
+String   program;
+String   str;
+String   name;
+Object   value;
+Graph    graphdata;
+int      executeonly = FALSE;
+int      pipeenabled = TRUE;
+int      index;
+int      ch;
+
+while ((ch = getopt(option, argv, "ac:d:el:m:prs:tvw:x:C:DG:H:P:Q:T:X:Z:")) != -1) {
+    switch (ch) {
+	case 'a':
+	    CONTEXT.AUTOZOOM = (option.optchar == '+');
+	    break;
+
+	case 'c':
+	    CONTEXT.CONFIG = option.optarg;
+	    break;
+
+	case 'd':
+	    CONTEXT.DEBUGGING = atoi(option.optarg);
+	    break;
+
+	case 'e':
+	    executeonly = (option.optchar == '+');
+	    break;
+
+	case 'l':
+	    CONTEXT.MENULIMIT = atoi(option.optarg);
+	    break;
+
+	case 'm':
+	    model = (option.optchar == '+') ? model + " " + option.optarg : option.optarg;
+	    break;
+
+	case 'p':
+	    pipeenabled = (option.optchar == '+');
+	    break;
+
+	case 'r':
+	    CONTEXT.REVERSEPALETTE = (option.optchar == '+');
+	    break;
+
+	case 's':
+	    CONTEXT.TEXTSEPARATOR = option.optarg;
+	    break;
+
+	case 't':
+	    CONTEXT.TIMESHADING = (option.optchar == '+');
+	    break;
+
+	case 'v':
+	    CONTEXT.REVERSEVIDEO = (option.optchar == '+');
+	    break;
+
+	case 'w':
+	    CONTEXT.LINEWIDTH = atoi(option.optarg);
+	    break;
+
+	case 'x':
+	    CONTEXT.AXISWIDTH = atoi(option.optarg);
+	    break;
+
+	case 'C':
+	    CONTEXT.CONFIGFILE = option.optarg;
+	    break;
+
+	case 'D':
+	    CONTEXT.DOTDATA = (option.optchar == '+');
+	    break;
+
+	case 'G':
+	    CONTEXT.GetFile = option.optarg;
+	    break;
+
+	case 'H':
+	    CONTEXT.HOME = option.optarg;
+	    break;
+
+	case 'P':
+	    CONTEXT.PROGRAM = option.optarg;
+	    break;
+
+	case 'Q':
+	    CONTEXT.Quit = option.optarg;
+	    break;
+
+	case 'T':
+	    CONTEXT.PROGRAM_UPLOW = option.optarg;
+	    break;
+
+	case 'X':
+	    if (option.optarg instanceof String) {
+		if ((index = indexOf(option.optarg, "=")) > 0) {
+		    name = substring(option.optarg, 0, index);
+		    value = substring(option.optarg, index+1);
+		    CONTEXT.EXPORTS[name] = (value !== "global") ? value : global;
+		}
+	    } else if (option.optarg instanceof Pointer)
+		CONTEXT.EXPORTS[option.optarg[0]@nameof] = option.optarg[0];
+	    break;
+
+	case 'Z':
+	    CONTEXT.CUSTOMFILE = option.optarg;
+	    break;
+
+	case '?':
+	    CONTEXT.Die("%s", option.opterror);
+	    break;
+
+	default:
+	    CONTEXT.Die("missing case for option %c%c", option.optchar, ch);
+	    break;
+    }
+}
+
+argv += option.optind;
+argc -= option.optind;
+
+VM.addtags = CONTEXT.DEBUGGING ? 1 : VM.addtags;
+
+if (CONTEXT.HOME == NULL) {
+    if ((CONTEXT.HOME = yoix.system.getProperty("yoix.home")) != NULL)
+	CONTEXT.HOME += "/" + CONTEXT.PROGRAM + "/scripts";
+    else CONTEXT.Die("can't pick a value for HOME");
+}
+
+if (model != NULL)
+    CONTEXT.MODEL = strsplit(toUpperCase(model), " ");
+
+if ((fp_update = open(CONTEXT.HOME + "/updates/update.yx", "r")) != NULL) {
+    if (execute(fp_update, NULL, CONTEXT.HOME + "/updates"))
+	exit(0);
+    close(fp_update);
+}
+
+if (CONTEXT.GetFile == NULL) {
+    program = CONTEXT.HOME + "/main.yx";
+    if ((fp_exec = open(program, "r")) != NULL) {
+	Run = execute(fp_exec, NULL, CONTEXT);
+	close(fp_exec);
+    } else CONTEXT.Die("can't open program file %s", program);
+} else Run = execute(CONTEXT.GetFile(CONTEXT.PROGRAM + "/main.yx"), NULL, CONTEXT); 
+
+if (!executeonly) {
+    if (argc > 0) {
+	while (argc-- > 0) {
+	    if ((fp_in = open(*argv, "r")) != NULL) {
+		if (CONTEXT.DOTDATA || endsWith(*argv, ".dot")) {
+		    str = readStream(fp_in);
+		    try {
+			graphdata = dotGraph(str);
+		    }
+		    catch(e) {
+			CONTEXT.Die("file (%s) does not contain a valid DOT graph", *argv);
+			return(TRUE);
+		    }
+		    Run(NULL, graphdata);
+		} else Run(NULL, readStream(fp_in));
+		close(fp_in);
+	    } else CONTEXT.Warn("can't open input file %s", *argv);
+	    argv++;
+	}
+    } else Run(NULL, pipeenabled ? readStream(stdin) : NULL);
+}
+
+return(Run);		// in case we were executed
+

@@ -1,0 +1,35 @@
+import yoix.*.*;
+import yoix.module.att.research.yoix.jvma.JVMTestModule.*;
+
+assembleClass(@<<
+    public class XXX extends YYY {
+        static int qwert = 12
+        java.lang.String poiuy  = "Now is the time"
+
+	extern static int java.lang.Dummy.add(int, int)
+
+        private int switchTest(double arg) {
+XXX:
+	    push arg
+	    push 2.0f
+	    switch {
+		4 : ZZZ
+		3 : YYY
+		2 : XXX
+		default : ZZZ
+		5 : ZZZ
+	    }
+	    iinc arg 1
+	    return
+YYY:
+	    iinc arg 100
+	    return
+ZZZ:
+	    iinc arg 1000
+	    return
+        }
+    }
+>>@);
+
+printf("%s", dumpClassFile());
+

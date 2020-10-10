@@ -1,0 +1,66 @@
+import yoix.*.*;
+
+String str = "hello";
+String ptr = str;
+
+const String cstr = str;
+final String fstr = strdup(str);
+
+modes(mode) {
+    String md = "";
+
+    if((mode&LOCK) == LOCK)
+	md += "L";
+    else
+	md += "_";
+    if((mode&READ) == READ)
+	md += "R";
+    else
+	md += "_";
+    if((mode&WRITE) == WRITE)
+	md += "W";
+    else
+	md += "_";
+    if((mode&EXECUTE) == EXECUTE)
+	md += "X";
+    else
+	md += "_";
+
+    return(md);
+}
+
+deflag(flag) {
+    String perms = "";
+
+    perms = modes(flag&(READ|WRITE|LOCK|EXECUTE));
+    perms += "->";
+    perms += modes((flag>>4)&(READ|WRITE|LOCK|EXECUTE));
+
+    return(perms);
+}
+
+ptr++;
+
+printf("The %s variable %s (%d/%d) with value '%s' has:\n\
+\taccess: %d (%s)\n\tlength: %d\n\toffset: %d\n\tsizeof: %d\n",
+       str@typename, str@nameof, str@major, str@minor, str,
+       str@access, deflag(str@access),
+       str@length, str@offset, str@sizeof);
+
+printf("The %s variable %s (%d/%d) with value '%s' has:\n\
+\taccess: %d (%s)\n\tlength: %d\n\toffset: %d\n\tsizeof: %d\n",
+       ptr@typename, ptr@nameof, ptr@major, ptr@minor, ptr,
+       ptr@access, deflag(ptr@access),
+       ptr@length, ptr@offset, ptr@sizeof);
+
+printf("The %s variable %s (%d/%d) with value '%s' has:\n\
+\taccess: %d (%s)\n\tlength: %d\n\toffset: %d\n\tsizeof: %d\n",
+       cstr@typename, cstr@nameof, cstr@major, cstr@minor, cstr,
+       cstr@access, deflag(cstr@access),
+       cstr@length, cstr@offset, cstr@sizeof);
+
+printf("The %s variable %s (%d/%d) with value '%s' has:\n\
+\taccess: %d (%s)\n\tlength: %d\n\toffset: %d\n\tsizeof: %d\n",
+       fstr@typename, fstr@nameof, fstr@major, fstr@minor, fstr,
+       fstr@access, deflag(fstr@access),
+       fstr@length, fstr@offset, fstr@sizeof);

@@ -1,0 +1,37 @@
+import yoix.*.*;
+
+JWindow f = {
+    Color background = Color.red;
+
+    Point location = {
+        double x = 72;
+        double y = 72;
+    };
+
+    paint(Rectangle rect) {
+        Point ul;
+        Point lr;
+
+        graphics {
+            gsave();
+            ul = itransform(2, 2);
+            lr = transform(size.width,  size.height);
+            lr.x = lr.x - 2;
+            lr.y = lr.y - 2;
+            lr = itransform(lr);
+            moveto(ul.x, ul.y);
+            lineto(ul.x, lr.y);
+            lineto(lr.x, lr.y);
+            lineto(lr.x, ul.y);
+            closepath();
+            setrgbcolor(0, 0, 1);
+            fill();
+            grestore();
+        }
+    }
+};
+
+f.visible = TRUE;
+sleep(10);
+exit(0);
+

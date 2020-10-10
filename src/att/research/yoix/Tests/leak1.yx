@@ -1,0 +1,25 @@
+//
+// Somewhat useful way to see if various data structures leak. Change
+// the type of obj to suit your needs. Restricting the memory used by
+// java often helps the output. For example,
+//
+//	java -ms8m -mx8m ...
+//
+// starts java with a 8 megabyte heap that won't grow any larger.
+//
+
+import yoix.*.*;
+
+int counter = (argc > 1) ? atoi(argv[1]) : 25;
+
+while (counter-- != 0) {
+    obj = new JButton {
+	String  dummy[200000];
+    };
+    obj = NULL;		// most objects will now be collected
+
+    yoix.thread.sleep(2);
+    yoix.system.gc();
+    yoix.system.runFinalization();
+    fprintf(stderr, "memory=%d/%d\n", freeMemory(), totalMemory());
+}

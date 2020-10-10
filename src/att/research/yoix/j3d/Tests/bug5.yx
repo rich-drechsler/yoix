@@ -1,0 +1,122 @@
+//
+// Pretty much the same as the last example but it moves one of the
+// views.
+//
+
+import yoix.j3d.*;
+import yoix.*.*;
+
+VirtualUniverse universe = {
+    Color background = Color.gray;
+
+    Array layout = {
+	new BranchGroup {
+	    String tag = "$_branch1";
+
+	    Point3D position;
+
+	    EulerAngle orientation = {
+		double alpha = 45;
+		double beta = 45;
+	    };
+
+	    Array layout = {
+		new ColorCube {
+		    String tag = "$_colorcube";
+		    double scale = 0.2;
+		},
+	    };
+	},
+
+	new ViewPlatform {
+	    String tag = "$_sideview";
+
+	    Transform3D transform = {
+		initializer() {
+		    setToTranslation(0, 0, 10);
+		}
+	    };
+	},
+
+	new ViewPlatform {
+	    String tag = "$_topview";
+
+	    Transform3D transform = {
+		initializer() {
+		    setToViewAt(0, 5, 0, 0, 0, 0, 0, 0, -1);
+		}
+	    };
+	},
+    };
+};
+
+JFrame f = {
+    GridLayout layoutmanager = {
+	int rows = 0;
+	int columns = 1;
+	double vgap = 72.0/4;
+    };
+
+    Array layout = {
+	new Canvas3D {
+            String  tag = "$_topcanvas";
+            ViewPlatform view = universe.tagged.$_topview;
+
+            mousePressed(MouseEvent e) {
+		if (e.modifiers == BUTTON1_MASK)
+		    direction = 1;
+		else if (e.modifiers&SHIFT_MASK == SHIFT_MASK)
+		    direction = 0;
+		else direction = -1;
+            }
+	},
+
+        new Canvas3D {
+            String  tag = "$_sidecanvas";
+            ViewPlatform view = universe.tagged.$_sideview;
+
+            mousePressed(MouseEvent e) {
+		if (e.modifiers == BUTTON1_MASK)
+		    motion = 1;
+		else if (e.modifiers&SHIFT_MASK == SHIFT_MASK)
+		    motion = 0;
+		else motion = -1;
+            }
+        },
+    };
+};
+
+f.visible = TRUE;
+
+int motion = 0;
+int direction = 0;
+Point3D last;
+Point3D p;
+EulerAngle a;
+
+Transform3D t = universe.tagged.$_sideview.transform;
+
+while (1) {
+    if (direction != 0) {
+	p = universe.tagged.$_branch1.position;
+	p.x += (double)direction/100.0;
+	universe.tagged.$_branch1.position = p;
+    }
+
+    if (motion != 0) {
+	a = universe.tagged.$_branch1.orientation;
+	a.alpha += 5*motion;
+	universe.tagged.$_branch1.orientation = a;
+    }
+
+    p = universe.tagged.$_colorcube.location;
+if (p != null) {
+    if (p.x != last.x || p.y != last.y || p.z != last.z) {
+	fprintf(stderr, "location=%O\n", p);
+	last = p;
+    }
+}
+
+    sleep(.1);
+}
+

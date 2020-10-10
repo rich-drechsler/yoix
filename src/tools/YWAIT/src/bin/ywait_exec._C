@@ -1,0 +1,24 @@
+#include <stdlib.h>
+#include <unistd.h>
+
+int
+main(int argc, char *argv[]) {
+
+    char  *exec_argv[] = {
+	"<_PERL_PATH_DQ_>",
+	"-T",
+	"-w",
+	"<_SERVER_HOMEDIR_DQ_>/bin/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_exec.pl",
+	NULL
+    };
+
+    /*
+     * Make this setuid and setgid and the installed <_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_exec.pl Perl
+     * script will effectively run that way too. Feel free to add your own
+     * security checks if you think they're necessary.
+     */
+
+    execv(exec_argv[0], exec_argv);
+    return(0);
+}
+

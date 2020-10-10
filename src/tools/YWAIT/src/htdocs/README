@@ -1,0 +1,58 @@
+These are Yoix scripts and HTML files that are installed in the directory
+that your web server uses to distribute documents (usually HTML files, but
+in our case most are Yoix scripts). They're important files that include
+one HTML file, ten Yoix scripts that make up the low level infrastructure
+when they're downloaded and executed by the client, a small collection of
+Yoix scripts that are used build screens that might be needed during the
+login process (i.e., before a client gets a valid sessionid), and several
+other screens (e.g., your application's main screen) that are "preloaded"
+while the user is logging in.
+
+Clients usually point an appropriate version of the Yoix interpreter at
+the installed version of ywait._YX when they want to start your application.
+It happens automatically when clients use the programs that the "installer"
+loads on their systems, but there's really no magic involved. Point your
+browser at the installed version of ywait._YX and you get to read the file.
+Point the Yoix interpreter at the same file and you get to run it.
+
+The ten files
+
+	ywait._YX
+	ywait_common.yx
+	ywait_custom.yx
+	ywait_icons.yx
+	ywait_insets.yx
+	ywait_plugins.yx
+	ywait_preferences.yx
+	ywait_screens._YX
+	ywait_server._YX
+	ywait_threads.yx
+
+make up the low level infrastructure that runs on the client. Take a look
+at ywait._YX and you will see a series of include statements that load the
+rest of these files from your server.
+
+Screen files that might be used before a user successfully logs in
+
+	ywait_broadcast.yx
+	ywait_confirm.yx
+	ywait_login.yx
+	ywait_login_password.yx
+	ywait_notify.yx
+	ywait_reconnect.yx
+	ywait_reconnect_password.yx
+	ywait_welcome.yx
+
+are included in here because clients won't necessarily have a sessionid
+that would let them go through normal channels to get the screen. You'll
+also find several screens, like
+
+	ywait_main.yx
+	ywait_welcome.yx
+
+that aren't used during login, but they're "preloaded" while the user is
+logging in. It's not a required step, so your application's main screen
+could easily be moved into the ../screens directory, but preloading can
+reduce the startup time a bit, particularly if you have a complicated
+main screen.
+

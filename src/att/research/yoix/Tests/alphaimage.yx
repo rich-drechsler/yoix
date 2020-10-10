@@ -1,0 +1,54 @@
+import yoix.*.*;
+
+Color   bkgd;
+Color   pixel;
+Image   in_image;
+Image   out_image;
+int     row;
+int     col;
+int     rows;
+int     cols;
+int     type;
+
+final String USAGE = strfmt("USAGE: %s image_file_path > alpha_image.png\n", argv[0]);
+
+if (argc != 2) {
+    fprintf(stderr, "ERROR: missing argument\n");
+    fprintf(stderr, USAGE);
+    exit(1);
+}
+
+in_image = new Image {
+    String source = argv[1];
+};
+
+if (in_image == NULL || in_image.size == NULL) {
+    fprintf(stderr, "ERROR: supplied argument (%s) is not a valid image\n", argv[1]);
+    exit(2);
+}
+
+cols = in_image.columns;
+rows  = in_image.rows;
+
+type = TYPE_RGBA;
+
+bkgd = in_image.getpixel(0, 0);
+
+out_image = new Image {
+    int       type = type;
+    Color     background = NULL;
+    Dimension size = {
+	int width = in_image.size.width;
+	int height = in_image.size.height;
+    };
+};
+
+for (row = 0; row < rows; row++) {
+    for (col = 0; col < cols; col++) {
+	pixel = in_image.getpixel(col, row);
+	if (bkgd == NULL || pixel !== bkgd)
+	    out_image.setpixel(col, row, pixel);
+    }
+}
+
+encodeImage(out_image, "png", stdout);

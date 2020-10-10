@@ -1,0 +1,309 @@
+import yoix.*.*;
+
+int failures = 0;
+int testcnt = 0;
+String testname;
+
+testing(name) {
+    testcnt++;
+    testname = name;
+}
+
+failure(...) {
+    failures++;
+    if(argc == 1) {
+	fprintf(stderr, "FAILURE: %s (test #%d/%s)\n", testname, testcnt, argv[0]); 
+    } else {
+	fprintf(stderr, "FAILURE: %s (test #%d)\n", testname, testcnt); 
+    }
+}
+
+wrapup() {
+    if(failures == 0) {
+	fprintf(stderr, "%s: OK: Completed all %d tests successfully (%d failures)\n", global.argv[0], testcnt, failures);
+    } else {
+	fprintf(stderr, "%s: NG: Completed %d tests with %d failures\n", global.argv[0], testcnt, failures);
+    }
+    exit(failures);
+}
+
+Hashtable h;
+
+int i = 5;
+String five = "five";
+
+
+h.put(five, i);
+
+testing("put/get");
+if(h.get(five) !== i) {
+    failure();
+    fprintf(stderr, "\t%O != %O\n", h.get(five), i);
+}
+
+testing("put/get");
+if(h.get("five") !== 5) {
+    failure();
+    fprintf(stderr, "\t%O != %O\n", h.get("five"), 5);
+}
+
+h.put(i, five);
+
+testing("put/get");
+if(h.get(i) !== five) {
+    failure();
+    fprintf(stderr, "\t%O != %O\n", h.get(i), five);
+}
+
+testing("put/get");
+if(h.get(i) !== "five") {
+    failure();
+    fprintf(stderr, "\t%O != %O\n", h.get(i), "five");
+}
+
+Array keys[] = h.keys;
+
+testing("keys");
+if(keys@length != 2) {
+    failure("a");
+    fprintf(stderr, "\t%d != %d\n", keys@length, 2);
+} else {
+    if(
+       (keys[0] != five && keys[1] != five)
+       ||
+       (keys[0] != i && keys[1] != i)
+       ) {
+	failure("b");
+    }
+}
+
+Array values = h.values;
+
+testing("values");
+if(values@length != 2) {
+    failure("a");
+    fprintf(stderr, "\t%d != %d\n", values@length, 2);
+} else {
+    if(
+       (values[0] != five && values[1] != five)
+       ||
+       (values[0] != i && values[1] != i)
+       ) {
+	failure("b");
+    }
+}
+
+testing("keys/values");
+if(keys@length != 2 || values@length != 2) {
+    failure("a");
+    fprintf(stderr, "\t%d != %d != %d\n", keys@length, values@length, 2);
+} else {
+    if(
+       (keys[0] != values[1])
+       ||
+       (keys[1] != values[0])
+       ) {
+	failure("b");
+    }
+}
+
+testing("pairs (reading)");
+Array prs = h.pairs;
+if(prs@length != 4) {
+    failure("a");
+    fprintf(stderr, "\t%d != %d\n", prs@length, 4);
+} else {
+    if(
+       (prs[0] != keys[0])
+       ||
+       (prs[1] != values[0])
+       ||
+       (prs[2] != keys[1])
+       ||
+       (prs[3] != values[1])
+       ) {
+	failure("b");
+    }
+}
+
+testing("size");
+h.pairs = keys;
+if(h.size != 1) {
+    failure("a");
+    fprintf(stderr, "\t%d != %d\n", h.size, 1);
+} else {
+    if(h.get(keys[0]) != keys[1]) {
+	failure("b");
+    }
+}
+
+h.pairs = prs;
+testing("pairs (writing)");
+if(h.size != 2) {
+    failure("a");
+    fprintf(stderr, "\t%d != %d\n", h.size, 2);
+} else {
+    if(h.get(keys[0]) != values[0] || h.get(keys[1]) != values[1]) {
+	failure("b");
+    }
+}
+
+
+
+testing("defined (when not actually defined)");
+if(h.contains("six") || h.contains("seven")) {
+    failure();
+}
+
+Hashtable hh = {
+    Array pairs = { "six", 6, "seven", 7 };
+};
+
+testing("initialization and defined (when actually defined)");
+if(!hh.contains("six") || !hh.contains("seven")) {
+    failure();
+}
+
+Dictionary d = {
+	int dog = 19;
+	String cat = "fido";
+};
+
+Array a1 = { "hey", "away", "extra" };
+Array b1 = { "ho", "we go" };
+
+/****
+testing("putAll (hashtable)");
+Hashtable old = putAll(hh, h);
+if(!h.contains("six") || !h.contains("seven") || h.get("six") !== 6 || h.get("seven") !== 7) {
+    failure();
+}
+
+testing("previous values returned (when not previously defined)");
+if(!old.contains("six") || !old.contains("seven") || old.get("six") != null || old.get("seven") != null) {
+    failure();
+}
+
+old = putAll(hh, h);
+testing("previous values returned (when previously defined)");
+if(!old.contains("six") || !old.contains("seven") || old.get("six") !== 6 || old.get("seven") !== 7) {
+    failure();
+}
+
+testing("putAll (dictionary)");
+Dictionary d = {
+	int dog = 19;
+	String cat = "fido";
+};
+old = h.putAll(d);
+if(!h.contains("dog") || !h.contains("cat") || h.get("dog") !== 19 || h.get("cat") !== "fido") {
+    failure();
+}
+
+Array a1 = { "hey", "away", "extra" };
+Array b1 = { "ho", "we go" };
+
+testing("putAll (array)");
+old = h.putAll(a1);
+if(!h.contains("hey") || !h.contains("extra") || h.get("hey") !== "away" || h.get("extra") != null) {
+    failure();
+}
+
+testing("putAll (array/null)");
+old = h.putAll(a1, null);
+if(!h.contains("hey") || !h.contains("away") || !h.contains("extra") || h.get("hey") != null || h.get("away") != null || h.get("extra") != null) {
+    failure();
+}
+
+testing("putAll (arrays)");
+old = h.putAll(a1, b1);
+if(!h.contains("hey") || !h.contains("away") || !h.contains("extra") || h.get("hey") !== "ho" || h.get("away") !== "we go" || h.get("extra") != null) {
+    failure();
+}
+****/
+
+testing("object key");
+h.put(d, a1);
+if(!h.contains(d) || h.get(d) != a1) {
+    failure();
+}
+
+testing("contains");
+if(!h.contains(d)) {
+    failure();
+}
+
+testing("containsValue");
+if(!h.containsValue(a1)) {
+    failure();
+}
+
+testing("remove");
+int sz = h.size;
+h.remove(d);
+if(h.contains(d) || h.size != (sz-1)) {
+    failure();
+}
+
+testing("rehash");
+sz = h.size;
+h.size = -1;
+if(h.size != sz) {
+    failure();
+}
+
+testing("cloning");
+Hashtable cl = h.clone;
+if(sz != cl.size) {
+    failure("a");
+} else {
+    int i;
+
+    keys = h.keys;
+    for(i=0; i<sz; i++) {
+	if(!cl.contains(keys[i]) || h.get(keys[i]) != cl.get(keys[i])) {
+	    failure("b");
+	    break;
+	}
+    }
+}
+
+testing("removing all");
+cl.size = 0;
+if(cl.size != 0 || cl.contains(keys[0])) {
+    failure();
+}
+
+testing("findAll");
+h.put("key_one", cl);
+h.put("key_two", cl);
+keys = h.findAll(cl);
+if(keys@length != 2) {
+    failure("a");
+} else {
+    if(
+       (keys[0] !== "key_one" && keys[1] !== "key_one")
+       ||
+       (keys[0] !== "key_two" && keys[1] !== "key_two")
+       ) {
+	failure("b");
+    }
+}
+
+testing("findAll (again)");
+h.put("key_one", "somevalue");
+h.put("key_two", "somevalue");
+keys = h.findAll("somevalue");
+if(keys@length != 2) {
+    failure("a");
+} else {
+    if(
+       (keys[0] !== "key_one" && keys[1] !== "key_one")
+       ||
+       (keys[0] !== "key_two" && keys[1] !== "key_two")
+       ) {
+	failure("b");
+    }
+}
+
+wrapup();

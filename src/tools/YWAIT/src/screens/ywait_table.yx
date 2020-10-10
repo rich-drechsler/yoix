@@ -1,0 +1,418 @@
+//
+// A screen that can load and display a table.
+// To maintain generality, this table is a bit more complicated than usual.
+// Features:
+//   - the JTable itself is built using NewJTable, but if a custom builder is
+//     desired, it should be passed in to GetAndShowScreen as the value
+//     corresponding to the name "jtablebuilder".
+//   - to allow any needed objects to be stored in the screen, there is
+//     an empty Dictionary called "variables" available that can be
+//     populated via the typical argument setting mechanism of GetAndShowScreen,
+//     namely, "variables", new Dictionary { /* whatever */ },
+//   - use "labelinfo" to specify the screen label as follows:
+//     + If labelinfo is a String, then that becomes the label text.
+//     + If labelinfo is an Array, then:
+//       - If first argument is a Font, it is used as the label font.
+//       - Remaining arguments can be String or Array. When a String, then
+//         it is inserted, as is, as label text. When an Array, it indicates
+//         a link, in which case the first element is the link text (String)
+//         and the second element is a String, which is treated as a URL, or
+//         a Callable, with any remaining elements act as arguments to the
+//         Callable, or an int with, optionally, two additional String arguments.
+//         The Callable can be defined in the global context, the screen context
+//         or the "variables" Dictionary (mentioned above). The search sequence,
+//         incidentally, proceeds in that order. The int is used to bring either
+//         the current screen (when zero) or the parent screen (when non-zero) to
+//         the front. The additional two String arguments in this case, if they
+//         are present, are tags for a JTabbedPane and a pane in the JTabbedPane,
+//         respectively. The JTabbedPane should be in the same screen that was
+//         popped to the front.
+//   - use the "tableconfig" Dictionary to configure the JTable fields.
+//   - use the "loadargs" Object to populate the table with data as follows:
+//     + If loadargs is a String, it is assigned to the "text" field of the table. 
+//     + If loadargs is an Array, its elements will be used as the input arguments
+//       of a QueueCommand call, the output of which will be used to load the table
+//       directly (via TableLoader).
+//     + If loadargs is a Dictionary, it will be used to further configure the
+//       JTable fields (in the same manner as tableconfig was used earlier).
+//     + If loadargs is a Callable, it will be called with the screen as its one
+//       and only argument.
+//
+
+import yoix.*.*;
+
+Dictionary Global = argv[1];
+
+Builder(String name, Array args) {
+
+    JFrame screen = {
+	Dimension size = NULL;
+	Insets    border = Global.GetLabeledScreenInsets();
+	String    title = Global.ACRONYM;
+	Font      font = Global.GetPreferredLabelFont();
+	int       opaque = TRUE;
+
+	////////////////////////////
+	//
+	// Screen Variables
+	//
+	////////////////////////////
+
+	String screenbuilder = global.argv[0];
+	String screenname = name;
+	String screentitle = "Table";
+	Object anchorpoint = NULL;
+	Color  screencolor = NULL;
+	int    anchorstyle = AUTOMATIC;
+	int    screenanchor = CENTER;
+	int    initialized = FALSE;
+	int    disposeonclose = TRUE;
+	int    savestate = TRUE;   // save screen-specific info within session
+	int    retainstate = TRUE; // save screen-class info across sessions
+	int    reloadargs = FALSE;
+
+	////////////////////////////
+	//
+	// Custom Variables
+	//
+	////////////////////////////
+
+	Dictionary variables;
+	Dictionary tableconfig = NULL;
+	Object     labelinfo;
+	Object     loadargs = NULL;
+
+	////////////////////////////
+	//
+	// Screen Layout
+	//
+	////////////////////////////
+
+	GridBagLayout layoutmanager;
+
+	Array layout = {
+	    new JPanel {
+		String tag = "$_label";
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 1;
+		int fill = HORIZONTAL;
+	    },
+
+	    new JPanel {
+		int border = 72/4;
+		BorderLayout layoutmanager = { int vgap = 72/16; };
+		Array layout = {
+		    new JPanel {
+			GridBagLayout layoutmanager;
+
+			Array layout = {
+			    new JLabel {
+				String tag = "$_rowinfo";
+				int alignment = RIGHT;
+			    },
+			    new GridBagConstraints {
+				int gridwidth = REMAINDER;
+				int weightx = 1;
+				int fill = HORIZONTAL;
+				int anchor = RIGHT;
+			    },
+			};
+		    },
+		    NORTH,
+		    Global.GetFromArgArray("jtablebuilder", args, Global.NewJTable, "$_table", "|", (HORIZONTAL_AS_NEEDED|VERTICAL_ALWAYS), -1, "rows", 12),
+		    CENTER,
+		    new JPanel {
+			Border border = Global.NewEtchedBorder("Table Search");
+
+			GridBagLayout layoutmanager;
+
+			Array layout = {
+			    new JTextField {
+				String tag = "$_find_text";
+				int columns = 15;
+				int alignment = LEFT;
+
+				actionPerformed(e) {
+				    root.FindText(text, TRUE);
+				}
+
+				keyPressed(e) {
+				    root.components.$_find_text.foreground = NULL;
+				}
+			    },
+			    new GridBagConstraints {
+				Insets insets = Global.GetQualifiedInsets(72.0/32, "R");
+				int anchor = LEFT;
+				int weightx = 1;
+				int fill = HORIZONTAL;
+			    },
+			    new JButton {
+				String tag = "$_prev";
+				Font   font = Global.GetPreferredButtonFont();
+				Image  icon = Global.GetButtonLeftIcon(font, Color.black, 0.9);
+
+				actionPerformed(e) {
+				    root.FindText(root.components.$_find_text.text, FALSE);
+				}
+
+				mousePressed(e) {
+				    root.components.$_find_text.foreground = NULL;
+				}
+			    },
+			    new GridBagConstraints {
+				int anchor = LEFT;
+			    },
+			    new JButton {
+				String tag = "$_next";
+				Font   font = Global.GetPreferredButtonFont();
+				Image  icon = Global.GetButtonRightIcon(font, Color.black, 0.9);
+
+				actionPerformed(e) {
+				    root.FindText(root.components.$_find_text.text, TRUE);
+				}
+
+				mousePressed(e) {
+				    root.components.$_find_text.foreground = NULL;
+				}
+			    },
+			    new GridBagConstraints {
+				int anchor = LEFT;
+			    },
+			    new JCheckBox {
+				String tag = "$_re_pattern";
+				String text = "RE";
+				Font   font = Global.GetPreferredButtonFont();
+				int alignment = LEFT;
+
+				stateChanged(e) {
+				    if (state)
+					root.components.$_glob_pattern.state = 0;
+				}
+			    },
+			    new GridBagConstraints {
+				int anchor = RIGHT;
+			    },
+			    new JCheckBox {
+				String tag = "$_glob_pattern";
+				String text = "GLOB";
+				Font   font = Global.GetPreferredButtonFont();
+				int alignment = LEFT;
+
+				stateChanged(e) {
+				    if (state)
+					root.components.$_re_pattern.state = 0;
+				}
+			    },
+			    new GridBagConstraints {
+				int gridwidth = RELATIVE;
+				int anchor = RIGHT;
+			    },
+			    new JCheckBox {
+				String tag = "$_colwise";
+				String text = "Column-Wise";
+				Font   font = Global.GetPreferredButtonFont();
+				int alignment = LEFT;
+
+				stateChanged(e) {
+				    if (state) {
+					root.components.$_prev.icon = Global.GetButtonUpIcon(root.components.$_prev.font, Color.black, 0.9);
+					root.components.$_next.icon = Global.GetButtonDownIcon(root.components.$_prev.font, Color.black, 0.9);
+				    } else {
+					root.components.$_prev.icon = Global.GetButtonLeftIcon(root.components.$_prev.font, Color.black, 0.9);
+					root.components.$_next.icon = Global.GetButtonRightIcon(root.components.$_prev.font, Color.black, 0.9);
+				    }
+				}
+			    },
+			    new GridBagConstraints {
+				int gridwidth = REMAINDER;
+				int anchor = RIGHT;
+			    },
+			};
+		    },
+		    SOUTH,
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int weightx = 100;
+		int weighty = 100;
+		int fill = BOTH;
+		int anchor = CENTER;
+	    },
+
+	    new JPanel {
+		BoxLayout layoutmanager = {
+		    int orientation = HORIZONTAL;
+		};
+
+		Array layout = {
+		    new JButton {
+			String text = "Reset";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    root.Reset();
+			}
+		    },
+		    72/32,
+		    new JButton {
+			String text = "Refresh";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    root.Refresh();
+			}
+		    },
+		    72/4,
+		    new JButton {
+			String text = "Dismiss";
+			Font   font = Global.GetPreferredButtonFont();
+
+			actionPerformed(e) {
+			    root.HideScreen();
+			}
+		    },
+		};
+	    },
+	    new GridBagConstraints {
+		int gridwidth = REMAINDER;
+		int anchor = SOUTH;	// keeps button at the bottom of our space
+	    },
+
+	    Global.NewJProprietaryLabel(),
+	    new GridBagConstraints {
+		int    gridwidth = REMAINDER;
+		Insets insets = Global.GetQualifiedInsets(72.0/32, "T");
+	    },
+	};
+
+	////////////////////////////
+	//
+	// Screen Functions
+	//
+	////////////////////////////
+
+	ClearScreen() {
+	    Reset();
+	}
+
+	HideScreen() {
+	    Global.HideScreen(this);
+	}
+
+	InitializeScreen() {
+
+	    Pointer ptr;
+	    Object  linkedlabel;
+	    
+	    if (labelinfo instanceof String)
+		labelinfo = new Array[] { Global.GetPreferredHeadingFont(), labelinfo };
+
+	    
+	    linkedlabel = Global.NewLinkedLabel(unroll(labelinfo));
+	    if (linkedlabel instanceof JPanel)
+		components.$_label.layout = linkedlabel.layout;
+	    else components.$_label.layout = new Array[] { linkedlabel };
+	    components.$_label.background = background;
+
+	    if (tableconfig != NULL)
+		unroll(tableconfig, components.$_table);
+	}
+
+	LoadScreen() {
+	    if (loadargs instanceof Array) {
+		Global.QueueCommandOnce(
+		    this,
+		    unroll(loadargs),
+		    NULL,
+		    &components.$_table
+		);
+	    } else if (loadargs instanceof Dictionary)
+		unroll(loadargs, components.$_table);
+	    else if (loadargs instanceof String)
+		components.$_table.text = loadargs;
+	    else if (loadargs instanceof Callable)
+		loadargs(this);
+	}
+
+	ReloadScreen() {
+	    Refresh();
+	}
+
+	SetScreenSize(value) {
+	    Dimension sz;
+	    int       reset = false;
+
+	    components.$_table.size = NULL;
+	    size = NULL;
+
+	    sz = size;
+	    if (sz.width > (VM.screen.width - 72)) {
+		sz.width = VM.screen.width - 72;
+		reset = true;
+	    }
+	    if (sz.height > (VM.screen.height - 72)) {
+		sz.height = VM.screen.height - 72;
+		reset = true;
+	    }
+	    if (reset)
+		size = sz;
+	}
+
+	////////////////////////////
+	//
+	// Miscellaneous Functions
+	//
+	////////////////////////////
+
+	FindText(String str, int forward) {
+	    Array  cells;
+            String match;
+	    int    find_pattern;
+	    int    find_ignorecase;
+	    int    find_bycols;
+
+	    cells = components.$_table.action(GET_CELL_SELECTION);
+	    if (cells@length == 1) {
+	    }
+
+	    find_ignorecase = 1; // always ignore case
+
+	    find_bycols = components.$_colwise.state;
+
+	    if (components.$_re_pattern.state)
+		find_pattern = 1;
+	    else if (components.$_glob_pattern.state)
+		find_pattern = -1;
+	    else find_pattern = 0;
+
+            if (str@sizeof > 0) {
+                match = components.$_table.findNextMatch(str, find_pattern, find_ignorecase, find_bycols, forward);
+                if (match == NULL)
+                    root.components.$_find_text.foreground = Color.red;
+            }
+        }
+
+	Reset() {
+
+	    components.$_table.action(MAKE_CELL_VISIBLE, 0, 0);
+	    components.$_table.action(RESET_VIEW);
+	    components.$_table.action(CLEAR_SELECTION);
+	    components.$_find_text.text = "";
+	    components.$_re_pattern.state = 0;
+	    components.$_glob_pattern.state = 0;
+	    components.$_colwise.state = 0;
+        }
+
+	Refresh() {
+	    
+	    LoadScreen();
+	}
+    };
+
+    return(screen);
+}
+
+return(Builder);

@@ -1,0 +1,407 @@
+//
+// Supposed to be a standalone Yoix program that can be executed when
+// we want to guarantee that up to date versions of the interpreter and
+// any custom modules are used with Yoix scripts, like ydat.yx. Should
+// be called from a controlling Yoix script using something like
+//
+//	if (execute(stream, NULL, directory, target))
+//	    exit(0);
+//
+// where stream is used to read this script, directory is string that
+// says where the required update files can be found, and target is a
+// string that identifies the appropriate update files in directory.
+// A TRUE return value means the caller should exit() because the jar
+// file installed on the user's system was updated or the user has an
+// old version that was not updated.
+//
+// Two update files are associated with a target and both should be
+// located in directory. The first file name begins with target, ends
+// with a ".validate" suffix, and contains "module name" and "regular
+// expression" pairs that are used to validate important Yoix classes
+// that the user's jar file would use to run the target application.
+// Blank lines and comments are allowed in ".validate" files.
+//
+// The second file name begins with target and ends with an ".update"
+// suffix. It has a stricter format that starts with a short header,
+// a blank line, and currently ends with the new jar file, which may
+// be url-encoded. The ".update" file is only used if tests in the
+// corresponding ".validate" indicate that the user's jar file needs
+// to be updated.
+//
+
+import yoix.*.*;
+
+FindJarFile() {
+    Dictionary info;
+    String     classpath;
+    String     path = NULL;
+
+    //
+    // Intentionally only finds it when the "java.class.path" property
+    // specifies a single "location", which is what happens when java
+    // is started using the -jar option.
+    //
+
+    if ((path = getProperty("yoix.jarfile")) == NULL) {
+	if ((classpath = getProperty("java.class.path")) != NULL) {
+	    if (indexOf(classpath, PATHSEPARATOR) < 0) {
+		if (endsWith(classpath, ".jar")) {
+		    info = stat(classpath);
+		    if (info.exists && info.isfile)
+			path = localPath(info.yoixpath);
+		}
+	    }
+	}
+    }
+    return(path);
+}
+
+GetApplicationName() {
+    String path;
+    String name;
+
+    if ((path = FindJarFile()) != NULL) {
+	name = substring(path, lastIndexOf(path, FILESEPARATOR) + 1);
+	if (endsWith(name, ".jar"))
+	    name = substring(name, 0, name@sizeof - 4);
+    }
+    return(name);
+}
+
+GetUpdate(Dictionary update) {
+    Object screen;
+    String key;
+    String value;
+    String buf;
+    int    total;
+    int    count;
+
+    //
+    // The update file must start with a short header in a format that's
+    // processed by the fscanf() call and that must currently define the
+    // BYTES, FILESIZE, and CHECKSUM keywords. There eventually may be
+    // others.
+    //
+    // Decided to use read() and update status rather than relying on the
+    // callback mechanism that streams support. The callbacks would have
+    // been more convenient if the callback function didn't always run in
+    // the stream's context. Should be easy changes in the Java code, but
+    // we're not going to implement them right away and we didn't want to
+    // assume changes were available before updates ran.
+    //
+
+    if ((update.stream = open(update.directory + "/" + update.target + ".update", "r")) != NULL) {
+	while (fscanf(update.stream, "%[A-Z]=%[^\r\n]%*c", &key, &value) == 2)
+	    update[strdup(key)] = urlDecode(value, TRUE);
+	readLine(update.stream);	// skip blank line that ends the header
+	if (defined("CHECKSUM", update)) {
+	    if (defined("BYTES", update)) {
+		if (defined("FILESIZE", update)) {
+		    if ((update.total = atoi(update.FILESIZE)) > 0) {
+			screen = ShowProgress(update);
+			buf = new String[update.total];
+			total = 0;
+			while (total < update.total && (count = read(update.stream, buf + total, min(update.total - total, 4096))) >= 0) {
+			    total += count;
+			    screen.UpdateProgress(total);
+			}
+			if (total == update.total) {
+			    if (buf@sizeof > atoi(update.BYTES))
+				buf = urlDecode(buf, TRUE, TRUE);	// undocumented 3rd arg
+			    if (buf@sizeof == atoi(update.BYTES)) {
+				if (chkstr(crc32(buf)) === trim(update.CHECKSUM)) {
+				    update.data = buf;
+				    update.error = NULL;
+				    if (!update.interrupted)
+					sleep(1.5);	// brief pause so user can cancel
+				} else update.error = "The unpacked jar file checksum was invalid";
+			    } else update.error = "The unpacked jar file was the wrong size";
+			} else update.error = "The downloaded data was the wrong size";
+			screen.SetVisible(FALSE);
+			if (update.interrupted) {
+			    update.data = NULL;
+			    update.error = NULL;
+			}
+		    }
+		} else update.error = "The FILESIZE entry in update file is missing";
+	    } else update.error = "The BYTES entry in update file is missing";
+	} else update.error = "The CHECKSUM entry in update file is missing";
+    }
+    ShowUpdateError(update);
+}
+
+ShowConfirm(String message, String title) {
+    beep();
+    return(showConfirmDialog(NULL, message, title, YES_NO_OPTION));
+}
+
+ShowMessage(String message, String title) {
+    beep();
+    return(showMessageDialog(NULL, message, title));
+}
+
+ShowProgress(Dictionary update) {
+    UIManager uim;
+
+    JDialog screen = {
+	//
+	// Initializing size to NULL here may not work when Java 1.3.1
+	// is used with newer versions of the interpreter, so sizing is
+	// now handled in SetVisible().
+	//
+	String title = "Download Progress";
+	Color  background = uim.get("OptionPane.background");
+	Color  foreground = uim.get("OptionPane.foreground");
+	int    resizable = FALSE;
+
+	Dictionary update = update;
+
+	GridBagLayout layoutmanager;
+	Array layout = {
+	    new JProgressBar {
+		String tag = "$_progressbar";
+		Color  background = Color.white;
+		Color  foreground = Color.blue;
+		int    minumum = 0;
+		int    maximum = update.total;
+		int    value = 0;
+
+		Dimension preferredsize = {
+		    double width = 5*72;
+		};
+	    },
+	    new GridBagConstraints {
+		int fill = BOTH;
+		int weightx = 100;
+
+		Insets insets = {
+		    double top = 72.0/4;
+		    double left = 72.0/4;
+		    double bottom = 72.0/4;
+		    double right = 72.0/4;
+		};
+	    },
+	};
+
+	windowClosing(Event e) {
+	    if (this.update != NULL) {
+		this.update.stream.open = FALSE;
+		this.update.interrupted = TRUE;
+	    }
+	}
+
+	SetVisible(int state) {
+	    //
+	    // Sizing kludge is complete nonsense that is ONLY needed
+	    // when Java 1.3.1 is being used with newer versions of the
+	    // Yoix interpreter. More reasonable combinations probably
+	    // all work when size is initialized to NULL in the dialog's
+	    // declaration.
+	    //
+	    if (startsWith(getProperty("java.version"), "1.3")) {
+		this.size = new Dimension {
+		    double width = 5.5*72;
+		    double height = 1.25*72;
+		};
+	    } else this.size = NULL;
+
+	    this.location = new Point {
+		double x = (VM.screen.width - size.width)/2;
+		double y = (VM.screen.height - size.height)/2 - 72;
+	    };
+	    this.visible = state;
+	}
+
+	UpdateProgress(double count) {
+	    components.$_progressbar.value = count;
+	    components.$_progressbar.text = toString((int)components.$_progressbar.percentcomplete) + "%";
+	}
+    };
+
+    screen.SetVisible(TRUE);
+    return(screen);
+}
+
+ShowUpdateError(Dictionary update) {
+    String message;
+
+    if ((message = update.error) != NULL) {
+	if (update.user != NULL) {
+	    if (strcasecmp(update.user, "unknown")) {
+		message[0] = tolower(message[0]);
+		message = update.user + " " + message;
+	    }
+	}
+	ShowMessage(message, "Update Error");
+	update.error = NULL;
+    }
+}
+
+Update(Dictionary update) {
+    Dictionary info;
+    String     olddata;
+    File       file;
+    int        success = FALSE;
+
+    if (update.path != NULL && update.data != NULL) {
+	update.user = getProperty("user.name");
+	if ((file = fopen(update.path, "r+")) != NULL) {
+	    if ((info = stat(update.path)) != NULL) {
+		olddata = readStream(file);
+		if (olddata@sizeof == info.size) {
+		    offsetBytes(file, 0);
+		    truncateBytes(file, update.data@sizeof);
+		    write(file, update.data);
+		    if (fileSize(update.path) != update.data@sizeof) {
+			//
+			// Looks like the write didn't work properly,
+			// so try to restore the old jar file.
+			//
+			update.error = "Error updating " + update.path;
+			truncateBytes(file, olddata@sizeof);
+			offsetBytes(file, 0);
+			write(file, olddata);
+		    } else success = TRUE;
+		} else update.error = "Can't copy " + update.path;
+	    } else update.error = "Can't stat " + update.path;
+	    fclose(file);
+	} else {
+	    if (fopen(update.path, "r") == NULL)	// very unlikely!!
+		update.error = "Can't read " + update.path;
+	    else update.error = "Can't write " + update.path;
+	}
+	ShowUpdateError(update);
+    }
+    return(success);
+}
+
+Validate(Dictionary update) {
+    Regexp re;
+    Stream stream;
+    String version;
+    String name;
+    String match;
+    int    valid = TRUE;
+
+    if (update.directory != NULL && update.target != NULL) {
+	if ((stream = open(update.directory + "/" + update.target + ".validate", "r")) != NULL) {
+	    while (valid && fscanf(stream, "%s %[^\r\n]%*c", &name, &match) > 0) {
+		if (name[0] != '#') {
+		    if ((version = getModuleVersion(name)) != NULL) { 
+			re.pattern = trim(match);
+			valid = (re === version);
+		    } else valid = FALSE;
+		}
+	    }
+	}
+    }
+    return(valid);
+};
+
+//
+// All the information about the update goes in the following dictionary.
+// Header fields from the ".update" file, which are all upper-case, also
+// end up here.
+//
+
+Dictionary UPDATE[0, ...] = {
+    final String directory = (argc > 1) ? argv[1] : NULL;
+    final String target = (argc > 2) ? argv[2] : "yoix";
+    final String path = FindJarFile();
+    final String name = GetApplicationName();
+
+    //
+    // Filled in by GetUpdate().
+    //
+    Stream stream = NULL;
+    String data = NULL;
+    String error = NULL;
+    int    total = -1; 
+    int    interrupted = FALSE;
+    int    restart = FALSE;
+
+    //
+    // Used in error messages, but only if it looks like a name.
+    //
+    String user = NULL;
+};
+
+Dictionary MESSAGES[] = {
+    "JARFILE_UPDATE",
+	"The jar file you're using to run " + UPDATE.name + " is no longer supported and" +
+	"\n" +
+	"it must be updated. We can try to do the update for you right now or" +
+	"\n" +
+	"we may be able to direct you to a jar file that you can download and" +
+	"\n" +
+	"install on your own." +
+	"\n\n" +
+	"Should we proceed with the automatic " + UPDATE.name + " update?",
+
+    "JARFILE_UPDATE_CANCELLED",
+	"The version of " + UPDATE.name + " that is installed on your system will not run" +
+	"\n" +
+	"until it is updated and you have decided to skip the automatic update." +
+	"\n" +
+	"You may be able to find a working jar file at" +
+	"\n\n" +
+	"    " + UPDATE.directory + "/" + UPDATE.target + ".jar" +
+	"\n\n" +
+	"that can replace the one currently installed on your system. If you have" +
+	"\n" +
+	"questions or problems contact the official owner of the software.",
+
+    "JARFILE_UPDATE_FAILED",
+	"The update of " + UPDATE.name + " was not successful. You may have to contact" +
+	"\n" +
+	"a system administrator or the official owner of the software for more" +
+	"\n" +
+	"help.",
+
+    "JARFILE_UPDATE_INTERRUPTED",
+	"The update of " + UPDATE.name + " was interrupted. No changes have been made" +
+	"\n" +
+	"to your system, however " + UPDATE.name + " will not run until it is updated.",
+
+    "JARFILE_UPDATE_SUCCEEDED",
+	"The update was successful and " + UPDATE.name + " should work properly" +
+	"\n" +
+	"the next time you use it.",
+
+    "JARFILE_UPDATE_UNAVAILABLE",
+	"Automatic update for " + UPDATE.name + " is not currently available. You may have" +
+	"\n" +
+	"to contact the official owner of the software for more help.",
+};
+
+//
+// Eventually may add a separate step that validates the Java version
+// that's being used to run the application. Not doing it now because
+// its likely users have scripts that point directly at a version of
+// java, which means those scripts would also have to be updated.
+//
+
+if (!Validate(UPDATE)) {
+    UPDATE.restart = TRUE;
+    switch (ShowConfirm(MESSAGES.JARFILE_UPDATE, "Update Required")) {
+	case 0:
+	    GetUpdate(UPDATE);
+	    if (UPDATE.data != NULL) {
+		if (Update(UPDATE))
+		    ShowMessage(MESSAGES.JARFILE_UPDATE_SUCCEEDED, "Update Succeeded");
+		else ShowMessage(MESSAGES.JARFILE_UPDATE_FAILED, "Update Failed");
+	    } else {
+		if (UPDATE.interrupted)
+		    ShowMessage(MESSAGES.JARFILE_UPDATE_INTERRUPTED, "Update Interrupted");
+		else ShowMessage(MESSAGES.JARFILE_UPDATE_UNAVAILABLE, "Update Unavailable");
+	    }
+	    break;
+
+	default:
+	    ShowMessage(MESSAGES.JARFILE_UPDATE_CANCELLED, "Update Cancelled");
+	    break;
+    }
+}
+
+return(UPDATE.restart);
+

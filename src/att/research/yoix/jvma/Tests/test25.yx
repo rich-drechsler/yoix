@@ -1,0 +1,42 @@
+import yoix.*.*;
+import yoix.module.att.research.yoix.jvma.JVMTestModule.*;
+
+//
+// An intentional error
+//
+
+assembleClass(@<<
+    public class ZZZ {
+	extern static java.io.PrintStream java.lang.System.out
+	extern void java.lang.System.out.println(int)
+	extern void java.lang.System.out.println(double)
+
+	//
+	// Initializer is rather restricted - one value per line and values
+	// aren't separated by commas.
+	//
+
+	static java.lang.String[] array = {
+	    "now is the"
+	    "time"
+	    "for all good men"
+	}
+
+	public static void main(java.lang.String[] args) {
+	    push 1
+	    push 2.0
+	    dupx
+	    add
+	    sub
+	    push java.lang.System.out
+	    exch
+	    /////invoke java.lang.System.out.println(int)
+	    invoke java.lang.System.out.println(double)
+	    return
+	}
+    }
+>>@);
+
+fprintf(stderr, "%s", dumpClassFile());
+writeClassFile("/tmp/xxx");
+

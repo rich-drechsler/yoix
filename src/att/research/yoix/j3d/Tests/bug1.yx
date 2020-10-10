@@ -1,0 +1,79 @@
+//
+// This only seems to be a problem on Macs - not sure what version of
+// Java.
+//
+// Currently fails and can illustrate at least one problem that exists
+// (besides the intentional invalidaccess) that happens when we try to
+// set layout outside of a declaration. Use this as a starting point
+// when we get around to addressing those issues - there are lots of
+// other things to tackle before working on this stuff!!!
+//
+
+import yoix.j3d.*;
+import yoix.*.*;
+
+Image image = {
+    String source = "http://www.yoix.org/images/ATTlogo.gif";
+};
+
+Canvas3D canvas = {
+    ////Color background = Color.lightGray;
+    ////Image backgroundimage = image;
+    ////int backgroundhints = SCALE_DEFAULT;
+};
+
+VirtualUniverse universe;
+
+Array layout = {
+    new BranchGroup {
+	Array layout = {
+	    new BranchGroup {
+		Transform3D transform = {
+		    initializer() {
+			setToRotationX(30);
+		    }
+		};
+
+		Array layout = {
+		    new BranchGroup {
+			Transform3D transform = {
+			    initializer() {
+				setToRotationZ(45);
+			    }
+			};
+
+			Array layout = {
+			    new ColorCube {
+				double scale = 0.2;
+			    },
+			};
+		    },
+		};
+	    },
+	};
+    },
+};
+
+Frame f = {
+    Array layout = {canvas};
+};
+
+f.visible = TRUE;
+
+sleep(2.0);
+canvas.view = universe;
+sleep(2.0);
+universe.layout = layout;
+sleep(2.0);
+universe.background = Color.yellow;
+sleep(2.0);
+universe.backgroundimage = image;
+sleep(2.0);
+universe.layout = NULL;
+sleep(2.0);
+universe.layout = layout;
+sleep(2.0);
+universe.backgroundimage = NULL;
+sleep(2.0);
+universe.background = NULL;
+

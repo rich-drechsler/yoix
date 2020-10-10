@@ -1,0 +1,14 @@
+//
+// Intentional error to check error message line numbers and call trace.
+//
+
+import yoix.*.*;
+
+Testing() {
+        x = 12;
+////dumpStack(null, 0);
+////dumpYoixStack(null);
+        x = "Now is the time";
+}
+
+Testing();

@@ -1,0 +1,55 @@
+//
+// A modified version of the text version that uses a DatagramSocket. To
+// test on your local machine type something like,
+//
+//	yoix chattest3.yx 6789
+//
+// in one window and
+//
+//	yoix chattest3.yx localhost 6789
+//
+// in another and the two windows should be able to chat.
+//
+
+import yoix.*.*;
+
+DatagramSocket socket;
+String         buf[1024];
+String         text;
+
+final String HELLO = "ready to chat\n";
+final String GOODBYE = "goodbye\n";
+
+if (argc == 2) {
+    socket.localport = atoi(argv[1]);
+    socket.receive(buf, &socket.remoteaddress, &socket.remoteport);
+    printf("%s> %s", socket.remotename, buf);
+    socket.send(HELLO);
+} else if (argc == 3) {
+    socket.remoteaddress = getHostAddress(argv[1]);
+    socket.remoteport = atoi(argv[2]);
+    socket.send(HELLO);
+} else fprintf(stderr, "usage error\n");
+
+Thread receiver_thread = {
+    run() {
+	while (socket.receive(buf)) {
+	    printf("%s> %s", socket.remotename, buf);
+	    if (buf === GOODBYE)
+		break;
+	}
+	exit(0);
+    }
+};
+
+receiver_thread.run();
+
+do {
+    if ((text = stdin.nextline) == NULL)
+	text = GOODBYE;
+    else text += "\n";
+    socket.send(text);
+} while (text !== GOODBYE);
+
+exit(0);
+

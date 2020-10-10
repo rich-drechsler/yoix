@@ -1,0 +1,471 @@
+//
+// Screen that can be used to examine and update a special password file.
+//
+
+import yoix.*.*;
+
+Array sortcols;
+
+JFrame screen = {
+    Dimension size = NULL;
+    int       visible = TRUE;
+
+    Insets border = {
+	double top = 72.0/16;
+	double left = 72.0/8;
+	double right = 72.0/8;
+	double bottom = 72.0/8;
+    };
+
+    Dimension preferredsize = {
+	double width = 9*72;
+	double height = 0*72;
+    };
+
+    GridBagLayout layoutmanager;
+
+    Array layout = {
+	new JLabel {
+	    String text = "Password File";
+	    String font = "Dialog-bold-14";
+	    int    alignment = CENTER;
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int weightx = 1;
+	    int fill = HORIZONTAL;
+	    int anchor = CENTER;
+	},
+
+	new JTable {
+	    String tag = "$_table";
+	    String inputfilter = ":";
+	    String outputfilter = ":";
+	    Color  background = Color.white;
+	    int    reorder = TRUE;
+	    int    resize = TRUE;
+	    int    edit = FALSE;
+	    int    scroll = BOTH;
+	    int    resizemode = AUTO_RESIZE_OFF;
+
+	    Array columns = {
+		new JTableColumn {
+		    String header = "Login Name";
+
+		    Dictionary width = {
+			double minimum = 1.25*72;
+	 	    };
+		},
+		new JTableColumn {
+		    String header = "Password";
+
+		    Dictionary width = {
+			double minimum = 1.5*72;
+	 	    };
+		},
+		new JTableColumn {
+		    String header = "Group";
+
+		    Dictionary width = {
+			double minimum = 1.25*72;
+	 	    };
+		},
+		new JTableColumn {
+		    String header = "Start Time";
+
+		    Dictionary width = {
+			double minimum = 1.25*72;
+	 	    };
+		},
+		new JTableColumn {
+		    String header = "End Time";
+
+		    Dictionary width = {
+			double minimum = 1.25*72;
+	 	    };
+		},
+		new JTableColumn {
+		    String header = "Command Set";
+
+		    Dictionary width = {
+			double minimum = 1.25*72;
+	 	    };
+		},
+		new JTableColumn {
+		    String header = "IP Addresses";
+
+		    Dictionary width = {
+			double minimum = 1.25*72;
+	 	    };
+		},
+		new JTableColumn {
+		    String header = "Full Name";
+
+		    Dictionary width = {
+			double minimum = 2.0*72;
+	 	    };
+		},
+		new JTableColumn {
+		    String header = "Email Address";
+
+		    Dictionary width = {
+			double minimum = 2.0*72;
+	 	    };
+		},
+		new JTableColumn {
+		    String header = "Extra";
+
+		    double width = 4.0*72;
+		},
+	    };
+
+	    String values = "qwert:FJGu8gbJD1bXY:default:1134239420:0:::Bill Qwert:qwert@nowhere.qqq:\npoiuy:MNgIvTnh67wFM:default:0:0:::Bob Poiuy:poiuy@nowhere.qqq:";
+
+	    invocationAction(InvocationEvent e) {
+		int index;
+		int length;
+		int offset;
+		int i;
+		int j;
+
+		fprintf(stderr, "action: %.2O\n", e);
+
+		// over-engineered
+
+		if (e.valuesColumn >= 0) {
+		    if ((e.modifiers&(CTRL_MASK|SHIFT_MASK)) != (CTRL_MASK|SHIFT_MASK)) {
+			if ((e.modifiers&CTRL_MASK) == 0) {
+			    sortcols = new Array[0,...] {};
+			    length = 0;
+			} else {
+			    e.modifiers &= ~CTRL_MASK;
+			    length = sortcols@length;
+			}
+	
+			if (e.modifiers == BUTTON1_MASK) {
+			    if (length == 0 && columns[e.valuesColumn].state > 0)
+				index = 0;
+			    else index = 1 + e.valuesColumn;
+			} else {
+			    if (length == 0 && columns[e.valuesColumn].state < 0)
+				index = 0;
+			    else index = -(1 + e.valuesColumn);
+			}
+			for (i = 0; i < length; i++) {
+			    if (index == sortcols[i]) {
+				for (j = i; j > 0; j--)
+				    sortcols[j] = sortcols[j-1];
+				sortcols[0] = 0;
+				index = 0;
+				break;
+			    } else if (-index == sortcols[i]) {
+				sortcols[i] = index;
+				index = 0;
+				break;
+			    }
+			}
+			for(offset = 0; offset < length; offset++) {
+			    if (sortcols[offset] != 0)
+				break;
+			}
+			if (index != 0) {
+			    sortcols[length] = index;
+			    length++;
+			}
+
+			if (length == offset) {
+			    action(TABLE_SORT, null);
+			    sortcols = new Array[0,...] {};
+			} else action(TABLE_SORT, sortcols + offset);
+		    }
+		}
+	    }
+
+	    invocationSelection(InvocationEvent e) {
+		if (e.valuesRow >= 0)
+		    root.components.$_edit_panel.LoadFields(values[e.valuesRow]);
+	    }
+
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int weightx = 1;
+	    int weighty = 1;
+	    int fill = BOTH;
+	},
+
+	new JPanel {
+	    String tag = "$_edit_panel";
+
+	    Array tagmap = {
+		"$_login_name",
+		"$_password",
+		"$_group",
+		"$_start_time",
+		"$_end_time",
+		"$_command_set",
+		"$_ip_addresses",
+		"$_full_name",
+		"$_email_address",
+		"$_extra",
+	    };
+
+	    GridBagLayout layoutmanager;
+	    Array layout = {
+		new JLabel {
+		    String text = "Login Name";
+		    int    alignment = RIGHT;
+		},
+		new GridBagConstraints {
+		    int anchor = RIGHT;
+		},
+
+		new JTextField {
+		    String tag = "$_login_name";
+		    int columns = 15;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 1;
+		    int anchor = LEFT;
+		    ////int fill = HORIZONTAL;
+		},
+
+		new JLabel {
+		    String text = "Password";
+		    int    alignment = RIGHT;
+		},
+		new GridBagConstraints {
+		    int anchor = RIGHT;
+		},
+
+		new JTextField {
+		    String tag = "$_password";
+		    int columns = 15;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 1;
+		    int anchor = LEFT;
+		    ////int fill = HORIZONTAL;
+		},
+
+		new JLabel {
+		    String text = "Group";
+		    int    alignment = RIGHT;
+		},
+		new GridBagConstraints {
+		    int anchor = RIGHT;
+		},
+
+		new JTextField {
+		    String tag = "$_group";
+		    int columns = 15;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 1;
+		    int anchor = LEFT;
+		    ////int fill = HORIZONTAL;
+		},
+
+		new JLabel {
+		    String text = "Start Time";
+		    int    alignment = RIGHT;
+		},
+		new GridBagConstraints {
+		    int anchor = RIGHT;
+		},
+
+		new JTextField {
+		    String tag = "$_start_time";
+		    int columns = 15;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 1;
+		    int anchor = LEFT;
+		    ////int fill = HORIZONTAL;
+		},
+
+		new JLabel {
+		    String text = "End Time";
+		    int    alignment = RIGHT;
+		},
+		new GridBagConstraints {
+		    int anchor = RIGHT;
+		},
+
+		new JTextField {
+		    String tag = "$_end_time";
+		    int columns = 15;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 1;
+		    int anchor = LEFT;
+		    ////int fill = HORIZONTAL;
+		},
+
+		new JLabel {
+		    String text = "Command Set";
+		    int    alignment = RIGHT;
+		},
+		new GridBagConstraints {
+		    int anchor = RIGHT;
+		},
+
+		new JTextField {
+		    String tag = "$_command_set";
+		    int columns = 25;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 1;
+		    int anchor = LEFT;
+		    int fill = HORIZONTAL;
+		},
+
+		new JLabel {
+		    String text = "IP Addresses";
+		    int    alignment = RIGHT;
+		},
+		new GridBagConstraints {
+		    int anchor = RIGHT;
+		},
+
+		new JTextField {
+		    String tag = "$_ip_addresses";
+		    int columns = 25;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 1;
+		    int anchor = LEFT;
+		    int fill = HORIZONTAL;
+		},
+
+		new JLabel {
+		    String text = "Full Name";
+		    int    alignment = RIGHT;
+		},
+		new GridBagConstraints {
+		    int anchor = RIGHT;
+		},
+
+		new JTextField {
+		    String tag = "$_full_name";
+		    int columns = 25;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 1;
+		    int anchor = LEFT;
+		    int fill = HORIZONTAL;
+		},
+
+		new JLabel {
+		    String text = "Email Address";
+		    int    alignment = RIGHT;
+		},
+		new GridBagConstraints {
+		    int anchor = RIGHT;
+		},
+
+		new JTextField {
+		    String tag = "$_email_address";
+		    int columns = 25;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 1;
+		    int anchor = LEFT;
+		    int fill = HORIZONTAL;
+		},
+
+		new JLabel {
+		    String text = "Extra";
+		    int    alignment = RIGHT;
+		},
+		new GridBagConstraints {
+		    int anchor = RIGHT;
+		},
+
+		new JTextField {
+		    String tag = "$_extra";
+		    int columns = 25;
+		},
+		new GridBagConstraints {
+		    int gridwidth = REMAINDER;
+		    int weightx = 1;
+		    int anchor = LEFT;
+		    int fill = HORIZONTAL;
+		},
+	    };
+
+	    ClearFields() {
+		int n;
+
+		for (n = 0; n < tagmap@sizeof; n++)
+		    root.components[tagmap[n]].text = NULL;
+	    }
+
+	    LoadFields(Array values) {
+		int n;
+
+		if (values != NULL) {
+		    for (n = 0; n < tagmap@sizeof; n++)
+			root.components[tagmap[n]].text = values[n];
+		}
+	    }
+
+	    ValidateFields() {
+	    }
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    ////int weightx = 1;
+	    ////int weighty = 1;
+	    int fill = HORIZONTAL;
+	    int anchor = CENTER;
+
+	    Insets insets = {
+		double top = 72.0/8;
+		double left = 1.5*72.0;
+		double right = 1.5*72.0;
+	    };
+	},
+
+	new JPanel {
+	    GridLayout layoutmanager;
+	    Array layout = {
+		new JButton {
+		    String text = "XXX";
+
+		    actionPerformed(e) {
+		    }
+		},
+		new JButton {
+		    String text = "YYY";
+		},
+		new JButton {
+		    String text = "Quit";
+
+		    actionPerformed(e) {
+			exit(0);
+		    }
+		},
+	    };
+	},
+	new GridBagConstraints {
+	    int gridwidth = REMAINDER;
+	    int anchor = CENTER;
+
+	    Insets insets = {
+		double top = 72.0/8;
+	    };
+	},
+    };
+};
+
+screen.visible = TRUE;

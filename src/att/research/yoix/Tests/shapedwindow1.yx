@@ -1,0 +1,36 @@
+//
+// Here's an example of a shaped window that requires a fairly new version
+// of Java 1.6 (build 11 or 12). Shaping a JFrame or JDialog only works if
+// you set decorationstyle to 0 or 2 (see the reference pages for more info).
+//
+
+import yoix.*.*;
+
+JFrame f = {
+    Dimension size = NULL;
+    int       decorationstyle = 2;
+
+    Path shape = {
+	paint() {
+	    //
+	    // This function can also be defined to take a single argument
+	    // that will be the size of the window which could be used to
+	    // build the path.
+	    //
+	    arc(100, 100, 100, 0, 360);
+	    scalepath(2.0, 1.0);
+	}
+    };
+
+    Path lastshape = NULL;
+
+    mousePressed(e) {
+	Path tmp = shape;
+
+	shape = lastshape;
+	lastshape = tmp;
+    }
+};
+
+f.visible = TRUE;
+

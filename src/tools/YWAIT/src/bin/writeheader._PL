@@ -1,0 +1,39 @@
+#!<_PERL_PATH_> -w
+#
+# A script that can be called from programs, like shell scripts, that need
+# to output a header but can't read Perl. Mostly designed to help convert
+# an old application that was shell script based to YWAIT, which uses Perl
+# for the main server-side scripts.
+#
+# NOTE - the official setup script exports WARNINGMESSAGE, but some shells
+# don't give us changes back when we read $ENV{WARNINGMESSAGE} unless the
+# script officially exports WARNINGMESSAGE. Looks like ksh and bash do, but
+# /bin/sh on Solaris doesn't. Not a bog problem, but it is something that
+# you should keep in mind.
+# 
+
+use strict;
+use vars qw(<_PERL_GLOBAL_VARIABLES_>);
+
+$SERVERHOMEDIR="<_SERVER_HOMEDIR_DQ_>";
+$SERVERSETUP=$SERVERHOMEDIR . "/etc/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_rc.pl";
+
+if (! -r "$SERVERSETUP") {
+    print "STATUS=internalerror\n";
+    print "REASON=server+cannot+find+or+read+setup+file\n";
+    exit(1);
+}
+require $SERVERSETUP;
+
+#
+# Explicitly define variables that WriteHeader() needs that are supposed
+# to be set in the environment.
+#
+
+$RELEASE = $ENV{RELEASE};
+$USER = $ENV{USER};
+$USER_TZ = $ENV{USER_TZ};
+$WARNINGMESSAGE = $ENV{WARNINGMESSAGE};
+
+WriteHeader(@ARGV);
+

@@ -1,0 +1,406 @@
+#!<_PERL_PATH_> -w
+#
+# Administrative script that currently handles some canned cleanup tasks
+# (e.g., HOMES, LOGFILES, TMPFILES) and can be run by hand or as a cron
+# job. The complete set of task names can be found in the for loop near
+# the end of this file. A command line like,
+#
+#	cleanup.pl -L/tmp/cleanup_log LOGFILES TMPFILES
+#
+# says run the LOGFILES and TMPFILES tasks using /tmp/cleanup_log as the
+# log file. Here's an example crontab file:
+#
+#	0 6,18 * * * $HOME/www/admin/bin/cleanup -C TMPFILES
+#	0,15 0 * * * $HOME/www/admin/bin/cleanup -C LOGFILES
+#
+# The -C option says use the default cleanup log, which also happens to
+# be one of the files maintained by the LOGFILES task. You can use the
+# crontab.pl script to generate a candidate crontab file.
+#
+# This script relies on utime.pl, which is a simple perl script that can
+# dump an adjusted Unix time in several different formats. The -t option
+# says the output should be in a format that can be used with the Unix
+# touch command. The -f option lets you control the output via a format
+# string that strftime() should accept.
+#
+
+use strict;
+use sigtrap;
+use Cwd;
+use IO::Handle;
+use vars qw(<_PERL_GLOBAL_VARIABLES_>);
+
+$SERVERHOMEDIR="<_SERVER_HOMEDIR_DQ_>";
+$SERVERSETUP=$SERVERHOMEDIR . "/etc/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_rc.pl";
+
+if (! -r "$SERVERSETUP") {
+    print "STATUS=internalerror\n";
+    print "REASON=server+cannot+find+or+read+setup+file\n";
+    exit(1);
+}
+require $SERVERSETUP;
+
+$ENV{PATH} = $ENV{PATH} . ":$ADMINBINDIR";
+
+my $ARGC = @ARGV;
+my $ARG;
+my $ARGN;
+my $TASK;
+
+my $DEBUG = "";
+my $HERE = getcwd();
+my $LOGDATE;
+my $LOGFILE = "";
+my $TIMESTAMP = "/tmp/<_BETA_PREFIX_DQ_><_ACRONYM_LOWER_DQ_>_cleanup." . "$$";
+my $UTIME = "<_BETA_PREFIX_DQ_>utime.pl";
+
+#
+# Settings for the canned "LOGFILES" and "TMPFILES" cleanup tasks. It
+# definitely would be better if the log file names came directly from
+# the startup script!! This approach was a quick hack just to get the
+# BETA_PREFIX working, so we will revisit it in the near future.
+#
+
+my $LOG_DIRECTORY = $LOGDIR;
+my @LOG_FILES = ("<_BETA_PREFIX_DQ_>access_log", "<_BETA_PREFIX_DQ_>cleanup_log", "<_BETA_PREFIX_DQ_>license_log", "<_BETA_PREFIX_DQ_>monitor_log");
+my $TMP_AGE = "4d";			# 4 days
+my @TMP_DIRECTORIES = ($TMPDIR);	# candidates for general cleanup
+my $SESSIONID_AGE = "1d";		# probably should be at least one day
+
+sub CleanDirectories {
+    my @ARGV = @_;
+    my $ARGC = @_;
+    my $ARGN;
+    my $ARG;
+    my $FIND;
+    my $HERE = getcwd();
+    my $PREFIX = "";
+    my $SECONDS = 604800;
+    my $TOUCHTIME;
+
+    for ($ARGN = 0; $ARGN < $ARGC; $ARGN++) {
+	$ARG = $ARGV[$ARGN];
+	if ($ARG eq "-P") {
+	    $PREFIX = $ARGV[++$ARGN];
+	} elsif ($ARG =~ /^-P/) {
+	    $ARG =~ s/^-P//;
+	    $PREFIX = $ARG;
+	} elsif ($ARG =~ /^-\d+d$/) {		# days
+	    $ARG =~ s/^-(\d+)d/$1/;
+	    $SECONDS = 86400 * $ARG;
+	} elsif ($ARG =~ /^-\d+h$/) {		# hours
+	    $ARG =~ s/^-(\d+)h/$1/;
+	    $SECONDS = 3600 * $ARG;
+	} elsif ($ARG =~ /^-(\d+)m$/) {		# minutes
+	    $ARG =~ s/^-(\d+)m/$1/;
+	    $SECONDS = 60 * $ARG;
+	} elsif ($ARG =~ /^-[0-9]*s$/) {	# seconds
+	    $SECONDS =~ s/^-(\d+)s/$1/;
+	} else {
+	    last;
+	}
+    }
+
+    $TOUCHTIME = `$UTIME -t -a-$SECONDS`;
+    system("touch -t $TOUCHTIME $TIMESTAMP");
+    $FIND = "find . \\( -type d -a ! -name .\\* \\) -prune" .
+	" -o -type f ! -newer $TIMESTAMP" .
+	" -name \"$PREFIX\"\\* -exec $DEBUG rm -f {} \\;";
+
+    for (; $ARGN < $ARGC; $ARGN++) {
+	$ARG = $ARGV[$ARGN];
+	if (-d $ARG) {
+	    Log("CleanDirectories: $ARG");
+	    chdir($ARG);
+	    system($FIND);
+	    chdir($HERE);
+	}
+    }
+}
+
+sub CleanHomes {
+    my $HERE = getcwd();
+
+    chdir($HOMEDIR);
+    foreach (split(" ", `echo *`)) {
+	if (-d $_) {
+	    Log("CleanHomes: $_");
+	    chdir($_);
+	    TrimFile("login.history", 200, 50);
+	    chdir($HOMEDIR);
+	}
+    }
+    chdir($HERE);
+}
+
+sub CleanLogs {
+    my @ARGV = @_;
+    my $ARGC = @_;
+    my $ARGN;
+    my $ARG;
+    my $COMPRESS = "FALSE";
+    my $HERE = getcwd();
+    my $NOW = time();
+    my $SUFFIX = `$UTIME -a-86400 -f%a $NOW`;
+    my $TOUCHTIME = `$UTIME -t -a-604800 $NOW`;
+    my $FILE;
+    my $SAVEAS;
+
+    for ($ARGN = 0; $ARGN < $ARGC; $ARGN++) {
+	$ARG = $ARGV[$ARGN];
+	if ($ARG eq "-c") {
+	    $COMPRESS = "TRUE";
+	} elsif ($ARG eq "-S") {
+	    $SUFFIX = $ARGV[++$ARGN];
+	} elsif ($ARG =~ /^-S/) {
+	    $ARG =~ s/^-S//;
+	    $SUFFIX = $ARG;
+	} else {
+	    last;
+	}
+    }
+
+    system("touch -t $TOUCHTIME $TIMESTAMP");
+
+    for (; $ARGN < $ARGC; $ARGN++) {
+	$FILE = $ARGV[$ARGN];
+	if (! -d $FILE) {
+	    Log("CleanLogs: $FILE");
+	    $SAVEAS = $FILE . "." . $SUFFIX;
+	    if (-f $SAVEAS) {
+		$SAVEAS = `find $SAVEAS ! -newer $TIMESTAMP -print`;
+	    } elsif (-f $SAVEAS . ".gz") {
+		$SAVEAS = `find $SAVEAS.gz ! -newer $TIMESTAMP -print`
+	    }
+	    if ($SAVEAS) {
+		system("$DEBUG rm -f $SAVEAS");
+		$SAVEAS =~ s/\.gz$//;
+		if (-f $FILE) {
+		    system("$DEBUG mv $FILE $SAVEAS");
+		} else {
+		    $TOUCHTIME = `$UTIME -t -a-86400 $NOW`;
+		    system("$DEBUG touch -t $TOUCHTIME $SAVEAS");
+		}
+		if ($COMPRESS eq "TRUE") {
+		    system("$DEBUG gzip $SAVEAS");
+		}
+	    }
+	} else {
+	    chdir($FILE);
+	}
+    }
+    chdir($HERE);
+}
+
+sub CleanPasswords {
+    my @ARGV = @_;
+    my $ARGC = @_;
+    my $ARGN;
+    my $ARG;
+    my $CHECKDISABLED = 0;
+    my $NOW = time();
+    my $SUFFIX = `$UTIME -a-86400 -f%a $NOW`;
+    my $TOUCHTIME = `$UTIME -t -a-604800 $NOW`;
+    my $SAVEAS;
+    my @FIELDS;
+    my @STAT;
+    my $TMPCOPY;
+    my %USERS;
+
+    #
+    # Moves the password file before cleaning up, which means logins and
+    # password changes will be temporarily disabled. Don't think it's a
+    # big deal because this shouldn't take long and will normally be run
+    # by cron at a time when we don't expect much activity.
+    # 
+
+    for ($ARGN = 0; $ARGN < $ARGC; $ARGN++) {
+	$ARG = $ARGV[$ARGN];
+	if ($ARG eq "-d") {
+	    $CHECKDISABLED = 0;
+	} elsif ($ARG eq "+d") {
+	    $CHECKDISABLED = 1;
+	} elsif ($ARG eq "-S") {
+	    $SUFFIX = $ARGV[++$ARGN];
+	} elsif ($ARG =~ /^-S/) {
+	    $ARG =~ s/^-S//;
+	    $SUFFIX = $ARG;
+	} else {
+	    last;
+	}
+    }
+
+    system("touch -t $TOUCHTIME $TIMESTAMP");
+
+    if (-f $PASSWDFILE && -r $PASSWDFILE && -w $PASSWDFILE && LockNamedFile($PASSWDFILE, 120, 2)) {
+	Log("CleanPasswords: $PASSWDFILE");
+	@STAT = stat(_);
+	$SAVEAS = $PASSWDFILE . "." . $SUFFIX;
+	$TMPCOPY = $SAVEAS . ".tmp";
+	if (-f $SAVEAS) {
+	    $SAVEAS = `find $SAVEAS ! -newer $TIMESTAMP -print`;
+	}
+	if ($SAVEAS) {
+	    system("$DEBUG rm -f $SAVEAS");
+	    system("$DEBUG mv $PASSWDFILE $SAVEAS");
+	    if (open(PASSWD, "<$SAVEAS")) {
+		while (<PASSWD>) {
+		    if ($_ =~ /^\s*[a-zA-Z]/) {
+			@FIELDS = split(/:/, $_, 10);
+			if ($FIELDS[0]) {
+			    if ($CHECKDISABLED) {
+				if ($FIELDS[1] eq "disabled") {
+				    delete($USERS{$FIELDS[0]});
+				} else {
+				    $USERS{$FIELDS[0]} = $_;
+				}
+			    } else {
+				$USERS{$FIELDS[0]} = $_;
+			    }
+			}
+		    }
+		}
+		close(PASSWD);
+		if (open(PASSWD, "<$SAVEAS")) {
+		    if (open(OUTPUT, ">$TMPCOPY")) {
+			while (<PASSWD>) {
+			    if ($_ =~ /^\s*[a-zA-Z]/) {
+				@FIELDS = split(/:/, $_, 10);
+				if (defined($USERS{$FIELDS[0]})) {
+				    print(OUTPUT $USERS{$FIELDS[0]});
+				    delete($USERS{$FIELDS[0]});
+				}
+			    } else {
+				print(OUTPUT $_);
+			    }
+			}
+			close(OUTPUT);
+			if (chmod($STAT[2], $TMPCOPY)) {
+			    if (chown($STAT[4], $STAT[5], $TMPCOPY)) {
+				system("$DEBUG mv $TMPCOPY $PASSWDFILE");
+			    }
+			}
+			system("$DEBUG rm -f $TMPCOPY");
+		    }
+		    close(PASSWD);
+		}
+	    }
+	    if (! -f $PASSWDFILE) {
+		system("$DEBUG mv $SAVEAS $PASSWDFILE");
+		if (-f $PASSWDFILE) {
+		    Log("CleanPasswords: $PASSWDFILE cleanup failed - old copy has been restored");
+		} else {
+		    Log("CleanPasswords: $PASSWDFILE cleanup failed - the system probably is broken");
+		}
+	    }
+	}
+	UnlockNamedFile($PASSWDFILE);
+    }
+}
+
+sub Log {
+    my ($ACTION, @ARGS) = @_;
+
+    printf(LOGFILE "[%s] %s", $LOGDATE, $ACTION);
+    foreach (@ARGS) {
+	printf(LOGFILE " %s", $_);
+    }
+    printf(LOGFILE "\n");
+}
+
+sub TrimFile {
+    my ($FILE, $MAXLINES, $MINLINES) = @_;
+    my $LINECOUNT = 0;
+
+    if (-f $FILE) {
+	if (open(INPUT, $FILE)) {
+	    while (<INPUT>) {
+		$LINECOUNT++;
+	    }
+	    close(INPUT);
+	}
+	if ($LINECOUNT > $MAXLINES && $LINECOUNT > $MINLINES) {
+	    Log("TrimFile: $FILE");
+	    if (open(INPUT, $FILE)) {
+		if (open(OUTPUT, ">" . $FILE . "$$")) {
+		    for ($LINECOUNT -= $MINLINES; $LINECOUNT > 0; $LINECOUNT--) {
+			<INPUT>;
+		    }
+		    while (<INPUT>) {
+			print(OUTPUT $_);
+		    }
+		    close(OUTPUT);
+		    rename($FILE . "$$", $FILE);
+		}
+		close(INPUT);
+	    }
+	}
+    }
+}
+
+#
+# Process the command line options, set the log file up, and then
+# handle the cleanup tasks.
+#
+
+for ($ARGN = 0; $ARGN < $ARGC; $ARGN++) {
+    $ARG = $ARGV[$ARGN];
+    if ($ARG eq "-d") {			# debug mode
+	$DEBUG = "echo";
+    } elsif ($ARG eq "-C") {		# use the default log file
+	$LOGFILE = $LOGDIR . "/<_BETA_PREFIX_DQ_>cleanup_log";
+    } elsif ($ARG eq "-L") {		# use arbitrary log file
+	$LOGFILE = $ARGV[++$ARGN];
+    } elsif ($ARG =~ /^-L/) {		# use arbitrary log file
+	$ARG =~ s/^-L//;
+	$LOGFILE = $ARG;
+    } elsif ($ARG =~ /^-.*/) {
+	printf(STDERR "$0: invalid option $ARG\n");
+	exit(1);
+    } else {
+	last;
+    }
+}
+
+if ($LOGFILE) {
+    if ($LOGFILE ne "-") {
+	if (open(LOGFILE, ">>" . $LOGFILE)) {
+	    open(STDERR, ">>&LOGFILE");
+	    open(STDOUT, ">>&LOGFILE");
+	    LOGFILE->autoflush(1);
+	} else {
+	    open(LOGFILE, ">>&STDERR");
+	}
+    } else {
+	open(LOGFILE, ">>&STDOUT");
+	open(STDERR, ">>&LOGFILE");
+    }
+} else {
+    open(LOGFILE, ">>/dev/null");
+}
+
+$LOGDATE = `date +"%a %b %e %T %Z %Y"`;
+chomp($LOGDATE);
+
+for (; $ARGN < $ARGC; $ARGN++) {
+    $TASK = $ARGV[$ARGN];
+    if ($TASK eq "HOMES") {
+	CleanHomes
+    } elsif ($TASK eq "LOGFILES") {
+	CleanLogs($LOG_DIRECTORY, @LOG_FILES);
+    } elsif ($TASK eq "LOGFILES_COMPRESSED") {
+	CleanLogs("-c", $LOG_DIRECTORY, @LOG_FILES);
+    } elsif ($TASK eq "PASSWORDS") {
+	CleanPasswords("+d");
+    } elsif ($TASK eq "SESSIONIDS") {
+	CleanDirectories("-" . $SESSIONID_AGE, ($SESSIONIDDIR));
+    } elsif ($TASK eq "TMPFILES") {
+	CleanDirectories("-" . $TMP_AGE, @TMP_DIRECTORIES);
+    } elsif ($TASK ne "") {
+	printf(STDERR "$0: unknown task $TASK\n");
+	exit(1);
+    }
+}
+
+unlink($TIMESTAMP);
+

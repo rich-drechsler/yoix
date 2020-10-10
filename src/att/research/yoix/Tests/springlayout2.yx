@@ -1,0 +1,70 @@
+import yoix.*.*;
+
+JFrame jf = {
+    String tag = "$_frame";
+    Dimension size = NULL;
+    int       visible = TRUE;
+    int       border = 18;
+
+    SpringLayout layoutmanager = {
+	int columns = 4;
+	int orientation = HORIZONTAL;
+	int vgap = 6;
+	int hgap = 3;
+    };
+    Array layout = {
+	new JLabel {
+	    String text = "Label One:";
+	    int    alignment = RIGHT;
+	},
+	new JTextField {
+	    String text = "Text field 1";
+	    int    columns = 20;
+	},
+
+	new JLabel {
+	    String text = "Label the Second:";
+	    int    alignment = RIGHT;
+	},
+	new JTextField {
+	    String text = "Text field 2";
+	    int    columns = 40;
+	},
+
+	new JLabel {
+	    String text = "Label Three:";
+	    int    alignment = RIGHT;
+	},
+	new JTextField {
+	    String text = "Text field 3";
+	    int    columns = 30;
+	},
+
+	new JLabel {
+	    String text = "L4:";
+	    int    alignment = RIGHT;
+	},
+	new JTextField {
+	    String text = "Text field 4";
+	    int    columns = 15;
+	},
+
+	new JLabel {
+	    String text = "Label Five:";
+	    int    alignment = RIGHT;
+	},
+	new JTextField {
+	    String text = "Text field 5";
+	    int    columns = 15;
+	},
+
+// 	new JLabel {
+// 	    String text = "Label 6:";
+// 	    int    alignment = RIGHT;
+// 	},
+// 	new JTextField {
+// 	    String text = "Text field 6";
+// 	    int    columns = 15;
+// 	},
+    };
+};

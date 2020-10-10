@@ -1,0 +1,32 @@
+import yoix.*.*;
+
+JFrame f = {
+    Dimension size = {
+	int width = 300;
+	int height = 200;
+    };
+    Array layout = {
+	new JSplitPane {
+	    String tag = "$_pane";
+	    String font = "TimesRoman-bold-14";
+	    int    orientation = HORIZONTAL;
+
+	    Array layout = {
+		new JButton {
+		    String text = "Left/Right";
+		    actionPerformed(e) {
+			root.components.$_pane.orientation = HORIZONTAL;
+		    }
+		},
+		new JButton {
+		    String text = "Top/Bottom";
+		    actionPerformed(e) {
+			root.components.$_pane.orientation = VERTICAL;
+		    }
+		},
+	    };
+	},
+    };
+};
+
+f.visible = TRUE;
